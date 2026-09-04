@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     });
     console.log("Listing created successfully");
     return NextResponse.json(newListing, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log(error, "LISTING_ERROR");
     return new NextResponse("Internal Error", { status: 500 });
   }

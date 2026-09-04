@@ -15,7 +15,7 @@ const getBids = async (listingId: string) => {
     });
 
     return bids;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching bids:", error);
     return [];
   }

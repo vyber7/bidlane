@@ -89,7 +89,7 @@ export async function POST(req: Request) {
     // });
 
     return NextResponse.json(updatedListing, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(error, "ERROR_COMMENTS");
     return new NextResponse("Internal Server Error", { status: 500 });
   }

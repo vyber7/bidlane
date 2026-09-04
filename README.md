@@ -1,6 +1,6 @@
 # Car Auctions Platform
 
-A modern, real-time car auction platform built with Next.js 15, TypeScript, Prisma, and Pusher for live updates. Users can browse, bid, and sell vehicles in real-time auctions with live countdown timers and instant notifications.
+A modern, real-time car auction platform built with Next.js 16, React 19, TypeScript, Prisma, and Pusher for live updates. Users can browse, bid, and sell vehicles in real-time auctions with live countdown timers and instant notifications.
 
 ## 🌟 Features
 
@@ -18,7 +18,8 @@ A modern, real-time car auction platform built with Next.js 15, TypeScript, Pris
 
 ### Frontend
 
-- **Next.js 15** - React framework with App Router
+- **Next.js 16** - React framework with App Router and Turbopack
+- **React 19** - Component and rendering library
 - **TypeScript** - Type-safe development
 - **Tailwind CSS** - Utility-first styling
 - **React Icons** - Icon library
@@ -35,7 +36,7 @@ A modern, real-time car auction platform built with Next.js 15, TypeScript, Pris
 
 ## 📋 Prerequisites
 
-- Node.js 18+
+- Node.js 20.9+
 - MongoDB database (local or cloud)
 - Cloudinary account
 - Pusher account
@@ -223,7 +224,7 @@ Verify `DATABASE_URL` is correctly set in `.env.local`.
 
 ### Other Platforms
 
-- Ensure Node.js 18+ is available
+- Ensure Node.js 20.9+ is available
 - Set all environment variables
 - Run `npm run build` before starting
 

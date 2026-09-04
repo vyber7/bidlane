@@ -21,7 +21,7 @@ const CommentBox: React.FC<CommentBoxProps> = ({ comments, bids }) => {
       {commentsAndBids.map((item) => {
         let date = new Date(item.createdAt).toDateString();
         date = date.slice(4, 10);
-        let name = item.user?.name?.split(" ")[0];
+        const name = item.user?.name?.split(" ")[0];
 
         return (
           <li key={item.id} className="mb-2">

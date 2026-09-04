@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(currentUser, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log(error, "WATCHLIST_ERROR");
     //console.error(error, "REGISTRATION_ERROR");
     return new NextResponse("Internal Error", { status: 500 });

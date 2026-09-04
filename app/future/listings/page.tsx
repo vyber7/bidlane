@@ -2,6 +2,8 @@ import prisma from "../../libs/prismadb";
 import Listings from "@/app/components/Listings";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 
+export const dynamic = "force-dynamic";
+
 const FutureListings = async () => {
   const futureListings = await prisma.listing.findMany({
     where: { status: "UPCOMING" },

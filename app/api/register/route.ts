@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     });
     console.log("User created successfully");
     return NextResponse.json(user, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log(error, "REGISTRATION_ERROR");
     //console.error(error, "REGISTRATION_ERROR");
     return new NextResponse("Internal Error", { status: 500 });

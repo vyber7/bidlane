@@ -1,7 +1,11 @@
 "use client";
 
 import axios from "axios";
-import { CldImage, CldUploadButton } from "next-cloudinary";
+import {
+  CldImage,
+  CldUploadButton,
+  type CloudinaryUploadWidgetResults,
+} from "next-cloudinary";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -13,7 +17,9 @@ interface CoverImageProps {
 
 const CoverImage: React.FC<CoverImageProps> = ({ listingId, url, owner }) => {
   const [imageUrl, setImageUrl] = useState<string>(url || "");
-  const handleUpload = (result: any) => {
+  const handleUpload = (result: CloudinaryUploadWidgetResults) => {
+    if (typeof result.info !== "object" || !result.info.secure_url) return;
+
     setImageUrl(result.info.secure_url);
     axios.post(`/api/listing/${listingId}/cover-image`, {
       url: result.info.secure_url,

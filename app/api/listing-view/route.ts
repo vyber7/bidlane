@@ -41,7 +41,7 @@ export async function POST(req: Request) {
         `${updated.views} and listing seen updated: ${updated.seenIds}`
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log(error, "VIEWS_ERROR");
     return new NextResponse("Internal Error", { status: 500 });
   }

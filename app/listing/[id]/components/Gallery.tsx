@@ -1,6 +1,9 @@
 "use client";
 
-import { CldImage } from "next-cloudinary";
+import {
+  CldImage,
+  type CloudinaryUploadWidgetResults,
+} from "next-cloudinary";
 import { useEffect, useState } from "react";
 import { CldUploadButton } from "next-cloudinary";
 import axios from "axios";
@@ -14,6 +17,10 @@ interface GalleryProps {
   owner?: boolean;
 }
 
+interface GalleryImage {
+  url: string;
+}
+
 const Gallery: React.FC<GalleryProps> = ({ listingId, userId, owner }) => {
   const [images, setImages] = useState<string[]>([]);
   const { data: session } = useSession();
@@ -24,13 +31,15 @@ const Gallery: React.FC<GalleryProps> = ({ listingId, userId, owner }) => {
     fetch(`/api/cloudinary-images?folder=listing-${listingId}`)
       .then((res) => res.json())
       .then((data) => {
-        setImages(data.images.map((img: any) => img.url));
+        setImages(data.images.map((img: GalleryImage) => img.url));
         console.log("Fetched images:", data);
       })
       .catch((err) => console.error(err));
   }, [listingId]);
 
-  const handleUpload = (result: any) => {
+  const handleUpload = (result: CloudinaryUploadWidgetResults) => {
+    if (typeof result.info !== "object" || !result.info.secure_url) return;
+
     axios
       .get(`/api/cloudinary-images?folder=listing-${listingId}`)
       //   {
@@ -38,7 +47,7 @@ const Gallery: React.FC<GalleryProps> = ({ listingId, userId, owner }) => {
       //   })
 
       .then((res) => {
-        setImages(res.data.images.map((img: any) => img.url));
+        setImages(res.data.images.map((img: GalleryImage) => img.url));
         toast.success("Image uploaded successfully!");
       })
       .catch(() => toast.error("Image upload failed!"));

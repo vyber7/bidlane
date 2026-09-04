@@ -11,7 +11,7 @@ import clsx from "clsx";
 
 import { FiChevronRight, FiChevronDown } from "react-icons/fi";
 
-function Header(): JSX.Element {
+function Header() {
   const [chevron, setChevron] = useState(false);
   const { data: session } = useSession();
   const user = session?.user;
