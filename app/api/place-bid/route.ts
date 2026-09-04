@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/libs/prismadb";
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import { now } from "lodash";
 import { pusherServer } from "@/app/libs/pusher";
+import {
+  AuctionRequestError,
+  auctionErrorResponse,
+  isJsonObject,
+  requireListingId,
+  requireSafeInteger,
+} from "@/app/api/auction-security";
 
 export async function POST(req: Request) {
   try {
@@ -10,111 +16,137 @@ export async function POST(req: Request) {
     if (!currentUser?.id || !currentUser?.email)
       return new NextResponse("Unauthorized", { status: 401 });
 
-    const body = await req.json();
-    const { bidAmount, listingId } = body;
-
-    if (!bidAmount || !listingId)
-      return new NextResponse("Missing Information", { status: 400 });
-
-    const newBid = await prisma.bid.create({
-      data: {
-        amount: parseInt(bidAmount),
-        createdAt: new Date(now()),
-        listing: {
-          connect: {
-            id: listingId,
-          },
-        },
-        user: {
-          connect: {
-            id: currentUser.id,
-          },
-        },
-      },
-      include: {
-        user: true,
-      },
-    });
-
-    console.log("New Bid Created:", newBid);
-
-    const updatedListing = await prisma.listing.update({
-      where: {
-        id: listingId,
-      },
-      data: {
-        currentBid: parseInt(bidAmount),
-        highestBidder: {
-          connect: {
-            id: currentUser.id,
-          },
-        },
-        bidders: {
-          connect: {
-            id: currentUser.id,
-          },
-        },
-        bids: {
-          connect: {
-            id: newBid.id,
-          },
-        },
-      },
-    });
-
-    // when new bid is added, check the end time of the listing, if it's less than 2 minutes from now, extend it by 2 minutes
-    // const listing = await prisma.listing.findUnique({
-    //   where: {
-    //     id: listingId,
-    //   },
-    // });
-
-    if (updatedListing) {
-      const nowDate = new Date();
-      const distance = updatedListing.auctionEndsAt
-        ? updatedListing.auctionEndsAt.getTime() - nowDate.getTime()
-        : NaN;
-
-      if (distance <= 2 * 60 * 1000) {
-        const newEndTime = new Date(nowDate.getTime() + 2 * 60 * 1000);
-        await prisma.listing.update({
-          where: {
-            id: listingId,
-          },
-          data: {
-            auctionEndsAt: newEndTime,
-          },
-        });
-
-        // trigger pusher event to update end time in real time
-        await pusherServer.trigger(`listing-${listingId}`, "new-end-time", {
-          newEndTime,
-        });
-      }
+    const body: unknown = await req.json();
+    if (!isJsonObject(body)) {
+      throw new AuctionRequestError(400, "Invalid request body");
     }
 
-    // trigger pusher event to update bids in real time
-    await pusherServer.trigger(`listing-${listingId}`, "new-bid", newBid);
+    const listingId = requireListingId(body.listingId);
+    const bidAmount = requireSafeInteger(body.bidAmount, "Bid amount");
+    const bidTime = new Date();
 
-    //console.log("Listing bids updated:", updatedListing);
-    const updatedUser = await prisma.user.update({
-      where: {
-        id: currentUser.id,
-      },
-      data: {
-        bids: {
-          connect: { id: newBid.id },
+    const result = await prisma.$transaction(async (tx) => {
+      const listing = await tx.listing.findUnique({ where: { id: listingId } });
+
+      if (!listing) throw new AuctionRequestError(404, "Listing not found");
+      if (listing.userId === currentUser.id) {
+        throw new AuctionRequestError(403, "Sellers cannot bid on their listing");
+      }
+      if (
+        listing.status !== "LIVE" ||
+        !listing.auctionStartsAt ||
+        !listing.auctionEndsAt ||
+        listing.auctionStartsAt > bidTime ||
+        listing.auctionEndsAt <= bidTime
+      ) {
+        throw new AuctionRequestError(409, "Auction is not open for bidding");
+      }
+      if (listing.startingBid === null || listing.bidIncrement === null) {
+        throw new AuctionRequestError(409, "Auction bidding is not configured");
+      }
+
+      const minimumBid =
+        listing.currentBid === null
+          ? listing.startingBid
+          : listing.currentBid + listing.bidIncrement;
+
+      if (!Number.isSafeInteger(minimumBid) || minimumBid > 2_147_483_647) {
+        throw new AuctionRequestError(409, "Auction cannot accept a higher bid");
+      }
+
+      if (bidAmount < minimumBid) {
+        throw new AuctionRequestError(
+          400,
+          `Bid must be at least ${minimumBid}`
+        );
+      }
+
+      const shouldExtend =
+        listing.auctionEndsAt.getTime() - bidTime.getTime() <= 2 * 60 * 1000;
+      const auctionEndsAt = shouldExtend
+        ? new Date(bidTime.getTime() + 2 * 60 * 1000)
+        : listing.auctionEndsAt;
+
+      // Optimistic locking on the previous price and end time prevents two
+      // concurrent requests from both becoming the accepted highest bid.
+      const claimedListing = await tx.listing.updateMany({
+        where: {
+          id: listingId,
+          status: "LIVE",
+          currentBid: listing.currentBid,
+          auctionEndsAt: listing.auctionEndsAt,
         },
-        bidOnList: {
-          connect: {
-            id: listingId,
-          },
+        data: {
+          currentBid: bidAmount,
+          highestBidderId: currentUser.id,
+          auctionEndsAt,
         },
-      },
+      });
+
+      if (claimedListing.count !== 1) {
+        throw new AuctionRequestError(
+          409,
+          "The auction changed while placing this bid; please try again"
+        );
+      }
+
+      const newBid = await tx.bid.create({
+        data: {
+          amount: bidAmount,
+          createdAt: bidTime,
+          listingId,
+          userId: currentUser.id,
+        },
+        select: {
+          id: true,
+          amount: true,
+          createdAt: true,
+          listingId: true,
+          userId: true,
+          user: { select: { name: true } },
+        },
+      });
+
+      await tx.listing.update({
+        where: { id: listingId },
+        data: { bidders: { connect: { id: currentUser.id } } },
+      });
+      await tx.user.update({
+        where: { id: currentUser.id },
+        data: { bidOnList: { connect: { id: listingId } } },
+      });
+
+      return { newBid, auctionEndsAt, shouldExtend };
     });
 
-    return NextResponse.json({ newBid, updatedListing, updatedUser });
+    // A notification failure must not turn an already-committed bid into a 500
+    // response, since a retry could submit the same bid a second time.
+    const notifications: Promise<unknown>[] = [
+      pusherServer.trigger(`listing-${listingId}`, "new-bid", result.newBid),
+    ];
+    if (result.shouldExtend) {
+      notifications.push(
+        pusherServer.trigger(`listing-${listingId}`, "new-end-time", {
+          newEndTime: result.auctionEndsAt,
+        })
+      );
+    }
+    const notificationResults = await Promise.allSettled(notifications);
+    if (notificationResults.some((item) => item.status === "rejected")) {
+      console.error("A real-time auction notification could not be delivered");
+    }
+
+    return NextResponse.json(
+      {
+        bid: result.newBid,
+        currentBid: result.newBid.amount,
+        auctionEndsAt: result.auctionEndsAt,
+      },
+      { status: 201 }
+    );
   } catch (error) {
+    const response = auctionErrorResponse(error);
+    if (response) return response;
     console.error("Error placing bid:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }

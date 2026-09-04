@@ -1,6 +1,4 @@
 "use client";
-import Button from "@/app/components/Button";
-import Title from "@/app/components/Title";
 import { Bid, Listing, User } from "@prisma/client";
 import axios from "axios";
 import clsx from "clsx";
@@ -48,28 +46,25 @@ const Bids: React.FC<BidsProps> = ({
   }, [listing.id]);
 
   const onSubmit: SubmitHandler<FieldValues> = (data) => {
-    console.log(data);
     setIsLoading(true);
-    if (
-      data.bidAmount <=
-      ((listing.currentBid as number) || (listing.startingBid as number))
-    ) {
-      toast.error(
-        `Your bid must be higher than the current bid of $${
-          listing.currentBid || listing.startingBid
-        }`
-      );
+    const minimumBid =
+      bid === null
+        ? (listing.startingBid as number)
+        : bid + (listing.bidIncrement as number);
+
+    if (data.bidAmount < minimumBid) {
+      toast.error(`Your bid must be at least $${formatAmount(minimumBid)}`);
       setIsLoading(false);
       return;
     }
 
     axios
       .post(`/api/place-bid`, { ...data, listingId: listing.id })
-      .then((res) => {
+      .then(() => {
         toast.success("Bid placed successfully!");
       })
-      .catch(() => {
-        toast.error("Error placing bid");
+      .catch((error) => {
+        toast.error(error.response?.data?.error || "Error placing bid");
       })
       .finally(() => setIsLoading(false));
   };
@@ -164,7 +159,13 @@ const Bids: React.FC<BidsProps> = ({
             id="bidAmount"
             type="number"
             placeholder="Your Bid"
-            {...register("bidAmount", { required: true })}
+            min={
+              bid === null
+                ? (listing.startingBid as number)
+                : bid + (listing.bidIncrement as number)
+            }
+            step={listing.bidIncrement || 1}
+            {...register("bidAmount", { required: true, valueAsNumber: true })}
             className={clsx(
               `w-4/5 form-input
               block rounded-l-md
