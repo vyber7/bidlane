@@ -119,6 +119,8 @@ app-car-auctions/
 npm run dev         # Start development server
 npm run build       # Build for production
 npm start           # Start production server
+npm test            # Run the test suite once
+npm run test:watch  # Run tests in watch mode
 npm run lint        # Run linter
 
 # Prisma commands
