@@ -8,6 +8,8 @@ import {
   requireListingId,
   requireSafeInteger,
 } from "@/app/api/auction-security";
+import { logger } from "@/app/libs/logger";
+import { pusherServer } from "@/app/libs/pusher";
 
 export async function POST(req: Request) {
   try {
@@ -62,6 +64,18 @@ export async function POST(req: Request) {
       throw new AuctionRequestError(409, "Auction has already been started");
     }
 
+    const notification = await Promise.allSettled([
+      pusherServer.trigger(`listing-${listingId}`, "auction-started", {
+        auctionStartsAt: startTime,
+        auctionEndsAt: endTime,
+        startingBid,
+        bidIncrement,
+      }),
+    ]);
+    if (notification[0]?.status === "rejected") {
+      logger.warn("auction.start_notification_failed", { listingId });
+    }
+
     return NextResponse.json(
       { message: "Auction started", auctionStartsAt: startTime, auctionEndsAt: endTime },
       { status: 201 }
@@ -69,7 +83,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const response = auctionErrorResponse(error);
     if (response) return response;
-    console.error("Error creating auction:", error);
+    logger.error("auction.start_failed", error);
     return new NextResponse("Failed to create auction", { status: 500 });
   }
 }

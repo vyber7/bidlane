@@ -7,6 +7,8 @@ import {
   isJsonObject,
   requireListingId,
 } from "@/app/api/auction-security";
+import { logger } from "@/app/libs/logger";
+import { pusherServer } from "@/app/libs/pusher";
 
 export async function POST(req: Request) {
   try {
@@ -59,11 +61,21 @@ export async function POST(req: Request) {
       throw new AuctionRequestError(409, "Auction has already ended");
     }
 
+    const notification = await Promise.allSettled([
+      pusherServer.trigger(`listing-${listingId}`, "auction-ended", {
+        auctionEndsAt: endRequestTime,
+        result,
+      }),
+    ]);
+    if (notification[0]?.status === "rejected") {
+      logger.warn("auction.end_notification_failed", { listingId });
+    }
+
     return NextResponse.json({ message: "Auction ended successfully", result });
   } catch (error) {
     const response = auctionErrorResponse(error);
     if (response) return response;
-    console.error("Error ending auction:", error);
+    logger.error("auction.end_failed", error);
     return new NextResponse(JSON.stringify({ error: "Error ending auction" }), {
       status: 500,
     });

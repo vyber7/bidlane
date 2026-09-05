@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "../../../../libs/prismadb";
+import { logger } from "@/app/libs/logger";
 
 export async function POST(
   request: Request,
@@ -31,7 +32,7 @@ export async function POST(
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error updating cover image:", error);
+    logger.error("listing.cover_image_failed", error, { listingId });
     return NextResponse.json(
       { message: "Failed to update cover image" },
       { status: 500 }

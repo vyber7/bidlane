@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   findUnique: vi.fn(),
   updateMany: vi.fn(),
+  trigger: vi.fn(),
 }));
 
 vi.mock("@/app/actions/getCurrentUser", () => ({
@@ -16,6 +17,9 @@ vi.mock("@/app/libs/prismadb", () => ({
       updateMany: mocks.updateMany,
     },
   },
+}));
+vi.mock("@/app/libs/pusher", () => ({
+  pusherServer: { trigger: mocks.trigger },
 }));
 
 import { POST } from "./route";
@@ -46,6 +50,7 @@ describe("POST /api/auction-end", () => {
       reservePrice: 10_000,
     });
     mocks.updateMany.mockResolvedValue({ count: 1 });
+    mocks.trigger.mockResolvedValue(undefined);
   });
 
   it("requires authentication", async () => {
@@ -119,6 +124,11 @@ describe("POST /api/auction-end", () => {
         message: "Auction ended successfully",
         result: expectedResult,
       });
+      expect(mocks.trigger).toHaveBeenCalledWith(
+        `listing-${listingId}`,
+        "auction-ended",
+        { auctionEndsAt: now, result: expectedResult }
+      );
     }
   );
 

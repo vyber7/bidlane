@@ -3,10 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { GoStar, GoStarFill } from "react-icons/go";
-import axios from "axios";
-import toast from "react-hot-toast";
 import Title from "./Title";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { GrEdit } from "react-icons/gr";
 import { FaRegClock } from "react-icons/fa";
 import { Listing, User } from "@prisma/client";
@@ -14,7 +12,8 @@ import useCountDown from "../hooks/useCountDown";
 import { formatAmount, canEndAuction } from "../utils/format";
 import { clsx } from "clsx";
 import { CldImage } from "next-cloudinary";
-import { pusherClient } from "../libs/pusher";
+import usePusherEvent from "../hooks/usePusherEvent";
+import useWatchlist from "../hooks/useWatchlist";
 
 interface ListingBoxProps {
   listing: Listing;
@@ -22,27 +21,20 @@ interface ListingBoxProps {
 }
 
 const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
-  const [watching, setWatching] = useState<boolean>(
-    listing.watchersIds.includes(currentUser?.id as string)
-  );
-
   const [bid, setBid] = useState<number | null>(listing.currentBid);
+  const { watching, isUpdating, toggle } = useWatchlist({
+    listingId: listing.id,
+    userId: currentUser?.id,
+    initialWatching: listing.watchersIds.includes(currentUser?.id as string),
+  });
 
   const timeLeft = useCountDown(listing.auctionEndsAt as Date, listing.id);
 
-  useEffect(() => {
-    const channelName = `listing-${listing.id}`;
-    const channel = pusherClient.subscribe(channelName);
-    const newBidHandler = (bid: { amount: number }) => {
-      setBid(bid.amount);
-    };
-    channel.bind("new-bid", newBidHandler);
-
-    return () => {
-      pusherClient.unsubscribe(channelName);
-      channel.unbind("new-bid", newBidHandler);
-    };
-  }, [listing.id]);
+  usePusherEvent<{ amount: number }>(
+    `listing-${listing.id}`,
+    "new-bid",
+    (newBid) => setBid(newBid.amount)
+  );
 
   //   const distance = endTime.getTime() - now.getTime();
   //   if (distance <= 0) {
@@ -70,24 +62,6 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
 
   //   return `${hours}h ${minutes}m ${seconds}s`;
   // };
-  const toggleWatchList = () => {
-    if (!currentUser) {
-      toast.error("You need to be logged in!");
-      return;
-    }
-
-    axios
-      .post("/api/update-watchlist", { listingId: listing.id })
-      .then((data) => {
-        console.log("success ", data);
-      })
-      .catch((error) => {
-        console.error("Error updating watchlist: ", error);
-      });
-
-    setWatching(!watching);
-  };
-
   return (
     <div className="flex flex-wrap justify-between transition-all">
       <Link className="" href={`/listing/${listing.id}`}>
@@ -100,7 +74,9 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
       ) : (
         <button
           className="flex items-center text-xl px-2"
-          onClick={() => toggleWatchList()}
+          onClick={toggle}
+          disabled={isUpdating}
+          aria-label={watching ? "Remove from watchlist" : "Add to watchlist"}
         >
           {watching ? (
             <GoStarFill className="text-yellow-500" />

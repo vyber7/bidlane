@@ -4,10 +4,10 @@
 import { User } from "next-auth";
 import Form from "./CommentForm";
 import { Comment, Bid } from "@prisma/client";
-import { useEffect, useRef, useState } from "react";
-import { pusherClient } from "@/app/libs/pusher";
+import { useRef, useState } from "react";
 import { find } from "lodash";
 import CommentBox from "./CommentBox";
+import usePusherEvent from "@/app/hooks/usePusherEvent";
 
 interface CommentsProps {
   initialComments: (Comment & { user: User | null })[];
@@ -24,11 +24,10 @@ const Comments: React.FC<CommentsProps> = ({
   const [bids, setBids] = useState(initialBids);
   const topRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    pusherClient.subscribe(`listing-${listingId}`);
-    // topRef.current?.scrollIntoView({ behavior: "smooth" });
-
-    const commentHandler = (comment: Comment & { user: User | null }) => {
+  usePusherEvent<Comment & { user: User | null }>(
+    `listing-${listingId}`,
+    "new-comment",
+    (comment) => {
       setComments((current) => {
         if (find(current, { id: comment.id })) {
           return current;
@@ -36,21 +35,13 @@ const Comments: React.FC<CommentsProps> = ({
 
         return [comment, ...current];
       });
-      // topRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
+    }
+  );
 
-    pusherClient.bind("new-comment", commentHandler);
-
-    return () => {
-      pusherClient.unsubscribe(`listing-${listingId}`);
-      pusherClient.unbind("new-comment", commentHandler);
-    };
-  }, [listingId]);
-
-  useEffect(() => {
-    pusherClient.subscribe(`listing-${listingId}`);
-
-    const bidHandler = (bid: Bid & { user: { name: string | null } }) => {
+  usePusherEvent<Bid & { user: { name: string | null } }>(
+    `listing-${listingId}`,
+    "new-bid",
+    (bid) => {
       setBids((current) => {
         if (find(current, { id: bid.id })) {
           return current;
@@ -58,15 +49,8 @@ const Comments: React.FC<CommentsProps> = ({
 
         return [bid, ...current];
       });
-    };
-
-    pusherClient.bind("new-bid", bidHandler);
-
-    return () => {
-      pusherClient.unsubscribe(`listing-${listingId}`);
-      pusherClient.unbind("new-bid", bidHandler);
-    };
-  }, [listingId]);
+    }
+  );
 
   return (
     <div

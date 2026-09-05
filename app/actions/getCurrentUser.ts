@@ -1,5 +1,6 @@
 import prisma from "../libs/prismadb";
 import { getSession } from "./getSession";
+import { logger } from "../libs/logger";
 
 const getCurrentUser = async () => {
   try {
@@ -17,7 +18,7 @@ const getCurrentUser = async () => {
 
     return currentUser;
   } catch (error: unknown) {
-    console.error("Error getting current user: ", error);
+    logger.error("auth.current_user_failed", error);
     return null;
   }
 };

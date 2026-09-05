@@ -19,6 +19,11 @@ const UploadedListings: React.FC<UploadedListingsProps> = ({
         Uploaded
       </h2>
       <ul className="flex flex-col gap-4 py-4">
+        {listings.length === 0 && (
+          <li className="rounded-md bg-white p-6 text-center text-gray-600 shadow-md">
+            You have not submitted any vehicles yet.
+          </li>
+        )}
         {listings?.map((listing) => (
           <li
             key={listing.id}

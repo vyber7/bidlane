@@ -8,12 +8,11 @@ import { useEffect, useState } from "react";
 import { CldUploadButton } from "next-cloudinary";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { useSession } from "next-auth/react";
 import clsx from "clsx";
+import { logger } from "@/app/libs/logger";
 
 interface GalleryProps {
   listingId: string;
-  userId?: string;
   owner?: boolean;
 }
 
@@ -21,20 +20,33 @@ interface GalleryImage {
   url: string;
 }
 
-const Gallery: React.FC<GalleryProps> = ({ listingId, userId, owner }) => {
+const Gallery: React.FC<GalleryProps> = ({ listingId, owner }) => {
   const [images, setImages] = useState<string[]>([]);
-  const { data: session } = useSession();
-  console.log("User Session in Gallery:", session);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     // Fetch images for the given listingId
+    let active = true;
     fetch(`/api/cloudinary-images?folder=listing-${listingId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setImages(data.images.map((img: GalleryImage) => img.url));
-        console.log("Fetched images:", data);
+      .then((res) => {
+        if (!res.ok) throw new Error(`Image request failed: ${res.status}`);
+        return res.json();
       })
-      .catch((err) => console.error(err));
+      .then((data) => {
+        if (active) setImages(data.images.map((img: GalleryImage) => img.url));
+      })
+      .catch((error) => {
+        if (active) setLoadError(true);
+        logger.error("gallery.images_fetch_failed", error, { listingId });
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [listingId]);
 
   const handleUpload = (result: CloudinaryUploadWidgetResults) => {
@@ -57,16 +69,24 @@ const Gallery: React.FC<GalleryProps> = ({ listingId, userId, owner }) => {
         imageUrl: result.info.secure_url,
         listingId: listingId,
       })
-      .then(() => {
-        console.log("Image URL saved to database");
-      })
-      .catch(() => {
-        console.error("Failed to save image URL to database");
+      .catch((error) => {
+        logger.error("gallery.image_save_failed", error, { listingId });
+        toast.error("The image could not be saved to this listing.");
       });
   };
 
   return (
     <div className="rounded-md shadow-md shadow-gray-400 p-4 bg-white">
+      {isLoading && (
+        <p className="text-sm text-gray-500" aria-live="polite">
+          Loading images…
+        </p>
+      )}
+      {loadError && (
+        <p className="text-sm text-red-600" role="alert">
+          Images could not be loaded.
+        </p>
+      )}
       <div
         className={clsx(
           images.length ? "block" : "hidden",

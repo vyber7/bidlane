@@ -1,7 +1,8 @@
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import { NextResponse, userAgent } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/app/libs/prismadb";
 import { pusherServer } from "@/app/libs/pusher";
+import { logger } from "@/app/libs/logger";
 
 // POST /api/comments
 // Required fields in the body: comment, listingId
@@ -13,8 +14,6 @@ export async function POST(req: Request) {
     const currentUser = await getCurrentUser();
     const body = await req.json();
     const { comment, image, listingId } = body;
-
-    console.log("Server Data: ", body);
 
     if (!currentUser?.id || !currentUser?.email)
       return new NextResponse("Unauthorized", { status: 401 });
@@ -72,25 +71,16 @@ export async function POST(req: Request) {
       },
     });
 
-    await pusherServer.trigger(
-      `listing-${listingId}`,
-      "new-comment",
-      newComment
-    );
-
-    const lastComment =
-      updatedListing.comments[updatedListing.comments.length - 1];
-
-    // updatedListing.commenters.map((commenter) => {
-    //   pusherServer.trigger(commenter.email!, "listing-updated", {
-    //     id: listingId,
-    //     comments: lastComment,
-    //   });
-    // });
+    const notification = await Promise.allSettled([
+      pusherServer.trigger(`listing-${listingId}`, "new-comment", newComment),
+    ]);
+    if (notification[0]?.status === "rejected") {
+      logger.warn("comment.notification_failed", { listingId });
+    }
 
     return NextResponse.json(updatedListing, { status: 201 });
   } catch (error: unknown) {
-    console.error(error, "ERROR_COMMENTS");
+    logger.error("comment.create_failed", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

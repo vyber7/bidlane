@@ -3,20 +3,19 @@ import { NextResponse } from "next/server";
 import { getCloudinaryImages } from "@/app/libs/cloudinary";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import prisma from "../../libs/prismadb";
+import { logger } from "@/app/libs/logger";
 
 // Handle GET request to fetch images from Cloudinary
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
   const folder = searchParams.get("folder");
-  console.log("Fetching images from folder:", folder);
-
   try {
     const images = await getCloudinaryImages(folder as string);
 
     return NextResponse.json({ images });
   } catch (error) {
-    console.error("Error fetching images:", error);
+    logger.error("cloudinary.images_route_failed", error, { folder });
     return NextResponse.json(
       { error: "Failed to fetch images" },
       { status: 500 }
@@ -52,8 +51,6 @@ export async function POST(req: Request) {
       },
     },
   });
-
-  console.log("Image URL received:", imageUrl);
 
   return NextResponse.json({
     message: "Image uploaded successfully",

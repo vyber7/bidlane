@@ -3,16 +3,9 @@
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Button from "../../components/Button";
 import SubmitInput from "./SubmitInput";
-import {
-  CldUploadButton,
-  CldImage,
-  getCldImageUrl,
-  CldUploadWidget,
-} from "next-cloudinary";
-import { RiFolderSettingsFill } from "react-icons/ri";
 import { useRouter } from "next/navigation";
 
 // interface SubmitFormProps {
@@ -21,8 +14,6 @@ import { useRouter } from "next/navigation";
 
 const SubmitForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [images, setImages] = useState<string[]>([]);
-  const [folder, setFolder] = useState<string>("");
 
   const router = useRouter();
 
@@ -45,16 +36,10 @@ const SubmitForm: React.FC = () => {
 
   const onSubmit: SubmitHandler<FieldValues> = (data) => {
     setIsLoading(true);
-    // console.log("Client Data: ", data);
     axios
       .post("/api/new-listing", { data })
       .then((res) => {
         const listingId = res.data.id;
-        const folderName = `listing-${listingId}`;
-        // setFolder(folderName);
-        // router.refresh();
-        console.log("listingId: ", listingId);
-        // console.log("Folder: ", folder);
         toast.success("Listing submitted successfully!");
         router.push(`/listing/${listingId}`);
       })

@@ -8,8 +8,8 @@ import { CldImage } from "next-cloudinary";
 import { FaRegClock } from "react-icons/fa";
 import clsx from "clsx";
 import useCountDown from "../hooks/useCountDown";
-import { useEffect, useState } from "react";
-import { pusherClient } from "../libs/pusher";
+import { useState } from "react";
+import usePusherEvent from "../hooks/usePusherEvent";
 
 interface SideListingBoxProps {
   auction: Listing;
@@ -24,19 +24,11 @@ const SideListingBox: React.FC<SideListingBoxProps> = ({
 
   const timeLeft = useCountDown(auction.auctionEndsAt as Date, auction.id);
 
-  useEffect(() => {
-    const channelName = `listing-${auction.id}`;
-    const channel = pusherClient.subscribe(channelName);
-    const newBidHandler = (bid: Bid & { user: User }) => {
-      setBid(bid.amount);
-    };
-    channel.bind("new-bid", newBidHandler);
-
-    return () => {
-      pusherClient.unsubscribe(channelName);
-      channel.unbind("new-bid", newBidHandler);
-    };
-  }, [auction.id]);
+  usePusherEvent<Bid & { user: User }>(
+    `listing-${auction.id}`,
+    "new-bid",
+    (newBid) => setBid(newBid.amount)
+  );
 
   return (
     <div className="w-[31%] lg:w-full rounded-md shadow-md shadow-gray-600 hover:ring hover:ring-gray-900">

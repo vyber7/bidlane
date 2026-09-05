@@ -1,4 +1,5 @@
 import prisma from "../libs/prismadb";
+import { logger } from "../libs/logger";
 
 async function getComments(listingId: string) {
   try {
@@ -14,7 +15,7 @@ async function getComments(listingId: string) {
 
     return comments;
   } catch (error) {
-    console.error("Error fetching comments:", error);
+    logger.error("comments.fetch_failed", error, { listingId });
     return [];
   }
 }

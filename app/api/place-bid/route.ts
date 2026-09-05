@@ -9,6 +9,7 @@ import {
   requireListingId,
   requireSafeInteger,
 } from "@/app/api/auction-security";
+import { logger } from "@/app/libs/logger";
 
 export async function POST(req: Request) {
   try {
@@ -133,7 +134,7 @@ export async function POST(req: Request) {
     }
     const notificationResults = await Promise.allSettled(notifications);
     if (notificationResults.some((item) => item.status === "rejected")) {
-      console.error("A real-time auction notification could not be delivered");
+      logger.warn("bid.notification_failed", { listingId });
     }
 
     return NextResponse.json(
@@ -147,7 +148,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const response = auctionErrorResponse(error);
     if (response) return response;
-    console.error("Error placing bid:", error);
+    logger.error("bid.place_failed", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

@@ -3,11 +3,11 @@ import { Bid, Listing, User } from "@prisma/client";
 import axios from "axios";
 import clsx from "clsx";
 import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { formatAmount, capitalize } from "@/app/utils/format";
-import { pusherClient } from "@/app/libs/pusher";
+import usePusherEvent from "@/app/hooks/usePusherEvent";
 
 interface BidsProps {
   listing: Listing;
@@ -31,19 +31,11 @@ const Bids: React.FC<BidsProps> = ({
     formState: { errors },
   } = useForm<FieldValues>();
 
-  useEffect(() => {
-    const channelName = `listing-${listing.id}`;
-    const channel = pusherClient.subscribe(channelName);
-    const newBidHandler = (bid: Bid & { user: User }) => {
-      setBid(bid.amount);
-    };
-    channel.bind("new-bid", newBidHandler);
-
-    return () => {
-      pusherClient.unsubscribe(channelName);
-      channel.unbind("new-bid", newBidHandler);
-    };
-  }, [listing.id]);
+  usePusherEvent<Bid & { user: User }>(
+    `listing-${listing.id}`,
+    "new-bid",
+    (newBid) => setBid(newBid.amount)
+  );
 
   const onSubmit: SubmitHandler<FieldValues> = (data) => {
     setIsLoading(true);

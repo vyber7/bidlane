@@ -2,7 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { pusherClient } from "@/app/libs/pusher";
+import usePusherEvent from "@/app/hooks/usePusherEvent";
 
 interface ProgressBarProps {
   endTime: Date | null;
@@ -35,24 +35,15 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ endTime, listingId }) => {
     return () => clearInterval(interval);
   }, [currentEndTime]);
 
-  useEffect(() => {
-    if (!listingId) return;
-
-    pusherClient.subscribe(`listing-${listingId}`);
-
-    const endTimeHandler = (data: { newEndTime: Date }) => {
+  usePusherEvent<{ newEndTime: Date }>(
+    `listing-${listingId}`,
+    "new-end-time",
+    (data) => {
       const newEndTime = new Date(data.newEndTime);
       setCurrentEndTime(newEndTime);
       setRemainingMs(newEndTime.getTime() - Date.now());
-    };
-
-    pusherClient.bind("new-end-time", endTimeHandler);
-
-    return () => {
-      pusherClient.unsubscribe(`listing-${listingId}`);
-      pusherClient.unbind("new-end-time", endTimeHandler);
-    };
-  }, [listingId]);
+    }
+  );
 
   return (
     <div

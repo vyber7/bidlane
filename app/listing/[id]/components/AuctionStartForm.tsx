@@ -6,9 +6,9 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { now } from "lodash";
 import { useState } from "react";
-import clsx from "clsx";
 import Button from "@/app/components/Button";
 import { useRouter } from "next/navigation";
+import { logger } from "@/app/libs/logger";
 
 interface AuctionStartFormProps {
   listingId: string;
@@ -34,10 +34,10 @@ const AuctionStartForm: React.FC<AuctionStartFormProps> = ({ listingId }) => {
     setIsLoading(true);
     axios
       .post("/api/auction-start", { ...data, listingId })
-      .then((res) => {
-        console.log(res);
+      .catch((error) => {
+        logger.error("auction.start_client_failed", error, { listingId });
+        toast.error("The auction could not be started. Please try again.");
       })
-      .catch(() => toast.error("Something went wrong!"))
       .finally(() => {
         setIsLoading(false);
         router.refresh();

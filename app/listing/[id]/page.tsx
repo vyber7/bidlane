@@ -18,6 +18,7 @@ import CoverImage from "./components/CoverImage";
 import getLiveAuctions from "@/app/actions/getLiveAuctions";
 import Aside from "@/app/submit-listing/components/Aside";
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Car Auctions",
@@ -35,36 +36,22 @@ interface Params {
 const Listing = async (props: Params) => {
   const { id } = await props.params;
 
-  const comments = await getComments(id as string);
-  const currentUser = await getCurrentUser();
-  const liveAuctions = await getLiveAuctions();
-  const bids = await getBids(id as string);
-
   const listing = await prisma.listing.findUnique({
-    where: {
-      id: id as string,
-    },
+    where: { id },
   });
 
-  const seller = await prisma.user.findUnique({
-    where: {
-      id: listing?.userId as string,
-    },
-  });
+  if (!listing) notFound();
 
-  const highestBidderName = bids.length
-    ? bids.reduce((prev, current) =>
-        prev.amount > current.amount ? prev : current
-      ).user.name
-    : null;
+  const [comments, currentUser, liveAuctions, bids, seller] =
+    await Promise.all([
+      getComments(id),
+      getCurrentUser(),
+      getLiveAuctions(),
+      getBids(id),
+      prisma.user.findUnique({ where: { id: listing.userId } }),
+    ]);
 
-  if (!listing) {
-    console.error("Error fetching listing:", id);
-    return;
-  }
-
-  const { year, make, model, miles, reservePrice, location, description } =
-    listing;
+  const { year, make, model, description } = listing;
 
   return (
     <div className="m-auto pt-14 px-2 lg:px-0 lg:pt-16 pb-4 lg:gap-4 flex flex-col lg:flex-row max-w-5xl ">
@@ -83,7 +70,6 @@ const Listing = async (props: Params) => {
           <AuctionStatusBar
             listing={listing}
             currentUser={currentUser?.id}
-            highestBidderName={highestBidderName}
             commentsCount={comments.length}
             bidsCount={bids.length}
           />

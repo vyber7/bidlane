@@ -199,14 +199,14 @@ describe("POST /api/place-bid", () => {
 
   it("returns a committed bid even if real-time notification fails", async () => {
     mocks.trigger.mockRejectedValue(new Error("Pusher unavailable"));
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
     const response = await POST(request({ listingId, bidAmount: 1_000 }));
 
     expect(response.status).toBe(201);
-    expect(consoleError).toHaveBeenCalledWith(
-      "A real-time auction notification could not be delivered"
+    expect(consoleWarn).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"bid.notification_failed"')
     );
-    consoleError.mockRestore();
+    consoleWarn.mockRestore();
   });
 });

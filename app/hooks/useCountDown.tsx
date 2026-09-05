@@ -1,6 +1,6 @@
 // Hook for countdown timer
 import { useEffect, useState } from "react";
-import { pusherClient } from "@/app/libs/pusher";
+import usePusherEvent from "./usePusherEvent";
 
 const useCountDown = (targetDate: Date, listingId?: string) => {
   const [timeLeft, setTimeLeft] = useState<string>("");
@@ -43,26 +43,14 @@ const useCountDown = (targetDate: Date, listingId?: string) => {
     return () => clearInterval(interval);
   }, [targetDateState]);
 
-  useEffect(() => {
-    if (!listingId) {
-      return;
-    }
-
-    const channelName = `listing-${listingId}`;
-    const channel = pusherClient.subscribe(channelName);
-
-    const endTimeHandler = (data: { newEndTime: Date }) => {
+  usePusherEvent<{ newEndTime: Date }>(
+    listingId ? `listing-${listingId}` : null,
+    "new-end-time",
+    (data) => {
       const newEndTime = new Date(data.newEndTime);
       setTargetDateState(newEndTime);
-    };
-
-    channel.bind("new-end-time", endTimeHandler);
-
-    return () => {
-      channel.unbind("new-end-time", endTimeHandler);
-      pusherClient.unsubscribe(channelName);
-    };
-  }, [listingId]);
+    }
+  );
 
   return timeLeft;
 };

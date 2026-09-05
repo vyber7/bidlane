@@ -1,5 +1,6 @@
 import prisma from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
+import { logger } from "@/app/libs/logger";
 
 export async function POST(req: Request) {
   try {
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
       );
     }
   } catch (error: unknown) {
-    console.log(error, "VIEWS_ERROR");
+    logger.error("listing.view_failed", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

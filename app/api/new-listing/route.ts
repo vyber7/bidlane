@@ -1,18 +1,15 @@
 import getCurrentUser from "../../../app/actions/getCurrentUser";
 import prisma from "../../libs/prismadb";
 import { NextResponse } from "next/server";
+import { logger } from "@/app/libs/logger";
 
 export async function POST(req: Request) {
   const currentUser = await getCurrentUser();
   try {
     const body = await req.json();
 
-    // console.log("Server user/images: ");
-
     const { year, make, model, miles, reservePrice, location, description } =
       body.data;
-
-    console.log("Body data: ", body.data);
 
     if (
       !year ||
@@ -35,7 +32,6 @@ export async function POST(req: Request) {
       location,
       description,
     };
-    console.log("Listing to Create: ", listing);
     const newListing = await prisma.listing.create({
       data: {
         user: {
@@ -66,10 +62,9 @@ export async function POST(req: Request) {
         },
       },
     });
-    console.log("Listing created successfully");
     return NextResponse.json(newListing, { status: 201 });
   } catch (error: unknown) {
-    console.log(error, "LISTING_ERROR");
+    logger.error("listing.create_failed", error, { userId: currentUser?.id });
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

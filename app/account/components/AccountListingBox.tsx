@@ -4,8 +4,6 @@ import Link from "next/link";
 import { GoTrash } from "react-icons/go";
 import { GrEdit } from "react-icons/gr";
 import Image from "next/image";
-import axios from "axios";
-import toast from "react-hot-toast";
 import Title from "../../components/Title";
 import { Listing, User } from "@prisma/client";
 import { formatAmount, canEndAuction } from "@/app/utils/format";
@@ -14,6 +12,7 @@ import { FaRegClock } from "react-icons/fa";
 import useCountDown from "@/app/hooks/useCountDown";
 import { useState } from "react";
 import { CldImage } from "next-cloudinary";
+import useWatchlist from "@/app/hooks/useWatchlist";
 
 interface AccountListingBoxProps {
   listing: Listing;
@@ -28,18 +27,14 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
   watching,
   uploaded,
 }) => {
-  const [bid, setBid] = useState<number | null>(listing.currentBid);
+  const [bid] = useState<number | null>(listing.currentBid);
+  const { isUpdating, toggle } = useWatchlist({
+    listingId: listing.id,
+    userId: currentUser?.id,
+    initialWatching: watching,
+  });
 
   const timeLeft = useCountDown(listing.auctionEndsAt as Date, listing.id);
-
-  const toggleWatchList = () => {
-    axios
-      .post("/api/update-watchlist", { listingId: listing.id })
-      .then((data) => {
-        console.log("success ", data);
-      })
-      .catch(() => toast.error("You need to be logged in!"));
-  };
 
   return (
     <div className="flex flex-wrap justify-start bg-white rounded-md shadow-md shadow-gray-400 transition-all hover:ring hover:ring-gray-900">
@@ -126,7 +121,9 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
           ) : (
             <button
               className="flex items-center text-sm px-2"
-              onClick={() => toggleWatchList()}
+              onClick={toggle}
+              disabled={isUpdating}
+              aria-label="Remove from watchlist"
             >
               <GoTrash className="text-red-500" />
             </button>

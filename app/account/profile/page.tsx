@@ -1,6 +1,4 @@
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import prisma from "../../libs/prismadb";
-import Image from "next/image";
 import AccountLinks from "@/app/account/components/AccountLinks";
 import AccountHeader from "@/app/account/components/AccountHeader";
 import Avatar from "@/app/components/Avatar";

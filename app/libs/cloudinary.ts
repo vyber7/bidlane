@@ -1,5 +1,6 @@
 // app/libs/cloudinary.ts or lib/cloudinary.ts
 import { v2 as cloudinary } from "cloudinary";
+import { logger } from "./logger";
 
 interface CloudinaryResource {
   public_id: string;
@@ -34,7 +35,7 @@ export async function getCloudinaryImages(folder?: string, maxResults = 100) {
       createdAt: resource.created_at,
     }));
   } catch (error) {
-    console.error("Error fetching Cloudinary images:", error);
+    logger.error("cloudinary.images_fetch_failed", error, { folder });
     throw error;
   }
 }

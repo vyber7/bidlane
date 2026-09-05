@@ -1,5 +1,6 @@
 // This file will contain the logic to fetch sold auctions
 import prisma from "@/app/libs/prismadb";
+import { logger } from "@/app/libs/logger";
 
 async function getSoldAuctions() {
   try {
@@ -10,7 +11,7 @@ async function getSoldAuctions() {
     });
     return soldAuctions;
   } catch (error) {
-    console.error("Error fetching sold auctions:", error);
+    logger.error("auctions.sold_fetch_failed", error);
     return [];
   }
 }

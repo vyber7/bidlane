@@ -8,6 +8,8 @@ import {
 } from "next-cloudinary";
 import Image from "next/image";
 import { useState } from "react";
+import toast from "react-hot-toast";
+import { logger } from "@/app/libs/logger";
 
 interface CoverImageProps {
   listingId: string;
@@ -17,13 +19,22 @@ interface CoverImageProps {
 
 const CoverImage: React.FC<CoverImageProps> = ({ listingId, url, owner }) => {
   const [imageUrl, setImageUrl] = useState<string>(url || "");
-  const handleUpload = (result: CloudinaryUploadWidgetResults) => {
+  const handleUpload = async (result: CloudinaryUploadWidgetResults) => {
     if (typeof result.info !== "object" || !result.info.secure_url) return;
 
-    setImageUrl(result.info.secure_url);
-    axios.post(`/api/listing/${listingId}/cover-image`, {
-      url: result.info.secure_url,
-    });
+    const previousUrl = imageUrl;
+    const nextUrl = result.info.secure_url;
+    setImageUrl(nextUrl);
+
+    try {
+      await axios.post(`/api/listing/${listingId}/cover-image`, {
+        url: nextUrl,
+      });
+    } catch (error) {
+      setImageUrl(previousUrl);
+      logger.error("listing.cover_image_client_failed", error, { listingId });
+      toast.error("The cover image could not be saved.");
+    }
   };
 
   return (

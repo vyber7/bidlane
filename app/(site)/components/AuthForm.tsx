@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import Input from "../../components/inputs/Input";
 import Button from "@/app/components/Button";
@@ -58,8 +58,6 @@ const AuthForm = () => {
     }
 
     if (variant === "LOGIN") {
-      console.log(data);
-
       signIn("credentials", {
         ...data,
         redirect: false,

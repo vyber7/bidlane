@@ -1,4 +1,5 @@
 import prisma from "@/app/libs/prismadb";
+import { logger } from "@/app/libs/logger";
 
 async function getLiveAuctions() {
   try {
@@ -9,7 +10,7 @@ async function getLiveAuctions() {
     });
     return liveAuctions;
   } catch (error) {
-    console.error("Error fetching live auctions:", error);
+    logger.error("auctions.live_fetch_failed", error);
     return [];
   }
 }

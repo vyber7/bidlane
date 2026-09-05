@@ -1,7 +1,5 @@
 // app/api/add-images/route.ts
 import { NextResponse } from "next/server";
-import { getCloudinaryImages } from "@/app/libs/cloudinary";
-import getCurrentUser from "@/app/actions/getCurrentUser";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -15,8 +13,6 @@ export async function POST(req: Request) {
   }
 
   // Here you can add logic to save the image URL to your database if needed
-  console.log("Image URL received:", imageUrl);
-
   return NextResponse.json({
     message: "Image uploaded successfully",
     imageUrl,

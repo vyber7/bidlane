@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   findUnique: vi.fn(),
   updateMany: vi.fn(),
+  trigger: vi.fn(),
 }));
 
 vi.mock("@/app/actions/getCurrentUser", () => ({
@@ -16,6 +17,9 @@ vi.mock("@/app/libs/prismadb", () => ({
       updateMany: mocks.updateMany,
     },
   },
+}));
+vi.mock("@/app/libs/pusher", () => ({
+  pusherServer: { trigger: mocks.trigger },
 }));
 
 import { POST } from "./route";
@@ -43,6 +47,7 @@ describe("POST /api/auction-start", () => {
       status: "UPCOMING",
     });
     mocks.updateMany.mockResolvedValue({ count: 1 });
+    mocks.trigger.mockResolvedValue(undefined);
   });
 
   it("requires an authenticated user", async () => {
@@ -114,6 +119,14 @@ describe("POST /api/auction-start", () => {
       auctionStartsAt: now.toISOString(),
       auctionEndsAt: endTime,
     });
+    expect(mocks.trigger).toHaveBeenCalledWith(
+      `listing-${listingId}`,
+      "auction-started",
+      expect.objectContaining({
+        auctionStartsAt: now,
+        auctionEndsAt: new Date(endTime),
+      })
+    );
   });
 
   it("reports a competing start request as a conflict", async () => {

@@ -9,7 +9,6 @@ import useCountDown from "@/app/hooks/useCountDown";
 import clsx from "clsx";
 import { canEndAuction } from "@/app/utils/format";
 import { useRouter } from "next/navigation";
-import { pusherClient } from "@/app/libs/pusher";
 import { User } from "next-auth";
 import { Bid } from "@prisma/client";
 import ProgressBar from "./ProgressBar";
@@ -17,11 +16,13 @@ import { FaHashtag, FaRegClock, FaRegCommentAlt } from "react-icons/fa";
 import Link from "next/link";
 import { GoStar, GoStarFill } from "react-icons/go";
 import toast from "react-hot-toast";
+import usePusherEvent from "@/app/hooks/usePusherEvent";
+import useWatchlist from "@/app/hooks/useWatchlist";
+import { logger } from "@/app/libs/logger";
 
 interface AuctionStatusBarProps {
   listing: Listing;
   currentUser?: string | null;
-  highestBidderName?: string | null;
   commentsCount?: number;
   bidsCount?: number;
 }
@@ -29,80 +30,62 @@ interface AuctionStatusBarProps {
 const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   listing,
   currentUser,
-  highestBidderName,
   commentsCount,
   bidsCount,
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [bid, setBid] = useState<number | null>(listing.currentBid);
-  const [watching, setWatching] = useState<boolean>(
-    listing.watchersIds.includes(currentUser as string)
-  );
+  const { watching, isUpdating, toggle } = useWatchlist({
+    listingId: listing.id,
+    userId: currentUser,
+    initialWatching: listing.watchersIds.includes(currentUser as string),
+  });
   const timeLeft = useCountDown(listing.auctionEndsAt as Date, listing.id);
   const router = useRouter();
 
-  const endAuction = useCallback(() => {
+  const endAuction = useCallback(async () => {
     setIsLoading(true);
-    axios
-      .post("/api/auction-end", { listingId: listing.id })
-      .then((res) => {
-        console.log("Auction ended", res.data);
-      })
-      .catch((err) => {
-        console.log("Error ending auction", err);
-      })
-      .finally(() => {
-        setIsLoading(false);
-        router.refresh();
+    try {
+      await axios.post("/api/auction-end", { listingId: listing.id });
+      router.refresh();
+    } catch (error) {
+      logger.error("auction.end.client_failed", error, {
+        listingId: listing.id,
       });
-  }, [listing.id, router]);
-
-  const toggleWatchList = () => {
-    if (!currentUser) {
-      toast.error("You need to be logged in!");
-      return;
+      toast.error("The auction could not be ended. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-
-    axios
-      .post("/api/update-watchlist", { listingId: listing.id })
-      .then((data) => {
-        console.log("success ", data);
-      })
-      .catch((error) => {
-        console.error("Error updating watchlist: ", error);
-      });
-
-    setWatching(!watching);
-  };
+  }, [listing.id, router]);
 
   useEffect(() => {
     axios
       .post("/api/listing-view", { listingId: listing.id, userId: currentUser })
-      .then((res) => {
-        console.log("View recorded", res.data);
-      })
-      .catch((err) => {
-        console.log("Error recording view", err);
+      .catch((error) => {
+        logger.warn("listing.view.client_failed", {
+          listingId: listing.id,
+          error: String(error),
+        });
       });
   }, [listing.id, currentUser]);
 
-  useEffect(() => {
-    const channelName = `listing-${listing.id}`;
-    const channel = pusherClient.subscribe(channelName);
+  usePusherEvent<Bid & { user: User }>(
+    `listing-${listing.id}`,
+    "new-bid",
+    (newBid) => setBid(newBid.amount)
+  );
 
-    const newBidHandler = (bid: Bid & { user: User }) => {
-      console.log("New bid received via Pusher:", bid.amount);
-      // Optionally, you can update local state or refetch data here
-      setBid(bid.amount);
-    };
+  usePusherEvent(
+    `listing-${listing.id}`,
+    "auction-started",
+    () => router.refresh()
+  );
 
-    channel.bind("new-bid", newBidHandler);
-
-    return () => {
-      channel.unbind("new-bid", newBidHandler);
-      pusherClient.unsubscribe(channelName);
-    };
-  }, [listing.id]);
+  usePusherEvent(
+    `listing-${listing.id}`,
+    "auction-ended",
+    () => router.refresh()
+  );
 
   // useEffect(() => {
   //   axios
@@ -198,17 +181,17 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
                 Comment
               </Link>
               {currentUser !== listing.userId &&
-                (watching ? (
-                  <GoStarFill
-                    onClick={toggleWatchList}
-                    className="cursor-pointer text-2xl text-yellow-500 hover:text-yellow-600"
-                  />
-                ) : (
-                  <GoStar
-                    onClick={toggleWatchList}
-                    className="cursor-pointer text-2xl text-yellow-500 hover:text-yellow-600"
-                  />
-                ))}
+                <button
+                  type="button"
+                  onClick={toggle}
+                  disabled={isUpdating}
+                  aria-label={
+                    watching ? "Remove from watchlist" : "Add to watchlist"
+                  }
+                  className="text-2xl text-yellow-500 hover:text-yellow-600 disabled:opacity-50"
+                >
+                  {watching ? <GoStarFill /> : <GoStar />}
+                </button>}
             </div>
           </div>
         </div>

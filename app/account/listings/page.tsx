@@ -22,15 +22,6 @@ const MyListings = async () => {
     },
   });
 
-  const User = await prisma.user.findUnique({
-    where: {
-      id: currentUser?.id,
-    },
-    include: {
-      uploadList: true,
-    },
-  });
-
   return (
     <>
       <div className="m-auto max-w-5xl grid grid-cols-4 gap-4 pb-4 px-2 lg:px-0">
