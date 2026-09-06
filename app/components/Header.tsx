@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
@@ -93,10 +92,16 @@ function Header() {
         className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8"
         aria-label="Primary navigation"
       >
-        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="Car Auctions home">
-          <Image src="/images/logo.png" alt="" width={36} height={36} priority />
-          <span className="text-base font-black tracking-tight text-slate-950">
-            Bid<span className="text-amber-500">Lane</span>
+        <Link
+          href="/"
+          className="inline-flex shrink-0 items-center gap-3"
+          aria-label="BidLane home"
+        >
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-400 text-lg font-black text-slate-950 shadow-lg shadow-amber-400/10">
+            B
+          </span>
+          <span className="text-xl font-black tracking-tight text-slate-950">
+            Bid<span className="text-amber-400">Lane</span>
           </span>
         </Link>
 
