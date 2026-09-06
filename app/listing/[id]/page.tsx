@@ -20,12 +20,6 @@ import Aside from "@/app/submit-listing/components/Aside";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Car Auctions",
-  description: "Buy and sell cars through auctions",
-  icons: { icon: "/images/logo.png" },
-};
-
 //gets page's id from url
 interface Params {
   params: Promise<{
