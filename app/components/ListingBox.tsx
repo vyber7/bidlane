@@ -63,8 +63,8 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
   //   return `${hours}h ${minutes}m ${seconds}s`;
   // };
   return (
-    <div className="flex flex-wrap justify-between transition-all">
-      <Link className="" href={`/listing/${listing.id}`}>
+    <div className="flex h-full flex-wrap justify-between transition-all">
+      <Link className="min-w-0 flex-1" href={`/listing/${listing.id}`}>
         <Title year={listing.year} make={listing.make} model={listing.model} />
       </Link>
       {listing.userId == currentUser?.id ? (
@@ -73,7 +73,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
         </button>
       ) : (
         <button
-          className="flex items-center text-xl px-2"
+          className="flex items-center px-3 text-xl transition hover:scale-110"
           onClick={toggle}
           disabled={isUpdating}
           aria-label={watching ? "Remove from watchlist" : "Add to watchlist"}
@@ -94,7 +94,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
               width={400}
               height={250}
               alt="listing Image"
-              className="w-full object-cover"
+              className="aspect-[16/10] w-full object-cover"
               priority={true}
               crop="fill"
             />
@@ -105,12 +105,12 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
               alt="listing Image"
               width={400}
               height={250}
-              className="w-full rounded-t object-cover lg:rounded-t-none lg:rounded-tl"
+              className="aspect-[16/10] w-full object-cover"
               priority={true}
             />
           )}
         </Link>
-        <div className="flex justify-between p-2 bg-gray-900 text-white text-sm">
+        <div className="flex min-h-10 items-center justify-between bg-slate-950 px-3 py-2 text-xs font-medium text-white">
           {listing.status === "UPCOMING" ? (
             <div>Upcoming</div>
           ) : listing.status === "ENDED" ? (
@@ -153,9 +153,9 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
           )}
         </div>
       </div>
-      <div className="text-sm p-2 pt-0">
-        6-Speed Manual, V12 Power, California-Owned, Some Modifications
-        <span className="block text-gray-500">{listing.location}</span>
+      <div className="flex w-full flex-col px-3 py-3 text-sm leading-5 text-slate-600">
+        <p className="line-clamp-2">{listing.description}</p>
+        <span className="mt-2 block text-xs font-medium text-slate-400">{listing.miles.toLocaleString()} miles · {listing.location}</span>
       </div>
       {/* <div className="relative px-3 pb-8 lg:w-1/2">
         <p className="relative h-48 overflow-hidden after:absolute after:bottom-0 after:left-0 after:h-20 after:w-full after:bg-gradient-to-t after:from-white ">

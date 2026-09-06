@@ -5,7 +5,7 @@
 html,
 body,
 :root {
-  background-color: rgb(161, 161, 161);
+  background-color: #fafaf9;
   color: #101720;
   scroll-behavior: smooth;
 }

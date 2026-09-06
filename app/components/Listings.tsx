@@ -10,7 +10,7 @@ interface ListingsProps {
 const Listings: React.FC<ListingsProps> = ({ listings, currentUser }) => {
   if (listings.length === 0) {
     return (
-      <div className="mt-4 rounded-md bg-white p-8 text-center shadow-md">
+      <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-12 text-center">
         <h3 className="font-semibold">No auctions found</h3>
         <p className="mt-1 text-sm text-gray-600">
           Check back soon for newly listed vehicles.
@@ -20,11 +20,11 @@ const Listings: React.FC<ListingsProps> = ({ listings, currentUser }) => {
   }
 
   return (
-    <ul className="grid justify-items-center md:grid-cols-2 lg:grid-cols-3 gap-2  lg:gap-4 pt-4">
+    <ul className="grid gap-5 pt-8 sm:grid-cols-2 lg:grid-cols-3">
       {listings.map((listing) => (
         <li
           key={listing.id}
-          className="bg-white rounded-md shadow-md shadow-gray-600  hover:ring hover:ring-gray-900"
+          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-900/10"
         >
           <ListingBox listing={listing} currentUser={currentUser} />
         </li>
