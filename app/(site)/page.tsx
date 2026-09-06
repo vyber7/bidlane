@@ -17,7 +17,7 @@ export default async function Home() {
     ]);
 
   return (
-    <div className="bg-stone-50 pb-16 pt-12 lg:pt-14">
+    <div className="bg-stone-50 pb-16 pt-16">
       <section className="relative overflow-hidden bg-slate-950 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_15%,rgba(245,158,11,0.18),transparent_34%)]" />
         <div className="relative mx-auto grid max-w-6xl gap-10 px-5 py-14 md:px-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-end lg:py-20">
