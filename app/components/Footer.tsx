@@ -20,7 +20,7 @@ const auctionLinks = [
   ];
 
 const companyLinks = [
-  { label: "About BidLane", href: "/about" },
+  { label: "About Bidlane", href: "/about" },
   { label: "How it works", href: "/faq" },
   { label: "Contact us", href: "/contact" },
 ];
@@ -43,7 +43,7 @@ const Footer = () => {
           <div className="max-w-md">
             <Link
               href="/"
-              aria-label="BidLane home"
+              aria-label="Bidlane home"
               className="inline-flex items-center gap-3"
             >
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-400 text-lg font-black text-slate-950 shadow-lg shadow-amber-400/10">
@@ -133,7 +133,7 @@ const Footer = () => {
         </div>
 
         <div className="flex flex-col gap-4 pt-7 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>&copy; {new Date().getFullYear()} BidLane. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Bidlane. All rights reserved.</p>
           <div className="flex items-center gap-5">
             <Link href="/terms" className="transition hover:text-slate-300">
               Terms of service
