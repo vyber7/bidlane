@@ -20,6 +20,12 @@ import Aside from "@/app/submit-listing/components/Aside";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+export const metadata: Metadata = {
+  title: "Bidlane | Auto Auctions",
+  description: "Buy and sell cars through auctions",
+  icons: { icon: "/favicon.ico" },
+};
+
 //gets page's id from url
 interface Params {
   params: Promise<{
