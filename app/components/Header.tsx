@@ -30,7 +30,7 @@ const navLinks = [
 const profileLinks = [
   { name: "Profile", href: "/account/profile" },
   { name: "Notifications", href: "/account/notifications" },
-  { name: "My listings", href: "/account/listings" },
+  { name: "Listings", href: "/account/listings" },
   { name: "Bids & wins", href: "/account/bids-and-wins" },
   { name: "Shipments", href: "/account/shipments" },
 ];

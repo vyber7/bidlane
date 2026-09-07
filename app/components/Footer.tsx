@@ -17,8 +17,7 @@ const auctionLinks = [
   { label: "Live auctions", href: "/live/listings", icon: FiZap },
   { label: "Coming soon", href: "/future/listings", icon: FiClock },
   { label: "Auction results", href: "/past/listings", icon: FiCheckCircle },
-  { label: "Sell your car", href: "/submit-listing" },
-];
+  ];
 
 const companyLinks = [
   { label: "About BidLane", href: "/about" },

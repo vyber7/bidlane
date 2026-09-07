@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning={true} data-lt-installed="true">
+    <html lang="en" suppressHydrationWarning={true} data-scroll-behavior="smooth" data-lt-installed="true">
       <body className={`${inter.className} flex flex-col min-h-screen`}>
         <AuthContext>
           <ToasterContext />

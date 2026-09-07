@@ -95,7 +95,7 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
               Personal details
             </p>
-            <h2 className="mt-1 text-2xl font-bold tracking-tight text-gray-950">Your profile</h2>
+            <h2 className="mt-1 text-2xl font-bold tracking-tight text-gray-950">Profile</h2>
             <p className="mt-1 text-sm text-gray-500">
               Keep your public name and profile photo up to date.
             </p>

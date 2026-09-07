@@ -10,7 +10,7 @@ const Avatar: React.FC<AvatarProps> = ({ user }) => {
     user?.image ?? "/images/default-profile-picture-avatar-png-green.png";
   return (
     <Image
-      className="profile-image rounded-md object-cover"
+      className="profile-image rounded-full object-cover"
       src={userImg}
       width={28}
       height={28}

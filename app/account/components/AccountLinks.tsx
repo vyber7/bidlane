@@ -15,9 +15,9 @@ const AccountLinks = () => {
   const links = [
     { name: "Profile", href: "/account/profile", icon: FiUser },
     { name: "Notifications", href: "/account/notifications", icon: FiBell },
-    { name: "My Listings", href: "/account/listings", icon: FiGrid },
-    { name: "My Bids & Wins", href: "/account/bids-and-wins", icon: FiCreditCard },
-    { name: "My Shipments", href: "/account/shipments", icon: FiPackage },
+    { name: "Listings", href: "/account/listings", icon: FiGrid },
+    { name: "Bids & Wins", href: "/account/bids-and-wins", icon: FiCreditCard },
+    { name: "Shipments", href: "/account/shipments", icon: FiPackage },
   ];
 
   return (
