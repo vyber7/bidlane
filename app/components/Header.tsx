@@ -23,6 +23,7 @@ const auctionLinks = [
 ];
 
 const navLinks = [
+  { name: "How it works", href: "/faq" },
   { name: "About", href: "/about" },
   { name: "Contact", href: "/contact" },
 ];
