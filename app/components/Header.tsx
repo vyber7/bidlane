@@ -46,12 +46,6 @@ function Header() {
   const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    setMobileOpen(false);
-    setAuctionsOpen(false);
-    setProfileOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
     function closeMenus(event: MouseEvent) {
       if (!headerRef.current?.contains(event.target as Node)) {
         setAuctionsOpen(false);
