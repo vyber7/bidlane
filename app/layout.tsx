@@ -8,7 +8,7 @@ import ConditionalLayout from "./components/ConditionalLayout";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Bidlane | Auto Auctions",
+  title: "BidLane | Auto Auctions",
   description: "Buy and sell cars through auctions",
   icons: { icon: "/favicon.ico" },
 };

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import LegalDocument, { type LegalSection } from "@/app/components/LegalDocument";
 
-export const metadata: Metadata = { title: "Terms of Service | Bidlane", description: "The terms that govern access to and use of the Bidlane vehicle auction marketplace." };
+export const metadata: Metadata = { title: "Bidlane | Terms of Service", description: "The terms that govern access to and use of the Bidlane vehicle auction marketplace." };
 
 const sections: LegalSection[] = [
   { id: "agreement", title: "Agreement to these terms", content: <p>These Terms of Service form a binding agreement between you and Bidlane. By creating an account, browsing listings, submitting a vehicle, commenting, or placing a bid, you agree to these terms and our <a href="/privacy">Privacy Policy</a>. If you do not agree, do not use the service.</p> },

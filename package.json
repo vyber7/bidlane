@@ -1,6 +1,6 @@
 {
-  "name": "app-car-auctions",
-  "version": "0.1.0",
+  "name": "bidlane",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

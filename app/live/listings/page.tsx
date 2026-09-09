@@ -1,6 +1,12 @@
 import prisma from "../../libs/prismadb";
 import Listings from "@/app/components/Listings";
 import getCurrentUser from "@/app/actions/getCurrentUser";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "BidLane | Live Listings",
+  description: "Browse live vehicle auctions on BidLane.",
+};
 
 export const dynamic = "force-dynamic";
 

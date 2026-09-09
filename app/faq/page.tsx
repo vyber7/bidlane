@@ -13,7 +13,7 @@ import {
 } from "react-icons/fi";
 
 export const metadata: Metadata = {
-  title: "How it works | Bidlane",
+  title: "BidLane | How it Works",
   description:
     "Learn how to browse, bid, and sell vehicles on Bidlane, with answers to common auction questions.",
 };
