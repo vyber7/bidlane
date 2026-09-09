@@ -7,7 +7,6 @@ import { formatAmount } from "@/app/utils/format";
 import Button from "@/app/components/Button";
 import useCountDown from "@/app/hooks/useCountDown";
 import clsx from "clsx";
-import { canEndAuction } from "@/app/utils/format";
 import { useRouter } from "next/navigation";
 import { User } from "next-auth";
 import { Bid } from "@prisma/client";
@@ -72,7 +71,10 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   usePusherEvent<Bid & { user: User }>(
     `listing-${listing.id}`,
     "new-bid",
-    (newBid) => setBid(newBid.amount)
+    (newBid) => {
+      setBid(newBid.amount);
+      router.refresh();
+    }
   );
 
   usePusherEvent(
@@ -87,162 +89,51 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
     () => router.refresh()
   );
 
-  // useEffect(() => {
-  //   axios
-  //     .post("/api/seen-listing", { listingId: listing.id, userId: currentUser })
-  //     .then((res) => {
-  //       console.log("Seen listing recorded", res.data);
-  //     })
-  //     .catch((err) => {
-  //       console.log("Error recording seen listing", err);
-  //     });
-  // }, [listing.id, currentUser]);
-
-  // useEffect(() => {
-  //   if (listing.auctionEndsAt) {
-  //     const now = new Date();
-  //     const distance = listing.auctionEndsAt.getTime() - now.getTime();
-
-  //     if (listing.status === "ENDED") {
-  //       console.log("Auction already ended");
-  //       return;
-  //     }
-
-  //     if (distance <= 0) {
-  //       endAuction();
-  //       return;
-  //     }
-  //   }
-  // }, [listing.auctionEndsAt, listing.status, endAuction]);
+  const live = listing.status === "LIVE";
+  const ended = listing.status === "ENDED";
+  const amount = bid ?? listing.startingBid;
+  const label = ended
+    ? listing.result === "SOLD" ? "Sold for" : bid !== null ? "Highest bid" : "No bids placed"
+    : bid !== null ? "Current bid" : "Starting bid";
 
   return (
-    <>
-      {listing.status === "LIVE" ? (
-        <div className="sticky top-11 z-[99] bg-gray-900 text-white rounded-md shadow-md shadow-gray-400">
-          <ProgressBar endTime={listing.auctionEndsAt} listingId={listing.id} />
-          <div className="flex flex-row flex-wrap gap-2 justify-between items-center p-4">
-            <span className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-md">
-              LIVE
-            </span>
-
-            <span
-              className={clsx(
-                `font-bold flex items-center gap-1`,
-                canEndAuction(timeLeft) && "text-red-600"
-              )}
-            >
-              <b>
-                <FaRegClock />
-              </b>{" "}
-              {timeLeft}
-            </span>
-            {bid ? (
-              <>
-                <span className="flex items-center gap-1">
-                  Bid: <b>${formatAmount(bid)}</b>
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="flex items-center gap-1">
-                  Starting At: ${formatAmount(listing.startingBid as number)}
-                </span>
-              </>
-            )}
-            <div className="flex flex-row gap-2 justify-between items-center">
-              {/*user can end the auction if they are the owner and timeLeft is <= 3 hours*/}
-              {currentUser == listing.userId ? (
-                <>
-                  {/* {!canEndAuction(timeLeft) && (
-                <div className="mb-2 text-sm text-center text-gray-600">
-                  (You can end the auction if less than 3 hours remain.)
-                </div>
-              )} */}
-                  <Button
-                    type="submit"
-                    onClick={endAuction}
-                    disabled={isLoading || timeLeft !== "ENDING..."}
-                  >
-                    End Auction
-                  </Button>
-                </>
-              ) : (
-                <Link
-                  href="#bids"
-                  className="px-4 py-2 text-sm font-semibold text-white bg-lime-500 hover:bg-lime-600 rounded-md"
-                >
-                  Place Bid
-                </Link>
-              )}
-              <Link
-                href="#comments"
-                className="px-4 py-2 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-              >
-                Comment
-              </Link>
-              {currentUser !== listing.userId &&
-                <button
-                  type="button"
-                  onClick={toggle}
-                  disabled={isUpdating}
-                  aria-label={
-                    watching ? "Remove from watchlist" : "Add to watchlist"
-                  }
-                  className="text-2xl text-yellow-500 hover:text-yellow-600 disabled:opacity-50"
-                >
-                  {watching ? <GoStarFill /> : <GoStar />}
-                </button>}
-            </div>
-          </div>
-        </div>
-      ) : listing.status === "ENDED" ? (
-        <div className="sticky top-11 z-[99] bg-gray-900 text-white p-4 rounded-md shadow-md shadow-gray-400 ">
-          <div className="flex flex-row flex-wrap gap-2 justify-between items-center">
-            <span className="px-4 py-2 text-sm font-semibold text-white bg-gray-600 rounded-md">
-              ENDED
-            </span>
-            <div>
-              {listing.currentBid &&
-              listing.currentBid < (listing.reservePrice || 0) ? (
-                <>
-                  Reserve not met, bid to{" "}
-                  <span>
-                    <b>${formatAmount(listing.currentBid)}</b>
-                  </span>{" "}
-                </>
-              ) : listing.currentBid ? (
-                <>
-                  Sold for{" "}
-                  <span>
-                    <b>${formatAmount(listing.currentBid)}</b>
-                  </span>
-                </>
-              ) : (
-                <>
-                  <b>No bids were placed.</b>
-                </>
-              )}
-            </div>
-            <div className="flex flex-row gap-4">
-              <Link href="#bids" className="flex items-center gap-1">
-                <FaHashtag />
-                Bids {bidsCount}
-              </Link>
-              <Link href="#comments" className="flex items-center gap-1">
-                <FaRegCommentAlt />
-                Comments {commentsCount}
-              </Link>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="sticky top-11 z-[99] bg-gray-900 p-4 rounded-md shadow-md shadow-gray-400">
-          <span className="px-4 py-2 text-sm font-semibold text-white bg-yellow-600 rounded-md">
-            UPCOMING
+    <section className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
+      {live && <ProgressBar endTime={listing.auctionEndsAt} listingId={listing.id} />}
+      <div className="space-y-6 p-6">
+        <div className="flex items-center justify-between gap-3">
+          <span className={clsx("rounded-full px-3 py-1 text-xs font-bold", live ? "bg-amber-400 text-slate-950" : "bg-white/10 text-slate-200")}>
+            {live ? "● Live auction" : ended ? "Auction ended" : "Coming soon"}
           </span>
+          {currentUser !== listing.userId && !ended && (
+            <button type="button" onClick={toggle} disabled={isUpdating} aria-pressed={watching}
+              aria-label={watching ? "Remove from watchlist" : "Add to watchlist"}
+              className="rounded-lg p-2 text-2xl text-amber-400 hover:bg-white/10 disabled:opacity-50">
+              {watching ? <GoStarFill /> : <GoStar />}
+            </button>
+          )}
         </div>
-      )}
-    </>
+        <div>
+          <p className="mb-2 text-sm text-slate-400">{label}</p>
+          <p className="text-4xl font-bold tracking-tight tabular-nums">{ended && bid === null ? "—" : amount !== null ? `$${formatAmount(amount)}` : "To be announced"}</p>
+          {ended && listing.result === "RESERVE_NOT_MET" && <p className="mt-2 text-sm text-amber-400">Reserve not met</p>}
+        </div>
+        {live && <div className="flex items-center justify-between gap-3 border-y border-white/10 py-4 text-sm">
+          <span className="flex items-center gap-2 text-slate-400"><FaRegClock /> Time left</span>
+          <span className="font-semibold tabular-nums">{timeLeft || "Calculating…"}</span>
+        </div>}
+        {live ? currentUser === listing.userId ? (
+          <Button onClick={endAuction} disabled={isLoading || timeLeft !== "ENDING..."}>{isLoading ? "Ending auction…" : "End auction"}</Button>
+        ) : (
+          <Link href="#bids" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">Place a bid</Link>
+        ) : !ended ? (
+          <p className="text-sm leading-6 text-slate-400">Bidding hasn’t opened yet. {currentUser === listing.userId ? "Set up your auction below when you’re ready." : "Add this vehicle to your watchlist to find it again easily."}</p>
+        ) : null}
+        <div className="flex flex-wrap gap-5 text-sm text-slate-400">
+          {(live || ended) && <Link href="#bids" className="flex items-center gap-2 hover:text-white"><FaHashtag />{bidsCount ?? 0} bids</Link>}
+          <Link href="#comments" className="flex items-center gap-2 hover:text-white"><FaRegCommentAlt />{commentsCount ?? 0} comments</Link>
+        </div>
+      </div>
+    </section>
   );
 };
 

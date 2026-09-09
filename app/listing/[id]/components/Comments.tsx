@@ -55,9 +55,9 @@ const Comments: React.FC<CommentsProps> = ({
   return (
     <div
       id="comments"
-      className="p-4 border shadow-md rounded-md shadow-gray-400 bg-white"
+      className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
     >
-      <h1 className="pb-4">Comments & Bids</h1>
+      <h2 className="pb-4 text-2xl font-bold tracking-tight">Comments & bids</h2>
       <Form listingId={listingId} />
       <div ref={topRef}></div>
       <CommentBox comments={comments} bids={bids} />

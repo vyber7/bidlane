@@ -74,7 +74,11 @@ export async function POST(req: Request) {
         where: {
           id: listingId,
           status: "LIVE",
-          currentBid: listing.currentBid,
+          // MongoDB distinguishes an absent field from an explicit null.
+          // Both represent an auction that has not received its first bid.
+          ...(listing.currentBid === null
+            ? { OR: [{ currentBid: null }, { currentBid: { isSet: false } }] }
+            : { currentBid: listing.currentBid }),
           auctionEndsAt: listing.auctionEndsAt,
         },
         data: {

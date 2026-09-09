@@ -133,7 +133,7 @@ describe("POST /api/place-bid", () => {
       where: {
         id: listingId,
         status: "LIVE",
-        currentBid: null,
+        OR: [{ currentBid: null }, { currentBid: { isSet: false } }],
         auctionEndsAt: new Date("2026-09-04T13:00:00.000Z"),
       },
       data: {
@@ -164,6 +164,16 @@ describe("POST /api/place-bid", () => {
       "new-bid",
       expect.objectContaining({ id: "bid-1" })
     );
+  });
+
+  it("keeps the exact previous-price lock for subsequent bids", async () => {
+    mocks.listingFindUnique.mockResolvedValue(liveListing({ currentBid: 1_500 }));
+    const response = await POST(request({ listingId, bidAmount: 1_600 }));
+
+    expect(response.status).toBe(201);
+    const where = mocks.listingUpdateMany.mock.calls[0][0].where;
+    expect(where.currentBid).toBe(1_500);
+    expect(where).not.toHaveProperty("OR");
   });
 
   it("extends an auction to two minutes from a last-minute bid", async () => {

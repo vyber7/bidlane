@@ -28,7 +28,7 @@ const useCountDown = (targetDate: Date, listingId?: string) => {
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
       if (weeks > 0) {
-        setTimeLeft(`${weeks}w ${days}d ${hours}h ${minutes}m ${seconds}s`);
+        setTimeLeft(`${weeks}w ${days % 7}d ${hours}h ${minutes}m ${seconds}s`);
       } else if (days > 0) {
         setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
       } else if (hours > 0) {

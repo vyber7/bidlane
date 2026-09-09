@@ -4,6 +4,7 @@ import axios from "axios";
 import clsx from "clsx";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { formatAmount, capitalize } from "@/app/utils/format";
@@ -23,11 +24,13 @@ const Bids: React.FC<BidsProps> = ({
   sellerEmail,
 }) => {
   const { data: session } = useSession();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [bid, setBid] = useState<number | null>(listing.currentBid);
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<FieldValues>();
 
@@ -52,7 +55,10 @@ const Bids: React.FC<BidsProps> = ({
 
     axios
       .post(`/api/place-bid`, { ...data, listingId: listing.id })
-      .then(() => {
+      .then((response) => {
+        setBid(response.data.currentBid);
+        reset();
+        router.refresh();
         toast.success("Bid placed successfully!");
       })
       .catch((error) => {
@@ -64,7 +70,7 @@ const Bids: React.FC<BidsProps> = ({
   return (
     <div
       id="bids"
-      className="p-4 border shadow-md rounded-md shadow-gray-400 bg-white"
+      className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
     >
       <h2 className="text-lg font-bold">
         {listing.year} {listing.make} {listing.model}
@@ -92,7 +98,7 @@ const Bids: React.FC<BidsProps> = ({
             <p>Reserve not met, bid to</p>
           ) : (
             <p>
-              {listing.currentBid ? "Current Bid" : "Starting at"}{" "}
+              {bid !== null ? "Current Bid" : "Starting at"}{" "}
               <span className="font-semibold">
                 {listing.highestBidderId
                   ? capitalize(
@@ -103,7 +109,7 @@ const Bids: React.FC<BidsProps> = ({
               </span>
             </p>
           )}
-          <div className="font-semibold text-6xl">
+          <div className="font-bold text-4xl sm:text-5xl tracking-tight">
             {bid ? (
               <span>${formatAmount(bid as number)}</span>
             ) : (
@@ -150,13 +156,14 @@ const Bids: React.FC<BidsProps> = ({
           <input
             id="bidAmount"
             type="number"
-            placeholder="Your Bid"
+            aria-label="Your bid amount in dollars"
+            placeholder="Your bid ($)"
             min={
               bid === null
                 ? (listing.startingBid as number)
                 : bid + (listing.bidIncrement as number)
             }
-            step={listing.bidIncrement || 1}
+            step={1}
             {...register("bidAmount", { required: true, valueAsNumber: true })}
             className={clsx(
               `w-4/5 form-input
@@ -188,8 +195,8 @@ const Bids: React.FC<BidsProps> = ({
         focus-visible:outline
         focus-visible:outline-2
         focus-visible:outline-offset-2
-        bg-lime-500 hover:bg-lime-600 focus-visible:outline-lime-600
-        text-white"
+        bg-amber-400 hover:bg-amber-300 focus-visible:outline-amber-500
+        text-slate-950"
           >
             Place a Bid
           </button>
