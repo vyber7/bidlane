@@ -1,6 +1,6 @@
 "use client";
 
-import { Listing, User } from "@prisma/client";
+import { Listing } from "@prisma/client";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
@@ -17,7 +17,7 @@ import AccountListingBox from "./AccountListingBox";
 interface ListingsDashboardProps {
   uploaded: Listing[];
   initialWatching: Listing[];
-  currentUser: User | null;
+  currentUserId?: string | null;
 }
 
 interface WatchingUpdate {
@@ -31,7 +31,7 @@ type StatusFilter = "ALL" | "LIVE" | "UPCOMING" | "ENDED";
 const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
   uploaded,
   initialWatching,
-  currentUser,
+  currentUserId,
 }) => {
   const [tab, setTab] = useState<Tab>("uploaded");
   const [status, setStatus] = useState<StatusFilter>("ALL");
@@ -39,7 +39,7 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
   const [watching, setWatching] = useState(initialWatching);
 
   usePusherEvent<WatchingUpdate>(
-    currentUser?.id ? `user-${currentUser.id}-watching` : null,
+    currentUserId ? `user-${currentUserId}-watching` : null,
     "watching-update",
     ({ listing, watching: isWatching }) => {
       setWatching((current) => {
@@ -161,7 +161,7 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
             <li key={listing.id}>
               <AccountListingBox
                 listing={listing}
-                currentUser={currentUser}
+                currentUserId={currentUserId}
                 watching={watching.some((item) => item.id === listing.id)}
                 uploaded={tab === "uploaded"}
               />

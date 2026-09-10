@@ -1,5 +1,5 @@
 "use client";
-import { Listing, User } from "@prisma/client";
+import { Listing } from "@prisma/client";
 import { useState } from "react";
 import AccountListingBox from "./AccountListingBox";
 import usePusherEvent from "@/app/hooks/usePusherEvent";
@@ -11,17 +11,17 @@ interface WatchingUpdate {
 
 interface WatchingListingsProps {
   initialListings: Listing[];
-  currentUser: User | null;
+  currentUserId?: string | null;
 }
 
 const WatchingListings: React.FC<WatchingListingsProps> = ({
   initialListings,
-  currentUser,
+  currentUserId,
 }) => {
   const [watchingListings, setWatchingListings] =
     useState<Listing[]>(initialListings);
   usePusherEvent<WatchingUpdate>(
-    currentUser?.id ? `user-${currentUser.id}-watching` : null,
+    currentUserId ? `user-${currentUserId}-watching` : null,
     "watching-update",
     ({ listing, watching }) => {
       setWatchingListings((current) => {
@@ -48,13 +48,13 @@ const WatchingListings: React.FC<WatchingListingsProps> = ({
           <li key={listing.id} className="rounded-md shadow-md shadow-gray-400">
             <AccountListingBox
               listing={listing}
-              currentUser={currentUser}
+              currentUserId={currentUserId}
               watching={
-                listing.watchersIds.includes(currentUser?.id as string)
+                listing.watchersIds.includes(currentUserId as string)
                   ? true
                   : false
               }
-              uploaded={listing.userId === currentUser?.id}
+              uploaded={listing.userId === currentUserId}
             />
           </li>
         ))}

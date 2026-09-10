@@ -1,16 +1,14 @@
 "use client";
-//import getCurrentUser from "@/app/actions/getCurrentUser";
-//import Avatar from "@/app/components/Avatar";
-import { User } from "next-auth";
 import Form from "./CommentForm";
-import { Comment, Bid } from "@prisma/client";
+import { Bid } from "@prisma/client";
 import { useRef, useState } from "react";
 import { find } from "lodash";
 import CommentBox from "./CommentBox";
 import usePusherEvent from "@/app/hooks/usePusherEvent";
+import type { CommentWithAuthor } from "@/app/types";
 
 interface CommentsProps {
-  initialComments: (Comment & { user: User | null })[];
+  initialComments: CommentWithAuthor[];
   initialBids: (Bid & { user: { name: string | null } })[];
   listingId: string;
 }
@@ -24,7 +22,7 @@ const Comments: React.FC<CommentsProps> = ({
   const [bids, setBids] = useState(initialBids);
   const topRef = useRef<HTMLDivElement>(null);
 
-  usePusherEvent<Comment & { user: User | null }>(
+  usePusherEvent<CommentWithAuthor>(
     `listing-${listingId}`,
     "new-comment",
     (comment) => {

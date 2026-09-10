@@ -27,7 +27,7 @@ const Notifications = async () => {
           include: {
             comments: {
               where: { userId: { not: currentUser.id } },
-              include: { user: true },
+              include: { user: { select: { name: true } } },
               orderBy: { createdAt: "desc" },
               take: 5,
             },

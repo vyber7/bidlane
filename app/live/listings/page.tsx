@@ -24,7 +24,7 @@ const LiveListings = async () => {
     <div className="m-auto pt-20 pb-4 max-w-5xl px-2">
       <AuctionSearchBrowser
         listings={liveListings}
-        currentUser={currentUser}
+        currentUserId={currentUser?.id}
         title="Live auctions"
         auctionType="live"
         eyebrow="The lineup"

@@ -1,12 +1,12 @@
 "use client";
 
-import { Comment, Bid } from "@prisma/client";
-import { User } from "next-auth";
+import { Bid } from "@prisma/client";
 import clsx from "clsx";
 import { formatAmount, capitalize } from "@/app/utils/format";
+import type { CommentWithAuthor } from "@/app/types";
 
 interface CommentBoxProps {
-  comments: (Comment & { user: User | null })[];
+  comments: CommentWithAuthor[];
   bids: (Bid & { user: { name: string | null } })[];
 }
 

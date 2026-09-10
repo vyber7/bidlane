@@ -30,7 +30,7 @@ const MyListings = async () => {
           <ListingsDashboard
             uploaded={uploaded}
             initialWatching={watching}
-            currentUser={currentUser}
+            currentUserId={currentUser?.id}
           />
         </div>
       </div>

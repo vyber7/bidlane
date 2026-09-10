@@ -1,13 +1,13 @@
 "use client";
 
-import { Listing, User } from "@prisma/client";
+import { Listing } from "@prisma/client";
 import { useMemo, useState } from "react";
 import { FiCheckCircle, FiClock, FiSearch, FiZap } from "react-icons/fi";
 import Listings from "../../components/Listings";
 
 interface AuctionBrowserProps {
   listings: Listing[];
-  currentUser: User | null;
+  currentUserId?: string | null;
 }
 
 type AuctionTab = "ALL" | "LIVE" | "UPCOMING" | "ENDED";
@@ -25,7 +25,7 @@ const tabs: {
 
 const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
   listings,
-  currentUser,
+  currentUserId,
 }) => {
   const [activeTab, setActiveTab] = useState<AuctionTab>("ALL");
   const [query, setQuery] = useState("");
@@ -118,7 +118,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
       </div>
 
       {visibleListings.length > 0 ? (
-        <Listings listings={visibleListings} currentUser={currentUser} />
+        <Listings listings={visibleListings} currentUserId={currentUserId} />
       ) : (
         <div className="mt-8 rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center">
           <FiSearch className="mx-auto text-2xl text-slate-400" />

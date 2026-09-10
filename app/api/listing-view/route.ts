@@ -1,49 +1,73 @@
 import prisma from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 import { logger } from "@/app/libs/logger";
+import getCurrentUser from "@/app/actions/getCurrentUser";
+import {
+  AuctionRequestError,
+  auctionErrorResponse,
+  isJsonObject,
+  requireListingId,
+} from "@/app/api/auction-security";
+
+const MAX_VIEW_COUNT = 2_147_483_647;
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { listingId, userId } = body;
+    const body: unknown = await req.json();
+    if (!isJsonObject(body)) {
+      throw new AuctionRequestError(400, "Invalid request body");
+    }
 
-    if (!listingId) {
-      return new NextResponse("Missing Listing ID", { status: 400 });
+    const listingId = requireListingId(body.listingId);
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser?.id) {
+      const listing = await prisma.listing.findUnique({
+        where: { id: listingId },
+        select: { views: true },
+      });
+      if (!listing) throw new AuctionRequestError(404, "Listing not found");
+      return NextResponse.json({ views: listing.views });
     }
-    if (!userId) {
-      const updated = await prisma.listing.update({
+
+    const views = await prisma.$transaction(async (tx) => {
+      const listing = await tx.listing.findUnique({
+        where: { id: listingId },
+        select: { views: true },
+      });
+      if (!listing) throw new AuctionRequestError(404, "Listing not found");
+
+      const counted = await tx.listing.updateMany({
         where: {
           id: listingId,
+          views: { lt: MAX_VIEW_COUNT },
+          NOT: { seenIds: { has: currentUser.id } },
         },
         data: {
-          views: {
-            increment: 1,
-          },
+          views: { increment: 1 },
+          seenIds: { push: currentUser.id },
         },
       });
-      return NextResponse.json(`${updated.views}`);
-    } else {
-      const updated = await prisma.listing.update({
-        where: {
-          id: listingId,
-        },
-        data: {
-          views: {
-            increment: 1,
+
+      if (counted.count === 1) {
+        await tx.user.updateMany({
+          where: {
+            id: currentUser.id,
+            NOT: { seenListIds: { has: listingId } },
           },
-          seen: {
-            connect: {
-              id: userId,
-            },
-          },
-        },
-      });
-      return NextResponse.json(
-        `${updated.views} and listing seen updated: ${updated.seenIds}`
-      );
-    }
+          data: { seenListIds: { push: listingId } },
+        });
+      }
+
+      if (counted.count === 0) return listing.views;
+      return Math.min(listing.views + 1, MAX_VIEW_COUNT);
+    });
+
+    return NextResponse.json({ views });
   } catch (error: unknown) {
+    const response = auctionErrorResponse(error);
+    if (response) return response;
     logger.error("listing.view_failed", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return NextResponse.json({ error: "Unable to record view" }, { status: 500 });
   }
 }

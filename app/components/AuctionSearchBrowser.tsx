@@ -1,13 +1,13 @@
 "use client";
 
-import { Listing, User } from "@prisma/client";
+import { Listing } from "@prisma/client";
 import { useMemo, useState } from "react";
 import { FiSearch } from "react-icons/fi";
 import Listings from "./Listings";
 
 interface AuctionSearchBrowserProps {
   listings: Listing[];
-  currentUser: User | null;
+  currentUserId?: string | null;
   title: string;
   auctionType: string;
   eyebrow?: string;
@@ -16,7 +16,7 @@ interface AuctionSearchBrowserProps {
 
 const AuctionSearchBrowser: React.FC<AuctionSearchBrowserProps> = ({
   listings,
-  currentUser,
+  currentUserId,
   title,
   auctionType,
   eyebrow,
@@ -103,7 +103,7 @@ const AuctionSearchBrowser: React.FC<AuctionSearchBrowserProps> = ({
           </button>
         </div>
       ) : (
-        <Listings listings={visibleListings} currentUser={currentUser} />
+        <Listings listings={visibleListings} currentUserId={currentUserId} />
       )}
     </>
   );

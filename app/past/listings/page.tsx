@@ -22,7 +22,7 @@ const PastListings = async () => {
     <div className="m-auto pt-20 pb-4 max-w-5xl px-2">
       <AuctionSearchBrowser
         listings={pastListings}
-        currentUser={currentUser}
+        currentUserId={currentUser?.id}
         title="Past auctions"
         auctionType="past"
         eyebrow="Auction results"

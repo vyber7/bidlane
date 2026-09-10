@@ -35,7 +35,7 @@ const Listing = async (props: Params) => {
     getComments(id),
     getCurrentUser(),
     getBids(id),
-    prisma.user.findUnique({ where: { id: listing.userId }, select: { name: true, email: true } }),
+    prisma.user.findUnique({ where: { id: listing.userId }, select: { name: true } }),
     getLiveAuctions(),
   ]);
   const title = `${listing.year} ${listing.make} ${listing.model}`;
@@ -83,7 +83,7 @@ const Listing = async (props: Params) => {
           <div className="space-y-6">
             {owner && listing.status === "UPCOMING" && <AuctionStartForm listingId={id} />}
             <Description description={listing.description} />
-            {listing.status !== "UPCOMING" && <Bids listing={listing} bids={bids} sellerName={seller?.name} sellerEmail={seller?.email} />}
+            {listing.status !== "UPCOMING" && <Bids listing={listing} bids={bids} sellerName={seller?.name} currentUserId={currentUser?.id} />}
             <Comments initialComments={comments} initialBids={bids} listingId={id} />
           </div>
         </div>

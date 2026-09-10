@@ -14,14 +14,14 @@ interface BidsProps {
   listing: Listing;
   bids: (Bid & { user: { name: string | null } })[];
   sellerName?: string | null;
-  sellerEmail?: string | null;
+  currentUserId?: string | null;
 }
 
 const Bids: React.FC<BidsProps> = ({
   listing,
   bids,
   sellerName,
-  sellerEmail,
+  currentUserId,
 }) => {
   const { data: session } = useSession();
   const router = useRouter();
@@ -148,7 +148,7 @@ const Bids: React.FC<BidsProps> = ({
         </div>
       </div>
       {listing.status === "ENDED" ? null : session &&
-        sellerEmail !== session?.user?.email ? (
+        listing.userId !== currentUserId ? (
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="border flex border-gray-300 rounded-md has-[:focus]:ring has-[:focus]:ring-gray-500 hover:ring hover:ring-gray-500"

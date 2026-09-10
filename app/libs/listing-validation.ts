@@ -1,6 +1,26 @@
 export const MAX_LISTING_PHOTOS = 10;
 export const MAX_LISTING_NUMBER = 2147483647;
 
+export function isCloudinaryImageUrl(
+  value: unknown,
+  listingId?: string
+): value is string {
+  if (typeof value !== "string" || value.length > 2048) return false;
+
+  try {
+    const url = new URL(value);
+    const isCloudinaryImage =
+      url.protocol === "https:" &&
+      url.hostname === "res.cloudinary.com" &&
+      url.pathname.includes("/image/upload/");
+
+    if (!isCloudinaryImage) return false;
+    return !listingId || url.pathname.split("/").includes(`listing-${listingId}`);
+  } catch {
+    return false;
+  }
+}
+
 export function validateListing(data: unknown) {
   if (!data || typeof data !== "object") return "Please provide listing details.";
   const values = data as Record<string, unknown>;
@@ -21,12 +41,8 @@ export function validateListing(data: unknown) {
   if (!Array.isArray(values.images) || values.images.length < 1 || values.images.length > MAX_LISTING_PHOTOS) {
     return `Please add between 1 and ${MAX_LISTING_PHOTOS} photos.`;
   }
-  if (values.images.some((image) => {
-    if (typeof image !== "string") return true;
-    try {
-      const url = new URL(image);
-      return url.protocol !== "https:" || url.hostname !== "res.cloudinary.com" || !url.pathname.includes("/image/upload/");
-    } catch { return true; }
-  })) return "Please use uploaded images for your listing.";
+  if (values.images.some((image) => !isCloudinaryImageUrl(image))) {
+    return "Please use uploaded images for your listing.";
+  }
   return null;
 }

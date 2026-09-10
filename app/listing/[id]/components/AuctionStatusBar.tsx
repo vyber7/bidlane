@@ -59,7 +59,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
 
   useEffect(() => {
     axios
-      .post("/api/listing-view", { listingId: listing.id, userId: currentUser })
+      .post("/api/listing-view", { listingId: listing.id })
       .catch((error) => {
         logger.warn("listing.view.client_failed", {
           listingId: listing.id,

@@ -10,7 +10,14 @@ async function getComments(listingId: string) {
     const comments = await prisma.comment.findMany({
       where: { listingId },
       orderBy: { createdAt: "desc" },
-      include: { user: true },
+      select: {
+        id: true,
+        body: true,
+        image: true,
+        createdAt: true,
+        listingId: true,
+        user: { select: { name: true } },
+      },
     });
 
     return comments;

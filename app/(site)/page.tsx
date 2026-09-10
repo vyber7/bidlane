@@ -60,7 +60,7 @@ export default async function Home() {
           </Link>
         </div>
 
-        <AuctionBrowser listings={listings} currentUser={currentUser} />
+        <AuctionBrowser listings={listings} currentUserId={currentUser?.id} />
       </section>
     </div>
   );

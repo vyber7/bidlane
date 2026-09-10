@@ -1,17 +1,17 @@
 "use client";
 
-import { Listing, User } from "@prisma/client";
+import { Listing } from "@prisma/client";
 import React from "react";
 import AccountListingBox from "./AccountListingBox";
 
 interface UploadedListingsProps {
   listings: Listing[];
-  currentUser: User | null;
+  currentUserId?: string | null;
 }
 
 const UploadedListings: React.FC<UploadedListingsProps> = ({
   listings,
-  currentUser,
+  currentUserId,
 }) => {
   return (
     <>
@@ -31,13 +31,13 @@ const UploadedListings: React.FC<UploadedListingsProps> = ({
           >
             <AccountListingBox
               listing={listing}
-              currentUser={currentUser}
+              currentUserId={currentUserId}
               watching={
-                listing.watchersIds.includes(currentUser?.id as string)
+                listing.watchersIds.includes(currentUserId as string)
                   ? true
                   : false
               }
-              uploaded={listing.userId === currentUser?.id}
+              uploaded={listing.userId === currentUserId}
             />
           </li>
         ))}

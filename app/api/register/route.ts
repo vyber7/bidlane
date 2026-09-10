@@ -21,8 +21,9 @@ export async function POST(request: Request) {
         email,
         hashedPassword,
       },
+      select: { id: true },
     });
-    return NextResponse.json(user, { status: 201 });
+    return NextResponse.json({ id: user.id }, { status: 201 });
   } catch (error: unknown) {
     logger.error("auth.registration_failed", error);
     return new NextResponse("Internal Error", { status: 500 });

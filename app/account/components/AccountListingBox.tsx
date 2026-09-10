@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { GoTrash } from "react-icons/go";
 import Image from "next/image";
-import { Listing, User } from "@prisma/client";
+import { Listing } from "@prisma/client";
 import { formatAmount, canEndAuction } from "@/app/utils/format";
 import clsx from "clsx";
 import { FiArrowUpRight, FiClock, FiEye, FiMapPin } from "react-icons/fi";
@@ -14,21 +14,21 @@ import useWatchlist from "@/app/hooks/useWatchlist";
 
 interface AccountListingBoxProps {
   listing: Listing;
-  currentUser: User | null;
+  currentUserId?: string | null;
   watching: boolean;
   uploaded: boolean;
 }
 
 const AccountListingBox: React.FC<AccountListingBoxProps> = ({
   listing,
-  currentUser,
+  currentUserId,
   watching,
   uploaded,
 }) => {
   const [bid] = useState<number | null>(listing.currentBid);
   const { isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
-    userId: currentUser?.id,
+    userId: currentUserId,
     initialWatching: watching,
   });
 

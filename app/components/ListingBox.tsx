@@ -7,7 +7,7 @@ import Title from "./Title";
 import { useState } from "react";
 import { GrEdit } from "react-icons/gr";
 import { FaRegClock } from "react-icons/fa";
-import { Listing, User } from "@prisma/client";
+import { Listing } from "@prisma/client";
 import useCountDown from "../hooks/useCountDown";
 import { formatAmount, canEndAuction } from "../utils/format";
 import { clsx } from "clsx";
@@ -17,15 +17,15 @@ import useWatchlist from "../hooks/useWatchlist";
 
 interface ListingBoxProps {
   listing: Listing;
-  currentUser?: User | null;
+  currentUserId?: string | null;
 }
 
-const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
+const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUserId }) => {
   const [bid, setBid] = useState<number | null>(listing.currentBid);
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
-    userId: currentUser?.id,
-    initialWatching: listing.watchersIds.includes(currentUser?.id as string),
+    userId: currentUserId,
+    initialWatching: listing.watchersIds.includes(currentUserId as string),
   });
 
   const timeLeft = useCountDown(listing.auctionEndsAt as Date, listing.id);
@@ -67,7 +67,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
       <Link className="min-w-0 flex-1" href={`/listing/${listing.id}`}>
         <Title year={listing.year} make={listing.make} model={listing.model} />
       </Link>
-      {listing.userId == currentUser?.id ? (
+      {listing.userId == currentUserId ? (
         <button className="flex items-center text-sm px-2">
           <GrEdit />
         </button>

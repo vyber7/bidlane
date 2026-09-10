@@ -42,7 +42,7 @@ const Profile = async () => {
             email: currentUser.email ?? "",
             image: currentUser.image ?? "",
             createdAt: currentUser.createdAt.toISOString(),
-            hasPassword: Boolean(currentUser.hashedPassword),
+            hasPassword: currentUser.hasPassword,
           }}
         />
       </div>
