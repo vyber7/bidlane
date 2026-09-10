@@ -3,7 +3,6 @@ import SubmitForm from "./components/SubmitForm";
 import Aside from "./components/Aside";
 import getSoldAuctions from "../actions/getSoldAuctions";
 
-
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -15,13 +14,13 @@ async function SubmitVehicle() {
   const soldAuctions = await getSoldAuctions();
 
   return (
-    <div className="m-auto px-2 lg:px-0 pt-16 min-h-lvh pb-4 lg:gap-4 flex flex-col lg:flex-row max-w-5xl">
-      <main className="w-full lg:w-10/12 lg:p-0 rounded-md">
+    <div className="m-auto grid min-h-lvh max-w-6xl gap-10 px-4 pb-10 pt-16 lg:grid-cols-[minmax(0,1fr)_18rem] lg:px-0">
+      <main className="w-full rounded-md lg:p-0">
         <h1 className="pb-2 text-3xl font-bold">Submit your vehicle</h1>
         <p className="mb-6 text-sm text-slate-500">Add your details and photos, then preview your listing before submitting.</p>
         <SubmitForm />
       </main>
-      <Aside auctions={soldAuctions} variant="sold" />
+      <Aside auctions={soldAuctions} />
     </div>
   );
 }

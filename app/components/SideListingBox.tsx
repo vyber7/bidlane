@@ -1,93 +1,47 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { Bid, Listing, User } from "@prisma/client";
-import { canEndAuction, formatAmount } from "@/app/utils/format";
+import { Listing } from "@prisma/client";
+import { formatAmount } from "@/app/utils/format";
 import { CldImage } from "next-cloudinary";
-import { FaRegClock } from "react-icons/fa";
-import clsx from "clsx";
-import useCountDown from "../hooks/useCountDown";
-import { useState } from "react";
-import usePusherEvent from "../hooks/usePusherEvent";
 
 interface SideListingBoxProps {
   auction: Listing;
-  variant?: "live" | "sold";
 }
 
-const SideListingBox: React.FC<SideListingBoxProps> = ({
-  auction,
-  variant,
-}) => {
-  const [bid, setBid] = useState<number | null>(auction.currentBid);
-
-  const timeLeft = useCountDown(auction.auctionEndsAt as Date, auction.id);
-
-  usePusherEvent<Bid & { user: User }>(
-    `listing-${auction.id}`,
-    "new-bid",
-    (newBid) => setBid(newBid.amount)
-  );
-
+const SideListingBox: React.FC<SideListingBoxProps> = ({ auction }) => {
   return (
-    <div className="w-[31%] lg:w-full rounded-md shadow-md shadow-gray-600 hover:ring hover:ring-gray-900">
-      <Link href={`/listing/${auction.id}`} className="relative">
-        <div className="absolute w-full">
-          {variant === "live" && (
-            <>
-              {" "}
-              <div className="flex gap-1 items-center rounded-t-md bg-black bg-opacity-60 p-1 pb-0 text-xs text-white">
-                <FaRegClock />{" "}
-                <span
-                  className={clsx(
-                    canEndAuction(timeLeft) ? "text-red-600" : ""
-                  )}
-                >
-                  {timeLeft}
-                </span>
-              </div>
-              <div className="bg-black bg-opacity-60 p-1 pt-0 text-xs text-white w-full">
-                {bid ? (
-                  <>
-                    Bid <b>${formatAmount(bid as number)}</b>
-                  </>
-                ) : (
-                  <>
-                    Starting at{" "}
-                    <b>${formatAmount(auction.startingBid as number)}</b>
-                  </>
-                )}
-              </div>
-            </>
-          )}
-
-          {variant === "sold" && (
-            <div className="bg-black bg-opacity-60 p-1 rounded-t-md text-xs text-white w-full">
-              Sold for <b>${formatAmount(auction.currentBid as number)}</b>
-            </div>
-          )}
-        </div>
+    <div className="group overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+      <Link href={`/listing/${auction.id}`} className="grid grid-cols-[6.5rem_1fr]">
         {auction.coverImage ? (
           <CldImage
             src={auction.coverImage}
-            alt={auction.model}
-            width={200}
-            height={150}
-            crop="thumb"
-            gravity="face"
-            zoom="1.0"
-            className="w-full rounded-md object-cover"
+            alt={`${auction.year} ${auction.make} ${auction.model}`}
+            width={208}
+            height={160}
+            crop="fill"
+            gravity="auto"
+            className="h-full min-h-24 w-full object-cover"
           />
         ) : (
           <Image
             src="/images/default-vehicle-image.png"
-            alt={auction.model}
-            width={200}
-            height={150}
-            className="w-full rounded-md object-cover"
+            alt={`${auction.year} ${auction.make} ${auction.model}`}
+            width={208}
+            height={160}
+            className="h-full min-h-24 w-full object-cover"
           />
         )}
+        <div className="min-w-0 p-3">
+          <p className="line-clamp-2 text-sm font-bold leading-5 text-slate-950 group-hover:text-amber-700">
+            {auction.year} {auction.make} {auction.model}
+          </p>
+          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+            Sold for
+          </p>
+          <p className="text-sm font-bold text-slate-950">
+            ${auction.currentBid === null ? "—" : formatAmount(auction.currentBid)}
+          </p>
+        </div>
       </Link>
     </div>
   );
