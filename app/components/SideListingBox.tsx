@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { Listing } from "@prisma/client";
@@ -6,9 +8,11 @@ import { CldImage } from "next-cloudinary";
 
 interface SideListingBoxProps {
   auction: Listing;
+  variant?: "sold" | "live";
 }
 
-const SideListingBox: React.FC<SideListingBoxProps> = ({ auction }) => {
+const SideListingBox: React.FC<SideListingBoxProps> = ({ auction, variant = "sold" }) => {
+  const amount = variant === "live" ? auction.currentBid ?? auction.startingBid : auction.currentBid;
   return (
     <div className="group overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
       <Link href={`/listing/${auction.id}`} className="grid grid-cols-[6.5rem_1fr]">
@@ -36,10 +40,10 @@ const SideListingBox: React.FC<SideListingBoxProps> = ({ auction }) => {
             {auction.year} {auction.make} {auction.model}
           </p>
           <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-400">
-            Sold for
+            {variant === "live" ? auction.currentBid === null ? "Starting bid" : "Current bid" : "Sold for"}
           </p>
           <p className="text-sm font-bold text-slate-950">
-            ${auction.currentBid === null ? "—" : formatAmount(auction.currentBid)}
+            {amount === null ? "—" : `$${formatAmount(amount)}`}
           </p>
         </div>
       </Link>

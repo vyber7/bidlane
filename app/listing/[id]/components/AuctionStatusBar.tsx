@@ -79,6 +79,12 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
 
   usePusherEvent(
     `listing-${listing.id}`,
+    "new-comment",
+    () => router.refresh()
+  );
+
+  usePusherEvent(
+    `listing-${listing.id}`,
     "auction-started",
     () => router.refresh()
   );
@@ -130,7 +136,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
         ) : null}
         <div className="flex flex-wrap gap-5 text-sm text-slate-400">
           {(live || ended) && <Link href="#bids" className="flex items-center gap-2 hover:text-white"><FaHashtag />{bidsCount ?? 0} bids</Link>}
-          <Link href="#comments" className="flex items-center gap-2 hover:text-white"><FaRegCommentAlt />{commentsCount ?? 0} comments</Link>
+          <Link href="#comments" aria-live="polite" aria-atomic="true" className="flex items-center gap-2 hover:text-white"><FaRegCommentAlt />{commentsCount ?? 0} comments</Link>
         </div>
       </div>
     </section>

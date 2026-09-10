@@ -3,6 +3,8 @@ import Description from "./components/Description";
 import Comments from "./components/Comments";
 import getComments from "@/app/actions/getComments";
 import getCurrentUser from "@/app/actions/getCurrentUser";
+import Aside from "@/app/submit-listing/components/Aside";
+import getLiveAuctions from "@/app/actions/getLiveAuctions";
 import getBids from "@/app/actions/getBids";
 import AuctionStatusBar from "./components/AuctionStatusBar";
 import AuctionStartForm from "./components/AuctionStartForm";
@@ -29,11 +31,12 @@ const Listing = async (props: Params) => {
   const listing = await prisma.listing.findUnique({ where: { id } });
   if (!listing) notFound();
 
-  const [comments, currentUser, bids, seller] = await Promise.all([
+  const [comments, currentUser, bids, seller, liveAuctions] = await Promise.all([
     getComments(id),
     getCurrentUser(),
     getBids(id),
     prisma.user.findUnique({ where: { id: listing.userId }, select: { name: true, email: true } }),
+    getLiveAuctions(),
   ]);
   const title = `${listing.year} ${listing.make} ${listing.model}`;
   const owner = listing.userId === currentUser?.id;
@@ -57,7 +60,7 @@ const Listing = async (props: Params) => {
           <CoverImage listingId={id} owner={owner} url={listing.coverImage || undefined} alt={title} />
           <Gallery key={id} listingId={id} owner={owner} vehicleName={title} initialImages={listing.images} />
         </div>
-        <aside className="space-y-5 lg:sticky lg:top-24" aria-label="Auction overview">
+        <div className="space-y-5 lg:col-start-2 lg:row-span-2" role="complementary" aria-label="Auction overview">
           <AuctionStatusBar listing={listing} currentUser={currentUser?.id} commentsCount={comments.length} bidsCount={bids.length} />
           <section className="rounded-2xl border border-slate-200 bg-white p-6">
             <h2 className="mb-4 text-lg font-bold tracking-tight">Vehicle at a glance</h2>
@@ -67,20 +70,23 @@ const Listing = async (props: Params) => {
               ))}
             </dl>
           </section>
+          <Aside auctions={liveAuctions.filter((auction) => auction.id !== id).slice(0, 4)} variant="live" />
           <Link href="/faq" className="block px-2 text-sm text-slate-500 hover:text-slate-950">New to BidLane? Learn how bidding works →</Link>
-        </aside>
-      </div>
-      <nav aria-label="Listing sections" className="my-8 flex gap-6 overflow-x-auto border-b border-slate-200 pb-4 text-sm font-semibold text-slate-600">
-        <a href="#overview" className="hover:text-slate-950">Overview</a>
-        <a href="#photos" className="hover:text-slate-950">Photos</a>
-        {listing.status !== "UPCOMING" && <a href="#bids" className="hover:text-slate-950">Bidding</a>}
-        <a href="#comments" className="whitespace-nowrap hover:text-slate-950">Comments & bids</a>
-      </nav>
-      <div className="space-y-6">
-        {owner && listing.status === "UPCOMING" && <AuctionStartForm listingId={id} />}
-        <Description description={listing.description} />
-        {listing.status !== "UPCOMING" && <Bids listing={listing} bids={bids} sellerName={seller?.name} sellerEmail={seller?.email} />}
-        <Comments initialComments={comments} initialBids={bids} listingId={id} />
+        </div>
+        <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+          <nav aria-label="Listing sections" className="my-8 flex gap-6 overflow-x-auto border-b border-slate-200 pb-4 text-sm font-semibold text-slate-600">
+            <a href="#overview" className="hover:text-slate-950">Overview</a>
+            <a href="#photos" className="hover:text-slate-950">Photos</a>
+            {listing.status !== "UPCOMING" && <a href="#bids" className="hover:text-slate-950">Bidding</a>}
+            <a href="#comments" className="whitespace-nowrap hover:text-slate-950">Comments & bids</a>
+          </nav>
+          <div className="space-y-6">
+            {owner && listing.status === "UPCOMING" && <AuctionStartForm listingId={id} />}
+            <Description description={listing.description} />
+            {listing.status !== "UPCOMING" && <Bids listing={listing} bids={bids} sellerName={seller?.name} sellerEmail={seller?.email} />}
+            <Comments initialComments={comments} initialBids={bids} listingId={id} />
+          </div>
+        </div>
       </div>
     </main>
   );
