@@ -21,15 +21,14 @@ const LiveListings = async () => {
   ]);
 
   return (
-    <div className="m-auto pt-16 pb-4 max-w-5xl px-2">
-      <h2 className="text-md font-bold w-max inline-block">
-        Live Auctions
-        <span className="text-sm font-normal"> ({liveListings.length})</span>{" "}
-      </h2>
+    <div className="m-auto pt-20 pb-4 max-w-5xl px-2">
       <AuctionSearchBrowser
         listings={liveListings}
         currentUser={currentUser}
+        title="Live auctions"
         auctionType="live"
+        eyebrow="The lineup"
+        description="Fresh listings, live bids, and recently completed sales."
       />
     </div>
   );

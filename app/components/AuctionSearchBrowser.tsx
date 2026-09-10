@@ -8,13 +8,19 @@ import Listings from "./Listings";
 interface AuctionSearchBrowserProps {
   listings: Listing[];
   currentUser: User | null;
+  title: string;
   auctionType: string;
+  eyebrow?: string;
+  description?: string;
 }
 
 const AuctionSearchBrowser: React.FC<AuctionSearchBrowserProps> = ({
   listings,
   currentUser,
+  title,
   auctionType,
+  eyebrow,
+  description,
 }) => {
   const [query, setQuery] = useState("");
   const hasQuery = query.trim().length > 0;
@@ -42,8 +48,33 @@ const AuctionSearchBrowser: React.FC<AuctionSearchBrowserProps> = ({
 
   return (
     <>
-      <div className="mt-5 border-b border-slate-200 pb-6">
-        <label className="relative block w-full sm:max-w-80">
+      <div className="flex flex-col gap-5 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          {eyebrow && (
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-600">
+              {eyebrow}
+            </p>
+          )}
+          <h2
+            className={
+              eyebrow
+                ? "mt-1 flex items-center gap-2 text-3xl font-black tracking-tight text-slate-950"
+                : "flex items-center gap-2 text-md font-bold"
+            }
+          >
+            {title}
+            <span
+              aria-label={`${listings.length} auctions`}
+              className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold tracking-normal text-amber-800"
+            >
+              {listings.length}
+            </span>
+          </h2>
+          {description && (
+            <p className="mt-2 text-sm text-slate-500">{description}</p>
+          )}
+        </div>
+        <label className="relative block w-full max-w-80">
           <span className="sr-only">Search {auctionType} auctions</span>
           <FiSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input

@@ -19,13 +19,14 @@ const PastListings = async () => {
   ]);
 
   return (
-    <div className="m-auto pt-16 pb-4 max-w-5xl px-2">
-      <h2 className="text-md font-bold w-max inline-block">Past Auctions</h2>
-      <span className="text-sm font-normal"> ({pastListings.length})</span>
+    <div className="m-auto pt-20 pb-4 max-w-5xl px-2">
       <AuctionSearchBrowser
         listings={pastListings}
         currentUser={currentUser}
+        title="Past auctions"
         auctionType="past"
+        eyebrow="Auction results"
+        description="Review completed auctions and recent sale results."
       />
     </div>
   );

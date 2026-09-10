@@ -19,13 +19,14 @@ const FutureListings = async () => {
   ]);
 
   return (
-    <div className="m-auto pt-16 pb-4 max-w-5xl px-2">
-      <h2 className="text-md font-bold w-max inline-block">Future Auctions</h2>
-      <span className="text-sm font-normal"> ({futureListings.length})</span>
+    <div className="m-auto pt-20 pb-4 max-w-5xl px-2">
       <AuctionSearchBrowser
         listings={futureListings}
         currentUser={currentUser}
+        title="Future auctions"
         auctionType="future"
+        eyebrow="Coming soon"
+        description="Preview upcoming vehicles before bidding begins."
       />
     </div>
   );
