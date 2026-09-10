@@ -21,7 +21,7 @@ const Form: React.FC<FormProps> = ({ listingId }) => {
   const {
     register,
     handleSubmit,
-    setValue,
+    reset,
     formState: { errors },
   } = useForm<FieldValues>({
     defaultValues: {
@@ -33,7 +33,7 @@ const Form: React.FC<FormProps> = ({ listingId }) => {
     setIsSubmitting(true);
     try {
       await axios.post("/api/comments", { ...formData, listingId });
-      setValue("comment", "", { shouldValidate: true });
+      reset({ comment: "" });
     } catch (error) {
       logger.error("comment.create_client_failed", error, { listingId });
       toast.error("The comment could not be posted. Please try again.");
