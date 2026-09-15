@@ -3,8 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   findUnique: vi.fn(),
-  updateMany: vi.fn(),
-  trigger: vi.fn(),
+  finalizeAuction: vi.fn(),
 }));
 
 vi.mock("@/app/actions/getCurrentUser", () => ({
@@ -14,12 +13,11 @@ vi.mock("@/app/libs/prismadb", () => ({
   default: {
     listing: {
       findUnique: mocks.findUnique,
-      updateMany: mocks.updateMany,
     },
   },
 }));
-vi.mock("@/app/libs/pusher", () => ({
-  pusherServer: { trigger: mocks.trigger },
+vi.mock("@/app/libs/auction-finalization", () => ({
+  finalizeAuction: mocks.finalizeAuction,
 }));
 
 import { POST } from "./route";
@@ -49,8 +47,11 @@ describe("POST /api/auction-end", () => {
       currentBid: 12_000,
       reservePrice: 10_000,
     });
-    mocks.updateMany.mockResolvedValue({ count: 1 });
-    mocks.trigger.mockResolvedValue(undefined);
+    mocks.finalizeAuction.mockResolvedValue({
+      status: "finalized",
+      result: "SOLD",
+      auctionEndsAt: new Date("2026-09-04T11:59:00.000Z"),
+    });
   });
 
   it("requires authentication", async () => {
@@ -70,7 +71,7 @@ describe("POST /api/auction-end", () => {
     const response = await POST(request());
 
     expect(response.status).toBe(403);
-    expect(mocks.updateMany).not.toHaveBeenCalled();
+    expect(mocks.finalizeAuction).not.toHaveBeenCalled();
   });
 
   it("does not allow an auction to end early", async () => {
@@ -88,52 +89,22 @@ describe("POST /api/auction-end", () => {
     });
   });
 
-  it.each([
-    [null, 10_000, "RESERVE_NOT_MET"],
-    [9_999, 10_000, "RESERVE_NOT_MET"],
-    [10_000, 10_000, "SOLD"],
-    [100, null, "SOLD"],
-  ])(
-    "ends with the correct result for bid %s and reserve %s",
-    async (currentBid, reservePrice, expectedResult) => {
-      mocks.findUnique.mockResolvedValue({
-        userId: "seller",
-        status: "LIVE",
-        auctionEndsAt: new Date("2026-09-04T11:59:00.000Z"),
-        currentBid,
-        reservePrice,
-      });
+  it("delegates an eligible auction to the shared finalizer", async () => {
+    const response = await POST(request());
 
-      const response = await POST(request());
-
-      expect(response.status).toBe(200);
-      expect(mocks.updateMany).toHaveBeenCalledWith({
-        where: {
-          id: listingId,
-          userId: "seller",
-          status: "LIVE",
-          auctionEndsAt: { lte: now },
-        },
-        data: {
-          auctionEndsAt: now,
-          status: "ENDED",
-          result: expectedResult,
-        },
-      });
-      await expect(response.json()).resolves.toEqual({
-        message: "Auction ended successfully",
-        result: expectedResult,
-      });
-      expect(mocks.trigger).toHaveBeenCalledWith(
-        `listing-${listingId}`,
-        "auction-ended",
-        { auctionEndsAt: now, result: expectedResult }
-      );
-    }
-  );
+    expect(response.status).toBe(200);
+    expect(mocks.finalizeAuction).toHaveBeenCalledWith(listingId, now);
+    await expect(response.json()).resolves.toEqual({
+      message: "Auction ended successfully",
+      result: "SOLD",
+    });
+  });
 
   it("reports a competing end request as a conflict", async () => {
-    mocks.updateMany.mockResolvedValue({ count: 0 });
+    mocks.finalizeAuction.mockResolvedValue({
+      status: "already_finalized",
+      result: "SOLD",
+    });
 
     const response = await POST(request());
 

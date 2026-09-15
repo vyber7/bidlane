@@ -8,7 +8,7 @@ import {
   requireListingId,
 } from "@/app/api/auction-security";
 import { logger } from "@/app/libs/logger";
-import { pusherServer } from "@/app/libs/pusher";
+import { finalizeAuction } from "@/app/libs/auction-finalization";
 
 export async function POST(req: Request) {
   try {
@@ -37,41 +37,15 @@ export async function POST(req: Request) {
       throw new AuctionRequestError(409, "Auction cannot end before its scheduled time");
     }
 
-    const result =
-      listing.currentBid === null ||
-      (listing.reservePrice !== null && listing.currentBid < listing.reservePrice)
-        ? "RESERVE_NOT_MET"
-        : "SOLD";
-
-    const updated = await prisma.listing.updateMany({
-      where: {
-        id: listingId,
-        userId: currentUser.id,
-        status: "LIVE",
-        auctionEndsAt: { lte: endRequestTime },
-      },
-      data: {
-        auctionEndsAt: endRequestTime,
-        status: "ENDED",
-        result,
-      },
-    });
-
-    if (updated.count !== 1) {
+    const finalization = await finalizeAuction(listingId, endRequestTime);
+    if (finalization.status !== "finalized") {
       throw new AuctionRequestError(409, "Auction has already ended");
     }
 
-    const notification = await Promise.allSettled([
-      pusherServer.trigger(`listing-${listingId}`, "auction-ended", {
-        auctionEndsAt: endRequestTime,
-        result,
-      }),
-    ]);
-    if (notification[0]?.status === "rejected") {
-      logger.warn("auction.end_notification_failed", { listingId });
-    }
-
-    return NextResponse.json({ message: "Auction ended successfully", result });
+    return NextResponse.json({
+      message: "Auction ended successfully",
+      result: finalization.result,
+    });
   } catch (error) {
     const response = auctionErrorResponse(error);
     if (response) return response;

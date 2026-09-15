@@ -1,7 +1,7 @@
 "use client";
 
 import { Listing } from "@prisma/client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { formatAmount } from "@/app/utils/format";
 import Button from "@/app/components/Button";
@@ -33,6 +33,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   bidsCount,
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isAutoFinalizing, setIsAutoFinalizing] = useState(false);
   const [bid, setBid] = useState<number | null>(listing.currentBid);
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
@@ -41,6 +42,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   });
   const timeLeft = useCountDown(listing.auctionEndsAt as Date, listing.id);
   const router = useRouter();
+  const finalizationRequested = useRef(false);
 
   const endAuction = useCallback(async () => {
     setIsLoading(true);
@@ -56,6 +58,31 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
       setIsLoading(false);
     }
   }, [listing.id, router]);
+
+  useEffect(() => {
+    if (
+      listing.status !== "LIVE" ||
+      timeLeft !== "ENDING..." ||
+      finalizationRequested.current
+    ) {
+      return;
+    }
+
+    finalizationRequested.current = true;
+    setIsAutoFinalizing(true);
+    axios
+      .post("/api/auction-finalize", { listingId: listing.id })
+      .then(() => router.refresh())
+      .catch((error) => {
+        logger.warn("auction.auto_finalize_client_failed", {
+          listingId: listing.id,
+          error: String(error),
+        });
+        finalizationRequested.current = false;
+        setIsAutoFinalizing(false);
+        router.refresh();
+      });
+  }, [listing.id, listing.status, router, timeLeft]);
 
   useEffect(() => {
     axios
@@ -127,7 +154,13 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
           <span className="flex items-center gap-2 text-slate-400"><FaRegClock /> Time left</span>
           <span className="font-semibold tabular-nums">{timeLeft || "Calculating…"}</span>
         </div>}
-        {live ? currentUser === listing.userId ? (
+        {live && timeLeft === "ENDING..." ? (
+          currentUser === listing.userId ? (
+            <Button onClick={endAuction} disabled={isLoading || isAutoFinalizing}>{isLoading || isAutoFinalizing ? "Finalizing auction…" : "Retry finalization"}</Button>
+          ) : (
+            <p className="text-sm leading-6 text-slate-400">Finalizing auction results…</p>
+          )
+        ) : live ? currentUser === listing.userId ? (
           <Button onClick={endAuction} disabled={isLoading || timeLeft !== "ENDING..."}>{isLoading ? "Ending auction…" : "End auction"}</Button>
         ) : (
           <Link href="#bids" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">Place a bid</Link>

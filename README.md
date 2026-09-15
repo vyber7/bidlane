@@ -73,6 +73,9 @@ NEXT_PUBLIC_PUSHER_APP_KEY=your-app-key
 PUSHER_APP_ID=your-app-id
 PUSHER_SECRET=your-secret
 
+# Secures the automatic auction-finalization job (16+ random characters)
+CRON_SECRET=your-random-cron-secret
+
 # OAuth (Optional)
 GITHUB_ID=your-github-id
 GITHUB_SECRET=your-github-secret
@@ -149,6 +152,7 @@ The app uses **Pusher** for real-time updates:
 - **Live Bid Updates**: All viewers see new bids instantly
 - **Countdown Timers**: Real-time auction countdown displays
 - **Timer Extension**: Automatically extends auction by 2 minutes when bid placed within 2 minutes of end
+- **Automatic Finalization**: Ends expired auctions every minute and publishes the result in real time
 - **Comments**: Live comment feed with instant notifications
 
 ## 🎯 Core Custom Hooks
@@ -223,6 +227,11 @@ Verify `DATABASE_URL` is correctly set in `.env.local`.
 2. Connect repository to Vercel
 3. Set environment variables in Vercel dashboard
 4. Deploy automatically on push
+
+The included Vercel Cron schedule finalizes expired auctions every minute and
+requires a Pro or Enterprise plan. Set `CRON_SECRET` in the project environment;
+Vercel sends it to the protected cron endpoint automatically. Active listing
+pages also request finalization when their countdown reaches zero.
 
 ### Other Platforms
 
