@@ -158,11 +158,18 @@ const ShipmentRow = ({ shipment }: { shipment: ShipmentTransaction }) => {
               src={shipment.coverImage}
               alt={vehicle}
               fill
+              sizes="(min-width: 640px) 192px, calc(100vw - 50px)"
               crop="fill"
               className="object-cover transition-transform duration-300 hover:scale-105"
             />
           ) : (
-            <Image src="/images/default-vehicle-image.png" alt={vehicle} fill className="object-cover" />
+            <Image
+              src="/images/default-vehicle-image.png"
+              alt={vehicle}
+              fill
+              sizes="(min-width: 640px) 192px, calc(100vw - 50px)"
+              className="object-cover"
+            />
           )}
         </Link>
 

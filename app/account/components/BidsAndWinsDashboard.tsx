@@ -173,6 +173,7 @@ const BidRow = ({ bid, tab }: { bid: AuctionBid; tab: Tab }) => {
               src={bid.coverImage}
               alt={`${bid.year} ${bid.make} ${bid.model}`}
               fill
+              sizes="(min-width: 640px) 176px, calc(100vw - 48px)"
               crop="fill"
               className="object-cover transition-transform duration-300 hover:scale-105"
             />
@@ -181,6 +182,7 @@ const BidRow = ({ bid, tab }: { bid: AuctionBid; tab: Tab }) => {
               src="/images/default-vehicle-image.png"
               alt={`${bid.year} ${bid.make} ${bid.model}`}
               fill
+              sizes="(min-width: 640px) 176px, calc(100vw - 48px)"
               className="object-cover"
             />
           )}
