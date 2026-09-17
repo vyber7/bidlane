@@ -1,7 +1,7 @@
 "use client";
 
 import type { Channel } from "pusher-js";
-import { pusherClient } from "./pusher";
+import { getPusherClient } from "./pusher-client";
 
 interface ChannelEntry {
   channel: Channel;
@@ -17,7 +17,7 @@ export function acquirePusherChannel(channelName: string) {
     return existing.channel;
   }
 
-  const channel = pusherClient.subscribe(channelName);
+  const channel = getPusherClient().subscribe(channelName);
   channels.set(channelName, { channel, consumers: 1 });
   return channel;
 }
@@ -28,7 +28,7 @@ export function releasePusherChannel(channelName: string) {
 
   entry.consumers -= 1;
   if (entry.consumers === 0) {
-    pusherClient.unsubscribe(channelName);
+    getPusherClient().unsubscribe(channelName);
     channels.delete(channelName);
   }
 }
