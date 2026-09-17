@@ -1,6 +1,6 @@
-# Bidlane
+# BidLane
 
-Bidlane is a vehicle auction app built with Next.js, React, TypeScript, and MongoDB. Buyers can browse upcoming, live, and past auctions, follow listings, and bid with live updates. Sellers can submit vehicles, manage photos, and run auctions from their accounts.
+BidLane is a vehicle auction app built with Next.js, React, TypeScript, and MongoDB. Buyers can browse upcoming, live, and past auctions, follow listings, and bid with live updates. Sellers can submit vehicles, manage photos, and run auctions from their accounts.
 
 ## Features
 
