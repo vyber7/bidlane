@@ -1,40 +1,22 @@
-import React from "react";
 import { IconType } from "react-icons";
 
 interface AuthSocialButtonProps {
   icon: IconType;
+  label: string;
+  disabled?: boolean;
   onClick: () => void;
 }
 
-const AuthSocialButton: React.FC<AuthSocialButtonProps> = ({
-  icon: Icon,
-  onClick,
-}) => {
+export default function AuthSocialButton({ icon: Icon, label, disabled, onClick }: AuthSocialButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="
-                inline-flex
-                w-full
-                justify-center
-                rounded-md
-                bg-white
-                px-4
-                py-2
-                text-gray-500
-                shadow-sm
-                ring-1
-                ring-inset
-                ring-gray-300
-                hover:bg-gray-50
-                focus:outline-offset-0
-
-            "
+      disabled={disabled}
+      className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:cursor-wait disabled:opacity-60"
     >
-      <Icon />
+      <Icon aria-hidden="true" size={17} />
+      {label}
     </button>
   );
-};
-
-export default AuthSocialButton;
+}

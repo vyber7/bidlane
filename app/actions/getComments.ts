@@ -1,4 +1,5 @@
 import prisma from "../libs/prismadb";
+import { logger } from "../libs/logger";
 
 async function getComments(listingId: string) {
   try {
@@ -9,12 +10,19 @@ async function getComments(listingId: string) {
     const comments = await prisma.comment.findMany({
       where: { listingId },
       orderBy: { createdAt: "desc" },
-      include: { user: true },
+      select: {
+        id: true,
+        body: true,
+        image: true,
+        createdAt: true,
+        listingId: true,
+        user: { select: { name: true } },
+      },
     });
 
     return comments;
   } catch (error) {
-    console.error("Error fetching comments:", error);
+    logger.error("comments.fetch_failed", error, { listingId });
     return [];
   }
 }

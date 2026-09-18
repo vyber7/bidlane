@@ -14,7 +14,7 @@ export default function ConditionalLayout({
 
   return (
     <>
-      {!hideHeaderFooter && <Header />}
+      {!hideHeaderFooter && <Header key={pathname} />}
       <main className="flex-grow">{children}</main>
       {!hideHeaderFooter && <Footer />}
     </>

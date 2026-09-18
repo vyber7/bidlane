@@ -1,76 +1,68 @@
 "use client";
-import Button from "@/app/components/Button";
-import Title from "@/app/components/Title";
 import { Bid, Listing, User } from "@prisma/client";
 import axios from "axios";
 import clsx from "clsx";
 import { useSession } from "next-auth/react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { formatAmount, capitalize } from "@/app/utils/format";
-import { pusherClient } from "@/app/libs/pusher";
-import { RiAuctionFill } from "react-icons/ri";
+import usePusherEvent from "@/app/hooks/usePusherEvent";
 
 interface BidsProps {
   listing: Listing;
   bids: (Bid & { user: { name: string | null } })[];
   sellerName?: string | null;
-  sellerEmail?: string | null;
+  currentUserId?: string | null;
 }
 
 const Bids: React.FC<BidsProps> = ({
   listing,
   bids,
   sellerName,
-  sellerEmail,
+  currentUserId,
 }) => {
   const { data: session } = useSession();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [bid, setBid] = useState<number | null>(listing.currentBid);
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<FieldValues>();
 
-  useEffect(() => {
-    const channelName = `listing-${listing.id}`;
-    const channel = pusherClient.subscribe(channelName);
-    const newBidHandler = (bid: Bid & { user: User }) => {
-      setBid(bid.amount);
-    };
-    channel.bind("new-bid", newBidHandler);
-
-    return () => {
-      pusherClient.unsubscribe(channelName);
-      channel.unbind("new-bid", newBidHandler);
-    };
-  }, [listing.id]);
+  usePusherEvent<Bid & { user: User }>(
+    `listing-${listing.id}`,
+    "new-bid",
+    (newBid) => setBid(newBid.amount)
+  );
 
   const onSubmit: SubmitHandler<FieldValues> = (data) => {
-    console.log(data);
     setIsLoading(true);
-    if (
-      data.bidAmount <=
-      ((listing.currentBid as number) || (listing.startingBid as number))
-    ) {
-      toast.error(
-        `Your bid must be higher than the current bid of $${
-          listing.currentBid || listing.startingBid
-        }`
-      );
+    const minimumBid =
+      bid === null
+        ? (listing.startingBid as number)
+        : bid + (listing.bidIncrement as number);
+
+    if (data.bidAmount < minimumBid) {
+      toast.error(`Your bid must be at least $${formatAmount(minimumBid)}`);
       setIsLoading(false);
       return;
     }
 
     axios
       .post(`/api/place-bid`, { ...data, listingId: listing.id })
-      .then((res) => {
+      .then((response) => {
+        setBid(response.data.currentBid);
+        reset();
+        router.refresh();
         toast.success("Bid placed successfully!");
       })
-      .catch(() => {
-        toast.error("Error placing bid");
+      .catch((error) => {
+        toast.error(error.response?.data?.error || "Error placing bid");
       })
       .finally(() => setIsLoading(false));
   };
@@ -78,7 +70,7 @@ const Bids: React.FC<BidsProps> = ({
   return (
     <div
       id="bids"
-      className="p-2 md:p-4 border shadow-md rounded-md text-sm md:text-base shadow-gray-400 bg-white"
+      className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
     >
       <h2 className="pb-2 md:pb-4 text-lg font-bold">
         {listing.year} {capitalize(listing.make)} {capitalize(listing.model)}
@@ -106,11 +98,7 @@ const Bids: React.FC<BidsProps> = ({
             <p>Reserve not met, bid to</p>
           ) : (
             <p>
-              {listing.currentBid ? (
-                <span>Current Bid</span>
-              ) : (
-                <span>Starting at</span>
-              )}{" "}
+              {bid !== null ? "Current Bid" : "Starting at"}{" "}
               <span className="font-semibold">
                 {listing.highestBidderId
                   ? capitalize(
@@ -121,7 +109,7 @@ const Bids: React.FC<BidsProps> = ({
               </span>
             </p>
           )}
-          <div className="font-semibold text-6xl">
+          <div className="font-bold text-4xl sm:text-5xl tracking-tight">
             {bid ? (
               <span>${formatAmount(bid as number)}</span>
             ) : (
@@ -160,7 +148,7 @@ const Bids: React.FC<BidsProps> = ({
         </div>
       </div>
       {listing.status === "ENDED" ? null : session &&
-        sellerEmail !== session?.user?.email ? (
+        listing.userId !== currentUserId ? (
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="relative border flex border-gray-300 rounded-md has-[:focus]:ring has-[:focus]:ring-lime-500 hover:ring hover:ring-lime-500"
@@ -168,8 +156,15 @@ const Bids: React.FC<BidsProps> = ({
           <input
             id="bidAmount"
             type="number"
-            placeholder="Place a Bid"
-            {...register("bidAmount", { required: true })}
+            aria-label="Your bid amount in dollars"
+            placeholder="Your bid ($)"
+            min={
+              bid === null
+                ? (listing.startingBid as number)
+                : bid + (listing.bidIncrement as number)
+            }
+            step={1}
+            {...register("bidAmount", { required: true, valueAsNumber: true })}
             className={clsx(
               `w-full form-input
               block rounded-l-md
@@ -203,8 +198,8 @@ const Bids: React.FC<BidsProps> = ({
         focus-visible:outline
         focus-visible:outline-2
         focus-visible:outline-offset-2
-        text-lime-500 hover:text-lime-600 focus-visible:outline-lime-600
-        "
+        bg-amber-400 hover:bg-amber-300 focus-visible:outline-amber-500
+        text-slate-950"
           >
             <RiAuctionFill className="text-2xl" />
           </button>

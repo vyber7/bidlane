@@ -14,8 +14,6 @@ export async function POST(request: Request) {
   }
 
   // Here you can add logic to save the image URL to your database if needed
-  console.log("Image URL received:", imageUrl);
-
   return NextResponse.json({
     message: "Image uploaded successfully",
     imageUrl,

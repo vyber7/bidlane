@@ -1,15 +1,13 @@
 "use client";
 
 import { Listing } from "@prisma/client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { formatAmount, isLessThan3Hours } from "@/app/utils/format";
 import Button from "@/app/components/Button";
 import useCountDown from "@/app/hooks/useCountDown";
 import clsx from "clsx";
-import { canEndAuction } from "@/app/utils/format";
 import { useRouter } from "next/navigation";
-import { pusherClient } from "@/app/libs/pusher";
 import { User } from "next-auth";
 import { Bid } from "@prisma/client";
 import ProgressBar from "./ProgressBar";
@@ -23,11 +21,13 @@ import Link from "next/link";
 import { GoStar, GoStarFill } from "react-icons/go";
 import { RiAuctionFill, RiAuctionLine } from "react-icons/ri";
 import toast from "react-hot-toast";
+import usePusherEvent from "@/app/hooks/usePusherEvent";
+import useWatchlist from "@/app/hooks/useWatchlist";
+import { logger } from "@/app/libs/logger";
 
 interface AuctionStatusBarProps {
   listing: Listing;
   currentUser?: string | null;
-  highestBidderName?: string | null;
   commentsCount?: number;
   bidsCount?: number;
 }
@@ -35,233 +35,150 @@ interface AuctionStatusBarProps {
 const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   listing,
   currentUser,
-  highestBidderName,
   commentsCount,
   bidsCount,
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isAutoFinalizing, setIsAutoFinalizing] = useState(false);
   const [bid, setBid] = useState<number | null>(listing.currentBid);
-  const [watching, setWatching] = useState<boolean>(
-    listing.watchersIds.includes(currentUser as string),
-  );
+  const { watching, isUpdating, toggle } = useWatchlist({
+    listingId: listing.id,
+    userId: currentUser,
+    initialWatching: listing.watchersIds.includes(currentUser as string),
+  });
   const timeLeft = useCountDown(listing.auctionEndsAt as Date, listing.id);
   const router = useRouter();
+  const finalizationRequested = useRef(false);
 
-  const endAuction = useCallback(() => {
+  const endAuction = useCallback(async () => {
     setIsLoading(true);
-    axios
-      .post("/api/auction-end", { listingId: listing.id })
-      .then((res) => {
-        console.log("Auction ended", res.data);
-      })
-      .catch((err) => {
-        console.log("Error ending auction", err);
-      })
-      .finally(() => {
-        setIsLoading(false);
-        router.refresh();
+    try {
+      await axios.post("/api/auction-end", { listingId: listing.id });
+      router.refresh();
+    } catch (error) {
+      logger.error("auction.end.client_failed", error, {
+        listingId: listing.id,
       });
+      toast.error("The auction could not be ended. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   }, [listing.id, router]);
 
-  const toggleWatchList = () => {
-    if (!currentUser) {
-      toast.error("You need to be logged in!");
+  useEffect(() => {
+    if (
+      listing.status !== "LIVE" ||
+      timeLeft !== "ENDING..." ||
+      finalizationRequested.current
+    ) {
       return;
     }
 
+    finalizationRequested.current = true;
+    setIsAutoFinalizing(true);
     axios
-      .post("/api/update-watchlist", { listingId: listing.id })
-      .then((data) => {
-        console.log("success ", data);
-      })
+      .post("/api/auction-finalize", { listingId: listing.id })
+      .then(() => router.refresh())
       .catch((error) => {
-        console.error("Error updating watchlist: ", error);
+        logger.warn("auction.auto_finalize_client_failed", {
+          listingId: listing.id,
+          error: String(error),
+        });
+        finalizationRequested.current = false;
+        setIsAutoFinalizing(false);
+        router.refresh();
       });
-
-    setWatching(!watching);
-  };
+  }, [listing.id, listing.status, router, timeLeft]);
 
   useEffect(() => {
     axios
-      .post("/api/listing-view", { listingId: listing.id, userId: currentUser })
-      .then((res) => {
-        console.log("View recorded", res.data);
-      })
-      .catch((err) => {
-        console.log("Error recording view", err);
+      .post("/api/listing-view", { listingId: listing.id })
+      .catch((error) => {
+        logger.warn("listing.view.client_failed", {
+          listingId: listing.id,
+          error: String(error),
+        });
       });
   }, [listing.id, currentUser]);
 
-  useEffect(() => {
-    const channelName = `listing-${listing.id}`;
-    const channel = pusherClient.subscribe(channelName);
+  usePusherEvent<Bid & { user: User }>(
+    `listing-${listing.id}`,
+    "new-bid",
+    (newBid) => {
+      setBid(newBid.amount);
+      router.refresh();
+    }
+  );
 
-    const newBidHandler = (bid: Bid & { user: User }) => {
-      console.log("New bid received via Pusher:", bid.amount);
-      // Optionally, you can update local state or refetch data here
-      setBid(bid.amount);
-    };
+  usePusherEvent(
+    `listing-${listing.id}`,
+    "new-comment",
+    () => router.refresh()
+  );
 
-    channel.bind("new-bid", newBidHandler);
+  usePusherEvent(
+    `listing-${listing.id}`,
+    "auction-started",
+    () => router.refresh()
+  );
 
-    return () => {
-      channel.unbind("new-bid", newBidHandler);
-      pusherClient.unsubscribe(channelName);
-    };
-  }, [listing.id]);
+  usePusherEvent(
+    `listing-${listing.id}`,
+    "auction-ended",
+    () => router.refresh()
+  );
 
-  // useEffect(() => {
-  //   axios
-  //     .post("/api/seen-listing", { listingId: listing.id, userId: currentUser })
-  //     .then((res) => {
-  //       console.log("Seen listing recorded", res.data);
-  //     })
-  //     .catch((err) => {
-  //       console.log("Error recording seen listing", err);
-  //     });
-  // }, [listing.id, currentUser]);
-
-  // useEffect(() => {
-  //   if (listing.auctionEndsAt) {
-  //     const now = new Date();
-  //     const distance = listing.auctionEndsAt.getTime() - now.getTime();
-
-  //     if (listing.status === "ENDED") {
-  //       console.log("Auction already ended");
-  //       return;
-  //     }
-
-  //     if (distance <= 0) {
-  //       endAuction();
-  //       return;
-  //     }
-  //   }
-  // }, [listing.auctionEndsAt, listing.status, endAuction]);
+  const live = listing.status === "LIVE";
+  const ended = listing.status === "ENDED";
+  const amount = bid ?? listing.startingBid;
+  const label = ended
+    ? listing.result === "SOLD" ? "Sold for" : bid !== null ? "Highest bid" : "No bids placed"
+    : bid !== null ? "Current bid" : "Starting bid";
 
   return (
-    <>
-      {listing.status === "LIVE" ? (
-        <div className="sticky top-11 z-[99] text-xs md:text-sm lg:text-base bg-gray-900 text-white rounded-md shadow-md shadow-gray-400">
-          <ProgressBar endTime={listing.auctionEndsAt} listingId={listing.id} />
-          <div className="flex flex-row flex-wrap gap-2 justify-between items-center p-2 lg:p-4">
-            {/* <span className="inline-block px-4 py-2  font-semibold text-white bg-red-600 rounded-md">
-              LIVE
-            </span> */}
-
-            <span
-              className={clsx(
-                `flex items-center gap-1`,
-                isLessThan3Hours(timeLeft) && "text-red-600",
-              )}
-            >
-              <b>
-                <FaRegClock />
-              </b>{" "}
-              {timeLeft}
-            </span>
-            {bid ? (
-              <>
-                <span className="flex items-center gap-1">
-                  Bid: <b>${formatAmount(bid)}</b>
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="flex items-center gap-1">
-                  Starting At: ${formatAmount(listing.startingBid as number)}
-                </span>
-              </>
-            )}
-            <div
-              className={clsx(
-                "flex flex-row justify-end items-center font-light",
-                currentUser === listing.userId ? "gap-0" : "gap-4",
-              )}
-            >
-              {/*user can end the auction if they are the owner*/}
-              {currentUser !== listing.userId && (
-                <>
-                  <Link href="#bids" className="group flex items-center gap-1">
-                    <span className="hidden md:inline">Bid</span>
-                    <RiAuctionLine className="text-base lg:text-lg text-lime-500 group-hover:text-lime-600" />
-                  </Link>
-                </>
-              )}
-              <Link href="#comments" className="group flex items-center gap-1">
-                <span className="hidden md:inline">Comment</span>
-                <FaRegCommentAlt className="text-base lg:text-lg text-blue-500 group-hover:text-blue-600" />
-              </Link>
-              <div
-                className="cursor-pointer group flex items-center gap-1"
-                onClick={toggleWatchList}
-              >
-                {currentUser !== listing.userId &&
-                  (watching ? (
-                    <>
-                      <span className="hidden md:inline">Unwatch</span>
-                      <GoStarFill className="text-lg lg:text-xl text-yellow-500 group-hover:text-yellow-600" />
-                    </>
-                  ) : (
-                    <>
-                      <span className="hidden md:inline">Watch</span>
-                      <GoStar className="text-lg lg:text-xl text-yellow-500 group-hover:text-yellow-600" />
-                    </>
-                  ))}
-              </div>
-            </div>
-            {canEndAuction(timeLeft) && currentUser === listing.userId && (
-              <Button disabled={isLoading} onClick={endAuction} fullWidth>
-                {isLoading ? "Ending..." : "End Auction Now"}
-              </Button>
-            )}
-          </div>
+    <section className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
+      {live && <ProgressBar endTime={listing.auctionEndsAt} listingId={listing.id} />}
+      <div className="space-y-6 p-6">
+        <div className="flex items-center justify-between gap-3">
+          <span className={clsx("rounded-full px-3 py-1 text-xs font-bold", live ? "bg-amber-400 text-slate-950" : "bg-white/10 text-slate-200")}>
+            {live ? "● Live auction" : ended ? "Auction ended" : "Coming soon"}
+          </span>
+          {currentUser !== listing.userId && !ended && (
+            <button type="button" onClick={toggle} disabled={isUpdating} aria-pressed={watching}
+              aria-label={watching ? "Remove from watchlist" : "Add to watchlist"}
+              className="rounded-lg p-2 text-2xl text-amber-400 hover:bg-white/10 disabled:opacity-50">
+              {watching ? <GoStarFill /> : <GoStar />}
+            </button>
+          )}
         </div>
-      ) : listing.status === "ENDED" ? (
-        <div className="sticky top-11 z-[99] text-xs md:text-sm lg:text-base bg-gray-900 text-white p-2 lg:p-4 rounded-md shadow-md shadow-gray-400 ">
-          <div className="flex flex-row flex-wrap gap-2 justify-between items-center">
-            {/* <span className="inline-block px-4 py-2 text-sm font-semibold text-white bg-gray-600 rounded-md">
-              ENDED
-            </span> */}
-            <div>
-              {listing.currentBid &&
-              listing.currentBid < (listing.reservePrice || 0) ? (
-                <>
-                  Reserve not met, bid to{" "}
-                  <span>
-                    <b>${formatAmount(listing.currentBid)}</b>
-                  </span>{" "}
-                </>
-              ) : listing.currentBid ? (
-                <>
-                  Sold for{" "}
-                  <span>
-                    <b>${formatAmount(listing.currentBid)}</b>
-                  </span>
-                </>
-              ) : (
-                <>
-                  <b>No bids were placed.</b>
-                </>
-              )}
-            </div>
-            <div className="flex flex-row gap-4">
-              <Link href="#bids" className="flex items-center gap-1">
-                <FaHashtag />
-                Bids {bidsCount}
-              </Link>
-              <Link href="#comments" className="flex items-center gap-1">
-                <FaRegCommentAlt />
-                Comments {commentsCount}
-              </Link>
-            </div>
-          </div>
+        <div>
+          <p className="mb-2 text-sm text-slate-400">{label}</p>
+          <p className="text-4xl font-bold tracking-tight tabular-nums">{ended && bid === null ? "—" : amount !== null ? `$${formatAmount(amount)}` : "To be announced"}</p>
+          {ended && listing.result === "RESERVE_NOT_MET" && <p className="mt-2 text-sm text-amber-400">Reserve not met</p>}
         </div>
-      ) : (
-        <div className="sticky top-11 z-[99] text-xs md:text-sm lg:text-base bg-gray-900 p-2 lg:p-4 rounded-md shadow-md shadow-gray-400 text-center">
-          <span className="text-sm font-semibold text-white ">Upcoming</span>
+        {live && <div className="flex items-center justify-between gap-3 border-y border-white/10 py-4 text-sm">
+          <span className="flex items-center gap-2 text-slate-400"><FaRegClock /> Time left</span>
+          <span className="font-semibold tabular-nums">{timeLeft || "Calculating…"}</span>
+        </div>}
+        {live && timeLeft === "ENDING..." ? (
+          currentUser === listing.userId ? (
+            <Button onClick={endAuction} disabled={isLoading || isAutoFinalizing}>{isLoading || isAutoFinalizing ? "Finalizing auction…" : "Retry finalization"}</Button>
+          ) : (
+            <p className="text-sm leading-6 text-slate-400">Finalizing auction results…</p>
+          )
+        ) : live ? currentUser === listing.userId ? (
+          <Button onClick={endAuction} disabled={isLoading || timeLeft !== "ENDING..."}>{isLoading ? "Ending auction…" : "End auction"}</Button>
+        ) : (
+          <Link href="#bids" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">Place a bid</Link>
+        ) : !ended ? (
+          <p className="text-sm leading-6 text-slate-400">Bidding hasn’t opened yet. {currentUser === listing.userId ? "Set up your auction below when you’re ready." : "Add this vehicle to your watchlist to find it again easily."}</p>
+        ) : null}
+        <div className="flex flex-wrap gap-5 text-sm text-slate-400">
+          {(live || ended) && <Link href="#bids" className="flex items-center gap-2 hover:text-white"><FaHashtag />{bidsCount ?? 0} bids</Link>}
+          <Link href="#comments" aria-live="polite" aria-atomic="true" className="flex items-center gap-2 hover:text-white"><FaRegCommentAlt />{commentsCount ?? 0} comments</Link>
         </div>
-      )}
-    </>
+      </div>
+    </section>
   );
 };
 

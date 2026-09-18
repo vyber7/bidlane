@@ -1,7 +1,15 @@
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
 import prisma from "@/app/libs/prismadb";
-import { now } from "lodash";
+import {
+  AuctionRequestError,
+  auctionErrorResponse,
+  isJsonObject,
+  requireListingId,
+  requireSafeInteger,
+} from "@/app/api/auction-security";
+import { logger } from "@/app/libs/logger";
+import { pusherServer } from "@/app/libs/pusher";
 
 export async function POST(req: Request) {
   try {
@@ -9,39 +17,73 @@ export async function POST(req: Request) {
     if (!currentUser?.id || !currentUser?.email)
       return new NextResponse("Unauthorized", { status: 401 });
 
-    // if (!currentUser.isAdmin)
-    //   return new NextResponse("Forbidden", { status: 403 });
-    const body = await req.json();
-    console.log("Received auction data:", body);
+    const body: unknown = await req.json();
+    if (!isJsonObject(body)) {
+      throw new AuctionRequestError(400, "Invalid request body");
+    }
 
-    // if (
-    //   !body.startTime ||
-    //   !body.endTime ||
-    //   !body.startingBid ||
-    //   !body.bidIncrement
-    // ) {
-    //   return new NextResponse("Missing required fields", { status: 400 });
-    // }
-    const { endTime, startingBid, bidIncrement, listingId } = body;
+    const listingId = requireListingId(body.listingId);
+    const startingBid = requireSafeInteger(body.startingBid, "Starting bid", {
+      allowZero: true,
+    });
+    const bidIncrement = requireSafeInteger(body.bidIncrement, "Bid increment");
+    if (startingBid + bidIncrement > 2_147_483_647) {
+      throw new AuctionRequestError(400, "Starting bid plus increment is too large");
+    }
+    const endTime =
+      typeof body.endTime === "string" || typeof body.endTime === "number"
+        ? new Date(body.endTime)
+        : null;
+    const startTime = new Date();
 
-    const updatedListing = await prisma.listing.update({
-      where: {
-        id: listingId,
-      },
+    if (!endTime || Number.isNaN(endTime.getTime()) || endTime <= startTime) {
+      throw new AuctionRequestError(400, "End time must be in the future");
+    }
+
+    const listing = await prisma.listing.findUnique({ where: { id: listingId } });
+    if (!listing) throw new AuctionRequestError(404, "Listing not found");
+    if (listing.userId !== currentUser.id) {
+      throw new AuctionRequestError(403, "Only the seller can start this auction");
+    }
+    if (listing.status !== "UPCOMING") {
+      throw new AuctionRequestError(409, "Only an upcoming auction can be started");
+    }
+
+    const updated = await prisma.listing.updateMany({
+      where: { id: listingId, userId: currentUser.id, status: "UPCOMING" },
       data: {
-        auctionStartsAt: new Date(now()),
-        auctionEndsAt: new Date(endTime),
-        startingBid: parseFloat(startingBid),
-        bidIncrement: parseFloat(bidIncrement),
+        auctionStartsAt: startTime,
+        auctionEndsAt: endTime,
+        startingBid,
+        bidIncrement,
         status: "LIVE",
       },
     });
 
-    console.log("Listing updated with auction details:", updatedListing);
+    if (updated.count !== 1) {
+      throw new AuctionRequestError(409, "Auction has already been started");
+    }
 
-    return new NextResponse("Auction created", { status: 201 });
+    const notification = await Promise.allSettled([
+      pusherServer.trigger(`listing-${listingId}`, "auction-started", {
+        auctionStartsAt: startTime,
+        auctionEndsAt: endTime,
+        startingBid,
+        bidIncrement,
+      }),
+    ]);
+    if (notification[0]?.status === "rejected") {
+      logger.warn("auction.start_notification_failed", { listingId });
+    }
+
+    return NextResponse.json(
+      { message: "Auction started", auctionStartsAt: startTime, auctionEndsAt: endTime },
+      { status: 201 }
+    );
   } catch (error) {
-    console.error("Error creating auction:", error);
+    const response = auctionErrorResponse(error);
+    if (response) return response;
+    logger.error("auction.start_failed", error);
     return new NextResponse("Failed to create auction", { status: 500 });
   }
 }

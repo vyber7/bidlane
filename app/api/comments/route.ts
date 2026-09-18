@@ -1,23 +1,34 @@
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import { NextResponse, userAgent } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/app/libs/prismadb";
 import { pusherServer } from "@/app/libs/pusher";
+import { logger } from "@/app/libs/logger";
+import {
+  AuctionRequestError,
+  auctionErrorResponse,
+  isJsonObject,
+  requireListingId,
+} from "@/app/api/auction-security";
 
 // POST /api/comments
 // Required fields in the body: comment, listingId
 // Optional fields in the body: image
-// Returns the updated listing with the new comment
+// Returns the public comment payload sent to real-time subscribers
 
 export async function POST(req: Request) {
   try {
     const currentUser = await getCurrentUser();
-    const body = await req.json();
-    const { comment, image, listingId } = body;
-
-    console.log("Server Data: ", body);
-
     if (!currentUser?.id || !currentUser?.email)
       return new NextResponse("Unauthorized", { status: 401 });
+
+    const body: unknown = await req.json();
+    if (!isJsonObject(body)) {
+      throw new AuctionRequestError(400, "Invalid request body");
+    }
+
+    const listingId = requireListingId(body.listingId);
+    const comment = typeof body.comment === "string" ? body.comment.trim() : "";
+    const image = typeof body.image === "string" ? body.image : undefined;
 
     if (!comment)
       return new NextResponse("Missing Information", { status: 400 });
@@ -44,13 +55,17 @@ export async function POST(req: Request) {
         //   },
         // },
       },
-      include: {
-        // seen: true,
-        user: true,
+      select: {
+        id: true,
+        body: true,
+        image: true,
+        createdAt: true,
+        listingId: true,
+        user: { select: { name: true } },
       },
     });
 
-    const updatedListing = await prisma.listing.update({
+    await prisma.listing.update({
       where: {
         id: listingId,
       },
@@ -62,35 +77,20 @@ export async function POST(req: Request) {
           },
         },
       },
-      include: {
-        commenters: true,
-        comments: {
-          include: {
-            // seen: true,
-          },
-        },
-      },
     });
 
-    await pusherServer.trigger(
-      `listing-${listingId}`,
-      "new-comment",
-      newComment
-    );
+    const notification = await Promise.allSettled([
+      pusherServer.trigger(`listing-${listingId}`, "new-comment", newComment),
+    ]);
+    if (notification[0]?.status === "rejected") {
+      logger.warn("comment.notification_failed", { listingId });
+    }
 
-    const lastComment =
-      updatedListing.comments[updatedListing.comments.length - 1];
-
-    // updatedListing.commenters.map((commenter) => {
-    //   pusherServer.trigger(commenter.email!, "listing-updated", {
-    //     id: listingId,
-    //     comments: lastComment,
-    //   });
-    // });
-
-    return NextResponse.json(updatedListing, { status: 201 });
-  } catch (error: any) {
-    console.error(error, "ERROR_COMMENTS");
+    return NextResponse.json({ comment: newComment }, { status: 201 });
+  } catch (error: unknown) {
+    const response = auctionErrorResponse(error);
+    if (response) return response;
+    logger.error("comment.create_failed", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

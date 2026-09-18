@@ -1,47 +1,66 @@
 "use client";
 
 import axios from "axios";
-import { CldImage, CldUploadButton } from "next-cloudinary";
+import {
+  CldImage,
+  CldUploadButton,
+  type CloudinaryUploadWidgetResults,
+} from "next-cloudinary";
 import Image from "next/image";
 import { useState } from "react";
-import { FaRegEdit } from "react-icons/fa";
+import toast from "react-hot-toast";
+import { logger } from "@/app/libs/logger";
 
 interface CoverImageProps {
   listingId: string;
   url?: string;
   owner?: boolean;
+  alt?: string;
 }
 
-const CoverImage: React.FC<CoverImageProps> = ({ listingId, url, owner }) => {
+const CoverImage: React.FC<CoverImageProps> = ({ listingId, url, owner, alt = "Vehicle cover photo" }) => {
   const [imageUrl, setImageUrl] = useState<string>(url || "");
-  const handleUpload = (result: any) => {
-    setImageUrl(result.info.secure_url);
-    axios.post(`/api/listing/${listingId}/cover-image`, {
-      url: result.info.secure_url,
-    });
+  const handleUpload = async (result: CloudinaryUploadWidgetResults) => {
+    if (typeof result.info !== "object" || !result.info.secure_url) return;
+
+    const previousUrl = imageUrl;
+    const nextUrl = result.info.secure_url;
+    setImageUrl(nextUrl);
+
+    try {
+      await axios.post(`/api/listing/${listingId}/cover-image`, {
+        url: nextUrl,
+      });
+    } catch (error) {
+      setImageUrl(previousUrl);
+      logger.error("listing.cover_image_client_failed", error, { listingId });
+      toast.error("The cover image could not be saved.");
+    }
   };
 
   return (
     <>
-      <div className="rounded-b-md shadow-md flex flex-col justify-between bg-white shadow-gray-400">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
         {imageUrl && (
           <CldImage
             key={imageUrl}
-            width={500}
-            height={300}
+            width={1200}
+            height={800}
             src={imageUrl}
             crop="fill"
-            alt="Uploaded Image"
-            className="rounded-b-md w-full object-cover"
+            alt={alt}
+            priority
+            sizes="(min-width: 1024px) 700px, 100vw"
+            className="aspect-[3/2] w-full object-cover"
           />
         )}
         {!imageUrl && (
           <Image
             src="/images/default-vehicle-image.png"
-            alt="Vehicle Image"
-            width={500}
-            height={300}
-            className="w-full object-cover"
+            alt="Vehicle photo not yet available"
+            width={1200}
+            height={800}
+            className="aspect-[3/2] w-full object-cover"
           />
         )}
       </div>
@@ -54,7 +73,7 @@ const CoverImage: React.FC<CoverImageProps> = ({ listingId, url, owner }) => {
           }}
           onSuccess={handleUpload}
           uploadPreset="auctions"
-          className="absolute top-2 right-2 md:top-4 md:right-4 text-blue-500 bg-white rounded-md w-fit"
+          className="mt-3 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
         >
           {imageUrl ? (
             <div className="flex items-center gap-1">

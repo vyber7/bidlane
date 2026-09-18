@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 
 import prisma from "../../libs/prismadb";
 import { NextResponse } from "next/server";
+import { logger } from "@/app/libs/logger";
 
 export async function POST(request: Request) {
   try {
@@ -10,7 +11,6 @@ export async function POST(request: Request) {
     //const { name, email, password } = await request.json();
 
     if (!name || !email || !password) {
-      console.log("Missing Info");
       return new NextResponse("Invalid Credentials", { status: 400 });
     }
 
@@ -21,12 +21,11 @@ export async function POST(request: Request) {
         email,
         hashedPassword,
       },
+      select: { id: true },
     });
-    console.log("User created successfully");
-    return NextResponse.json(user, { status: 201 });
-  } catch (error: any) {
-    console.log(error, "REGISTRATION_ERROR");
-    //console.error(error, "REGISTRATION_ERROR");
+    return NextResponse.json({ id: user.id }, { status: 201 });
+  } catch (error: unknown) {
+    logger.error("auth.registration_failed", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

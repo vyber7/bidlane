@@ -1,24 +1,29 @@
 "use client";
 
-import { Listing, User } from "@prisma/client";
+import { Listing } from "@prisma/client";
 import React from "react";
 import AccountListingBox from "./AccountListingBox";
 
 interface UploadedListingsProps {
   listings: Listing[];
-  currentUser: User | null;
+  currentUserId?: string | null;
 }
 
 const UploadedListings: React.FC<UploadedListingsProps> = ({
   listings,
-  currentUser,
+  currentUserId,
 }) => {
   return (
     <>
       <h2 className="text-xl font-bold bg-slate-800 text-white p-2 rounded-t-md">
         Uploaded
       </h2>
-      <ul className="flex flex-wrap py-2 lg:py-4 gap-2 lg:gap-0 justify-between">
+      <ul className="flex flex-col gap-4 py-4">
+        {listings.length === 0 && (
+          <li className="rounded-md bg-white p-6 text-center text-gray-600 shadow-md">
+            You have not submitted any vehicles yet.
+          </li>
+        )}
         {listings?.map((listing) => (
           <li
             key={listing.id}
@@ -26,13 +31,13 @@ const UploadedListings: React.FC<UploadedListingsProps> = ({
           >
             <AccountListingBox
               listing={listing}
-              currentUser={currentUser}
+              currentUserId={currentUserId}
               watching={
-                listing.watchersIds.includes(currentUser?.id as string)
+                listing.watchersIds.includes(currentUserId as string)
                   ? true
                   : false
               }
-              uploaded={listing.userId === currentUser?.id}
+              uploaded={listing.userId === currentUserId}
             />
           </li>
         ))}

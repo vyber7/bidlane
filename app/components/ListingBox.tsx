@@ -3,46 +3,38 @@
 import Image from "next/image";
 import Link from "next/link";
 import { GoStar, GoStarFill } from "react-icons/go";
-import axios from "axios";
-import toast from "react-hot-toast";
 import Title from "./Title";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { GrEdit } from "react-icons/gr";
 import { FaRegClock } from "react-icons/fa";
-import { Listing, User } from "@prisma/client";
+import { Listing } from "@prisma/client";
 import useCountDown from "../hooks/useCountDown";
 import { formatAmount, isLessThan3Hours } from "../utils/format";
 import { clsx } from "clsx";
 import { CldImage } from "next-cloudinary";
-import { pusherClient } from "../libs/pusher";
+import usePusherEvent from "../hooks/usePusherEvent";
+import useWatchlist from "../hooks/useWatchlist";
 
 interface ListingBoxProps {
   listing: Listing;
-  currentUser?: User | null;
+  currentUserId?: string | null;
 }
 
-const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
-  const [watching, setWatching] = useState<boolean>(
-    listing.watchersIds.includes(currentUser?.id as string),
-  );
-
+const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUserId }) => {
   const [bid, setBid] = useState<number | null>(listing.currentBid);
+  const { watching, isUpdating, toggle } = useWatchlist({
+    listingId: listing.id,
+    userId: currentUserId,
+    initialWatching: listing.watchersIds.includes(currentUserId as string),
+  });
 
   const timeLeft = useCountDown(listing.auctionEndsAt as Date, listing.id);
 
-  useEffect(() => {
-    const channelName = `listing-${listing.id}`;
-    const channel = pusherClient.subscribe(channelName);
-    const newBidHandler = (bid: { amount: number }) => {
-      setBid(bid.amount);
-    };
-    channel.bind("new-bid", newBidHandler);
-
-    return () => {
-      pusherClient.unsubscribe(channelName);
-      channel.unbind("new-bid", newBidHandler);
-    };
-  }, [listing.id]);
+  usePusherEvent<{ amount: number }>(
+    `listing-${listing.id}`,
+    "new-bid",
+    (newBid) => setBid(newBid.amount)
+  );
 
   //   const distance = endTime.getTime() - now.getTime();
   //   if (distance <= 0) {
@@ -70,37 +62,21 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
 
   //   return `${hours}h ${minutes}m ${seconds}s`;
   // };
-  const toggleWatchList = () => {
-    if (!currentUser) {
-      toast.error("You need to be logged in!");
-      return;
-    }
-
-    axios
-      .post("/api/update-watchlist", { listingId: listing.id })
-      .then((data) => {
-        console.log("success ", data);
-      })
-      .catch((error) => {
-        console.error("Error updating watchlist: ", error);
-      });
-
-    setWatching(!watching);
-  };
-
   return (
-    <div className="flex flex-wrap justify-between transition-all">
-      <Link className="" href={`/listing/${listing.id}`}>
+    <div className="flex h-full flex-wrap justify-between transition-all">
+      <Link className="min-w-0 flex-1" href={`/listing/${listing.id}`}>
         <Title year={listing.year} make={listing.make} model={listing.model} />
       </Link>
-      {listing.userId == currentUser?.id ? (
+      {listing.userId == currentUserId ? (
         <button className="flex items-center text-sm px-2">
           <GrEdit />
         </button>
       ) : (
         <button
-          className="flex items-center text-xl px-2"
-          onClick={() => toggleWatchList()}
+          className="flex items-center px-3 text-xl transition hover:scale-110"
+          onClick={toggle}
+          disabled={isUpdating}
+          aria-label={watching ? "Remove from watchlist" : "Add to watchlist"}
         >
           {watching ? (
             <GoStarFill className="text-yellow-500" />
@@ -118,7 +94,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
               width={400}
               height={250}
               alt="listing Image"
-              className="w-full object-cover"
+              className="aspect-[16/10] w-full object-cover"
               priority={true}
               crop="fill"
             />
@@ -129,12 +105,12 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
               alt="listing Image"
               width={400}
               height={250}
-              className="w-full rounded-t object-cover lg:rounded-t-none lg:rounded-tl"
+              className="aspect-[16/10] w-full object-cover"
               priority={true}
             />
           )}
         </Link>
-        <div className="flex justify-between p-2 bg-slate-800 text-white text-sm">
+        <div className="flex min-h-10 items-center justify-between bg-slate-950 px-3 py-2 text-xs font-medium text-white">
           {listing.status === "UPCOMING" ? (
             <div>Upcoming</div>
           ) : listing.status === "ENDED" ? (
@@ -177,9 +153,9 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUser }) => {
           )}
         </div>
       </div>
-      <div className="text-sm p-2">
-        6-Speed Manual, V12 Power, California-Owned, Some Modifications
-        <span className="block text-gray-500">{listing.location}</span>
+      <div className="flex w-full flex-col px-3 py-3 text-sm leading-5 text-slate-600">
+        <p className="line-clamp-2">{listing.description}</p>
+        <span className="mt-2 block text-xs font-medium text-slate-400">{listing.miles.toLocaleString()} miles · {listing.location}</span>
       </div>
       {/* <div className="relative px-3 pb-8 lg:w-1/2">
         <p className="relative h-48 overflow-hidden after:absolute after:bottom-0 after:left-0 after:h-20 after:w-full after:bg-gradient-to-t after:from-white ">

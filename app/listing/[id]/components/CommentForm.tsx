@@ -7,6 +7,8 @@ import { MdSend } from "react-icons/md";
 
 import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
+import { useState } from "react";
+import { logger } from "@/app/libs/logger";
 
 interface FormProps {
   listingId: string;
@@ -14,13 +16,12 @@ interface FormProps {
 
 const Form: React.FC<FormProps> = ({ listingId }) => {
   const { data } = useSession();
-
-  console.log(data);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
     handleSubmit,
-    setValue,
+    reset,
     formState: { errors },
   } = useForm<FieldValues>({
     defaultValues: {
@@ -28,16 +29,17 @@ const Form: React.FC<FormProps> = ({ listingId }) => {
     },
   });
 
-  const onSubmit: SubmitHandler<FieldValues> = (data) => {
-    setValue("comment", "", { shouldValidate: true });
-    console.log(data);
-    axios
-      .post("/api/comments", { ...data, listingId })
-      .then((res) => {
-        console.log(res);
-      })
-      .catch(() => toast.error("Something went wrong!"));
-    //.finally(() => setIsLoading(false));
+  const onSubmit: SubmitHandler<FieldValues> = async (formData) => {
+    setIsSubmitting(true);
+    try {
+      await axios.post("/api/comments", { ...formData, listingId });
+      reset({ comment: "" });
+    } catch (error) {
+      logger.error("comment.create_client_failed", error, { listingId });
+      toast.error("The comment could not be posted. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -53,17 +55,9 @@ const Form: React.FC<FormProps> = ({ listingId }) => {
         placeholder="Leave a comment"
       />
       {data ? (
-        <>
-          <button
-            type="submit"
-            className="px-2 text-blue-500 hover:text-blue-600"
-          >
-            <MdSend className="text-2xl" />
-          </button>
-          <div className="absolute -top-7 md:-top-10 right-0 text-rose-500">
-            {errors.comment && <span>This field is required</span>}
-          </div>
-        </>
+        <button type="submit" className="px-2" disabled={isSubmitting}>
+          <MdSend className="text-2xl" />
+        </button>
       ) : (
         <>
           <button

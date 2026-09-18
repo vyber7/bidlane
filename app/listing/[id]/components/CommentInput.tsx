@@ -1,6 +1,7 @@
 "use client";
 
 import { FieldErrors, FieldValues, UseFormRegister } from "react-hook-form";
+import clsx from "clsx";
 
 interface CommentInputProps {
   id: string;
@@ -26,7 +27,10 @@ const CommentInput: React.FC<CommentInputProps> = ({
       {...register(id, { required })}
       type={type}
       placeholder={placeholder}
-      className="w-full p-2 rounded-md form-input border-none focus:ring-transparent placeholder:text-gray-400"
+      className={clsx(
+        "w-full rounded-md border-none p-2 form-input focus:ring-transparent placeholder:text-gray-400",
+        errors[id] && "ring-2 ring-red-500"
+      )}
     />
   );
 };

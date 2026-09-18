@@ -1,4 +1,5 @@
 import prisma from "../libs/prismadb";
+import { logger } from "../libs/logger";
 
 const getBids = async (listingId: string) => {
   try {
@@ -15,8 +16,8 @@ const getBids = async (listingId: string) => {
     });
 
     return bids;
-  } catch (error: any) {
-    console.error("Error fetching bids:", error);
+  } catch (error: unknown) {
+    logger.error("bids.fetch_failed", error, { listingId });
     return [];
   }
 };

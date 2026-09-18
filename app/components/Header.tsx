@@ -1,341 +1,289 @@
 "use client";
 
+import Link from "next/link";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import {
+  FiChevronDown,
+  FiCheckCircle,
+  FiClock,
+  FiMenu,
+  FiUser,
+  FiX,
+  FiZap,
+} from "react-icons/fi";
+
 import Avatar from "./Avatar";
 
-import Link from "next/link";
-import { useSession, signIn, signOut } from "next-auth/react";
-import { useEffect, useRef, useState } from "react";
-import type { Url } from "next/dist/shared/lib/router/router";
-import { RiHome2Fill } from "react-icons/ri";
-import clsx from "clsx";
+const auctionLinks = [
+  { name: "Live auctions", href: "/live/listings", icon: FiZap },
+  { name: "Coming soon", href: "/future/listings", icon: FiClock },
+  { name: "Results", href: "/past/listings", icon: FiCheckCircle },
+];
 
-import { FiChevronRight, FiChevronDown } from "react-icons/fi";
-import { AiOutlineClose } from "react-icons/ai";
-import { GiHamburgerMenu } from "react-icons/gi";
+const navLinks = [
+  { name: "How it works", href: "/faq" },
+  { name: "About", href: "/about" },
+  { name: "Contact", href: "/contact" },
+];
 
-function Header(): JSX.Element {
-  const [chevron, setChevron] = useState(false);
+const profileLinks = [
+  { name: "Profile", href: "/account/profile" },
+  { name: "Notifications", href: "/account/notifications" },
+  { name: "Listings", href: "/account/listings" },
+  { name: "Bids & wins", href: "/account/bids-and-wins" },
+  { name: "Shipments", href: "/account/shipments" },
+];
+
+function Header() {
+  const pathname = usePathname();
   const { data: session } = useSession();
   const user = session?.user;
-
-  const label = useRef<HTMLLabelElement>(null);
-  // Set up ref for nav bar
-  const popupNav = useRef<HTMLDivElement>(null);
-  // Set up ref for profile dropdown
-  const profileLabel = useRef<HTMLLabelElement>(null);
-  // Set up ref for auctions dropdown
-  const auctionsLabel = useRef<HTMLLabelElement>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [auctionsOpen, setAuctionsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
 
   const closeNavbar = () => {
     if (label.current) label.current.click();
   };
 
   useEffect(() => {
-    /**
-     * Handles click outside of the component.
-     * If the click is outside of the component and the checkbox is checked, it will click the component.
-     * @param event - The MouseEvent object.
-     */
-
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        label.current &&
-        !label.current.contains(event.target as Node) &&
-        !popupNav.current?.contains(event.target as Node)
-      ) {
-        const checkbox = document.getElementById(
-          "checkbox"
-        ) as HTMLInputElement;
-        if (checkbox?.checked) label.current.click();
-      }
-
-      if (
-        profileLabel.current &&
-        !profileLabel.current.contains(event.target as Node)
-      ) {
-        const checkbox = document.getElementById(
-          "profile-checkbox"
-        ) as HTMLInputElement;
-        if (checkbox?.checked) profileLabel.current.click();
-      }
-      if (
-        auctionsLabel.current &&
-        !auctionsLabel.current.contains(event.target as Node)
-      ) {
-        const checkbox = document.getElementById(
-          "auction-checkbox"
-        ) as HTMLInputElement;
-        if (checkbox?.checked) {
-          auctionsLabel.current.click();
-          setChevron(checkbox.checked);
-        }
+    function closeMenus(event: MouseEvent) {
+      if (!headerRef.current?.contains(event.target as Node)) {
+        setAuctionsOpen(false);
+        setProfileOpen(false);
       }
     }
 
-    document.addEventListener("click", handleClickOutside);
-
-    /*  
-
-    
-    // Hide header on scroll down and show on scroll up
-    //let prevScrollPos = window.scrollY;
-    // Get the nav bar element
-
-    window.onscroll = function () {
-      const currentScrollPos = window.scrollY;
-      if (header.current) {
-        if (prevScrollPos > currentScrollPos) {
-          header.current.classList.remove("hidden");
-        } else {
-          header.current.classList.add("hidden");
-        }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+        setAuctionsOpen(false);
+        setProfileOpen(false);
       }
-      prevScrollPos = currentScrollPos;
-    };
+    }
 
-    // Hide header on swipe up and show on swipe down
-    // Set initial position and direction
-    let startY: number | undefined = 0;
-    let direction = "";
+    document.addEventListener("mousedown", closeMenus);
+    document.addEventListener("keydown", closeOnEscape);
 
-    // Add touchstart event listener
-    const handleTouchStart = (e: TouchEvent) => {
-      startY = e.touches[0]?.clientY;
-    };
-    document.addEventListener("touchstart", handleTouchStart);
-
-    // Add touchmove event listener
-    const handleTouchMove = (e: TouchEvent) => {
-      const currentY = e.touches[0]?.clientY;
-      // Determine swipe direction
-      if (currentY && startY) {
-        if (currentY < startY) {
-          direction = "up";
-        } else {
-          direction = "down";
-        }
-      }
-    };
-    document.addEventListener("touchmove", handleTouchMove);
-
-    // Add touchend event listener
-    const handleTouchEnd = () => {
-      // If swipe up, hide nav bar
-      if (header.current) {
-        if (direction === "up") {
-          header.current.classList.add("hidden");
-        }
-        // If swipe down, show nav bar
-        else if (direction === "down") {
-          header.current.classList.remove("hidden");
-        }
-      }
-    };
-    document.addEventListener("touchend", handleTouchEnd);
-    document.addEventListener("touchend", handleTouchEnd);
-
-    // Cleanup 
-    
-    */
     return () => {
-      document.removeEventListener("click", handleClickOutside);
-      // document.removeEventListener("touchstart", handleTouchStart);
-      // document.removeEventListener("touchmove", handleTouchMove);
-      // document.removeEventListener("touchend", handleTouchEnd);
-      // window.onscroll = null;
+      document.removeEventListener("mousedown", closeMenus);
+      document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [label]);
+  }, []);
 
-  const navLinks = [
-    { name: "Submit a Vehicle", href: "/submit-listing" },
-    { name: "About", href: "/about" },
-    { name: "Contact", href: "/contact" },
-  ];
-
-  const profileLinks = [
-    { name: "Profile", href: "/account/profile" },
-    { name: "Notifications", href: "/account/notifications" },
-    { name: "My Listings", href: "/account/listings" },
-    { name: "My Bids & Wins", href: "/account/bids-and-wins" },
-    { name: "My Shipments", href: "/account/shipments" },
-  ];
-
-  /*const styleClasses = {
-    navLinks:
-      "absolute right-full top-11 w-2/4 transition-all peer-checked:right-2/4 peer-checked:top-11 md:w-1/3 md:peer-checked:right-2/3 lg:static lg:flex lg:w-auto lg:justify-end lg:gap-2 lg:peer-checked:static lg:peer-checked:flex",
-    navLink:
-      "block w-full bg-green-200 p-2 text-left text-sm font-bold text-green-600 transition hover:bg-green-400 hover:text-green-100 lg:inline-block lg:w-32 lg:rounded lg:p-1 lg:text-center",
-    profileLinks:
-      "absolute left-full top-11 w-2/4 transition-all peer-checked:left-2/4 peer-checked:top-11 md:w-1/3 md:peer-checked:left-2/3 ",
-    profileLink:
-      "block w-full bg-green-200 p-2 text-left text-sm font-bold text-green-600 transition hover:bg-green-400 hover:text-green-100 lg:inline-block lg:w-32 lg:rounded lg:p-1 lg:text-center",
-  };*/
+  const auctionsActive = auctionLinks.some(({ href }) => pathname === href);
+  const linkClass = (active: boolean) =>
+    `rounded-lg px-3 py-2 text-sm font-semibold transition ${
+      active
+        ? "bg-slate-100 text-slate-950"
+        : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+    }`;
 
   return (
-    <div className="fixed rounded-md left-0 top-0 z-[100] w-full p-2 bg-white">
-      <div className="m-auto max-w-5xl">
-        {/*<Image src="/images/logo.jpg" alt="Logo" width={70} height={50} />*/}
-        <nav id="" className="flex justify-between">
-          <label
-            ref={label}
-            htmlFor="checkbox"
-            className="py-1.5 lg:hidden cursor-pointer"
-          >
-            <GiHamburgerMenu />
-          </label>
-          <input type="checkbox" id="checkbox" className="peer hidden" />
+    <header
+      ref={headerRef}
+      className="fixed inset-x-0 top-0 z-[100] border-b border-slate-200/90 bg-white/95 shadow-[0_1px_2px_rgba(15,23,42,0.04)] backdrop-blur"
+    >
+      <nav
+        className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8"
+        aria-label="Primary navigation"
+      >
+        <Link
+          href="/"
+          className="inline-flex shrink-0 items-center gap-3"
+          aria-label="BidLane home"
+        >
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-400 text-lg font-black text-slate-950 shadow-lg shadow-amber-400/10">
+            B
+          </span>
+          <span className="text-xl font-black tracking-tight text-slate-950">
+            Bid<span className="text-amber-400">Lane</span>
+          </span>
+        </Link>
 
-          <div
-            ref={popupNav}
-            className="absolute right-full bg-white top-0 flex h-screen w-3/4 flex-col shadow lg:shadow-none rounded-r-lg p-2 transition-all peer-checked:right-1/4 peer-checked:top-0 
-                          md:w-1/3 md:peer-checked:right-2/3 lg:static 
-                          lg:h-auto lg:w-full lg:flex-row lg:justify-end lg:p-0 overflow-auto lg:overflow-visible"
-          >
-            <div className="lg:flex lg:gap-1 relative">
-              {user && (
-                <div className="relative lg:order-2">
-                  <label
-                    ref={profileLabel}
-                    htmlFor="profile-checkbox"
-                    className="flex gap-2 hover:cursor-pointer"
+        <div className="hidden items-center gap-1 lg:flex">
+          <Link href="/" className={linkClass(pathname === "/")}>
+            Discover
+          </Link>
+
+          <div className="relative">
+            <button
+              type="button"
+              aria-expanded={auctionsOpen}
+              aria-haspopup="menu"
+              onClick={() => {
+                setAuctionsOpen((open) => !open);
+                setProfileOpen(false);
+              }}
+              className={`${linkClass(auctionsActive)} flex items-center gap-1`}
+            >
+              Auctions
+              <FiChevronDown className={`transition-transform ${auctionsOpen ? "rotate-180" : ""}`} />
+            </button>
+            {auctionsOpen && (
+              <div
+                role="menu"
+                className="absolute left-0 top-[calc(100%+0.65rem)] w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10"
+              >
+                {auctionLinks.map(({ name, href, icon: Icon }) => (
+                  <Link
+                    role="menuitem"
+                    href={href}
+                    key={href}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                      pathname === href
+                        ? "bg-slate-100 text-slate-950"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                    }`}
                   >
-                    <Avatar user={user} />
-                    <span className="p-1 align-text-bottom text-sm font-bold ">
-                      {user.email}
-                    </span>
-                    <div
-                      className="lg:hidden py-1.5 grow font-bold flex justify-end"
-                      onClick={() => void closeNavbar()}
-                    >
-                      <AiOutlineClose className="" />
-                    </div>
-                  </label>
-                  <input
-                    type="checkbox"
-                    id="profile-checkbox"
-                    className="peer hidden"
-                  />
-                  <hr className="mb-2 mt-2 lg:hidden" />
-                  <div className="lg:w-40 lg:absolute lg:right-0 lg:shadow bg-white lg:top-9 lg:p-2 lg:hidden lg:rounded lg:peer-checked:block">
-                    {profileLinks.map((link) => (
+                    <Icon className={href === "/live/listings" ? "text-amber-500" : "text-slate-400"} />
+                    {name}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {navLinks.map(({ name, href }) => (
+            <Link href={href} key={href} className={linkClass(pathname === href)}>
+              {name}
+            </Link>
+          ))}
+        </div>
+
+        <div className="hidden items-center gap-2 lg:flex">
+          <Link
+            href="/submit-listing"
+            className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-amber-400 hover:text-slate-950"
+          >
+            Sell your car
+          </Link>
+
+          {user ? (
+            <div className="relative">
+              <button
+                type="button"
+                aria-label="Open account menu"
+                aria-expanded={profileOpen}
+                aria-haspopup="menu"
+                onClick={() => {
+                  setProfileOpen((open) => !open);
+                  setAuctionsOpen(false);
+                }}
+                className="flex items-center gap-2 rounded-full border border-slate-200 p-1.5 pr-2.5 transition hover:border-slate-400"
+              >
+                <Avatar user={user} />
+                <FiChevronDown className={`text-slate-500 transition-transform ${profileOpen ? "rotate-180" : ""}`} />
+              </button>
+              {profileOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-[calc(100%+0.65rem)] w-60 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10"
+                >
+                  <div className="border-b border-slate-100 px-3 py-2">
+                    <p className="text-xs font-medium text-slate-400">Signed in as</p>
+                    <p className="truncate text-sm font-semibold text-slate-800">{user.email}</p>
+                  </div>
+                  <div className="py-1">
+                    {profileLinks.map(({ name, href }) => (
                       <Link
-                        href={link.href as Url}
-                        key={link.name}
-                        className="block w-fit rounded p-2 text-left text-sm transition hover:bg-slate-100 lg:w-full lg:text-center"
+                        role="menuitem"
+                        href={href}
+                        key={href}
+                        className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
                       >
-                        {link.name}
+                        {name}
                       </Link>
                     ))}
-                    <button
-                      className="hidden rounded w-full p-2 text-left text-sm transition bg-slate-200 hover:bg-slate-400 lg:block lg:w-full lg:p-1 lg:text-center"
-                      onClick={() => void signOut()}
-                    >
-                      Sign Out
-                    </button>
                   </div>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => void signOut()}
+                    className="w-full border-t border-slate-100 px-3 pt-3 text-left text-sm font-semibold text-red-600"
+                  >
+                    Sign out
+                  </button>
                 </div>
               )}
-              {user && <hr className="mb-2 mt-2 lg:hidden" />}
-              <Link href="/">
-                <RiHome2Fill className="hidden text-2xl text-slate-800 transition lg:inline-block lg:text-center" />
-              </Link>
-              <div className="flex justify-between lg:hidden">
-                <Link
-                  href="/"
-                  className="w-full rounded p-2 text-left text-sm transition lg:hidden hover:bg-slate-100 lg:w-full lg:text-center"
-                >
-                  Home
-                </Link>
-                {!user && (
-                  <div
-                    className="lg:hidden flex items-center"
-                    onClick={() => void closeNavbar()}
-                  >
-                    <AiOutlineClose className="pl-4 text-3xl" />
-                  </div>
-                )}
-              </div>
-              {/* FIXME: Chevron not toggling correctly on first click */}
-              <div className="flex items-center p-2 lg:px-4 lg:py-1 transition lg:rounded hover:cursor-pointer hover:bg-slate-100">
-                <label
-                  ref={auctionsLabel}
-                  htmlFor="auction-checkbox"
-                  className="block cursor-pointer text-sm hover:bg-slate-100 "
-                  onClick={() => setChevron(!chevron)}
-                >
-                  Auctions
-                </label>
-                {!chevron ? (
-                  <FiChevronRight className="inline" />
-                ) : (
-                  <FiChevronDown className="inline" />
-                )}
-              </div>
-              <input
-                type="checkbox"
-                id="auction-checkbox"
-                className="peer hidden"
-              />
-              <div className="lg:shadow lg:absolute bg-slate-100 lg:bg-white lg:top-9 lg:p-2 hidden left-6 rounded peer-checked:block lg:left-6">
-                <Link
-                  href="/live/listings"
-                  className="w-full block rounded p-2 text-sm transition hover:bg-slate-200 lg:hover:bg-slate-200"
-                >
-                  Live
-                </Link>
-
-                <Link
-                  href="/future/listings"
-                  className="w-full block rounded p-2 text-sm transition hover:bg-slate-200 lg:hover:bg-slate-200"
-                >
-                  Upcoming
-                </Link>
-
-                <Link
-                  href="/past/listings"
-                  className="w-full block rounded p-2 text-sm transition hover:bg-slate-200 lg:hover:bg-slate-200"
-                >
-                  Past
-                </Link>
-              </div>
-
-              {navLinks.map((link) => (
-                <Link
-                  href={link.href as Url}
-                  key={link.name}
-                  className={clsx(
-                    link.name === "Submit a Vehicle" &&
-                      "bg-slate-800 text-white",
-                    `block rounded p-2 text-left text-sm transition ${
-                      link.name !== "Submit a Vehicle" && "hover:bg-slate-100"
-                    } lg:inline-block lg:w-32 lg:p-1 lg:text-center`,
-                    link.name === "Home" && "lg:hidden"
-                  )}
-                >
-                  {link.name}
-                </Link>
-              ))}
-              <hr className="mb-2 mt-2 lg:hidden" />
-              {!user ? (
-                <button
-                  className="block w-full rounded p-2 text-left text-sm transition bg-slate-200 hover:bg-slate-400 lg:inline-block lg:w-32 lg:p-1 lg:text-center"
-                  onClick={() => void signIn()}
-                >
-                  Sign in
-                </button>
-              ) : (
-                <button
-                  className="block w-full rounded p-2 text-left text-sm transition bg-slate-200 hover:bg-slate-400 lg:hidden"
-                  onClick={() => void signOut()}
-                >
-                  Sign Out
-                </button>
-              )}
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void signIn()}
+              className="rounded-full px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+            >
+              Sign in
+            </button>
+          )}
+        </div>
+
+        <button
+          type="button"
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen((open) => !open)}
+          className="rounded-lg border border-slate-200 p-2 text-xl text-slate-700 lg:hidden"
+        >
+          {mobileOpen ? <FiX /> : <FiMenu />}
+        </button>
+      </nav>
+
+      {mobileOpen && (
+        <div className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-200 bg-white px-4 py-4 lg:hidden">
+          {user && (
+            <div className="mb-3 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+              <Avatar user={user} />
+              <div className="min-w-0">
+                <p className="text-xs text-slate-400">Your account</p>
+                <p className="truncate text-sm font-semibold text-slate-800">{user.email}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-1">
+            <Link href="/" className={linkClass(pathname === "/")}>Discover</Link>
+            <p className="px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Auctions</p>
+            {auctionLinks.map(({ name, href, icon: Icon }) => (
+              <Link href={href} key={href} className={`${linkClass(pathname === href)} flex items-center gap-3`}>
+                <Icon className={href === "/live/listings" ? "text-amber-500" : "text-slate-400"} />
+                {name}
+              </Link>
+            ))}
+            {navLinks.map(({ name, href }) => (
+              <Link href={href} key={href} className={linkClass(pathname === href)}>{name}</Link>
+            ))}
           </div>
-        </nav>
-      </div>
-    </div>
+
+          {user && (
+            <div className="mt-3 grid gap-1 border-t border-slate-200 pt-3">
+              <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Account</p>
+              {profileLinks.map(({ name, href }) => (
+                <Link href={href} key={href} className={linkClass(pathname === href)}>{name}</Link>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-200 pt-4">
+            <Link href="/submit-listing" className="rounded-xl bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white">
+              Sell your car
+            </Link>
+            {user ? (
+              <button type="button" onClick={() => void signOut()} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700">
+                Sign out
+              </button>
+            ) : (
+              <button type="button" onClick={() => void signIn()} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700">
+                <FiUser /> Sign in
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </header>
   );
 }
 

@@ -1,12 +1,12 @@
 "use client";
 
-import { Comment, Bid } from "@prisma/client";
-import { User } from "next-auth";
+import { Bid } from "@prisma/client";
 import clsx from "clsx";
 import { formatAmount, capitalize } from "@/app/utils/format";
+import type { CommentWithAuthor } from "@/app/types";
 
 interface CommentBoxProps {
-  comments: (Comment & { user: User | null })[];
+  comments: CommentWithAuthor[];
   bids: (Bid & { user: { name: string | null } })[];
 }
 
@@ -21,7 +21,7 @@ const CommentBox: React.FC<CommentBoxProps> = ({ comments, bids }) => {
       {commentsAndBids.map((item) => {
         let date = new Date(item.createdAt).toDateString();
         date = date.slice(4, 10);
-        let name = item.user?.name?.split(" ")[0];
+        const name = item.user?.name?.split(" ")[0];
 
         return (
           <li key={item.id} className="flex flex-col gap-1">
