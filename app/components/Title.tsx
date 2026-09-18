@@ -14,7 +14,7 @@ const Title: React.FC<TitleProps> = ({ year, make, model, large }) => {
 
   if (large)
     return (
-      <h1 className="p-4 text-xl font-bold rounded-t-md shadow-md shadow-gray-400 bg-white">
+      <h1 className="p-2 md:p-4 text-lg md:text-xl font-bold rounded-t-md shadow-md shadow-gray-400 bg-white">
         {title}
       </h1>
     );

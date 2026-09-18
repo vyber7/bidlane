@@ -88,8 +88,8 @@ const Gallery: React.FC<GalleryProps> = ({ listingId, owner, vehicleName = "Vehi
       )}
       <div
         className={clsx(
-          images.length ? "block" : "hidden",
-          " flex flex-wrap justify-start gap-2"
+          images.length ? "grid" : "hidden",
+          "grid-cols-3 md:grid-cols-4 gap-2 lg:gap-4"
         )}
       >
         {images.map((imageUrl, index) => (

@@ -45,7 +45,7 @@ const Form: React.FC<FormProps> = ({ listingId }) => {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="relative border flex border-gray-300 rounded-md mb-4 has-[:focus]:ring has-[:focus]:ring-gray-500 hover:ring hover:ring-gray-500"
+      className="relative border flex border-gray-300 rounded-md mb-2 md:mb-4 has-[:focus]:ring has-[:focus]:ring-blue-500 hover:ring hover:ring-blue-500"
     >
       <CommentInput
         id="comment"
@@ -60,10 +60,15 @@ const Form: React.FC<FormProps> = ({ listingId }) => {
         </button>
       ) : (
         <>
-          <button type="submit" className="px-2 text-gray-500 peer" disabled>
+          <button
+            type="submit"
+            className="px-2 text-blue-500 hover:text-blue-600 peer"
+            disabled
+          >
             <MdSend className="text-2xl" />
           </button>
-          <div className="hidden absolute right-0 top-[-40px] text-rose-500 peer-hover:block">
+
+          <div className="hidden absolute right-0 -top-7 md:-top-10 text-rose-500 peer-hover:block">
             Please, log in
           </div>
         </>

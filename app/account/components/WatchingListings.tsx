@@ -35,7 +35,7 @@ const WatchingListings: React.FC<WatchingListingsProps> = ({
   );
   return (
     <>
-      <h2 className="text-xl font-bold bg-gray-900 rounded-t-md text-white p-2">
+      <h2 className="text-xl font-bold bg-slate-800 rounded-t-md text-white p-2">
         Watching
       </h2>
       <ul className="flex flex-col gap-4 pt-4">
@@ -45,7 +45,10 @@ const WatchingListings: React.FC<WatchingListingsProps> = ({
           </li>
         )}
         {watchingListings.map((listing) => (
-          <li key={listing.id} className="rounded-md shadow-md shadow-gray-400">
+          <li
+            key={listing.id}
+            className="w-full md:w-[49.5%] lg:w-[48.5%] rounded-md shadow-md shadow-gray-400"
+          >
             <AccountListingBox
               listing={listing}
               currentUserId={currentUserId}

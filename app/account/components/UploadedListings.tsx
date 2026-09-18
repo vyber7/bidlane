@@ -15,7 +15,7 @@ const UploadedListings: React.FC<UploadedListingsProps> = ({
 }) => {
   return (
     <>
-      <h2 className="text-xl font-bold bg-gray-900 text-white p-2 rounded-t-md">
+      <h2 className="text-xl font-bold bg-slate-800 text-white p-2 rounded-t-md">
         Uploaded
       </h2>
       <ul className="flex flex-col gap-4 py-4">
@@ -27,7 +27,7 @@ const UploadedListings: React.FC<UploadedListingsProps> = ({
         {listings?.map((listing) => (
           <li
             key={listing.id}
-            className="rounded-md shadow-md w-full shadow-gray-400"
+            className="w-full md:w-[49.5%] lg:w-[48.5%] rounded-md shadow-md shadow-gray-400"
           >
             <AccountListingBox
               listing={listing}

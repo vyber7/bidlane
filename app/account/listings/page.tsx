@@ -23,7 +23,7 @@ const MyListings = async () => {
 
   return (
     <>
-      <div className="m-auto max-w-5xl grid grid-cols-4 gap-4 pb-4 px-2 lg:px-0">
+      <div className="m-auto max-w-5xl grid grid-cols-4 gap-4 pb-2 lg:pb-4 px-2 lg:px-0">
         <AccountHeader userName={currentUser?.name?.split(" ")[0]} />
         <AccountLinks />
         <div className="col-span-4 lg:col-span-3">

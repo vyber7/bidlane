@@ -32,11 +32,21 @@ export function formatDateTime(date: Date) {
   return `${month}/${day}/${year} ${hours}:${minutesStr} ${ampm}`;
 }
 
-// Determine if auction can be ended based on time left
+// Determine if the auction can be ended
 export const canEndAuction = (timeLeft: string) => {
-  if (timeLeft === "ENDING...") {
+  if (timeLeft === "Ending...") {
+    return true;
+  } else {
+    return false;
+  }
+};
+
+// Is the time left less than 3 hours
+export const isLessThan3Hours = (timeLeft: string) => {
+  if (timeLeft === "Ending...") {
     return true;
   }
+
   const hoursMatch = timeLeft.match(/^(\d+)h/);
   const minutesMatch = timeLeft.match(/^(\d+)m/);
   const secondsMatch = timeLeft.match(/^(\d+)s/);
@@ -68,7 +78,7 @@ export const canEndAuction = (timeLeft: string) => {
 // Display time left in HH:MM:SS format
 export const formatTimeLeft = (totalSeconds: number) => {
   if (totalSeconds <= 0) {
-    return "ENDING...";
+    return "Ending...";
   }
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -79,4 +89,28 @@ export const formatTimeLeft = (totalSeconds: number) => {
   const secondsStr = `${seconds}s`;
 
   return `${hoursStr}${minutesStr}${secondsStr}`.trim();
+};
+
+// Format time left to display only weeks, days, or hours : minutes : seconds
+export const formatTimeLeftShort = (milliSeconds: number) => {
+  if (milliSeconds <= 0) {
+    return "Ending...";
+  }
+  const totalSeconds = Math.floor(milliSeconds / 1000);
+  const weeks = Math.floor(totalSeconds / (7 * 24 * 3600));
+  const days = Math.floor((totalSeconds % (7 * 24 * 3600)) / (24 * 3600));
+  const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (weeks > 0) {
+    return `${weeks}w`;
+  } else if (days > 0) {
+    return `${days}d`;
+  } else {
+    const hoursStr = hours > 0 ? `${hours}h : ` : "";
+    const minutesStr = minutes > 0 ? `${minutes}m : ` : "";
+    const secondsStr = `${seconds}s`;
+    return `${hoursStr}${minutesStr}${secondsStr}`.trim();
+  }
 };

@@ -25,7 +25,7 @@ const AuctionStartInput: React.FC<AuctionStartInputProps> = ({
   disabled,
 }) => {
   return (
-    <div className="w-[49%]">
+    <div className="w-full md:w-[49%]">
       <label htmlFor={id}>{label}</label>
       <input
         id={id}

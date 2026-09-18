@@ -75,7 +75,14 @@ const CoverImage: React.FC<CoverImageProps> = ({ listingId, url, owner, alt = "V
           uploadPreset="auctions"
           className="mt-3 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
         >
-          {imageUrl ? "Edit Cover Image" : "Add Cover Image"}
+          {imageUrl ? (
+            <div className="flex items-center gap-1">
+              <FaRegEdit />
+              <span>Edit Image</span>
+            </div>
+          ) : (
+            "Add Cover Image"
+          )}
         </CldUploadButton>
       )}
     </>

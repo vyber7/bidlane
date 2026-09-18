@@ -3,7 +3,7 @@
 import { Listing } from "@prisma/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { formatAmount } from "@/app/utils/format";
+import { formatAmount, isLessThan3Hours } from "@/app/utils/format";
 import Button from "@/app/components/Button";
 import useCountDown from "@/app/hooks/useCountDown";
 import clsx from "clsx";
@@ -11,9 +11,15 @@ import { useRouter } from "next/navigation";
 import { User } from "next-auth";
 import { Bid } from "@prisma/client";
 import ProgressBar from "./ProgressBar";
-import { FaHashtag, FaRegClock, FaRegCommentAlt } from "react-icons/fa";
+import {
+  FaHashtag,
+  FaRegClock,
+  FaCommentAlt,
+  FaRegCommentAlt,
+} from "react-icons/fa";
 import Link from "next/link";
 import { GoStar, GoStarFill } from "react-icons/go";
+import { RiAuctionFill, RiAuctionLine } from "react-icons/ri";
 import toast from "react-hot-toast";
 import usePusherEvent from "@/app/hooks/usePusherEvent";
 import useWatchlist from "@/app/hooks/useWatchlist";

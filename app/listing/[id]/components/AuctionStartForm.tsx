@@ -47,7 +47,7 @@ const AuctionStartForm: React.FC<AuctionStartFormProps> = ({ listingId }) => {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="p-4 bg-white border rounded-md shadow-md shadow-gray-400 relative flex flex-wrap gap-2 justify-between"
+      className="p-2 lg:p-4 bg-white border rounded-md shadow-md shadow-gray-400 relative flex flex-wrap gap-2 justify-between"
     >
       {/* <AuctionStartInput
         id="startTime"

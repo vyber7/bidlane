@@ -17,14 +17,14 @@ const CommentBox: React.FC<CommentBoxProps> = ({ comments, bids }) => {
   );
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col gap-3 md:gap-4">
       {commentsAndBids.map((item) => {
         let date = new Date(item.createdAt).toDateString();
         date = date.slice(4, 10);
         const name = item.user?.name?.split(" ")[0];
 
         return (
-          <li key={item.id} className="mb-2">
+          <li key={item.id} className="flex flex-col gap-1">
             <div className="flex">
               <div className="pr-2 pb-1 font-bold ">
                 {capitalize(name as string)}

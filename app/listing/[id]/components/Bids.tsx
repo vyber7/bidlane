@@ -72,13 +72,13 @@ const Bids: React.FC<BidsProps> = ({
       id="bids"
       className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
     >
-      <h2 className="text-lg font-bold">
-        {listing.year} {listing.make} {listing.model}
+      <h2 className="pb-2 md:pb-4 text-lg font-bold">
+        {listing.year} {capitalize(listing.make)} {capitalize(listing.model)}
       </h2>
-      <div className="flex flex-col md:flex-row gap-2 md:justify-between pb-4">
-        <div>
+      <div className="flex flex-col md:flex-row gap-2 lg:gap-4 md:justify-between pb-2 md:pb-4">
+        <div className="md:w-1/2 w-full flex flex-col justify-between bg-slate-200 rounded-md p-2 md:p-4 gap-2 text-sm md:text-base">
           {listing.status === "ENDED" && listing.result === "SOLD" ? (
-            <p>
+            <p className="text-green-600 font-bold">
               {listing.currentBid
                 ? `Sold to ${
                     listing.highestBidderId
@@ -151,7 +151,7 @@ const Bids: React.FC<BidsProps> = ({
         listing.userId !== currentUserId ? (
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="border flex border-gray-300 rounded-md has-[:focus]:ring has-[:focus]:ring-gray-500 hover:ring hover:ring-gray-500"
+          className="relative border flex border-gray-300 rounded-md has-[:focus]:ring has-[:focus]:ring-lime-500 hover:ring hover:ring-lime-500"
         >
           <input
             id="bidAmount"
@@ -166,16 +166,19 @@ const Bids: React.FC<BidsProps> = ({
             step={1}
             {...register("bidAmount", { required: true, valueAsNumber: true })}
             className={clsx(
-              `w-4/5 form-input
+              `w-full form-input
               block rounded-l-md
               
               text-gray-900
+              font-semibold
               shadow-sm                  
               focus:border-transparent
               border-none
               focus:ring-transparent
-                       
-              placeholder:text-gray-400
+               text-right        
+              placeholder:text-gray-400 
+              placeholder:font-normal
+              placeholder:text-left
               `,
               errors.bidAmount && "border-rose-500 focus:ring-rose-500",
               isLoading && "opacity-50 cursor-not-allowed"
@@ -185,10 +188,10 @@ const Bids: React.FC<BidsProps> = ({
           <button
             disabled={isLoading}
             type="submit"
-            className="w-1/5 flex
+            className="flex
         justify-center
         items-center
-        rounded-r-md
+        px-2
         border-none
         text-sm
         font-semibold
@@ -198,14 +201,19 @@ const Bids: React.FC<BidsProps> = ({
         bg-amber-400 hover:bg-amber-300 focus-visible:outline-amber-500
         text-slate-950"
           >
-            Place a Bid
+            <RiAuctionFill className="text-2xl" />
           </button>
-          <div>{errors.bidAmount && <span>This field is required</span>}</div>
+          <div className="absolute -top-7 md:-top-10 right-0 text-rose-500">
+            {errors.bidAmount && <span>This field is required</span>}
+          </div>
         </form>
       ) : !session ? (
-        <div className="mt-4 text-red-500 font-bold">
-          Please log in to place a bid.
-        </div>
+        <>
+          <hr />
+          <div className="text-rose-500 mt-2 md:mt-4 text-center">
+            Please log in to place a bid.
+          </div>
+        </>
       ) : null}
     </div>
   );
