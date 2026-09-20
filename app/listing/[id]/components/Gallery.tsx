@@ -97,7 +97,7 @@ const Gallery: React.FC<GalleryProps> = ({ listingId, owner, vehicleName = "Vehi
             aria-label={`View photo ${index + 1} of ${vehicleName}`}
             className="overflow-hidden rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500">
             <CldImage width={160} height={110} crop="fill" src={imageUrl}
-              alt={`${vehicleName}, photo ${index + 1}`} className="h-20 w-28 object-cover transition hover:opacity-80 sm:h-24 sm:w-32" />
+              alt={`${vehicleName}, photo ${index + 1}`} className="h-20 w-28 rounded-lg object-cover transition hover:opacity-80 sm:h-24 sm:w-32" />
           </button>
         ))}
       </div>
