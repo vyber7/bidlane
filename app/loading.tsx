@@ -1,12 +1,12 @@
 export default function Loading() {
   return (
     <div
-      className="mx-auto max-w-5xl animate-pulse px-2 pb-8 pt-16"
+      className="mx-auto max-w-6xl animate-pulse px-4 pb-8 pt-16 sm:px-6 lg:px-8"
       aria-label="Loading page"
       aria-busy="true"
     >
       <div className="mb-5 h-6 w-48 rounded bg-gray-300" />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }, (_, index) => (
           <div key={index} className="overflow-hidden rounded-md bg-white shadow">
             <div className="h-48 bg-gray-300" />

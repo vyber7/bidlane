@@ -19,7 +19,7 @@ const FutureListings = async () => {
   ]);
 
   return (
-    <div className="m-auto pt-20 pb-4 max-w-5xl px-2">
+    <div className="mx-auto max-w-6xl px-4 pb-4 pt-20 sm:px-6 lg:px-8">
       <AuctionSearchBrowser
         listings={futureListings}
         currentUserId={currentUser?.id}
