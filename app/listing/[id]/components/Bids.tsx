@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
+import { RiAuctionFill } from "react-icons/ri";
 import { formatAmount, capitalize } from "@/app/utils/format";
 import usePusherEvent from "@/app/hooks/usePusherEvent";
 

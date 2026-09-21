@@ -28,7 +28,7 @@ BidLane is a vehicle auction app built with Next.js, React, TypeScript, and Mong
 
 ### 1. Install dependencies
 
-Use Node.js **20.9 or newer** and npm. From your checkout:
+Use Node.js **24.x** and npm. From your checkout:
 
 ```bash
 cd bidlane
@@ -179,7 +179,7 @@ Image uploads use Cloudinary widgets. The `/api/upload-image` and `/api/add-imag
 
 1. Configure the environment variables on the deployment platform. Set `NEXTAUTH_URL` and OAuth callbacks to the production origin.
 2. Ensure the deployment can reach MongoDB, Cloudinary, and Pusher.
-3. Generate the Prisma client and build the app with `npx prisma generate` followed by `npm run build`. Synchronize reviewed schema changes with the target database using `npx prisma db push`.
+3. Build the app with `npm run build`, which generates the Prisma client before running the Next.js production build. On Vercel, use `npm run build` as the Build Command. Synchronize reviewed schema changes with the target database using `npx prisma db push`.
 4. On a Node.js host, run `npm start` to serve the build.
 5. Configure scheduled finalization. For Vercel, use the included schedule and a plan that supports its one-minute frequency. On another host, schedule an authenticated GET request to `/api/cron/finalize-auctions` every minute.
 

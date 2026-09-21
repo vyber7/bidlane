@@ -45,10 +45,6 @@ function Header() {
   const [profileOpen, setProfileOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
 
-  const closeNavbar = () => {
-    if (label.current) label.current.click();
-  };
-
   useEffect(() => {
     function closeMenus(event: MouseEvent) {
       if (!headerRef.current?.contains(event.target as Node)) {

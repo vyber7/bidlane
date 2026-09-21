@@ -9,6 +9,7 @@ import {
 import Image from "next/image";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { FaRegEdit } from "react-icons/fa";
 import { logger } from "@/app/libs/logger";
 
 interface CoverImageProps {
