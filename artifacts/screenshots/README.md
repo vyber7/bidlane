@@ -1,9 +1,9 @@
 BidLane screenshots
 
-Five PNG captures of the running app, exported at 2x resolution on September 16, 2026.
+Five PNG captures of the running app. Screenshots 01 and 03–05 were exported at 2x resolution on September 16, 2026. Screenshot 02 was regenerated on September 22, 2026 at 2x resolution without the mouse pointer.
 
 01: Desktop homepage with Results selected (2880 × 2368).
-02: Desktop auction results (2880 × 1960).
+02: Desktop auction results (2880 × 1960), signed out and without the mouse pointer.
 03: Desktop vehicle detail (2880 × 1840).
 04: Mobile homepage (860 × 1880).
 05: Mobile vehicle detail and gallery (860 × 1800).
