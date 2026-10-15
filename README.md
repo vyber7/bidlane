@@ -173,7 +173,7 @@ vitest.config.ts     # Test configuration
 | `/api/cloudinary-images` | GET, POST | Read saved listing images or attach an uploaded image |
 | `/api/listing/[id]/cover-image` | POST | Update a listing's cover image |
 
-Image uploads use Cloudinary widgets. The `/api/upload-image` and `/api/add-images` routes are placeholders that echo an image URL; they do not upload files or persist images.
+Image uploads use Cloudinary widgets. New listings include the uploaded photo URLs in `/api/new-listing`; adding photos to an existing listing saves them through `/api/cloudinary-images`. The gallery renders saved images supplied by the listing page without a second image-list request.
 
 Application-owned API failures return JSON with an `error` string and an appropriate HTTP status. Malformed JSON, non-object bodies, and invalid fields return `400`; unexpected failures return `500` with a public message while details are logged on the server. Partial cron failures retain the batch summary and add an `error` string. NextAuth's authentication endpoints use their own protocol.
 

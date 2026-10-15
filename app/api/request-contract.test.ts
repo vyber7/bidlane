@@ -27,8 +27,6 @@ import { PATCH as profile } from "./account/profile/route";
 import { POST as views } from "./listing-view/route";
 import { POST as images } from "./cloudinary-images/route";
 import { POST as cover } from "./listing/[id]/cover-image/route";
-import { POST as upload } from "./upload-image/route";
-import { POST as addImages } from "./add-images/route";
 
 const endpoints: { name: string; handler: (request: Request) => Promise<Response>; authenticated?: boolean }[] = [
   { name: "bidding", handler: bid, authenticated: true },
@@ -43,8 +41,6 @@ const endpoints: { name: string; handler: (request: Request) => Promise<Response
   { name: "listing views", handler: views },
   { name: "gallery images", handler: images, authenticated: true },
   { name: "cover images", handler: (request) => cover(request, { params: Promise.resolve({ id: "abcdef0123456789abcdef01" }) }), authenticated: true },
-  { name: "upload placeholder", handler: upload },
-  { name: "image placeholder", handler: addImages },
 ];
 
 beforeEach(() => {

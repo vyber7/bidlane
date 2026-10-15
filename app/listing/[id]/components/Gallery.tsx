@@ -6,7 +6,7 @@ import {
   CldImage,
   type CloudinaryUploadWidgetResults,
 } from "next-cloudinary";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { CldUploadButton } from "next-cloudinary";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -17,53 +17,24 @@ interface GalleryProps {
   listingId: string;
   owner?: boolean;
   vehicleName?: string;
-  initialImages?: string[];
-}
-
-interface GalleryImage {
-  url: string;
+  initialImages: string[];
 }
 
 const Gallery: React.FC<GalleryProps> = ({ listingId, owner, vehicleName = "Vehicle", initialImages }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [images, setImages] = useState<string[]>(initialImages || []);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-
-  useEffect(() => {
-    // Fetch images for the given listingId
-    let active = true;
-    fetch(`/api/cloudinary-images?folder=listing-${listingId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`Image request failed: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        if (active) setImages(Array.from(new Set([...(initialImages || []), ...data.images.map((img: GalleryImage) => img.url)])));
-      })
-      .catch((error: unknown) => {
-        if (active) setLoadError(true);
-        logger.error("gallery.images_fetch_failed", error, { listingId });
-      })
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [listingId, initialImages]);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const images = Array.from(new Set([...initialImages, ...uploadedImages]));
 
   const handleUpload = (result: CloudinaryUploadWidgetResults) => {
     if (typeof result.info !== "object" || !result.info.secure_url) return;
+    const imageUrl = result.info.secure_url;
 
     axios.post("/api/cloudinary-images", {
-      imageUrl: result.info.secure_url,
+      imageUrl,
       listingId,
     }).then(() => {
-      const url = typeof result.info === "object" ? result.info.secure_url : undefined;
-      if (url) setImages((current) => Array.from(new Set([...current, url])));
+      setUploadedImages((current) => Array.from(new Set([...current, imageUrl])));
       toast.success("Image uploaded successfully!");
     }).catch((error: unknown) => {
       logger.error("gallery.image_save_failed", error, { listingId });
@@ -77,17 +48,7 @@ const Gallery: React.FC<GalleryProps> = ({ listingId, owner, vehicleName = "Vehi
         <h2 className="text-lg font-bold">Photo gallery</h2>
         <span className="text-xs text-slate-500">{images.length} photos</span>
       </div>
-      {!isLoading && !loadError && !images.length && <p className="text-sm text-slate-500">No additional photos yet.</p>}
-      {isLoading && (
-        <p className="text-sm text-gray-500" aria-live="polite">
-          Loading images…
-        </p>
-      )}
-      {loadError && (
-        <p className="text-sm text-red-600" role="alert">
-          Images could not be loaded.
-        </p>
-      )}
+      {!images.length && <p className="text-sm text-slate-500">No additional photos yet.</p>}
       <div
         className={clsx(
           images.length ? "grid" : "hidden",
