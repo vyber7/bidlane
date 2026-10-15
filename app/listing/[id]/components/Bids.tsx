@@ -1,5 +1,4 @@
 "use client";
-import { Bid, Listing, User } from "@prisma/client";
 import axios from "axios";
 import clsx from "clsx";
 import { useSession } from "next-auth/react";
@@ -9,37 +8,29 @@ import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { RiAuctionFill } from "react-icons/ri";
 import { formatAmount, capitalize } from "@/app/utils/format";
-import usePusherEvent from "@/app/hooks/usePusherEvent";
+import { useAuctionContext } from "@/app/context/AuctionContext";
+import type { AcceptedBid } from "@/app/hooks/useAuction";
 
 interface BidsProps {
-  listing: Listing;
-  bids: (Bid & { user: { name: string | null } })[];
   sellerName?: string | null;
   currentUserId?: string | null;
 }
 
 const Bids: React.FC<BidsProps> = ({
-  listing,
-  bids,
   sellerName,
   currentUserId,
 }) => {
   const { data: session } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [bid, setBid] = useState<number | null>(listing.currentBid);
+  const { listing, bids, expired, acceptBid } = useAuctionContext();
+  const bid = listing.currentBid;
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
   } = useForm<FieldValues>();
-
-  usePusherEvent<Bid & { user: User }>(
-    `listing-${listing.id}`,
-    "new-bid",
-    (newBid) => setBid(newBid.amount)
-  );
 
   const onSubmit: SubmitHandler<FieldValues> = (data) => {
     setIsLoading(true);
@@ -55,9 +46,9 @@ const Bids: React.FC<BidsProps> = ({
     }
 
     axios
-      .post(`/api/place-bid`, { ...data, listingId: listing.id })
+      .post<AcceptedBid>(`/api/place-bid`, { ...data, listingId: listing.id })
       .then((response) => {
-        setBid(response.data.currentBid);
+        acceptBid(response.data);
         reset();
         router.refresh();
         toast.success("Bid placed successfully!");
@@ -184,10 +175,10 @@ const Bids: React.FC<BidsProps> = ({
               errors.bidAmount && "border-rose-500 focus:ring-rose-500",
               isLoading && "opacity-50 cursor-not-allowed"
             )}
-            disabled={isLoading}
+            disabled={isLoading || expired}
           />
           <button
-            disabled={isLoading}
+            disabled={isLoading || expired}
             type="submit"
             className="flex
         justify-center

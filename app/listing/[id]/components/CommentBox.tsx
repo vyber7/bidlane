@@ -1,13 +1,12 @@
 "use client";
 
-import { Bid } from "@prisma/client";
 import clsx from "clsx";
 import { formatAmount, capitalize } from "@/app/utils/format";
-import type { CommentWithAuthor } from "@/app/types";
+import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 
 interface CommentBoxProps {
   comments: CommentWithAuthor[];
-  bids: (Bid & { user: { name: string | null } })[];
+  bids: BidWithAuthor[];
 }
 
 const CommentBox: React.FC<CommentBoxProps> = ({ comments, bids }) => {

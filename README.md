@@ -115,7 +115,7 @@ Open [localhost:3000](http://localhost:3000). To try bidding, use a second accou
 | `npx prisma db push` | Synchronize the schema with the configured MongoDB database |
 | `npx prisma studio` | Open the database browser |
 
-Tests live alongside the implementation as `*.test.ts` files and run in Vitest's Node environment. Coverage includes auction transitions, bid validation, finalization, API authorization, and data helpers.
+Tests live alongside the implementation as `*.test.ts` or `*.test.tsx` files. API and data tests run in Vitest's Node environment; React hook and component tests opt into jsdom. Coverage includes auction transitions, bid validation, finalization, API authorization, data helpers, and live auction state reconciliation after refreshes and missed events.
 
 Before changing Next.js code, follow [AGENTS.md](AGENTS.md) and read the relevant guides in `node_modules/next/dist/docs/` for the installed version.
 
@@ -139,7 +139,7 @@ app/
 ├── actions/         # Server-side data access helpers
 ├── api/             # Route handlers and colocated tests
 ├── components/      # Shared interface components
-├── context/         # Authentication and toast providers
+├── context/         # Authentication, auction state, and toast providers
 ├── hooks/           # Countdown, listing, watchlist, and Pusher hooks
 ├── libs/            # Service clients, validation, auction finalization
 ├── listing/[id]/    # Auction detail page and interactions

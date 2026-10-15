@@ -36,17 +36,24 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
   const [tab, setTab] = useState<Tab>("uploaded");
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [query, setQuery] = useState("");
-  const [watching, setWatching] = useState(initialWatching);
+  const [watchlist, setWatchlist] = useState({ source: initialWatching, listings: initialWatching });
+  if (watchlist.source !== initialWatching) {
+    setWatchlist({ source: initialWatching, listings: initialWatching });
+  }
+  const watching = watchlist.listings;
 
   usePusherEvent<WatchingUpdate>(
     currentUserId ? `user-${currentUserId}-watching` : null,
     "watching-update",
     ({ listing, watching: isWatching }) => {
-      setWatching((current) => {
-        if (!isWatching) return current.filter((item) => item.id !== listing.id);
-        if (current.some((item) => item.id === listing.id)) return current;
-        return [listing, ...current];
-      });
+      setWatchlist((current) => ({
+        ...current,
+        listings: !isWatching
+          ? current.listings.filter((item) => item.id !== listing.id)
+          : current.listings.some((item) => item.id === listing.id)
+            ? current.listings
+            : [listing, ...current.listings],
+      }));
     }
   );
 

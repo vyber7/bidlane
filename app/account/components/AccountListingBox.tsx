@@ -4,11 +4,10 @@ import Link from "next/link";
 import { GoTrash } from "react-icons/go";
 import Image from "next/image";
 import { Listing } from "@prisma/client";
-import { formatAmount, canEndAuction } from "@/app/utils/format";
+import { formatAmount } from "@/app/utils/format";
 import clsx from "clsx";
 import { FiArrowUpRight, FiClock, FiEye, FiMapPin } from "react-icons/fi";
-import useCountDown from "@/app/hooks/useCountDown";
-import { useState } from "react";
+import useAuction from "@/app/hooks/useAuction";
 import { CldImage } from "next-cloudinary";
 import useWatchlist from "@/app/hooks/useWatchlist";
 
@@ -20,19 +19,18 @@ interface AccountListingBoxProps {
 }
 
 const AccountListingBox: React.FC<AccountListingBoxProps> = ({
-  listing,
+  listing: initialListing,
   currentUserId,
   watching,
   uploaded,
 }) => {
-  const [bid] = useState<number | null>(listing.currentBid);
+  const { listing, expired, timeLeft } = useAuction(initialListing);
+  const bid = listing.currentBid;
   const { isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
     userId: currentUserId,
     initialWatching: watching,
   });
-
-  const timeLeft = useCountDown(listing.auctionEndsAt as Date, listing.id);
 
   const status =
     listing.status === "LIVE"
@@ -123,7 +121,7 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
               <div>
                 <p className="text-xs text-gray-500">{amountLabel}</p>
                 <p className="mt-0.5 text-sm font-bold text-gray-950">
-                  {amount ? `$${formatAmount(amount)}` : "No bids yet"}
+                  {amount !== null ? `$${formatAmount(amount)}` : "No bids yet"}
                 </p>
               </div>
               <div>
@@ -138,7 +136,7 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
                   <p
                     className={clsx(
                       "mt-0.5 flex items-center gap-1 text-sm font-bold",
-                      canEndAuction(timeLeft) ? "text-red-600" : "text-gray-950"
+                      expired ? "text-red-600" : "text-gray-950"
                     )}
                   >
                     <FiClock /> {timeLeft || "Calculating…"}

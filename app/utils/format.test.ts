@@ -5,6 +5,7 @@ import {
   capitalize,
   formatAmount,
   formatTimeLeft,
+  formatTimeLeftShort,
 } from "./format";
 
 describe("display formatting", () => {
@@ -23,8 +24,8 @@ describe("display formatting", () => {
   });
 
   it.each([
-    [0, "ENDING..."],
-    [-1, "ENDING..."],
+    [0, "Ending..."],
+    [-1, "Ending..."],
     [5, "5s"],
     [65, "1m 5s"],
     [3_661, "1h 1m 1s"],
@@ -32,12 +33,18 @@ describe("display formatting", () => {
     expect(formatTimeLeft(seconds)).toBe(expected);
   });
 
+  it("allows finalization for the expired countdown formats", () => {
+    expect(canEndAuction(formatTimeLeft(0))).toBe(true);
+    expect(canEndAuction(formatTimeLeftShort(0))).toBe(true);
+    expect(canEndAuction("")).toBe(false);
+  });
+
   it.each([
-    ["ENDING...", true],
-    ["2h 59m 59s", true],
+    ["Ending...", true],
+    ["2h 59m 59s", false],
     ["3h 0m 0s", false],
-    ["15m 0s", true],
-    ["10s", true],
+    ["15m 0s", false],
+    ["10s", false],
     ["1d 0h 0m 0s", false],
   ])("decides whether %s may be ended", (timeLeft, expected) => {
     expect(canEndAuction(timeLeft)).toBe(expected);

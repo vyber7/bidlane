@@ -100,7 +100,38 @@ describe("POST /api/auction-end", () => {
     });
   });
 
-  it("reports a competing end request as a conflict", async () => {
+  it("allows the seller to retry an already ended auction", async () => {
+    mocks.findUnique.mockResolvedValue({
+      userId: "seller",
+      status: "ENDED",
+      result: "RESERVE_NOT_MET",
+    });
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      message: "Auction ended successfully",
+      result: "RESERVE_NOT_MET",
+    });
+    expect(mocks.finalizeAuction).not.toHaveBeenCalled();
+  });
+
+  it("rejects a last-second extension discovered by the finalizer", async () => {
+    mocks.finalizeAuction.mockResolvedValue({
+      status: "not_due",
+      auctionEndsAt: new Date("2026-09-04T12:02:00.000Z"),
+    });
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: "Auction cannot end before its scheduled time",
+    });
+  });
+
+  it("succeeds when a competing request has already finalized the auction", async () => {
     mocks.finalizeAuction.mockResolvedValue({
       status: "already_finalized",
       result: "SOLD",
@@ -108,9 +139,10 @@ describe("POST /api/auction-end", () => {
 
     const response = await POST(request());
 
-    expect(response.status).toBe(409);
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
-      error: "Auction has already ended",
+      message: "Auction ended successfully",
+      result: "SOLD",
     });
   });
 });

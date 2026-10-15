@@ -1,58 +1,52 @@
-// Hook for countdown timer
-import { useEffect, useState } from "react";
-import usePusherEvent from "./usePusherEvent";
+"use client";
 
-const useCountDown = (targetDate: Date, listingId?: string) => {
-  const [timeLeft, setTimeLeft] = useState<string>("");
-  const [targetDateState, setTargetDateState] = useState<Date>(targetDate);
+import { useSyncExternalStore } from "react";
+import { formatAuctionCountdown } from "@/app/utils/format";
 
-  useEffect(() => {
-    if (!targetDateState) {
-      return;
-    }
-    const interval = setInterval(() => {
-      const now = new Date();
-      const distance = targetDateState.getTime() - now.getTime();
+// Every mounted countdown reads the same clock, including the closing bar.
+const listeners = new Set<() => void>();
+let now: number | null = null;
+let timer: ReturnType<typeof setInterval> | undefined;
 
-      if (distance <= 0) {
-        setTimeLeft("Ending...");
-        clearInterval(interval);
-        return;
-      }
-      const weeks = Math.floor(distance / (1000 * 60 * 60 * 24 * 7));
-      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-      const hours = Math.floor(
-        (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-      );
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-      if (weeks > 0) {
-        setTimeLeft(`${weeks}w ${days % 7}d ${hours}h ${minutes}m ${seconds}s`);
-      } else if (days > 0) {
-        setTimeLeft(`${days}d`); // ${hours}h ${minutes}m ${seconds}s`);
-      } else if (hours > 0) {
-        setTimeLeft(`${hours}h : ${minutes}m : ${seconds}s`);
-      } else if (minutes > 0) {
-        setTimeLeft(`${minutes}m : ${seconds}s`);
-      } else {
-        setTimeLeft(`${seconds}s`);
-      }
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  if (timer === undefined) {
+    now = Date.now();
+    timer = setInterval(() => {
+      now = Date.now();
+      listeners.forEach((notify) => notify());
     }, 1000);
+  }
 
-    return () => clearInterval(interval);
-  }, [targetDateState]);
-
-  usePusherEvent<{ newEndTime: Date }>(
-    listingId ? `listing-${listingId}` : null,
-    "new-end-time",
-    (data) => {
-      const newEndTime = new Date(data.newEndTime);
-      setTargetDateState(newEndTime);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0) {
+      clearInterval(timer);
+      timer = undefined;
+      now = null;
     }
+  };
+}
+
+const getSnapshot = () => now;
+const getServerSnapshot = () => null;
+const subscribeInactive = () => () => {};
+
+export default function useCountDown(targetDate: Date | string | null) {
+  const endTime = targetDate === null ? NaN : new Date(targetDate).getTime();
+  const active = Number.isFinite(endTime);
+  const currentTime = useSyncExternalStore(
+    active ? subscribe : subscribeInactive,
+    active ? getSnapshot : getServerSnapshot,
+    getServerSnapshot
   );
+  const remainingMs = currentTime !== null && Number.isFinite(endTime)
+    ? Math.max(0, endTime - currentTime)
+    : null;
 
-  return timeLeft;
-};
-
-export default useCountDown;
+  return {
+    remainingMs,
+    expired: remainingMs !== null && remainingMs === 0,
+    timeLeft: remainingMs === null ? "" : formatAuctionCountdown(remainingMs),
+  };
+}

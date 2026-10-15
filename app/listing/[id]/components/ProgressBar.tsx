@@ -1,49 +1,15 @@
 // This component will display a bar indicating the ending time of an auction.
 "use client";
-import { useEffect, useState } from "react";
 import clsx from "clsx";
-import usePusherEvent from "@/app/hooks/usePusherEvent";
 
 interface ProgressBarProps {
-  endTime: Date | null;
-  listingId: string;
+  remainingMs: number | null;
 }
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ endTime, listingId }) => {
-  const [currentEndTime, setCurrentEndTime] = useState<Date | null>(endTime);
-  const [remainingMs, setRemainingMs] = useState<number | null>(null);
-
+const ProgressBar: React.FC<ProgressBarProps> = ({ remainingMs }) => {
   const distance = remainingMs ?? 0;
   const isVisible = distance <= 2 * 60 * 1000 && distance > 0;
-  const width = currentEndTime
-    ? Math.max(
-        0,
-        Math.min(
-          100,
-          (distance / (2 * 60 * 1000)) * 100
-        )
-      )
-    : 0; // 2 minutes total
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRemainingMs(
-        currentEndTime ? currentEndTime.getTime() - Date.now() : null
-      );
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [currentEndTime]);
-
-  usePusherEvent<{ newEndTime: Date }>(
-    `listing-${listingId}`,
-    "new-end-time",
-    (data) => {
-      const newEndTime = new Date(data.newEndTime);
-      setCurrentEndTime(newEndTime);
-      setRemainingMs(newEndTime.getTime() - Date.now());
-    }
-  );
+  const width = Math.max(0, Math.min(100, (distance / (2 * 60 * 1000)) * 100));
 
   return (
     <div

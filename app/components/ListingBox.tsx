@@ -4,15 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { GoStar, GoStarFill } from "react-icons/go";
 import Title from "./Title";
-import { useState } from "react";
 import { GrEdit } from "react-icons/gr";
 import { FaRegClock } from "react-icons/fa";
 import { Listing } from "@prisma/client";
-import useCountDown from "../hooks/useCountDown";
-import { formatAmount, isLessThan3Hours } from "../utils/format";
+import useAuction from "../hooks/useAuction";
+import { formatAmount } from "../utils/format";
 import { clsx } from "clsx";
 import { CldImage } from "next-cloudinary";
-import usePusherEvent from "../hooks/usePusherEvent";
 import useWatchlist from "../hooks/useWatchlist";
 
 interface ListingBoxProps {
@@ -20,48 +18,15 @@ interface ListingBoxProps {
   currentUserId?: string | null;
 }
 
-const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUserId }) => {
-  const [bid, setBid] = useState<number | null>(listing.currentBid);
+const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, currentUserId }) => {
+  const { listing, remainingMs, timeLeft } = useAuction(initialListing);
+  const bid = listing.currentBid;
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
     userId: currentUserId,
     initialWatching: listing.watchersIds.includes(currentUserId as string),
   });
 
-  const timeLeft = useCountDown(listing.auctionEndsAt as Date, listing.id);
-
-  usePusherEvent<{ amount: number }>(
-    `listing-${listing.id}`,
-    "new-bid",
-    (newBid) => setBid(newBid.amount)
-  );
-
-  //   const distance = endTime.getTime() - now.getTime();
-  //   if (distance <= 0) {
-  //     return "Ended";
-  //   }
-
-  //   const weeks = Math.floor(distance / (1000 * 60 * 60 * 24 * 7));
-
-  //   const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-
-  //   const hours = Math.floor(
-  //     (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-  //   );
-  //   const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-
-  //   const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-  //   if (weeks >= 1 && weeks < 2) {
-  //     return `${weeks} Week ${days % 7} Days `;
-  //   }
-
-  //   if (days > 1) {
-  //     return `${days} Days`;
-  //   }
-
-  //   return `${hours}h ${minutes}m ${seconds}s`;
-  // };
   return (
     <div className="flex h-full flex-wrap justify-between transition-all">
       <Link className="min-w-0 flex-1" href={`/listing/${listing.id}`}>
@@ -119,7 +84,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUserId }) => {
                 <span>
                   Sold for <b>${formatAmount(bid as number)}</b>
                 </span>
-              ) : bid ? (
+              ) : bid !== null ? (
                 <span>
                   Bid to <b>${formatAmount(bid as number)}</b>
                 </span>
@@ -133,13 +98,13 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing, currentUserId }) => {
                 <FaRegClock />{" "}
                 <span
                   className={clsx(
-                    isLessThan3Hours(timeLeft) ? "text-red-600" : "",
+                    remainingMs !== null && remainingMs < 3 * 60 * 60 * 1000 ? "text-red-600" : "",
                   )}
                 >
                   {timeLeft}
                 </span>
               </div>
-              {bid ? (
+              {bid !== null ? (
                 <span>
                   Bid <b>${formatAmount(bid)}</b>
                 </span>

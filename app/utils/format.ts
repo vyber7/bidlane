@@ -32,6 +32,23 @@ export function formatDateTime(date: Date) {
   return `${month}/${day}/${year} ${hours}:${minutesStr} ${ampm}`;
 }
 
+export function formatAuctionCountdown(remainingMs: number) {
+  if (remainingMs <= 0) return "Ending...";
+
+  const secondsTotal = Math.floor(remainingMs / 1000);
+  const weeks = Math.floor(secondsTotal / (7 * 24 * 3600));
+  const days = Math.floor(secondsTotal / (24 * 3600));
+  const hours = Math.floor((secondsTotal % (24 * 3600)) / 3600);
+  const minutes = Math.floor((secondsTotal % 3600) / 60);
+  const seconds = secondsTotal % 60;
+
+  if (weeks > 0) return `${weeks}w ${days % 7}d ${hours}h ${minutes}m ${seconds}s`;
+  if (days > 0) return `${days}d`;
+  if (hours > 0) return `${hours}h : ${minutes}m : ${seconds}s`;
+  if (minutes > 0) return `${minutes}m : ${seconds}s`;
+  return `${seconds}s`;
+}
+
 // Determine if the auction can be ended
 export const canEndAuction = (timeLeft: string) => {
   if (timeLeft === "Ending...") {

@@ -1,4 +1,4 @@
-import type { Comment, User } from "@prisma/client";
+import type { Bid, Comment, User } from "@prisma/client";
 
 export type CurrentUser = Pick<
   User,
@@ -15,7 +15,13 @@ export type FullUserType = {
 
 export type CommentWithAuthor = Pick<
   Comment,
-  "id" | "body" | "image" | "createdAt" | "listingId"
+  "id" | "body" | "image" | "listingId"
 > & {
+  createdAt: Date | string;
   user: { name: string | null } | null;
+};
+
+export type BidWithAuthor = Omit<Bid, "createdAt"> & {
+  createdAt: Date | string;
+  user: { name: string | null };
 };

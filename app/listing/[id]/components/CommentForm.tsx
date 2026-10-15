@@ -9,6 +9,8 @@ import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { logger } from "@/app/libs/logger";
+import { useAuctionContext } from "@/app/context/AuctionContext";
+import type { CommentWithAuthor } from "@/app/types";
 
 interface FormProps {
   listingId: string;
@@ -16,6 +18,7 @@ interface FormProps {
 
 const Form: React.FC<FormProps> = ({ listingId }) => {
   const { data } = useSession();
+  const { acceptComment } = useAuctionContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -32,7 +35,8 @@ const Form: React.FC<FormProps> = ({ listingId }) => {
   const onSubmit: SubmitHandler<FieldValues> = async (formData) => {
     setIsSubmitting(true);
     try {
-      await axios.post("/api/comments", { ...formData, listingId });
+      const response = await axios.post<{ comment: CommentWithAuthor }>("/api/comments", { ...formData, listingId });
+      acceptComment(response.data.comment);
       reset({ comment: "" });
     } catch (error) {
       logger.error("comment.create_client_failed", error, { listingId });
