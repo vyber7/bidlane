@@ -5,12 +5,14 @@ const mocks = vi.hoisted(() => ({
   findMany: vi.fn(),
   updateMany: vi.fn(),
   trigger: vi.fn(),
+  upsert: vi.fn(),
   loggerWarn: vi.fn(),
   loggerError: vi.fn(),
 }));
 
 vi.mock("@/app/libs/prismadb", () => ({
   default: {
+    $transaction: async (callback: (tx: unknown) => unknown) => callback({ listing: { updateMany: mocks.updateMany }, notification: { upsert: mocks.upsert } }),
     listing: {
       findUnique: mocks.findUnique,
       findMany: mocks.findMany,
@@ -38,6 +40,8 @@ const now = new Date("2026-09-10T12:00:00.000Z");
 function listing(overrides: Record<string, unknown> = {}) {
   return {
     id: listingId,
+    userId: "seller", year: 2020, make: "Porsche", model: "911",
+    biddersIds: ["buyer"], highestBidderId: "buyer",
     status: "LIVE",
     result: null,
     auctionEndsAt: endTime,
@@ -109,6 +113,7 @@ describe("finalizeAuction", () => {
         id: listingId,
         status: "LIVE",
         auctionEndsAt: endTime,
+        currentBid: 12000,
       },
       data: { status: "ENDED", result: "SOLD" },
     });
@@ -135,6 +140,24 @@ describe("finalizeAuction", () => {
     );
   });
 
+  it("saves result notifications once, alongside the successful claim", async () => {
+    await finalizeAuction(listingId, now);
+    expect(mocks.upsert).toHaveBeenCalledTimes(2);
+    expect(mocks.upsert).toHaveBeenCalledWith({
+      where: { userId_eventKey: { userId: "buyer", eventKey: `auction-ended:${listingId}` } },
+      create: expect.objectContaining({ title: "You won the auction", userId: "buyer", readAt: null, createdAt: endTime }), update: {},
+    });
+    mocks.findUnique.mockResolvedValue(listing({ status: "ENDED", result: "SOLD" }));
+    await finalizeAuction(listingId, now);
+    expect(mocks.upsert).toHaveBeenCalledTimes(2);
+  });
+
+  it("rolls back the finalization transaction if saving its result notification fails", async () => {
+    mocks.upsert.mockRejectedValueOnce(new Error("notification write failed"));
+    await expect(finalizeAuction(listingId, now)).rejects.toThrow("notification write failed");
+    expect(mocks.trigger).not.toHaveBeenCalled();
+  });
+
   it("lets a competing last-second extension win", async () => {
     const extendedEnd = new Date("2026-09-10T12:02:00.000Z");
     mocks.updateMany.mockResolvedValue({ count: 0 });
@@ -151,6 +174,7 @@ describe("finalizeAuction", () => {
       auctionEndsAt: extendedEnd,
     });
     expect(mocks.trigger).not.toHaveBeenCalled();
+    expect(mocks.upsert).not.toHaveBeenCalled();
   });
 
   it("retries once when a lost claim is still eligible", async () => {
@@ -166,7 +190,7 @@ describe("finalizeAuction", () => {
       result: "SOLD",
     });
     expect(mocks.updateMany).toHaveBeenCalledTimes(2);
-    expect(mocks.trigger).toHaveBeenCalledTimes(1);
+    expect(mocks.trigger).toHaveBeenCalledTimes(3);
   });
 
   it("does not fail a committed finalization when notification fails", async () => {

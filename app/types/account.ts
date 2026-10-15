@@ -21,9 +21,19 @@ export type AccountNotification = {
   title: string;
   message: string;
   createdAt: string;
+  readAt: string | null;
   href: string;
   actionLabel: string;
   tone: "success" | "warning" | "neutral";
+};
+
+export type NotificationSummary = { userId: string; unreadCount: number };
+
+export type NotificationFeed = {
+  items: AccountNotification[];
+  total: number;
+  unreadCount: number;
+  nextCursor: string | null;
 };
 
 export type ShipmentTransaction = {

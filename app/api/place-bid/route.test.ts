@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   bidCreate: vi.fn(),
   userUpdate: vi.fn(),
   trigger: vi.fn(),
+  notificationUpsert: vi.fn(),
 }));
 
 vi.mock("@/app/actions/getCurrentUser", () => ({
@@ -33,6 +34,7 @@ const tx = {
   },
   bid: { create: mocks.bidCreate },
   user: { update: mocks.userUpdate },
+  notification: { upsert: mocks.notificationUpsert },
 };
 
 function request(body: unknown) {
@@ -47,6 +49,7 @@ function liveListing(overrides: Record<string, unknown> = {}) {
   return {
     id: listingId,
     userId: "seller",
+    year: 2020, make: "Porsche", model: "911", highestBidderId: null,
     status: "LIVE",
     auctionStartsAt: new Date("2026-09-04T11:00:00.000Z"),
     auctionEndsAt: new Date("2026-09-04T13:00:00.000Z"),
@@ -205,6 +208,26 @@ describe("POST /api/place-bid", () => {
 
     expect(response.status).toBe(409);
     expect(mocks.bidCreate).not.toHaveBeenCalled();
+    expect(mocks.notificationUpsert).not.toHaveBeenCalled();
+  });
+
+  it("stores an outbid event for the previous leader in the bid transaction", async () => {
+    mocks.listingFindUnique.mockResolvedValue(liveListing({ highestBidderId: "previous", currentBid: 900 }));
+    expect((await POST(request({ listingId, bidAmount: 1000 }))).status).toBe(201);
+    expect(mocks.notificationUpsert).toHaveBeenCalledWith({
+      where: { userId_eventKey: { userId: "previous", eventKey: "outbid:bid-1" } },
+      create: expect.objectContaining({ userId: "previous", title: "You’ve been outbid", readAt: null }), update: {},
+    });
+    expect(mocks.trigger).toHaveBeenCalledWith("private-user-previous", "notifications-changed", {});
+  });
+
+  it("fails the transaction before broadcasting if the outbid event cannot be saved", async () => {
+    mocks.listingFindUnique.mockResolvedValue(liveListing({ highestBidderId: "previous", currentBid: 900 }));
+    mocks.notificationUpsert.mockRejectedValueOnce(new Error("notification write failed"));
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect((await POST(request({ listingId, bidAmount: 1000 }))).status).toBe(500);
+    expect(mocks.trigger).not.toHaveBeenCalled();
+    log.mockRestore();
   });
 
   it("returns a committed bid even if real-time notification fails", async () => {

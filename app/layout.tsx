@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import ToasterContext from "./context/ToasterContext";
 import AuthContext from "./context/AuthContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import "./globals.css";
 import ConditionalLayout from "./components/ConditionalLayout";
 
@@ -23,7 +24,7 @@ export default function RootLayout({
       <body className={`${inter.className} flex flex-col min-h-screen`}>
         <AuthContext>
           <ToasterContext />
-          <ConditionalLayout>{children}</ConditionalLayout>
+          <NotificationProvider><ConditionalLayout>{children}</ConditionalLayout></NotificationProvider>
         </AuthContext>
       </body>
     </html>

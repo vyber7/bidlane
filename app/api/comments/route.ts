@@ -2,6 +2,7 @@ import getCurrentUser from "@/app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
 import prisma from "@/app/libs/prismadb";
 import { pusherServer } from "@/app/libs/pusher";
+import { commentNotifications, publishNotificationChanges, saveNotifications } from "@/app/libs/notifications";
 import { logger } from "@/app/libs/logger";
 import type { CommentEvent, CommentResponse } from "@/app/types/auction-events";
 import {
@@ -32,57 +33,57 @@ export async function POST(req: Request) {
     if (!comment)
       throw new ApiRequestError(400, "Comment is required");
 
-    const newComment = await prisma.comment.create({
-      data: {
-        body: comment,
-        image: image,
-        //listingId: listingId,
-        //userId: currentUser.id,
-        user: {
-          connect: {
-            id: currentUser.id,
+    const { newComment, notificationUsers } = await prisma.$transaction(async (tx) => {
+      const listing = await tx.listing.findUnique({ where: { id: listingId } });
+      if (!listing) throw new ApiRequestError(404, "Listing not found");
+      const newComment = await tx.comment.create({
+        data: {
+          body: comment,
+          image: image,
+          user: {
+            connect: {
+              id: currentUser.id,
+            },
+          },
+          listing: {
+            connect: {
+              id: listingId,
+            },
           },
         },
-        listing: {
-          connect: {
-            id: listingId,
-          },
+        select: {
+          id: true,
+          body: true,
+          image: true,
+          createdAt: true,
+          listingId: true,
+          user: { select: { name: true } },
         },
-        // seen: {
-        //   connect: {
-        //     id: currentUser.id,
-        //   },
-        // },
-      },
-      select: {
-        id: true,
-        body: true,
-        image: true,
-        createdAt: true,
-        listingId: true,
-        user: { select: { name: true } },
-      },
-    });
+      });
 
-    await prisma.listing.update({
-      where: {
-        id: listingId,
-      },
-      data: {
-        lastCommentAt: new Date(),
-        comments: {
-          connect: {
-            id: newComment.id,
+      await tx.listing.update({
+        where: {
+          id: listingId,
+        },
+        data: {
+          lastCommentAt: new Date(),
+          comments: {
+            connect: {
+              id: newComment.id,
+            },
           },
         },
-      },
+      });
+      const notificationUsers = await saveNotifications(tx, commentNotifications(listing, newComment, currentUser.id));
+      return { newComment, notificationUsers };
     });
 
     const commentPayload = { ...newComment, createdAt: newComment.createdAt.toISOString() } satisfies CommentEvent;
     const notification = await Promise.allSettled([
+      publishNotificationChanges(notificationUsers),
       pusherServer.trigger(`listing-${listingId}`, "new-comment", commentPayload),
     ]);
-    if (notification[0]?.status === "rejected") {
+    if (notification.some((item) => item.status === "rejected")) {
       logger.warn("comment.notification_failed", { listingId });
     }
 

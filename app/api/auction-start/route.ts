@@ -11,6 +11,7 @@ import {
 } from "@/app/libs/api-request";
 import { logger } from "@/app/libs/logger";
 import { pusherServer } from "@/app/libs/pusher";
+import { auctionLiveNotifications, publishNotificationChanges, saveNotifications } from "@/app/libs/notifications";
 import type { AuctionStartedEvent } from "@/app/types/auction-events";
 
 export async function POST(req: Request) {
@@ -39,31 +40,36 @@ export async function POST(req: Request) {
       throw new ApiRequestError(400, "End time must be in the future");
     }
 
-    const listing = await prisma.listing.findUnique({ where: { id: listingId } });
-    if (!listing) throw new ApiRequestError(404, "Listing not found");
-    if (listing.userId !== currentUser.id) {
-      throw new ApiRequestError(403, "Only the seller can start this auction");
-    }
-    if (listing.status !== "UPCOMING") {
-      throw new ApiRequestError(409, "Only an upcoming auction can be started");
-    }
+    const notificationUsers = await prisma.$transaction(async (tx) => {
+      const listing = await tx.listing.findUnique({ where: { id: listingId } });
+      if (!listing) throw new ApiRequestError(404, "Listing not found");
+      if (listing.userId !== currentUser.id) {
+        throw new ApiRequestError(403, "Only the seller can start this auction");
+      }
+      if (listing.status !== "UPCOMING") {
+        throw new ApiRequestError(409, "Only an upcoming auction can be started");
+      }
 
-    const updated = await prisma.listing.updateMany({
-      where: { id: listingId, userId: currentUser.id, status: "UPCOMING" },
-      data: {
-        auctionStartsAt: startTime,
-        auctionEndsAt: endTime,
-        startingBid,
-        bidIncrement,
-        status: "LIVE",
-      },
+      const updated = await tx.listing.updateMany({
+        where: { id: listingId, userId: currentUser.id, status: "UPCOMING" },
+        data: {
+          auctionStartsAt: startTime,
+          auctionEndsAt: endTime,
+          startingBid,
+          bidIncrement,
+          status: "LIVE",
+        },
+      });
+
+      if (updated.count !== 1) {
+        throw new ApiRequestError(409, "Auction has already been started");
+      }
+
+      return saveNotifications(tx, auctionLiveNotifications(listing, startTime));
     });
 
-    if (updated.count !== 1) {
-      throw new ApiRequestError(409, "Auction has already been started");
-    }
-
     const notification = await Promise.allSettled([
+      publishNotificationChanges(notificationUsers),
       pusherServer.trigger(`listing-${listingId}`, "auction-started", {
         auctionStartsAt: startTime.toISOString(),
         auctionEndsAt: endTime.toISOString(),
@@ -71,7 +77,7 @@ export async function POST(req: Request) {
         bidIncrement,
       } satisfies AuctionStartedEvent),
     ]);
-    if (notification[0]?.status === "rejected") {
+    if (notification.some((item) => item.status === "rejected")) {
       logger.warn("auction.start_notification_failed", { listingId });
     }
 

@@ -15,6 +15,7 @@ import {
 } from "react-icons/fi";
 
 import Avatar from "./Avatar";
+import NotificationBell from "./NotificationBell";
 
 const auctionLinks = [
   { name: "Live auctions", href: "/live/listings", icon: FiZap },
@@ -150,82 +151,85 @@ function Header() {
           ))}
         </div>
 
-        <div className="hidden items-center gap-2 lg:flex">
-          <Link
-            href="/submit-listing"
-            className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-amber-400 hover:text-slate-950"
-          >
-            Sell your car
-          </Link>
+        <div className="flex items-center gap-2">
+          {user && <NotificationBell />}
+          <div className="hidden items-center gap-2 lg:flex">
+            <Link
+              href="/submit-listing"
+              className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-amber-400 hover:text-slate-950"
+            >
+              Sell your car
+            </Link>
 
-          {user ? (
-            <div className="relative">
+            {user ? (
+              <div className="relative">
+                <button
+                  type="button"
+                  aria-label="Open account menu"
+                  aria-expanded={profileOpen}
+                  aria-haspopup="menu"
+                  onClick={() => {
+                    setProfileOpen((open) => !open);
+                    setAuctionsOpen(false);
+                  }}
+                  className="flex items-center gap-2 rounded-full border border-slate-200 p-1.5 pr-2.5 transition hover:border-slate-400"
+                >
+                  <Avatar user={user} />
+                  <FiChevronDown className={`text-slate-500 transition-transform ${profileOpen ? "rotate-180" : ""}`} />
+                </button>
+                {profileOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-[calc(100%+0.65rem)] w-60 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10"
+                  >
+                    <div className="border-b border-slate-100 px-3 py-2">
+                      <p className="text-xs font-medium text-slate-400">Signed in as</p>
+                      <p className="truncate text-sm font-semibold text-slate-800">{user.email}</p>
+                    </div>
+                    <div className="py-1">
+                      {profileLinks.map(({ name, href }) => (
+                        <Link
+                          role="menuitem"
+                          href={href}
+                          key={href}
+                          className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
+                        >
+                          {name}
+                        </Link>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => void signOut()}
+                      className="w-full border-t border-slate-100 px-3 pt-3 text-left text-sm font-semibold text-red-600"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
               <button
                 type="button"
-                aria-label="Open account menu"
-                aria-expanded={profileOpen}
-                aria-haspopup="menu"
-                onClick={() => {
-                  setProfileOpen((open) => !open);
-                  setAuctionsOpen(false);
-                }}
-                className="flex items-center gap-2 rounded-full border border-slate-200 p-1.5 pr-2.5 transition hover:border-slate-400"
+                onClick={() => void signIn()}
+                className="rounded-full px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
               >
-                <Avatar user={user} />
-                <FiChevronDown className={`text-slate-500 transition-transform ${profileOpen ? "rotate-180" : ""}`} />
+                Sign in
               </button>
-              {profileOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 top-[calc(100%+0.65rem)] w-60 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10"
-                >
-                  <div className="border-b border-slate-100 px-3 py-2">
-                    <p className="text-xs font-medium text-slate-400">Signed in as</p>
-                    <p className="truncate text-sm font-semibold text-slate-800">{user.email}</p>
-                  </div>
-                  <div className="py-1">
-                    {profileLinks.map(({ name, href }) => (
-                      <Link
-                        role="menuitem"
-                        href={href}
-                        key={href}
-                        className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
-                      >
-                        {name}
-                      </Link>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => void signOut()}
-                    className="w-full border-t border-slate-100 px-3 pt-3 text-left text-sm font-semibold text-red-600"
-                  >
-                    Sign out
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => void signIn()}
-              className="rounded-full px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
-            >
-              Sign in
-            </button>
-          )}
-        </div>
+            )}
+          </div>
 
-        <button
-          type="button"
-          aria-label={mobileOpen ? "Close menu" : "Open menu"}
-          aria-expanded={mobileOpen}
-          onClick={() => setMobileOpen((open) => !open)}
-          className="rounded-lg border border-slate-200 p-2 text-xl text-slate-700 lg:hidden"
-        >
-          {mobileOpen ? <FiX /> : <FiMenu />}
-        </button>
+          <button
+            type="button"
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((open) => !open)}
+            className="rounded-lg border border-slate-200 p-2 text-xl text-slate-700 lg:hidden"
+          >
+            {mobileOpen ? <FiX /> : <FiMenu />}
+          </button>
+        </div>
       </nav>
 
       {mobileOpen && (

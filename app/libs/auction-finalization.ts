@@ -3,6 +3,7 @@ import prisma from "@/app/libs/prismadb";
 import { logger } from "@/app/libs/logger";
 import { pusherServer } from "@/app/libs/pusher";
 import type { AuctionEndedEvent } from "@/app/types/auction-events";
+import { auctionResultNotifications, publishNotificationChanges, saveNotifications } from "./notifications";
 
 const finalizationListingSelect = {
   id: true,
@@ -11,6 +12,12 @@ const finalizationListingSelect = {
   auctionEndsAt: true,
   currentBid: true,
   reservePrice: true,
+  highestBidderId: true,
+  biddersIds: true,
+  userId: true,
+  year: true,
+  make: true,
+  model: true,
 } satisfies Prisma.ListingSelect;
 
 type FinalizationListing = Prisma.ListingGetPayload<{
@@ -50,16 +57,18 @@ export function determineAuctionResult(
 async function notifyAuctionEnded(
   listingId: string,
   auctionEndsAt: Date,
-  result: AuctionResult
+  result: AuctionResult,
+  userIds: string[]
 ) {
   const notification = await Promise.allSettled([
+    publishNotificationChanges(userIds),
     pusherServer.trigger(`listing-${listingId}`, "auction-ended", {
       auctionEndsAt: auctionEndsAt.toISOString(),
       result,
     } satisfies AuctionEndedEvent),
   ]);
 
-  if (notification[0]?.status === "rejected") {
+  if (notification.some((item) => item.status === "rejected")) {
     logger.warn("auction.end_notification_failed", { listingId });
   }
 }
@@ -107,25 +116,37 @@ async function finalizeCandidate(
     listing.reservePrice
   );
 
-  // Matching the exact end time is the optimistic lock. If a last-second bid
-  // extends the auction, that update wins and this finalization claim fails.
-  const claimed = await prisma.listing.updateMany({
-    where: {
-      id: listing.id,
-      status: "LIVE",
-      auctionEndsAt: listing.auctionEndsAt,
-    },
-    data: {
-      status: "ENDED",
-      result,
-    },
-  });
+  // Match the price as well as the deadline so notifications describe the
+  // winning bid even if an in-flight bid commits after the candidate was read.
+  let notificationUsers: string[] | null;
+  try {
+    notificationUsers = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.listing.updateMany({
+        where: {
+          id: listing.id,
+          status: "LIVE",
+          auctionEndsAt: listing.auctionEndsAt,
+          ...(listing.currentBid === null
+            ? { OR: [{ currentBid: null }, { currentBid: { isSet: false } }] }
+            : { currentBid: listing.currentBid }),
+        },
+        data: { status: "ENDED", result },
+      });
+      if (claimed.count !== 1) return null;
+      return saveNotifications(tx, auctionResultNotifications(listing, result, listing.auctionEndsAt!));
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+      return resolveCompetingFinalization(listing.id, now, retriesRemaining);
+    }
+    throw error;
+  }
 
-  if (claimed.count !== 1) {
+  if (notificationUsers === null) {
     return resolveCompetingFinalization(listing.id, now, retriesRemaining);
   }
 
-  await notifyAuctionEnded(listing.id, listing.auctionEndsAt, result);
+  await notifyAuctionEnded(listing.id, listing.auctionEndsAt, result, notificationUsers);
   return { status: "finalized", result, auctionEndsAt: listing.auctionEndsAt };
 }
 

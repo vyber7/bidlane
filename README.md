@@ -8,7 +8,7 @@ BidLane is a vehicle auction app built with Next.js, React, TypeScript, and Mong
 - **Live bidding:** Pusher broadcasts bids, auction status changes, comments, and countdown extensions.
 - **Seller tools:** Create listings with reserve prices, manage gallery and cover images, and start auctions with a starting bid, bid increment, and end time.
 - **Accounts:** Email/password registration and sign-in, plus GitHub and Google OAuth.
-- **Personal dashboards:** Manage listings and watchlists, review bids and wins, edit profiles, and view auction activity notifications.
+- **Personal dashboards:** Manage listings and watchlists, review bids and wins, edit profiles, and view saved auction activity notifications with read status shared across devices and a live unread badge.
 - **Post-auction coordination:** Buyers and sellers can find sold vehicles and counterparty contact details in the shipments dashboard.
 - **Responsive interface:** Tailwind CSS styling for desktop and mobile layouts.
 
@@ -176,6 +176,22 @@ vitest.config.ts     # Test configuration
 Image uploads use Cloudinary widgets. New listings include the uploaded photo URLs in `/api/new-listing`; adding photos to an existing listing saves them through `/api/cloudinary-images`. The gallery renders saved images supplied by the listing page without a second image-list request.
 
 Application-owned API failures return JSON with an `error` string and an appropriate HTTP status. Malformed JSON, non-object bodies, and invalid fields return `400`; unexpected failures return `500` with a public message while details are logged on the server. Partial cron failures retain the batch summary and add an `error` string. NextAuth's authentication endpoints use their own protocol.
+
+## Notifications
+
+Outbid alerts, auction results for sellers and bidders, watched-auction starts, and comments from buyers are saved in MongoDB alongside their originating state changes. Each recipient/event pair has a unique key, so replaying an event preserves its original contents and read timestamp. An outbid alert goes only to the previous leader; increasing your own bid does not create one. A win or sale is recorded only when the reserve is met.
+
+The inbox loads 50 records at a time and stores read timestamps on the server. “Mark all as read” applies through the newest event currently shown, leaving newer arrivals unread. The header and inbox refresh on private Pusher events, reconnect, window focus, and every 30 seconds while the page is visible. Live delivery failures do not discard saved notifications or fail a committed bid or result.
+
+Apply the schema with `npx prisma db push` before deploying this feature; this creates the `Notification` collection and its unique and query indexes. Notifications are recorded for new events after deployment. Previously generated activity cards and browser-local read receipts are not imported. Email delivery is a separate follow-up.
+
+Authenticated endpoints:
+
+| Route | Method | Purpose |
+| --- | --- | --- |
+| `/api/notifications` | GET | Current account's paginated inbox; `view=unread` filters unread records; `cursor=<id>` loads older events; `summary=1` returns only account ID and unread count |
+| `/api/notifications` | PATCH | Mark owned records read using `{ "ids": ["<id>"] }`, or mark older records using `{ "all": true, "before": "<ISO timestamp>" }` |
+| `/api/pusher/auth` | POST | Authorize the signed-in account's `private-user-<id>` channel; accepts Pusher's form-encoded `socket_id` and `channel_name` |
 
 ## Deployment
 

@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   update: vi.fn(),
   trigger: vi.fn(),
+  findUnique: vi.fn(),
+  upsert: vi.fn(),
 }));
 
 vi.mock("@/app/actions/getCurrentUser", () => ({
@@ -12,6 +14,7 @@ vi.mock("@/app/actions/getCurrentUser", () => ({
 }));
 vi.mock("@/app/libs/prismadb", () => ({
   default: {
+    $transaction: async (callback: (tx: unknown) => unknown) => callback({ comment: { create: mocks.create }, listing: { findUnique: mocks.findUnique, update: mocks.update }, notification: { upsert: mocks.upsert } }),
     comment: { create: mocks.create },
     listing: { update: mocks.update },
   },
@@ -50,6 +53,7 @@ describe("POST /api/comments", () => {
       listingId,
       user: { name: "Driver" },
     });
+    mocks.findUnique.mockResolvedValue({ id: listingId, userId: "seller", year: 2020, make: "Porsche", model: "911" });
     mocks.update.mockResolvedValue({ id: listingId });
     mocks.trigger.mockResolvedValue(undefined);
   });
@@ -58,6 +62,7 @@ describe("POST /api/comments", () => {
     const response = await POST(request({ listingId, comment: " Great car " }));
 
     expect(response.status).toBe(201);
+    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ userId: "seller", title: "New comment on your listing" }) }));
     expect(mocks.create).toHaveBeenCalledWith(
       expect.objectContaining({
         select: expect.objectContaining({
@@ -65,7 +70,7 @@ describe("POST /api/comments", () => {
         }),
       })
     );
-    const payload = mocks.trigger.mock.calls[0][2];
+    const payload = mocks.trigger.mock.calls.find((call) => call[1] === "new-comment")![2];
     expect(payload.createdAt).toBe("2026-09-10T12:00:00.000Z");
     expect(payload.user).toEqual({ name: "Driver" });
     expect(payload.user).not.toHaveProperty("hashedPassword");

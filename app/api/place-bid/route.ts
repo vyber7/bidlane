@@ -11,6 +11,7 @@ import {
   requireSafeInteger,
 } from "@/app/libs/api-request";
 import { logger } from "@/app/libs/logger";
+import { outbidNotifications, publishNotificationChanges, saveNotifications } from "@/app/libs/notifications";
 import type { AcceptedBidResponse, AuctionEndTimeEvent, BidEvent } from "@/app/types/auction-events";
 
 export async function POST(req: Request) {
@@ -120,7 +121,8 @@ export async function POST(req: Request) {
         data: { bidOnList: { connect: { id: listingId } } },
       });
 
-      return { newBid, auctionEndsAt, shouldExtend };
+      const notificationUsers = await saveNotifications(tx, outbidNotifications(listing, newBid));
+      return { newBid, auctionEndsAt, shouldExtend, notificationUsers };
     });
 
     // A notification failure must not turn an already-committed bid into a 500
@@ -128,6 +130,7 @@ export async function POST(req: Request) {
     const bid = { ...result.newBid, createdAt: result.newBid.createdAt.toISOString() } satisfies BidEvent;
     const notifications: Promise<unknown>[] = [
       pusherServer.trigger(`listing-${listingId}`, "new-bid", bid),
+      publishNotificationChanges(result.notificationUsers),
     ];
     if (result.shouldExtend) {
       notifications.push(

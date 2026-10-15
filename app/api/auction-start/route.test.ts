@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   findUnique: vi.fn(),
   updateMany: vi.fn(),
   trigger: vi.fn(),
+  upsert: vi.fn(),
 }));
 
 vi.mock("@/app/actions/getCurrentUser", () => ({
@@ -12,6 +13,7 @@ vi.mock("@/app/actions/getCurrentUser", () => ({
 }));
 vi.mock("@/app/libs/prismadb", () => ({
   default: {
+    $transaction: async (callback: (tx: unknown) => unknown) => callback({ listing: { findUnique: mocks.findUnique, updateMany: mocks.updateMany }, notification: { upsert: mocks.upsert } }),
     listing: {
       findUnique: mocks.findUnique,
       updateMany: mocks.updateMany,
@@ -43,7 +45,7 @@ describe("POST /api/auction-start", () => {
     mocks.getCurrentUser.mockResolvedValue({ id: "seller", email: "seller@test.dev" });
     mocks.findUnique.mockResolvedValue({
       id: listingId,
-      userId: "seller",
+      userId: "seller", year: 2020, make: "Porsche", model: "911", watchersIds: ["watcher"],
       status: "UPCOMING",
     });
     mocks.updateMany.mockResolvedValue({ count: 1 });
@@ -104,6 +106,7 @@ describe("POST /api/auction-start", () => {
     );
 
     expect(response.status).toBe(201);
+    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ userId: "watcher", title: "A watched auction is live" }) }));
     expect(mocks.updateMany).toHaveBeenCalledWith({
       where: { id: listingId, userId: "seller", status: "UPCOMING" },
       data: {

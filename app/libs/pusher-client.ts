@@ -12,6 +12,7 @@ export function getPusherClient() {
   // Initialize on the first subscription, not during server rendering.
   client ??= new PusherClient(process.env.NEXT_PUBLIC_PUSHER_APP_KEY!, {
     cluster: "us2",
+    channelAuthorization: { endpoint: "/api/pusher/auth", transport: "ajax" },
   });
 
   return client;
