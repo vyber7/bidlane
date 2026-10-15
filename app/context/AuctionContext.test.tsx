@@ -51,6 +51,7 @@ describe("shared auction views", () => {
     const input = screen.getByRole("spinbutton", { name: "Your bid amount in dollars" });
     fireEvent.change(input, { target: { value: "12000" } });
     await act(async () => { fireEvent.submit(input.closest("form")!); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm bid of $12,000" })); });
     expect(toast.error).toHaveBeenCalledWith("The auction changed; please try again");
     expect(input).toHaveProperty("value", "12000");
     expect(screen.queryByText("$12,000")).toBeNull();
@@ -73,6 +74,7 @@ describe("shared auction views", () => {
     const input = screen.getByRole("spinbutton", { name: "Your bid amount in dollars" });
     fireEvent.change(input, { target: { value: "12000" } });
     await act(async () => { fireEvent.submit(input.closest("form")!); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm bid of $12,000" })); });
 
     expect(screen.getAllByText("$12,000")).toHaveLength(3);
     expect(input).toHaveProperty("min", "12500");

@@ -1,18 +1,9 @@
 "use client";
 
-import { getApiErrorMessage } from "@/app/utils/api-error";
-import axios from "axios";
-import clsx from "clsx";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { SubmitHandler, useForm } from "react-hook-form";
-import { toast } from "react-hot-toast";
-import { RiAuctionFill } from "react-icons/ri";
 import { formatAmount, capitalize, formatDisplayName } from "@/app/utils/format";
 import { useAuctionContext } from "@/app/context/AuctionContext";
-import type { AcceptedBidResponse } from "@/app/types/auction-events";
-import type { BidFormValues } from "@/app/types/forms";
+import BidForm from "./BidForm";
 
 interface BidsProps {
   sellerName?: string | null;
@@ -24,49 +15,19 @@ const Bids: React.FC<BidsProps> = ({
   currentUserId,
 }) => {
   const { data: session } = useSession();
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const { listing, bids, expired, acceptBid } = useAuctionContext();
+  const { listing, bids, expired } = useAuctionContext();
   const bid = listing.currentBid;
   const amount = bid ?? listing.startingBid;
   const minimumBid = listing.startingBid !== null && listing.bidIncrement !== null &&
     listing.auctionStartsAt !== null && listing.auctionEndsAt !== null
     ? bid === null ? listing.startingBid : bid + listing.bidIncrement
     : null;
-  const canBid = listing.status === "LIVE" && !expired && minimumBid !== null;
+  const canBid = listing.status === "LIVE" && !expired && minimumBid !== null &&
+    Number.isSafeInteger(minimumBid) && minimumBid <= 2_147_483_647;
   const highestBidderName = formatDisplayName(
     bids.find((item) => item.userId === listing.highestBidderId)?.user.name,
     "Bidder"
   );
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<BidFormValues>();
-
-  const onSubmit: SubmitHandler<BidFormValues> = (data) => {
-    if (!canBid || minimumBid === null) return;
-    setIsLoading(true);
-    if (data.bidAmount < minimumBid) {
-      toast.error(`Your bid must be at least $${formatAmount(minimumBid)}`);
-      setIsLoading(false);
-      return;
-    }
-
-    axios
-      .post<AcceptedBidResponse>(`/api/place-bid`, { ...data, listingId: listing.id })
-      .then((response) => {
-        acceptBid(response.data);
-        reset();
-        router.refresh();
-        toast.success("Bid placed successfully!");
-      })
-      .catch((error: unknown) => {
-        toast.error(getApiErrorMessage(error, "Error placing bid"));
-      })
-      .finally(() => setIsLoading(false));
-  };
 
   return (
     <div
@@ -134,60 +95,7 @@ const Bids: React.FC<BidsProps> = ({
       )}
       {listing.status !== "LIVE" ? null : session &&
         listing.userId !== currentUserId ? (
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="relative border flex border-gray-300 rounded-md has-[:focus]:ring has-[:focus]:ring-lime-500 hover:ring hover:ring-lime-500"
-        >
-          <input
-            id="bidAmount"
-            type="number"
-            aria-label="Your bid amount in dollars"
-            placeholder="Your bid ($)"
-            min={minimumBid ?? undefined}
-            step={1}
-            {...register("bidAmount", { required: true, valueAsNumber: true })}
-            className={clsx(
-              `w-full form-input
-              block rounded-l-md
-              
-              text-gray-900
-              font-semibold
-              shadow-sm                  
-              focus:border-transparent
-              border-none
-              focus:ring-transparent
-               text-right        
-              placeholder:text-gray-400 
-              placeholder:font-normal
-              placeholder:text-left
-              `,
-              errors.bidAmount && "border-rose-500 focus:ring-rose-500",
-              isLoading && "opacity-50 cursor-not-allowed"
-            )}
-            disabled={isLoading || !canBid}
-          />
-          <button
-            disabled={isLoading || !canBid}
-            type="submit"
-            className="flex
-        justify-center
-        items-center
-        px-2
-        border-none
-        text-sm
-        font-semibold
-        focus-visible:outline
-        focus-visible:outline-2
-        focus-visible:outline-offset-2
-        bg-amber-400 hover:bg-amber-300 focus-visible:outline-amber-500
-        text-slate-950"
-          >
-            <RiAuctionFill className="text-2xl" />
-          </button>
-          <div className="absolute -top-7 md:-top-10 right-0 text-rose-500">
-            {errors.bidAmount && <span>This field is required</span>}
-          </div>
-        </form>
+        <BidForm key={listing.id} minimumBid={minimumBid} canBid={canBid} currentUserId={currentUserId} />
       ) : !session ? (
         <>
           <hr />
