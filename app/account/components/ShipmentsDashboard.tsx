@@ -13,20 +13,7 @@ import {
   FiPackage,
   FiTruck,
 } from "react-icons/fi";
-
-export type ShipmentTransaction = {
-  id: string;
-  year: number;
-  make: string;
-  model: string;
-  location: string;
-  coverImage: string | null;
-  price: number;
-  soldAt: string;
-  role: "buyer" | "seller";
-  contactName: string;
-  contactEmail: string | null;
-};
+import type { ShipmentTransaction } from "@/app/types/account";
 
 type Tab = "all" | "purchases" | "sales";
 

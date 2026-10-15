@@ -11,17 +11,7 @@ import {
   FiMessageSquare,
   FiTrendingUp,
 } from "react-icons/fi";
-
-export type AccountNotification = {
-  id: string;
-  kind: "bid" | "auction" | "comment";
-  title: string;
-  message: string;
-  createdAt: string;
-  href: string;
-  actionLabel: string;
-  tone: "success" | "warning" | "neutral";
-};
+import type { AccountNotification } from "@/app/types/account";
 
 type View = "all" | "unread";
 

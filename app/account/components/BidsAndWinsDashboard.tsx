@@ -11,23 +11,7 @@ import {
   FiClock,
   FiTrendingUp,
 } from "react-icons/fi";
-
-type AuctionBid = {
-  id: string;
-  year: number;
-  make: string;
-  model: string;
-  location: string;
-  coverImage: string | null;
-  status: string;
-  result: string | null;
-  currentBid: number | null;
-  auctionEndsAt: string | null;
-  highestBid: number;
-  lastBidAt: string;
-  bidCount: number;
-  isHighestBidder: boolean;
-};
+import type { AuctionBid } from "@/app/types/account";
 
 type Tab = "active" | "wins" | "past";
 
