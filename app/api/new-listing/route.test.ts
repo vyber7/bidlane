@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { validateListing } from "@/app/libs/listing-validation";
 const mocks = vi.hoisted(() => ({ user: vi.fn(), create: vi.fn() }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
 vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { create: mocks.create } } }));
@@ -23,7 +24,9 @@ describe("listing submission", () => {
     expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ images: [second, photo], coverImage: second, reservePrice: 5000 }) });
   });
   it.each([{ images: [] }, { images: Array(11).fill(photo) }, { images: ["javascript:alert(1)"] }, { make: " " }, { year: "" }, { miles: -1 }, { miles: "1.5" }, { reservePrice: -5 }, { miles: 2147483648 }])("rejects invalid listing %j", async (change) => {
-    expect((await POST(request({ ...data, ...change }))).status).toBe(400);
+    const response = await POST(request({ ...data, ...change }));
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: validateListing({ ...data, ...change }) });
     expect(mocks.create).not.toHaveBeenCalled();
   });
   it("rejects malformed data", async () => {

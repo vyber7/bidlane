@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  AuctionRequestError,
-  auctionErrorResponse,
+  ApiRequestError,
+  apiErrorResponse,
   isJsonObject,
+  readJsonObject,
+  errorResponse,
   requireListingId,
   requireSafeInteger,
-} from "./auction-security";
+} from "./api-request";
 
-describe("auction request validation", () => {
+describe("API request validation", () => {
   it.each([
     [{}, true],
     [{ listingId: "abc" }, true],
@@ -53,27 +55,36 @@ describe("auction request validation", () => {
     "rejects an unsafe integer: %s",
     (value) => {
       expect(() => requireSafeInteger(value, "Amount")).toThrow(
-        AuctionRequestError
+        ApiRequestError
       );
     }
   );
 
   it("turns known request errors into JSON responses", async () => {
-    const response = auctionErrorResponse(
-      new AuctionRequestError(409, "Auction changed")
+    const response = apiErrorResponse(
+      new ApiRequestError(409, "Auction changed")
     );
 
     expect(response?.status).toBe(409);
     await expect(response?.json()).resolves.toEqual({ error: "Auction changed" });
   });
 
-  it("handles malformed JSON errors and leaves unknown errors alone", async () => {
-    const malformedResponse = auctionErrorResponse(new SyntaxError("bad json"));
+  it("leaves unexpected errors, including internal syntax errors, for the route's 500 handler", () => {
+    expect(apiErrorResponse(new SyntaxError("internal parsing failed"))).toBeNull();
+    expect(apiErrorResponse(new Error("database unavailable"))).toBeNull();
+  });
 
-    expect(malformedResponse?.status).toBe(400);
-    await expect(malformedResponse?.json()).resolves.toEqual({
-      error: "Invalid JSON body",
-    });
-    expect(auctionErrorResponse(new Error("database unavailable"))).toBeNull();
+  it("reads an object and rejects malformed JSON at the parsing boundary", async () => {
+    const request = (body: string) => new Request("http://localhost/api", { method: "POST", body });
+    await expect(readJsonObject(request('{"watching":false}'))).resolves.toEqual({ watching: false });
+    await expect(readJsonObject(request("{"))).rejects.toMatchObject({ status: 400, message: "Invalid JSON body" });
+    await expect(readJsonObject(request("[]"))).rejects.toMatchObject({ status: 400, message: "Invalid request body" });
+  });
+
+  it.each([400, 401, 403, 404, 409, 500])("uses the same JSON error envelope for status %i", async (status) => {
+    const response = errorResponse("Request failed", status);
+    expect(response.status).toBe(status);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    await expect(response.json()).resolves.toEqual({ error: "Request failed" });
   });
 });

@@ -1,5 +1,7 @@
 "use client";
 
+import { getApiErrorMessage } from "@/app/utils/api-error";
+
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
@@ -54,7 +56,7 @@ const AuthForm = () => {
       axios
         .post("/api/register", data)
         .then(() => signIn("credentials", { ...data }))
-        .catch(() => toast.error("Something went wrong!"))
+        .catch((error: unknown) => toast.error(getApiErrorMessage(error, "Unable to create account. Please try again.")))
         .finally(() => setIsLoading(false));
     }
 

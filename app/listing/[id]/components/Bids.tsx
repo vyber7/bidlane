@@ -1,4 +1,6 @@
 "use client";
+
+import { getApiErrorMessage } from "@/app/utils/api-error";
 import axios from "axios";
 import clsx from "clsx";
 import { useSession } from "next-auth/react";
@@ -60,8 +62,8 @@ const Bids: React.FC<BidsProps> = ({
         router.refresh();
         toast.success("Bid placed successfully!");
       })
-      .catch((error) => {
-        toast.error(error.response?.data?.error || "Error placing bid");
+      .catch((error: unknown) => {
+        toast.error(getApiErrorMessage(error, "Error placing bid"));
       })
       .finally(() => setIsLoading(false));
   };

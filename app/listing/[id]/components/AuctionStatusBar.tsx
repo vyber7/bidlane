@@ -1,5 +1,7 @@
 "use client";
 
+import { getApiErrorMessage } from "@/app/utils/api-error";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { formatAmount } from "@/app/utils/format";
@@ -50,7 +52,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
       logger.error("auction.end.client_failed", error, {
         listingId: listing.id,
       });
-      toast.error("The auction could not be ended. Please try again.");
+      toast.error(getApiErrorMessage(error, "The auction could not be ended. Please try again."));
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +72,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
     axios
       .post("/api/auction-finalize", { listingId: listing.id })
       .then(() => router.refresh())
-      .catch((error) => {
+      .catch((error: unknown) => {
         logger.warn("auction.auto_finalize_client_failed", {
           listingId: listing.id,
           error: String(error),
@@ -86,7 +88,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   useEffect(() => {
     axios
       .post("/api/listing-view", { listingId: listing.id })
-      .catch((error) => {
+      .catch((error: unknown) => {
         logger.warn("listing.view.client_failed", {
           listingId: listing.id,
           error: String(error),

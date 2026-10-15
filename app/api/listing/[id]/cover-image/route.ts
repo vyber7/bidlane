@@ -3,11 +3,12 @@ import prisma from "../../../../libs/prismadb";
 import { logger } from "@/app/libs/logger";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import {
-  AuctionRequestError,
-  auctionErrorResponse,
-  isJsonObject,
+  ApiRequestError,
+  apiErrorResponse,
+  readJsonObject,
+  errorResponse,
   requireListingId,
-} from "@/app/api/auction-security";
+} from "@/app/libs/api-request";
 import { isCloudinaryImageUrl } from "@/app/libs/listing-validation";
 
 export async function POST(
@@ -18,28 +19,25 @@ export async function POST(
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
     const { id } = await context.params;
     listingId = requireListingId(id);
-    const body: unknown = await request.json();
-    if (!isJsonObject(body)) {
-      throw new AuctionRequestError(400, "Invalid request body");
-    }
+    const body = await readJsonObject(request);
 
     const coverImageUrl = body.url;
     if (!isCloudinaryImageUrl(coverImageUrl, listingId)) {
-      throw new AuctionRequestError(400, "Invalid cover image URL");
+      throw new ApiRequestError(400, "Invalid cover image URL");
     }
 
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
       select: { userId: true },
     });
-    if (!listing) throw new AuctionRequestError(404, "Listing not found");
+    if (!listing) throw new ApiRequestError(404, "Listing not found");
     if (listing.userId !== currentUser.id) {
-      throw new AuctionRequestError(403, "Only the seller can update this listing");
+      throw new ApiRequestError(403, "Only the seller can update this listing");
     }
 
     const updated = await prisma.listing.updateMany({
@@ -47,7 +45,7 @@ export async function POST(
       data: { coverImage: coverImageUrl },
     });
     if (updated.count !== 1) {
-      throw new AuctionRequestError(
+      throw new ApiRequestError(
         409,
         "Listing changed while updating the cover image"
       );
@@ -61,12 +59,9 @@ export async function POST(
       { status: 200 }
     );
   } catch (error) {
-    const response = auctionErrorResponse(error);
+    const response = apiErrorResponse(error);
     if (response) return response;
     logger.error("listing.cover_image_failed", error, { listingId });
-    return NextResponse.json(
-      { message: "Failed to update cover image" },
-      { status: 500 }
-    );
+    return errorResponse("Failed to update cover image", 500);
   }
 }

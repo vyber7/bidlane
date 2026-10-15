@@ -1,5 +1,7 @@
 "use client";
 
+import { getApiErrorMessage } from "@/app/utils/api-error";
+
 import axios from "axios";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -44,9 +46,9 @@ export default function useWatchlist({
         { listingId, watching: desired }
       );
       setWatching(response.data.watching);
-    } catch {
+    } catch (error) {
       setWatching(previous);
-      toast.error("The watchlist could not be updated. Please try again.");
+      toast.error(getApiErrorMessage(error, "The watchlist could not be updated. Please try again."));
     } finally {
       setIsUpdating(false);
     }

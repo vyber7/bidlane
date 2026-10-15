@@ -2,31 +2,29 @@ import getCurrentUser from "@/app/actions/getCurrentUser";
 import prisma from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 import { logger } from "@/app/libs/logger";
-import { validateListing } from "@/app/libs/listing-validation";
+import { parseListing } from "@/app/libs/listing-validation";
+import { apiErrorResponse, errorResponse, readJsonObject } from "@/app/libs/api-request";
 
 export async function POST(req: Request) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser?.id) return NextResponse.json({ error: "Please sign in to submit a listing." }, { status: 401 });
-  let body;
-  try { body = await req.json(); }
-  catch { return NextResponse.json({ error: "Invalid request." }, { status: 400 }); }
-  const error = validateListing(body?.data);
-  if (error) return NextResponse.json({ error }, { status: 400 });
-  const { year, make, model, miles, reservePrice, location, description, images } = body.data;
+  let userId: string | undefined;
   try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser?.id) return errorResponse("Please sign in to submit a listing.", 401);
+    userId = currentUser.id;
+    const body = await readJsonObject(req);
+    const listing = parseListing(body.data);
     const newListing = await prisma.listing.create({
       data: {
+        ...listing,
         user: { connect: { id: currentUser.id } },
-        year: Number(year), make: make.trim(), model: model.trim(),
-        miles: Number(miles),
-        reservePrice: reservePrice === "" || reservePrice == null ? null : Number(reservePrice),
-        location: location.trim(), description: description.trim(),
-        images, coverImage: images[0],
+        coverImage: listing.images[0],
       },
     });
     return NextResponse.json(newListing, { status: 201 });
   } catch (error: unknown) {
-    logger.error("listing.create_failed", error, { userId: currentUser.id });
-    return NextResponse.json({ error: "Your listing could not be submitted. Please try again." }, { status: 500 });
+    const response = apiErrorResponse(error);
+    if (response) return response;
+    logger.error("listing.create_failed", error, { userId });
+    return errorResponse("Your listing could not be submitted. Please try again.", 500);
   }
 }

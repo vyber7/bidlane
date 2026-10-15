@@ -1,5 +1,7 @@
 "use client";
 
+import { getApiErrorMessage } from "@/app/utils/api-error";
+
 import axios from "axios";
 import {
   CldImage,
@@ -35,7 +37,7 @@ const CoverImage: React.FC<CoverImageProps> = ({ listingId, url, owner, alt = "V
     } catch (error) {
       setImageUrl(previousUrl);
       logger.error("listing.cover_image_client_failed", error, { listingId });
-      toast.error("The cover image could not be saved.");
+      toast.error(getApiErrorMessage(error, "The cover image could not be saved."));
     }
   };
 

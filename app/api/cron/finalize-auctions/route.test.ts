@@ -65,6 +65,10 @@ describe("GET /api/cron/finalize-auctions", () => {
       hasMore: false,
     });
 
-    expect((await GET(request())).status).toBe(500);
+    const response = await GET(request());
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "Some auctions could not be finalized", checked: 2, failed: 1,
+    });
   });
 });

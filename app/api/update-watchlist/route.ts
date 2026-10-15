@@ -5,24 +5,22 @@ import { pusherServer } from "@/app/libs/pusher";
 import { logger } from "@/app/libs/logger";
 import type { WatchingUpdateEvent, WatchlistUpdateEvent, WatchlistResponse } from "@/app/types/auction-events";
 import { serializeListing } from "@/app/utils/listing-serialization";
+import { ApiRequestError, apiErrorResponse, errorResponse, readJsonObject, requireListingId } from "@/app/libs/api-request";
 
 export async function POST(request: Request) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  let userId: string | undefined;
   try {
-    const body: unknown = await request.json();
-    if (!body || typeof body !== "object") {
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return errorResponse("Unauthorized", 401);
     }
 
-    const { listingId, watching } = body as Record<string, unknown>;
-    if (typeof listingId !== "string" || typeof watching !== "boolean") {
-      return NextResponse.json(
-        { error: "A listing ID and watchlist state are required" },
-        { status: 400 }
-      );
+    userId = currentUser.id;
+    const body = await readJsonObject(request);
+    const listingId = requireListingId(body.listingId);
+    const watching = body.watching;
+    if (typeof watching !== "boolean") {
+      throw new ApiRequestError(400, "Watchlist state must be a boolean");
     }
 
     const listing = await prisma.listing.findUnique({
@@ -30,7 +28,7 @@ export async function POST(request: Request) {
     });
 
     if (!listing) {
-      return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+      throw new ApiRequestError(404, "Listing not found");
     }
 
     await prisma.user.update({
@@ -65,7 +63,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ listingId, watching } satisfies WatchlistResponse);
   } catch (error: unknown) {
-    logger.error("watchlist.update_failed", error, { userId: currentUser.id });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const response = apiErrorResponse(error);
+    if (response) return response;
+    logger.error("watchlist.update_failed", error, { userId });
+    return errorResponse("Unable to update watchlist", 500);
   }
 }

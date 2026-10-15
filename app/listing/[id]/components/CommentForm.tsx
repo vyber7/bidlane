@@ -1,5 +1,7 @@
 "use client";
 
+import { getApiErrorMessage } from "@/app/utils/api-error";
+
 import axios from "axios";
 import { SubmitHandler, useForm } from "react-hook-form";
 import CommentInput from "./CommentInput";
@@ -41,7 +43,7 @@ const Form: React.FC<FormProps> = ({ listingId }) => {
       reset({ comment: "" });
     } catch (error) {
       logger.error("comment.create_client_failed", error, { listingId });
-      toast.error("The comment could not be posted. Please try again.");
+      toast.error(getApiErrorMessage(error, "The comment could not be posted. Please try again."));
     } finally {
       setIsSubmitting(false);
     }

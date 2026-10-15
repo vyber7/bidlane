@@ -2,6 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { toast } from "react-hot-toast";
 import { AuctionProvider } from "./AuctionContext";
 import AuctionStatusBar from "@/app/listing/[id]/components/AuctionStatusBar";
 import Bids from "@/app/listing/[id]/components/Bids";
@@ -12,7 +13,10 @@ import ListingBox from "@/app/components/ListingBox";
 import { auctionNow, makeBid, makeComment, makeListing } from "@/app/test/auction-fixtures";
 
 const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn() }));
-vi.mock("axios", () => ({ default: { post: mocks.post } }));
+vi.mock("axios", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("axios")>();
+  return { ...actual, default: { ...actual.default, post: mocks.post } };
+});
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
 vi.mock("next-auth/react", () => ({ useSession: () => ({ data: { user: { name: "Buyer" } } }) }));
 vi.mock("react-hot-toast", () => ({ default: { success: vi.fn(), error: vi.fn() }, toast: { success: vi.fn(), error: vi.fn() } }));
@@ -34,6 +38,24 @@ afterEach(() => {
 });
 
 describe("shared auction views", () => {
+  it("shows a rejected bid's API message while preserving the bid input", async () => {
+    mocks.post.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { data: { error: "The auction changed; please try again" } },
+    });
+    render(
+      <AuctionProvider listing={makeListing()} bids={[]} comments={[]}>
+        <Bids currentUserId="buyer" />
+      </AuctionProvider>
+    );
+    const input = screen.getByRole("spinbutton", { name: "Your bid amount in dollars" });
+    fireEvent.change(input, { target: { value: "12000" } });
+    await act(async () => { fireEvent.submit(input.closest("form")!); });
+    expect(toast.error).toHaveBeenCalledWith("The auction changed; please try again");
+    expect(input).toHaveProperty("value", "12000");
+    expect(screen.queryByText("$12,000")).toBeNull();
+  });
+
   it("updates the overview, bidding form, clock, and activity from a successful bid without Pusher", async () => {
     const listing = makeListing();
     const bid = makeBid();

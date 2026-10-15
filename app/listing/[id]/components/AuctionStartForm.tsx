@@ -1,5 +1,7 @@
 "use client";
 
+import { getApiErrorMessage } from "@/app/utils/api-error";
+
 import { SubmitHandler, useForm } from "react-hook-form";
 import AuctionStartInput from "./AuctionStartInput";
 import axios from "axios";
@@ -33,9 +35,9 @@ const AuctionStartForm: React.FC<AuctionStartFormProps> = ({ listingId }) => {
     setIsLoading(true);
     axios
       .post("/api/auction-start", { ...data, listingId })
-      .catch((error) => {
+      .catch((error: unknown) => {
         logger.error("auction.start_client_failed", error, { listingId });
-        toast.error("The auction could not be started. Please try again.");
+        toast.error(getApiErrorMessage(error, "The auction could not be started. Please try again."));
       })
       .finally(() => {
         setIsLoading(false);

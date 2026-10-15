@@ -1,5 +1,7 @@
 "use client";
 
+import { getApiErrorMessage } from "@/app/utils/api-error";
+
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -51,7 +53,7 @@ export default function SubmitForm() {
       router.push(`/listing/${response.data.id}`);
       router.refresh();
     } catch (error) {
-      setError(axios.isAxiosError(error) ? error.response?.data?.error || "Unable to submit. Please try again." : "Unable to submit. Please try again.");
+      setError(getApiErrorMessage(error, "Unable to submit. Please try again."));
       submitting.current = false;
       setIsLoading(false);
     }

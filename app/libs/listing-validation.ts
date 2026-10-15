@@ -1,3 +1,5 @@
+import { ApiRequestError, isJsonObject } from "@/app/libs/api-request";
+
 export const MAX_LISTING_PHOTOS = 10;
 export const MAX_LISTING_NUMBER = 2147483647;
 
@@ -21,28 +23,64 @@ export function isCloudinaryImageUrl(
   }
 }
 
-export function validateListing(data: unknown) {
-  if (!data || typeof data !== "object") return "Please provide listing details.";
-  const values = data as Record<string, unknown>;
-  for (const key of ["make", "model", "location", "description"]) {
-    if (typeof values[key] !== "string" || !values[key].trim()) {
-      return `Please enter a ${key}.`;
-    }
+export interface ValidatedListing {
+  make: string;
+  model: string;
+  year: number;
+  miles: number;
+  reservePrice: number | null;
+  location: string;
+  description: string;
+  images: string[];
+}
+
+function listingText(value: unknown, field: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new ApiRequestError(400, `Please enter a ${field}.`);
   }
-  for (const key of ["year", "miles", "reservePrice"]) {
-    const value = values[key];
-    if (key === "reservePrice" && (value === "" || value == null)) continue;
-    if ((typeof value !== "string" && typeof value !== "number") || String(value).trim() === "") return `Please enter a valid ${key}.`;
-    const number = Number(value);
-    const min = key === "year" ? 1886 : 0;
-    const max = key === "year" ? new Date().getFullYear() + 1 : MAX_LISTING_NUMBER;
-    if (!Number.isInteger(number) || number < min || number > max) return `Please enter a valid ${key}.`;
+  return value.trim();
+}
+
+function listingNumber(value: unknown, field: "year" | "miles" | "reservePrice"): number {
+  const min = field === "year" ? 1886 : 0;
+  const max = field === "year" ? new Date().getFullYear() + 1 : MAX_LISTING_NUMBER;
+  if (
+    (typeof value !== "string" && typeof value !== "number") ||
+    String(value).trim() === "" || !Number.isInteger(Number(value)) ||
+    Number(value) < min || Number(value) > max
+  ) {
+    throw new ApiRequestError(400, `Please enter a valid ${field}.`);
   }
-  if (!Array.isArray(values.images) || values.images.length < 1 || values.images.length > MAX_LISTING_PHOTOS) {
-    return `Please add between 1 and ${MAX_LISTING_PHOTOS} photos.`;
+  return Number(value);
+}
+
+export function parseListing(data: unknown): ValidatedListing {
+  if (!isJsonObject(data)) throw new ApiRequestError(400, "Please provide listing details.");
+
+  const make = listingText(data.make, "make");
+  const model = listingText(data.model, "model");
+  const location = listingText(data.location, "location");
+  const description = listingText(data.description, "description");
+  const year = listingNumber(data.year, "year");
+  const miles = listingNumber(data.miles, "miles");
+  const reservePrice = data.reservePrice === "" || data.reservePrice == null
+    ? null : listingNumber(data.reservePrice, "reservePrice");
+  const images = data.images;
+  if (!Array.isArray(images) || images.length < 1 || images.length > MAX_LISTING_PHOTOS) {
+    throw new ApiRequestError(400, `Please add between 1 and ${MAX_LISTING_PHOTOS} photos.`);
   }
-  if (values.images.some((image) => !isCloudinaryImageUrl(image))) {
-    return "Please use uploaded images for your listing.";
+  if (!images.every((image: unknown): image is string => isCloudinaryImageUrl(image))) {
+    throw new ApiRequestError(400, "Please use uploaded images for your listing.");
   }
-  return null;
+  return { make, model, location, description, year, miles, reservePrice, images };
+}
+
+export function validateListing(data: unknown): string | null {
+  try {
+    parseListing(data);
+    return null;
+  } catch (error) {
+    if (error instanceof ApiRequestError) return error.message;
+    throw error;
+  }
 }

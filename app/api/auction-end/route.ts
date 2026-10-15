@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import prisma from "@/app/libs/prismadb";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import {
-  AuctionRequestError,
-  auctionErrorResponse,
-  isJsonObject,
+  ApiRequestError,
+  apiErrorResponse,
+  readJsonObject,
+  errorResponse,
   requireListingId,
-} from "@/app/api/auction-security";
+} from "@/app/libs/api-request";
 import { logger } from "@/app/libs/logger";
 import { finalizeAuction } from "@/app/libs/auction-finalization";
 
@@ -14,20 +15,17 @@ export async function POST(req: Request) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser?.id || !currentUser.email) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
-    const body: unknown = await req.json();
-    if (!isJsonObject(body)) {
-      throw new AuctionRequestError(400, "Invalid request body");
-    }
+    const body = await readJsonObject(req);
 
     const listingId = requireListingId(body.listingId);
     const listing = await prisma.listing.findUnique({ where: { id: listingId } });
 
-    if (!listing) throw new AuctionRequestError(404, "Listing not found");
+    if (!listing) throw new ApiRequestError(404, "Listing not found");
     if (listing.userId !== currentUser.id) {
-      throw new AuctionRequestError(403, "Only the seller can end this auction");
+      throw new ApiRequestError(403, "Only the seller can end this auction");
     }
     if (listing.status === "ENDED") {
       return NextResponse.json({
@@ -36,19 +34,19 @@ export async function POST(req: Request) {
       });
     }
     if (listing.status !== "LIVE" || !listing.auctionEndsAt) {
-      throw new AuctionRequestError(409, "Auction is not live");
+      throw new ApiRequestError(409, "Auction is not live");
     }
     const endRequestTime = new Date();
     if (listing.auctionEndsAt > endRequestTime) {
-      throw new AuctionRequestError(409, "Auction cannot end before its scheduled time");
+      throw new ApiRequestError(409, "Auction cannot end before its scheduled time");
     }
 
     const finalization = await finalizeAuction(listingId, endRequestTime);
     if (finalization.status === "not_found") {
-      throw new AuctionRequestError(404, "Listing not found");
+      throw new ApiRequestError(404, "Listing not found");
     }
     if (finalization.status === "not_due") {
-      throw new AuctionRequestError(409, "Auction cannot end before its scheduled time");
+      throw new ApiRequestError(409, "Auction cannot end before its scheduled time");
     }
 
     return NextResponse.json({
@@ -56,11 +54,9 @@ export async function POST(req: Request) {
       result: finalization.result,
     });
   } catch (error) {
-    const response = auctionErrorResponse(error);
+    const response = apiErrorResponse(error);
     if (response) return response;
     logger.error("auction.end_failed", error);
-    return new NextResponse(JSON.stringify({ error: "Error ending auction" }), {
-      status: 500,
-    });
+    return errorResponse("Error ending auction", 500);
   }
 }

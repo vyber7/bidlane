@@ -62,6 +62,22 @@ describe("POST /api/update-watchlist", () => {
     expect(mocks.userUpdate).not.toHaveBeenCalled();
   });
 
+  it.each(["bad-id", "g".repeat(24), "a".repeat(23), 123, null])("rejects listing ID %j before querying the database", async (listingId) => {
+    const response = await POST(request({ listingId, watching: true }));
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid listing ID" });
+    expect(mocks.listingFindUnique).not.toHaveBeenCalled();
+    expect(mocks.userUpdate).not.toHaveBeenCalled();
+  });
+
+  it("keeps unexpected database failures private and returns JSON", async () => {
+    mocks.userUpdate.mockRejectedValueOnce(new SyntaxError("private database decoding details"));
+    const response = await POST(request({ listingId, watching: true }));
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({ error: "Unable to update watchlist" });
+    expect(mocks.loggerError).toHaveBeenCalled();
+  });
+
   it.each([
     [true, "connect"],
     [false, "disconnect"],

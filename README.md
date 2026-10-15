@@ -175,6 +175,8 @@ vitest.config.ts     # Test configuration
 
 Image uploads use Cloudinary widgets. The `/api/upload-image` and `/api/add-images` routes are placeholders that echo an image URL; they do not upload files or persist images.
 
+Application-owned API failures return JSON with an `error` string and an appropriate HTTP status. Malformed JSON, non-object bodies, and invalid fields return `400`; unexpected failures return `500` with a public message while details are logged on the server. Partial cron failures retain the batch summary and add an `error` string. NextAuth's authentication endpoints use their own protocol.
+
 ## Deployment
 
 1. Configure the environment variables on the deployment platform. Set `NEXTAUTH_URL` and OAuth callbacks to the production origin.

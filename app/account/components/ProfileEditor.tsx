@@ -1,5 +1,7 @@
 "use client";
 
+import { getApiErrorMessage } from "@/app/utils/api-error";
+
 import axios from "axios";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -81,7 +83,7 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
       router.refresh();
     } catch (error) {
       logger.error("account.profile_update_client_failed", error);
-      toast.error("We couldn't update your profile. Please try again.");
+      toast.error(getApiErrorMessage(error, "We couldn't update your profile. Please try again."));
     } finally {
       setSaving(false);
     }

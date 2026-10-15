@@ -5,11 +5,12 @@ import { pusherServer } from "@/app/libs/pusher";
 import { logger } from "@/app/libs/logger";
 import type { CommentEvent, CommentResponse } from "@/app/types/auction-events";
 import {
-  AuctionRequestError,
-  auctionErrorResponse,
-  isJsonObject,
+  ApiRequestError,
+  apiErrorResponse,
+  readJsonObject,
+  errorResponse,
   requireListingId,
-} from "@/app/api/auction-security";
+} from "@/app/libs/api-request";
 
 // POST /api/comments
 // Required fields in the body: comment, listingId
@@ -20,19 +21,16 @@ export async function POST(req: Request) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser?.id || !currentUser?.email)
-      return new NextResponse("Unauthorized", { status: 401 });
+      return errorResponse("Unauthorized", 401);
 
-    const body: unknown = await req.json();
-    if (!isJsonObject(body)) {
-      throw new AuctionRequestError(400, "Invalid request body");
-    }
+    const body = await readJsonObject(req);
 
     const listingId = requireListingId(body.listingId);
     const comment = typeof body.comment === "string" ? body.comment.trim() : "";
     const image = typeof body.image === "string" ? body.image : undefined;
 
     if (!comment)
-      return new NextResponse("Missing Information", { status: 400 });
+      throw new ApiRequestError(400, "Comment is required");
 
     const newComment = await prisma.comment.create({
       data: {
@@ -90,9 +88,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ comment: commentPayload } satisfies CommentResponse, { status: 201 });
   } catch (error: unknown) {
-    const response = auctionErrorResponse(error);
+    const response = apiErrorResponse(error);
     if (response) return response;
     logger.error("comment.create_failed", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return errorResponse("Internal Server Error", 500);
   }
 }

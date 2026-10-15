@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Prisma } from "@prisma/client";
 
 const mocks = vi.hoisted(() => ({
   hash: vi.fn(),
@@ -58,5 +59,24 @@ describe("POST /api/register", () => {
     expect(response.status).toBe(400);
     expect(mocks.hash).not.toHaveBeenCalled();
     expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { name: {} }, { email: [] }, { password: 123 }, { name: "   " },
+  ])("rejects invalid registration fields %j before hashing", async (change) => {
+    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "secret", ...change }));
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Name, email, and password are required" });
+    expect(mocks.hash).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("reports duplicate registration as a conflict", async () => {
+    mocks.create.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError("Unique constraint", {
+      code: "P2002", clientVersion: "test",
+    }));
+    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "secret" }));
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({ error: "An account with this email already exists" });
   });
 });

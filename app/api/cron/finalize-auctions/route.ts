@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { finalizeExpiredAuctions } from "@/app/libs/auction-finalization";
 import { logger } from "@/app/libs/logger";
+import { errorResponse } from "@/app/libs/api-request";
 
 export const dynamic = "force-dynamic";
 
@@ -10,19 +11,17 @@ export async function GET(req: Request) {
     !cronSecret ||
     req.headers.get("authorization") !== `Bearer ${cronSecret}`
   ) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return errorResponse("Unauthorized", 401);
   }
 
   try {
     const summary = await finalizeExpiredAuctions();
-    return NextResponse.json(summary, {
-      status: summary.failed > 0 ? 500 : 200,
-    });
+    if (summary.failed > 0) {
+      return NextResponse.json({ ...summary, error: "Some auctions could not be finalized" }, { status: 500 });
+    }
+    return NextResponse.json(summary);
   } catch (error) {
     logger.error("auction.finalization_batch_failed", error);
-    return NextResponse.json(
-      { error: "Error finalizing auctions" },
-      { status: 500 }
-    );
+    return errorResponse("Error finalizing auctions", 500);
   }
 }

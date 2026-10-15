@@ -1,20 +1,19 @@
-// app/api/add-images/route.ts
 import { NextResponse } from "next/server";
+import { ApiRequestError, apiErrorResponse, errorResponse, readJsonObject } from "@/app/libs/api-request";
+import { logger } from "@/app/libs/logger";
 
-export async function POST(req: Request) {
-  const body = await req.json();
-  const { imageUrl } = body;
-
-  if (!imageUrl) {
-    return NextResponse.json(
-      { message: "No image URL provided" },
-      { status: 400 }
-    );
+// Placeholder: accepts an image URL without uploading or persisting a file.
+export async function POST(request: Request) {
+  try {
+    const { imageUrl } = await readJsonObject(request);
+    if (typeof imageUrl !== "string" || !imageUrl.trim()) {
+      throw new ApiRequestError(400, "No image URL provided");
+    }
+    return NextResponse.json({ message: "Image uploaded successfully", imageUrl });
+  } catch (error) {
+    const response = apiErrorResponse(error);
+    if (response) return response;
+    logger.error("add_images.request_failed", error);
+    return errorResponse("Unable to process image", 500);
   }
-
-  // Here you can add logic to save the image URL to your database if needed
-  return NextResponse.json({
-    message: "Image uploaded successfully",
-    imageUrl,
-  });
 }

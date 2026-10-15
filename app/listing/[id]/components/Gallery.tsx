@@ -1,5 +1,7 @@
 "use client";
 
+import { getApiErrorMessage } from "@/app/utils/api-error";
+
 import {
   CldImage,
   type CloudinaryUploadWidgetResults,
@@ -40,7 +42,7 @@ const Gallery: React.FC<GalleryProps> = ({ listingId, owner, vehicleName = "Vehi
       .then((data) => {
         if (active) setImages(Array.from(new Set([...(initialImages || []), ...data.images.map((img: GalleryImage) => img.url)])));
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         if (active) setLoadError(true);
         logger.error("gallery.images_fetch_failed", error, { listingId });
       })
@@ -63,9 +65,9 @@ const Gallery: React.FC<GalleryProps> = ({ listingId, owner, vehicleName = "Vehi
       const url = typeof result.info === "object" ? result.info.secure_url : undefined;
       if (url) setImages((current) => Array.from(new Set([...current, url])));
       toast.success("Image uploaded successfully!");
-    }).catch((error) => {
+    }).catch((error: unknown) => {
       logger.error("gallery.image_save_failed", error, { listingId });
-      toast.error("The image could not be saved to this listing.");
+      toast.error(getApiErrorMessage(error, "The image could not be saved to this listing."));
     });
   };
 

@@ -2,12 +2,13 @@ import getCurrentUser from "@/app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
 import prisma from "@/app/libs/prismadb";
 import {
-  AuctionRequestError,
-  auctionErrorResponse,
-  isJsonObject,
+  ApiRequestError,
+  apiErrorResponse,
+  readJsonObject,
+  errorResponse,
   requireListingId,
   requireSafeInteger,
-} from "@/app/api/auction-security";
+} from "@/app/libs/api-request";
 import { logger } from "@/app/libs/logger";
 import { pusherServer } from "@/app/libs/pusher";
 import type { AuctionStartedEvent } from "@/app/types/auction-events";
@@ -16,12 +17,9 @@ export async function POST(req: Request) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser?.id || !currentUser?.email)
-      return new NextResponse("Unauthorized", { status: 401 });
+      return errorResponse("Unauthorized", 401);
 
-    const body: unknown = await req.json();
-    if (!isJsonObject(body)) {
-      throw new AuctionRequestError(400, "Invalid request body");
-    }
+    const body = await readJsonObject(req);
 
     const listingId = requireListingId(body.listingId);
     const startingBid = requireSafeInteger(body.startingBid, "Starting bid", {
@@ -29,7 +27,7 @@ export async function POST(req: Request) {
     });
     const bidIncrement = requireSafeInteger(body.bidIncrement, "Bid increment");
     if (startingBid + bidIncrement > 2_147_483_647) {
-      throw new AuctionRequestError(400, "Starting bid plus increment is too large");
+      throw new ApiRequestError(400, "Starting bid plus increment is too large");
     }
     const endTime =
       typeof body.endTime === "string" || typeof body.endTime === "number"
@@ -38,16 +36,16 @@ export async function POST(req: Request) {
     const startTime = new Date();
 
     if (!endTime || Number.isNaN(endTime.getTime()) || endTime <= startTime) {
-      throw new AuctionRequestError(400, "End time must be in the future");
+      throw new ApiRequestError(400, "End time must be in the future");
     }
 
     const listing = await prisma.listing.findUnique({ where: { id: listingId } });
-    if (!listing) throw new AuctionRequestError(404, "Listing not found");
+    if (!listing) throw new ApiRequestError(404, "Listing not found");
     if (listing.userId !== currentUser.id) {
-      throw new AuctionRequestError(403, "Only the seller can start this auction");
+      throw new ApiRequestError(403, "Only the seller can start this auction");
     }
     if (listing.status !== "UPCOMING") {
-      throw new AuctionRequestError(409, "Only an upcoming auction can be started");
+      throw new ApiRequestError(409, "Only an upcoming auction can be started");
     }
 
     const updated = await prisma.listing.updateMany({
@@ -62,7 +60,7 @@ export async function POST(req: Request) {
     });
 
     if (updated.count !== 1) {
-      throw new AuctionRequestError(409, "Auction has already been started");
+      throw new ApiRequestError(409, "Auction has already been started");
     }
 
     const notification = await Promise.allSettled([
@@ -82,9 +80,9 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (error) {
-    const response = auctionErrorResponse(error);
+    const response = apiErrorResponse(error);
     if (response) return response;
     logger.error("auction.start_failed", error);
-    return new NextResponse("Failed to create auction", { status: 500 });
+    return errorResponse("Failed to create auction", 500);
   }
 }

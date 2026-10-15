@@ -3,20 +3,18 @@ import { NextResponse } from "next/server";
 import { logger } from "@/app/libs/logger";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import {
-  AuctionRequestError,
-  auctionErrorResponse,
-  isJsonObject,
+  ApiRequestError,
+  apiErrorResponse,
+  readJsonObject,
+  errorResponse,
   requireListingId,
-} from "@/app/api/auction-security";
+} from "@/app/libs/api-request";
 
 const MAX_VIEW_COUNT = 2_147_483_647;
 
 export async function POST(req: Request) {
   try {
-    const body: unknown = await req.json();
-    if (!isJsonObject(body)) {
-      throw new AuctionRequestError(400, "Invalid request body");
-    }
+    const body = await readJsonObject(req);
 
     const listingId = requireListingId(body.listingId);
     const currentUser = await getCurrentUser();
@@ -26,7 +24,7 @@ export async function POST(req: Request) {
         where: { id: listingId },
         select: { views: true },
       });
-      if (!listing) throw new AuctionRequestError(404, "Listing not found");
+      if (!listing) throw new ApiRequestError(404, "Listing not found");
       return NextResponse.json({ views: listing.views });
     }
 
@@ -35,7 +33,7 @@ export async function POST(req: Request) {
         where: { id: listingId },
         select: { views: true },
       });
-      if (!listing) throw new AuctionRequestError(404, "Listing not found");
+      if (!listing) throw new ApiRequestError(404, "Listing not found");
 
       const counted = await tx.listing.updateMany({
         where: {
@@ -65,9 +63,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ views });
   } catch (error: unknown) {
-    const response = auctionErrorResponse(error);
+    const response = apiErrorResponse(error);
     if (response) return response;
     logger.error("listing.view_failed", error);
-    return NextResponse.json({ error: "Unable to record view" }, { status: 500 });
+    return errorResponse("Unable to record view", 500);
   }
 }
