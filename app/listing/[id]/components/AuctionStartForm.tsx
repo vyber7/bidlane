@@ -1,14 +1,14 @@
 "use client";
 
-import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
+import { SubmitHandler, useForm } from "react-hook-form";
 import AuctionStartInput from "./AuctionStartInput";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { now } from "lodash";
 import { useState } from "react";
 import Button from "@/app/components/Button";
 import { useRouter } from "next/navigation";
 import { logger } from "@/app/libs/logger";
+import type { AuctionStartFormValues } from "@/app/types/forms";
 
 interface AuctionStartFormProps {
   listingId: string;
@@ -21,16 +21,15 @@ const AuctionStartForm: React.FC<AuctionStartFormProps> = ({ listingId }) => {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FieldValues>({
+  } = useForm<AuctionStartFormValues>({
     defaultValues: {
-      startTime: new Date(now()),
-      endTime: new Date(now()),
+      endTime: "",
       startingBid: 0,
       bidIncrement: 0,
     },
   });
 
-  const onSubmit: SubmitHandler<FieldValues> = (data) => {
+  const onSubmit: SubmitHandler<AuctionStartFormValues> = (data) => {
     setIsLoading(true);
     axios
       .post("/api/auction-start", { ...data, listingId })
@@ -49,13 +48,6 @@ const AuctionStartForm: React.FC<AuctionStartFormProps> = ({ listingId }) => {
       onSubmit={handleSubmit(onSubmit)}
       className="p-2 lg:p-4 bg-white border rounded-md shadow-md shadow-gray-400 relative flex flex-wrap gap-2 justify-between"
     >
-      {/* <AuctionStartInput
-        id="startTime"
-        type="datetime-local"
-        register={register}
-        errors={errors}
-        label="Start Time"
-      /> */}
       <AuctionStartInput
         id="endTime"
         type="datetime-local"

@@ -1,15 +1,16 @@
 "use client";
 
-import { FieldErrors, FieldValues, UseFormRegister } from "react-hook-form";
+import { FieldErrors, UseFormRegister } from "react-hook-form";
 import clsx from "clsx";
+import type { CommentFormValues } from "@/app/types/forms";
 
 interface CommentInputProps {
-  id: string;
-  register: UseFormRegister<FieldValues>;
+  id: keyof CommentFormValues;
+  register: UseFormRegister<CommentFormValues>;
   type?: string;
   required?: boolean;
   placeholder?: string;
-  errors: FieldErrors;
+  errors: FieldErrors<CommentFormValues>;
 }
 
 const CommentInput: React.FC<CommentInputProps> = ({

@@ -162,7 +162,7 @@ describe("POST /api/place-bid", () => {
     expect(mocks.trigger).toHaveBeenCalledWith(
       `listing-${listingId}`,
       "new-bid",
-      expect.objectContaining({ id: "bid-1" })
+      expect.objectContaining({ id: "bid-1", createdAt: now.toISOString() })
     );
   });
 
@@ -194,7 +194,7 @@ describe("POST /api/place-bid", () => {
     expect(mocks.trigger).toHaveBeenCalledWith(
       `listing-${listingId}`,
       "new-end-time",
-      { newEndTime: new Date("2026-09-04T12:02:00.000Z") }
+      { newEndTime: "2026-09-04T12:02:00.000Z" }
     );
   });
 

@@ -33,7 +33,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
     userId: currentUser,
-    initialWatching: listing.watchersIds.includes(currentUser as string),
+    initialWatching: Boolean(currentUser && listing.watchersIds.includes(currentUser)),
   });
   const router = useRouter();
   const finalizationRequested = useRef<string | null>(null);

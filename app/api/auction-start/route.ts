@@ -10,6 +10,7 @@ import {
 } from "@/app/api/auction-security";
 import { logger } from "@/app/libs/logger";
 import { pusherServer } from "@/app/libs/pusher";
+import type { AuctionStartedEvent } from "@/app/types/auction-events";
 
 export async function POST(req: Request) {
   try {
@@ -66,11 +67,11 @@ export async function POST(req: Request) {
 
     const notification = await Promise.allSettled([
       pusherServer.trigger(`listing-${listingId}`, "auction-started", {
-        auctionStartsAt: startTime,
-        auctionEndsAt: endTime,
+        auctionStartsAt: startTime.toISOString(),
+        auctionEndsAt: endTime.toISOString(),
         startingBid,
         bidIncrement,
-      }),
+      } satisfies AuctionStartedEvent),
     ]);
     if (notification[0]?.status === "rejected") {
       logger.warn("auction.start_notification_failed", { listingId });

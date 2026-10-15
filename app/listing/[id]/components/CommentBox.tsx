@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { formatAmount, capitalize } from "@/app/utils/format";
+import { formatAmount, formatDisplayName } from "@/app/utils/format";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 
 interface CommentBoxProps {
@@ -20,13 +20,13 @@ const CommentBox: React.FC<CommentBoxProps> = ({ comments, bids }) => {
       {commentsAndBids.map((item) => {
         let date = new Date(item.createdAt).toDateString();
         date = date.slice(4, 10);
-        const name = item.user?.name?.split(" ")[0];
+        const name = item.user?.name?.trim().split(/\s+/)[0];
 
         return (
           <li key={item.id} className="flex flex-col gap-1">
             <div className="flex">
               <div className="pr-2 pb-1 font-bold ">
-                {capitalize(name as string)}
+                {formatDisplayName(name)}
               </div>
               <div className="pl-2 text-gray-400 text-xs transform translate-y-1">
                 {date}
@@ -43,7 +43,7 @@ const CommentBox: React.FC<CommentBoxProps> = ({ comments, bids }) => {
               ) : (
                 <>
                   <span className="font-normal">Bid</span>{" "}
-                  {`$${formatAmount(item.amount as number)}`}
+                  {`$${formatAmount(item.amount)}`}
                 </>
               )}
             </div>

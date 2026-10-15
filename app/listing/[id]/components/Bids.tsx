@@ -4,12 +4,13 @@ import clsx from "clsx";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
+import { SubmitHandler, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { RiAuctionFill } from "react-icons/ri";
-import { formatAmount, capitalize } from "@/app/utils/format";
+import { formatAmount, capitalize, formatDisplayName } from "@/app/utils/format";
 import { useAuctionContext } from "@/app/context/AuctionContext";
-import type { AcceptedBid } from "@/app/hooks/useAuction";
+import type { AcceptedBidResponse } from "@/app/types/auction-events";
+import type { BidFormValues } from "@/app/types/forms";
 
 interface BidsProps {
   sellerName?: string | null;
@@ -25,20 +26,26 @@ const Bids: React.FC<BidsProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const { listing, bids, expired, acceptBid } = useAuctionContext();
   const bid = listing.currentBid;
+  const amount = bid ?? listing.startingBid;
+  const minimumBid = listing.startingBid !== null && listing.bidIncrement !== null &&
+    listing.auctionStartsAt !== null && listing.auctionEndsAt !== null
+    ? bid === null ? listing.startingBid : bid + listing.bidIncrement
+    : null;
+  const canBid = listing.status === "LIVE" && !expired && minimumBid !== null;
+  const highestBidderName = formatDisplayName(
+    bids.find((item) => item.userId === listing.highestBidderId)?.user.name,
+    "Bidder"
+  );
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FieldValues>();
+  } = useForm<BidFormValues>();
 
-  const onSubmit: SubmitHandler<FieldValues> = (data) => {
+  const onSubmit: SubmitHandler<BidFormValues> = (data) => {
+    if (!canBid || minimumBid === null) return;
     setIsLoading(true);
-    const minimumBid =
-      bid === null
-        ? (listing.startingBid as number)
-        : bid + (listing.bidIncrement as number);
-
     if (data.bidAmount < minimumBid) {
       toast.error(`Your bid must be at least $${formatAmount(minimumBid)}`);
       setIsLoading(false);
@@ -46,7 +53,7 @@ const Bids: React.FC<BidsProps> = ({
     }
 
     axios
-      .post<AcceptedBid>(`/api/place-bid`, { ...data, listingId: listing.id })
+      .post<AcceptedBidResponse>(`/api/place-bid`, { ...data, listingId: listing.id })
       .then((response) => {
         acceptBid(response.data);
         reset();
@@ -71,17 +78,7 @@ const Bids: React.FC<BidsProps> = ({
         <div className="md:w-1/2 w-full flex flex-col justify-between bg-slate-200 rounded-md p-2 md:p-4 gap-2 text-sm md:text-base">
           {listing.status === "ENDED" && listing.result === "SOLD" ? (
             <p className="text-green-600 font-bold">
-              {listing.currentBid
-                ? `Sold to ${
-                    listing.highestBidderId
-                      ? capitalize(
-                          bids.find(
-                            (bid) => bid.userId === listing.highestBidderId
-                          )?.user.name as string
-                        )
-                      : ""
-                  }, congratulations!`
-                : "No bids were placed."}
+              {bid !== null ? `Sold to ${highestBidderName}, congratulations!` : "No bids were placed."}
             </p>
           ) : listing.status === "ENDED" && listing.currentBid === null ? (
             <p>No bids were placed</p>
@@ -92,21 +89,12 @@ const Bids: React.FC<BidsProps> = ({
             <p>
               {bid !== null ? "Current Bid" : "Starting at"}{" "}
               <span className="font-semibold">
-                {listing.highestBidderId
-                  ? capitalize(
-                      bids.find((bid) => bid.userId === listing.highestBidderId)
-                        ?.user.name as string
-                    )
-                  : ""}
+                {listing.highestBidderId ? highestBidderName : ""}
               </span>
             </p>
           )}
           <div className="font-bold text-4xl sm:text-5xl tracking-tight">
-            {bid ? (
-              <span>${formatAmount(bid as number)}</span>
-            ) : (
-              <span>${formatAmount(listing.startingBid as number)}</span>
-            )}
+            {amount !== null ? <span>${formatAmount(amount)}</span> : <span>—</span>}
           </div>
         </div>
 
@@ -115,14 +103,14 @@ const Bids: React.FC<BidsProps> = ({
             <span className="w-1/4">Seller</span>
             <span className="font-semibold">
               {" "}
-              {capitalize(sellerName as string)}
+              {formatDisplayName(sellerName, "Seller")}
             </span>
           </p>
           <p className="flex justify-start">
             <span className="w-1/4">Ending</span>
             <span className="font-semibold">
               {" "}
-              {new Date(listing.auctionEndsAt!).toLocaleString()}
+              {listing.auctionEndsAt ? new Date(listing.auctionEndsAt).toLocaleString() : "To be announced"}
             </span>
           </p>
           <p className="flex justify-start">
@@ -139,7 +127,10 @@ const Bids: React.FC<BidsProps> = ({
           </p>
         </div>
       </div>
-      {listing.status === "ENDED" ? null : session &&
+      {listing.status === "LIVE" && minimumBid === null && (
+        <p className="mt-2 text-sm text-slate-500">Bidding is unavailable until the auction is configured.</p>
+      )}
+      {listing.status !== "LIVE" ? null : session &&
         listing.userId !== currentUserId ? (
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -150,11 +141,7 @@ const Bids: React.FC<BidsProps> = ({
             type="number"
             aria-label="Your bid amount in dollars"
             placeholder="Your bid ($)"
-            min={
-              bid === null
-                ? (listing.startingBid as number)
-                : bid + (listing.bidIncrement as number)
-            }
+            min={minimumBid ?? undefined}
             step={1}
             {...register("bidAmount", { required: true, valueAsNumber: true })}
             className={clsx(
@@ -175,10 +162,10 @@ const Bids: React.FC<BidsProps> = ({
               errors.bidAmount && "border-rose-500 focus:ring-rose-500",
               isLoading && "opacity-50 cursor-not-allowed"
             )}
-            disabled={isLoading || expired}
+            disabled={isLoading || !canBid}
           />
           <button
-            disabled={isLoading || expired}
+            disabled={isLoading || !canBid}
             type="submit"
             className="flex
         justify-center

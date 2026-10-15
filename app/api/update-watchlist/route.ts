@@ -3,6 +3,8 @@ import getCurrentUser from "../../../app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
 import { pusherServer } from "@/app/libs/pusher";
 import { logger } from "@/app/libs/logger";
+import type { WatchingUpdateEvent, WatchlistUpdateEvent, WatchlistResponse } from "@/app/types/auction-events";
+import { serializeListing } from "@/app/utils/listing-serialization";
 
 export async function POST(request: Request) {
   const currentUser = await getCurrentUser();
@@ -40,7 +42,7 @@ export async function POST(request: Request) {
       },
     });
 
-    const update = { listingId, userId: currentUser.id, watching };
+    const update = { listingId, userId: currentUser.id, watching } satisfies WatchlistUpdateEvent;
     const notificationResults = await Promise.allSettled([
       pusherServer.trigger(
         `listing-${listingId}`,
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
       pusherServer.trigger(
         `user-${currentUser.id}-watching`,
         "watching-update",
-        { listing, watching }
+        { listing: serializeListing(listing), watching } satisfies WatchingUpdateEvent
       ),
     ]);
 
@@ -61,7 +63,7 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ listingId, watching });
+    return NextResponse.json({ listingId, watching } satisfies WatchlistResponse);
   } catch (error: unknown) {
     logger.error("watchlist.update_failed", error, { userId: currentUser.id });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

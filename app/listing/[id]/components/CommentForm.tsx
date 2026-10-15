@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
+import { SubmitHandler, useForm } from "react-hook-form";
 import CommentInput from "./CommentInput";
 import { MdSend } from "react-icons/md";
 
@@ -10,7 +10,8 @@ import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { logger } from "@/app/libs/logger";
 import { useAuctionContext } from "@/app/context/AuctionContext";
-import type { CommentWithAuthor } from "@/app/types";
+import type { CommentResponse } from "@/app/types/auction-events";
+import type { CommentFormValues } from "@/app/types/forms";
 
 interface FormProps {
   listingId: string;
@@ -26,16 +27,16 @@ const Form: React.FC<FormProps> = ({ listingId }) => {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FieldValues>({
+  } = useForm<CommentFormValues>({
     defaultValues: {
       comment: "",
     },
   });
 
-  const onSubmit: SubmitHandler<FieldValues> = async (formData) => {
+  const onSubmit: SubmitHandler<CommentFormValues> = async (formData) => {
     setIsSubmitting(true);
     try {
-      const response = await axios.post<{ comment: CommentWithAuthor }>("/api/comments", { ...formData, listingId });
+      const response = await axios.post<CommentResponse>("/api/comments", { ...formData, listingId });
       acceptComment(response.data.comment);
       reset({ comment: "" });
     } catch (error) {

@@ -115,7 +115,7 @@ describe("finalizeAuction", () => {
     expect(mocks.trigger).toHaveBeenCalledWith(
       `listing-${listingId}`,
       "auction-ended",
-      { auctionEndsAt: endTime, result: "SOLD" }
+      { auctionEndsAt: endTime.toISOString(), result: "SOLD" }
     );
   });
 

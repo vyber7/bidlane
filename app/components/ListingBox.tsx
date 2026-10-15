@@ -24,7 +24,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
     userId: currentUserId,
-    initialWatching: listing.watchersIds.includes(currentUserId as string),
+    initialWatching: Boolean(currentUserId && listing.watchersIds.includes(currentUserId)),
   });
 
   return (
@@ -82,11 +82,11 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
             <div>
               {listing.result === "SOLD" ? (
                 <span>
-                  Sold for <b>${formatAmount(bid as number)}</b>
+                  Sold for <b>{bid !== null ? `$${formatAmount(bid)}` : "—"}</b>
                 </span>
               ) : bid !== null ? (
                 <span>
-                  Bid to <b>${formatAmount(bid as number)}</b>
+                  Bid to <b>${formatAmount(bid)}</b>
                 </span>
               ) : (
                 <span>No bids were placed</span>
@@ -111,7 +111,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
               ) : (
                 <span>
                   Starting at{" "}
-                  <b>${formatAmount(listing.startingBid as number)}</b>
+                  <b>{listing.startingBid !== null ? `$${formatAmount(listing.startingBid)}` : "To be announced"}</b>
                 </span>
               )}
             </>

@@ -33,7 +33,7 @@ const UploadedListings: React.FC<UploadedListingsProps> = ({
               listing={listing}
               currentUserId={currentUserId}
               watching={
-                listing.watchersIds.includes(currentUserId as string)
+                Boolean(currentUserId && listing.watchersIds.includes(currentUserId))
                   ? true
                   : false
               }

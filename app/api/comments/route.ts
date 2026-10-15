@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/app/libs/prismadb";
 import { pusherServer } from "@/app/libs/pusher";
 import { logger } from "@/app/libs/logger";
+import type { CommentEvent, CommentResponse } from "@/app/types/auction-events";
 import {
   AuctionRequestError,
   auctionErrorResponse,
@@ -79,14 +80,15 @@ export async function POST(req: Request) {
       },
     });
 
+    const commentPayload = { ...newComment, createdAt: newComment.createdAt.toISOString() } satisfies CommentEvent;
     const notification = await Promise.allSettled([
-      pusherServer.trigger(`listing-${listingId}`, "new-comment", newComment),
+      pusherServer.trigger(`listing-${listingId}`, "new-comment", commentPayload),
     ]);
     if (notification[0]?.status === "rejected") {
       logger.warn("comment.notification_failed", { listingId });
     }
 
-    return NextResponse.json({ comment: newComment }, { status: 201 });
+    return NextResponse.json({ comment: commentPayload } satisfies CommentResponse, { status: 201 });
   } catch (error: unknown) {
     const response = auctionErrorResponse(error);
     if (response) return response;

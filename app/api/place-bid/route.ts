@@ -10,6 +10,7 @@ import {
   requireSafeInteger,
 } from "@/app/api/auction-security";
 import { logger } from "@/app/libs/logger";
+import type { AcceptedBidResponse, AuctionEndTimeEvent, BidEvent } from "@/app/types/auction-events";
 
 export async function POST(req: Request) {
   try {
@@ -126,14 +127,15 @@ export async function POST(req: Request) {
 
     // A notification failure must not turn an already-committed bid into a 500
     // response, since a retry could submit the same bid a second time.
+    const bid = { ...result.newBid, createdAt: result.newBid.createdAt.toISOString() } satisfies BidEvent;
     const notifications: Promise<unknown>[] = [
-      pusherServer.trigger(`listing-${listingId}`, "new-bid", result.newBid),
+      pusherServer.trigger(`listing-${listingId}`, "new-bid", bid),
     ];
     if (result.shouldExtend) {
       notifications.push(
         pusherServer.trigger(`listing-${listingId}`, "new-end-time", {
-          newEndTime: result.auctionEndsAt,
-        })
+          newEndTime: result.auctionEndsAt.toISOString(),
+        } satisfies AuctionEndTimeEvent)
       );
     }
     const notificationResults = await Promise.allSettled(notifications);
@@ -143,10 +145,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       {
-        bid: result.newBid,
+        bid,
         currentBid: result.newBid.amount,
-        auctionEndsAt: result.auctionEndsAt,
-      },
+        auctionEndsAt: result.auctionEndsAt.toISOString(),
+      } satisfies AcceptedBidResponse,
       { status: 201 }
     );
   } catch (error) {

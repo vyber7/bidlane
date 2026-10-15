@@ -2,13 +2,14 @@
 
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
+import { SubmitHandler, useForm } from "react-hook-form";
 import AuthSocialButton from "./AuthSocialButton";
 import { BsGithub, BsGoogle } from "react-icons/bs";
 import { FiArrowRight, FiLoader } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import type { AuthFormValues } from "@/app/types/forms";
 
 type Variant = "LOGIN" | "REGISTER";
 
@@ -38,7 +39,7 @@ const AuthForm = () => {
     handleSubmit,
     clearErrors,
     formState: { errors },
-  } = useForm<FieldValues>({
+  } = useForm<AuthFormValues>({
     defaultValues: {
       name: "",
       email: "",
@@ -46,13 +47,13 @@ const AuthForm = () => {
     },
   });
 
-  const onSubmit: SubmitHandler<FieldValues> = (data) => {
+  const onSubmit: SubmitHandler<AuthFormValues> = (data) => {
     setIsLoading(true);
 
     if (variant === "REGISTER") {
       axios
         .post("/api/register", data)
-        .then(() => signIn("credentials", data))
+        .then(() => signIn("credentials", { ...data }))
         .catch(() => toast.error("Something went wrong!"))
         .finally(() => setIsLoading(false));
     }
@@ -89,11 +90,13 @@ const AuthForm = () => {
       .finally(() => setIsLoading(false));
   };
 
-  const fields = [
-    ...(variant === "REGISTER" ? [{ id: "name", label: "Full name", type: "text", placeholder: "Your name", autoComplete: "name" }] : []),
+  const fields: { id: keyof AuthFormValues; label: string; type: string; placeholder: string; autoComplete: string }[] = [
     { id: "email", label: "Email address", type: "email", placeholder: "you@example.com", autoComplete: "email" },
     { id: "password", label: "Password", type: "password", placeholder: variant === "LOGIN" ? "Enter your password" : "Create a password", autoComplete: variant === "LOGIN" ? "current-password" : "new-password" },
   ];
+  if (variant === "REGISTER") {
+    fields.unshift({ id: "name", label: "Full name", type: "text", placeholder: "Your name", autoComplete: "name" });
+  }
 
   return (
     <div>
@@ -120,7 +123,7 @@ const AuthForm = () => {
               {...register(id, { required: `${label} is required.` })}
               className={`mt-2 block w-full rounded-xl border bg-white px-4 py-3.5 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-400/20 disabled:cursor-wait disabled:opacity-60 sm:text-sm ${errors[id] ? "border-rose-400" : "border-slate-200 hover:border-slate-300"}`}
             />
-            {errors[id] && <p id={`${id}-error`} role="alert" className="mt-2 text-xs text-rose-600">{String(errors[id]?.message)}</p>}
+            {errors[id] && <p id={`${id}-error`} role="alert" className="mt-2 text-xs text-rose-600">{errors[id]?.message}</p>}
           </div>
         ))}
         <button disabled={isLoading} type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber-400 px-6 py-3.5 text-sm font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500 disabled:cursor-wait disabled:opacity-60">

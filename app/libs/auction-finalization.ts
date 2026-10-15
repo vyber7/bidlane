@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/app/libs/prismadb";
 import { logger } from "@/app/libs/logger";
 import { pusherServer } from "@/app/libs/pusher";
+import type { AuctionEndedEvent } from "@/app/types/auction-events";
 
 const finalizationListingSelect = {
   id: true,
@@ -53,9 +54,9 @@ async function notifyAuctionEnded(
 ) {
   const notification = await Promise.allSettled([
     pusherServer.trigger(`listing-${listingId}`, "auction-ended", {
-      auctionEndsAt,
+      auctionEndsAt: auctionEndsAt.toISOString(),
       result,
-    }),
+    } satisfies AuctionEndedEvent),
   ]);
 
   if (notification[0]?.status === "rejected") {

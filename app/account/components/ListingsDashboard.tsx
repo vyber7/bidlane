@@ -12,17 +12,14 @@ import {
   FiZap,
 } from "react-icons/fi";
 import usePusherEvent from "@/app/hooks/usePusherEvent";
+import type { WatchingUpdateEvent } from "@/app/types/auction-events";
+import { deserializeListing } from "@/app/utils/listing-serialization";
 import AccountListingBox from "./AccountListingBox";
 
 interface ListingsDashboardProps {
   uploaded: Listing[];
   initialWatching: Listing[];
   currentUserId?: string | null;
-}
-
-interface WatchingUpdate {
-  listing: Listing;
-  watching: boolean;
 }
 
 type Tab = "uploaded" | "watching";
@@ -42,10 +39,11 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
   }
   const watching = watchlist.listings;
 
-  usePusherEvent<WatchingUpdate>(
+  usePusherEvent<WatchingUpdateEvent>(
     currentUserId ? `user-${currentUserId}-watching` : null,
     "watching-update",
-    ({ listing, watching: isWatching }) => {
+    ({ listing: payload, watching: isWatching }) => {
+      const listing = deserializeListing(payload);
       setWatchlist((current) => ({
         ...current,
         listings: !isWatching

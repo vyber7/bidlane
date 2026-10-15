@@ -123,8 +123,8 @@ describe("POST /api/auction-start", () => {
       `listing-${listingId}`,
       "auction-started",
       expect.objectContaining({
-        auctionStartsAt: now,
-        auctionEndsAt: new Date(endTime),
+        auctionStartsAt: now.toISOString(),
+        auctionEndsAt: endTime,
       })
     );
   });

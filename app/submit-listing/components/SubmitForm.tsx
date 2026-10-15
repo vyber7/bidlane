@@ -1,12 +1,22 @@
 "use client";
 
-import { FieldValues, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { useEffect, useRef, useState } from "react";
 import { CldImage, CldUploadWidget } from "next-cloudinary";
 import { useRouter } from "next/navigation";
 import { MAX_LISTING_NUMBER, MAX_LISTING_PHOTOS, validateListing } from "@/app/libs/listing-validation";
+import type { ListingDetailsFormValues } from "@/app/types/forms";
+
+type ListingField = { label: string } & (
+  | { id: "make" | "model" | "location"; type?: "text"; placeholder: string; min?: never; max?: never }
+  | { id: "year" | "miles" | "reservePrice"; type: "number"; min: number; max: number; placeholder?: never }
+);
+
+const initialDetails: ListingDetailsFormValues = {
+  make: "", model: "", year: "", miles: "", reservePrice: "", location: "", description: "",
+};
 
 const steps = ["Vehicle details", "Photos", "Preview"];
 const primary = "rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50";
@@ -15,14 +25,14 @@ const secondary = "rounded-lg border border-slate-300 px-4 py-3 text-sm font-sem
 export default function SubmitForm() {
   const [step, setStep] = useState(0);
   const [images, setImages] = useState<string[]>([]);
-  const [details, setDetails] = useState<FieldValues>({});
+  const [details, setDetails] = useState<ListingDetailsFormValues>(initialDetails);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const submitting = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors } } = useForm<FieldValues>({
-    defaultValues: { make: "", model: "", year: "", miles: "", reservePrice: "", location: "", description: "" },
+  const { register, handleSubmit, formState: { errors } } = useForm<ListingDetailsFormValues>({
+    defaultValues: initialDetails,
   });
   useEffect(() => { heading.current?.focus(); }, [step]);
   const changeStep = (next: number) => { setError(""); setStep(next); };
@@ -36,7 +46,7 @@ export default function SubmitForm() {
     setIsLoading(true);
     setError("");
     try {
-      const response = await axios.post("/api/new-listing", { data });
+      const response = await axios.post<{ id: string }>("/api/new-listing", { data });
       toast.success("Listing submitted successfully!");
       router.push(`/listing/${response.data.id}`);
       router.refresh();
@@ -46,6 +56,15 @@ export default function SubmitForm() {
       setIsLoading(false);
     }
   }
+
+  const fields: ListingField[] = [
+    { id: "make", label: "Make", placeholder: "e.g. Porsche" },
+    { id: "model", label: "Model", placeholder: "e.g. 911 Carrera" },
+    { id: "year", label: "Year", type: "number", min: 1886, max: new Date().getFullYear() + 1 },
+    { id: "miles", label: "Mileage", type: "number", min: 0, max: MAX_LISTING_NUMBER },
+    { id: "reservePrice", label: "Reserve price in USD (optional)", type: "number", min: 0, max: MAX_LISTING_NUMBER },
+    { id: "location", label: "Location", placeholder: "City, State" },
+  ];
 
   const title = `${details.year || ""} ${details.make || ""} ${details.model || ""}`.trim();
   return (
@@ -58,20 +77,20 @@ export default function SubmitForm() {
       {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <form hidden={step !== 0} onSubmit={handleSubmit((data) => { setDetails(data); changeStep(1); })}>
         <div className="grid gap-5 sm:grid-cols-2">
-          {[{ id: "make", label: "Make", placeholder: "e.g. Porsche" }, { id: "model", label: "Model", placeholder: "e.g. 911 Carrera" }, { id: "year", label: "Year", type: "number", min: 1886, max: new Date().getFullYear() + 1 }, { id: "miles", label: "Mileage", type: "number", min: 0, max: MAX_LISTING_NUMBER }, { id: "reservePrice", label: "Reserve price in USD (optional)", type: "number", min: 0, max: MAX_LISTING_NUMBER }, { id: "location", label: "Location", placeholder: "City, State" }].map((field) => (
+          {fields.map((field) => (
             <div key={field.id}>
               <label htmlFor={field.id} className="mb-2 block text-sm font-semibold">{field.label}</label>
               <input id={field.id} type={field.type || "text"} min={field.min} max={field.max} step={field.type === "number" ? 1 : undefined} placeholder={field.placeholder} aria-invalid={!!errors[field.id]} aria-describedby={errors[field.id] ? `${field.id}-error` : undefined}
-                {...register(field.id, { validate: (value) => field.id === "reservePrice" || String(value).trim().length > 0 || `${field.label} is required.`, ...(field.type === "number" ? { min: { value: field.min!, message: `Minimum value is ${field.min}.` }, max: { value: field.max!, message: `Maximum value is ${field.max}.` } } : {}) })}
+                {...register(field.id, { validate: (value) => field.id === "reservePrice" || value.trim().length > 0 || `${field.label} is required.`, ...(field.type === "number" ? { min: { value: field.min, message: `Minimum value is ${field.min}.` }, max: { value: field.max, message: `Maximum value is ${field.max}.` } } : {}) })}
                 className="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500" />
-              {errors[field.id] && <p id={`${field.id}-error`} className="mt-1 text-sm text-red-600">{String(errors[field.id]?.message)}</p>}
+              {errors[field.id] && <p id={`${field.id}-error`} className="mt-1 text-sm text-red-600">{errors[field.id]?.message}</p>}
             </div>
           ))}
         </div>
         <p className="mt-3 text-xs text-slate-500">Leave the reserve blank to list without a minimum sale price.</p>
         <label htmlFor="description" className="mb-2 mt-6 block text-sm font-semibold">Description</label>
         <textarea id="description" rows={6} placeholder="Describe the condition, service history, modifications, and any known issues." {...register("description", { validate: (value) => !!value.trim() || "Please add a description." })} aria-invalid={!!errors.description} aria-describedby={errors.description ? "description-error" : undefined} className="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500" />
-        {errors.description && <p id="description-error" className="text-sm text-red-600">{String(errors.description.message)}</p>}
+        {errors.description && <p id="description-error" className="text-sm text-red-600">{errors.description.message}</p>}
         <div className="mt-6 flex justify-end"><button type="submit" className={primary}>Continue to photos →</button></div>
       </form>
       {step === 1 && <>

@@ -4,17 +4,7 @@ import axios from "axios";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import usePusherEvent from "./usePusherEvent";
-
-interface WatchlistUpdate {
-  listingId: string;
-  userId: string;
-  watching: boolean;
-}
-
-interface WatchlistResponse {
-  listingId: string;
-  watching: boolean;
-}
+import type { WatchlistResponse, WatchlistUpdateEvent } from "@/app/types/auction-events";
 
 export default function useWatchlist({
   listingId,
@@ -28,7 +18,7 @@ export default function useWatchlist({
   const [watching, setWatching] = useState(initialWatching);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  usePusherEvent<WatchlistUpdate>(
+  usePusherEvent<WatchlistUpdateEvent>(
     userId ? `listing-${listingId}` : null,
     "watchlist-update",
     (update) => {

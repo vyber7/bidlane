@@ -3,11 +3,8 @@ import { Listing } from "@prisma/client";
 import { useState } from "react";
 import AccountListingBox from "./AccountListingBox";
 import usePusherEvent from "@/app/hooks/usePusherEvent";
-
-interface WatchingUpdate {
-  listing: Listing;
-  watching: boolean;
-}
+import type { WatchingUpdateEvent } from "@/app/types/auction-events";
+import { deserializeListing } from "@/app/utils/listing-serialization";
 
 interface WatchingListingsProps {
   initialListings: Listing[];
@@ -20,10 +17,11 @@ const WatchingListings: React.FC<WatchingListingsProps> = ({
 }) => {
   const [watchingListings, setWatchingListings] =
     useState<Listing[]>(initialListings);
-  usePusherEvent<WatchingUpdate>(
+  usePusherEvent<WatchingUpdateEvent>(
     currentUserId ? `user-${currentUserId}-watching` : null,
     "watching-update",
-    ({ listing, watching }) => {
+    ({ listing: payload, watching }) => {
+      const listing = deserializeListing(payload);
       setWatchingListings((current) => {
         if (!watching) {
           return current.filter((item) => item.id !== listing.id);
@@ -53,7 +51,7 @@ const WatchingListings: React.FC<WatchingListingsProps> = ({
               listing={listing}
               currentUserId={currentUserId}
               watching={
-                listing.watchersIds.includes(currentUserId as string)
+                Boolean(currentUserId && listing.watchersIds.includes(currentUserId))
                   ? true
                   : false
               }

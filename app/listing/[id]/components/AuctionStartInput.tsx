@@ -1,15 +1,16 @@
 "use client";
 
 import clsx from "clsx";
-import { FieldErrors, FieldValues, UseFormRegister } from "react-hook-form";
+import type { AuctionStartFormValues } from "@/app/types/forms";
+import { FieldErrors, UseFormRegister } from "react-hook-form";
 
 interface AuctionStartInputProps {
-  id: string;
-  register: UseFormRegister<FieldValues>;
+  id: keyof AuctionStartFormValues;
+  register: UseFormRegister<AuctionStartFormValues>;
   type: string;
   required?: boolean;
   placeholder?: string;
-  errors: FieldErrors;
+  errors: FieldErrors<AuctionStartFormValues>;
   label: string;
   disabled?: boolean;
 }
@@ -18,7 +19,7 @@ const AuctionStartInput: React.FC<AuctionStartInputProps> = ({
   id,
   register,
   type,
-  required,
+  required = true,
   placeholder,
   errors,
   label,
@@ -31,7 +32,7 @@ const AuctionStartInput: React.FC<AuctionStartInputProps> = ({
         id={id}
         autoComplete={id}
         type={type}
-        {...register(id, { required })}
+        {...register(id, { required, valueAsNumber: id !== "endTime" })}
         placeholder={placeholder}
         className={clsx(
           `w-full p-2 rounded-md form-input border-gray-300 mb-4 focus:ring focus:ring-gray-500 hover:ring hover:ring-gray-500`,
@@ -40,9 +41,9 @@ const AuctionStartInput: React.FC<AuctionStartInputProps> = ({
         )}
         name={id}
         disabled={disabled}
-        required
+        required={required}
       />
-      {errors[id] && <span>{errors[id].message as string}</span>}
+      {errors[id] && <span>{errors[id]?.message}</span>}
     </div>
   );
 };

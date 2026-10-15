@@ -39,7 +39,7 @@ describe("shared auction views", () => {
     const bid = makeBid();
     const end = new Date(Date.now() + 120000).toISOString();
     mocks.post.mockImplementation((url) => Promise.resolve({
-      data: url === "/api/place-bid" ? { bid, auctionEndsAt: end } : {},
+      data: url === "/api/place-bid" ? { bid, currentBid: bid.amount, auctionEndsAt: end } : {},
     }));
     render(
       <AuctionProvider listing={listing} bids={[]} comments={[]}>
@@ -103,5 +103,88 @@ describe("shared auction views", () => {
     expect(screen.getByText("$12,000")).toBeDefined();
     rerender(<ListingsDashboard uploaded={[]} initialWatching={[{ ...listing, currentBid: 15000 }]} currentUserId="buyer" />);
     expect(screen.getByText("$15,000")).toBeDefined();
+  });
+
+  it.each([null, "", "   "])("uses safe seller and bidder labels for a missing name (%s)", (name) => {
+    const bid = makeBid({ user: { name } });
+    const listing = makeListing({ currentBid: bid.amount, highestBidderId: bid.userId });
+    render(
+      <AuctionProvider listing={listing} bids={[bid]} comments={[]}>
+        <Bids sellerName={name} currentUserId="buyer" />
+      </AuctionProvider>
+    );
+    expect(screen.getAllByText("Seller")).toHaveLength(2);
+    expect(screen.getByText("Bidder")).toBeDefined();
+    expect(screen.getByText("$12,000")).toBeDefined();
+  });
+
+  it("renders an auction winner when the winning bid record is unavailable", () => {
+    render(
+      <AuctionProvider listing={makeListing({ status: "ENDED", result: "SOLD", currentBid: 12000, highestBidderId: "missing-bidder" })} bids={[]} comments={[]}>
+        <Bids />
+      </AuctionProvider>
+    );
+    expect(screen.getByText("Sold to Bidder, congratulations!")).toBeDefined();
+    expect(screen.queryByRole("spinbutton")).toBeNull();
+  });
+
+  it.each([null, "", "   "])("renders anonymous comments safely for a missing author name (%s)", (name) => {
+    render(
+      <AuctionProvider listing={makeListing()} bids={[]} comments={[makeComment({ user: { name } })]}>
+        <Comments />
+      </AuctionProvider>
+    );
+    expect(screen.getByText("User")).toBeDefined();
+    expect(screen.getByText("Service history?")).toBeDefined();
+  });
+
+  it("renders comments whose author record has been removed", () => {
+    render(
+      <AuctionProvider listing={makeListing()} bids={[]} comments={[makeComment({ user: null })]}>
+        <Comments />
+      </AuctionProvider>
+    );
+    expect(screen.getByText("User")).toBeDefined();
+  });
+
+  it.each(["startingBid", "bidIncrement", "auctionStartsAt", "auctionEndsAt"] as const)("disables bidding when %s is absent", async (field) => {
+    render(
+      <AuctionProvider listing={makeListing({ [field]: null })} bids={[]} comments={[]}>
+        <Bids currentUserId="buyer" />
+      </AuctionProvider>
+    );
+    const input = screen.getByRole("spinbutton", { name: "Your bid amount in dollars" });
+    expect(input).toHaveProperty("disabled", true);
+    expect(input).toHaveProperty("min", "");
+    expect(screen.getByText("Bidding is unavailable until the auction is configured.")).toBeDefined();
+    await act(async () => { fireEvent.submit(input.closest("form")!); });
+    expect(mocks.post).not.toHaveBeenCalled();
+  });
+
+  it("renders absent prices and deadlines without inventing zero values or epoch dates", () => {
+    render(
+      <AuctionProvider listing={makeListing({ startingBid: null, bidIncrement: null, auctionEndsAt: null })} bids={[]} comments={[]}>
+        <Bids />
+      </AuctionProvider>
+    );
+    expect(screen.getByText("—")).toBeDefined();
+    expect(screen.getByText("To be announced")).toBeDefined();
+    expect(screen.queryByText("$0")).toBeNull();
+  });
+
+  it("preserves a valid zero-dollar starting bid", () => {
+    render(
+      <AuctionProvider listing={makeListing({ startingBid: 0 })} bids={[]} comments={[]}>
+        <Bids currentUserId="buyer" />
+      </AuctionProvider>
+    );
+    expect(screen.getByText("$0")).toBeDefined();
+    expect(screen.getByRole("spinbutton")).toHaveProperty("min", "0");
+    expect(screen.getByRole("spinbutton")).toHaveProperty("disabled", false);
+  });
+
+  it("renders listing cards safely before a starting price has been configured", () => {
+    render(<ListingBox listing={makeListing({ startingBid: null })} />);
+    expect(screen.getByText("To be announced")).toBeDefined();
   });
 });

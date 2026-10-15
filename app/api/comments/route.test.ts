@@ -66,6 +66,7 @@ describe("POST /api/comments", () => {
       })
     );
     const payload = mocks.trigger.mock.calls[0][2];
+    expect(payload.createdAt).toBe("2026-09-10T12:00:00.000Z");
     expect(payload.user).toEqual({ name: "Driver" });
     expect(payload.user).not.toHaveProperty("hashedPassword");
     await expect(response.json()).resolves.toEqual({

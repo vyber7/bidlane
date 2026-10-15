@@ -1,5 +1,5 @@
 import type { Listing } from "@prisma/client";
-import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
+import type { BidEvent, CommentEvent } from "@/app/types/auction-events";
 
 export const auctionNow = new Date("2026-10-14T12:00:00.000Z");
 
@@ -38,7 +38,7 @@ export function makeListing(overrides: Partial<Listing> = {}): Listing {
   };
 }
 
-export function makeBid(overrides: Partial<BidWithAuthor> = {}): BidWithAuthor {
+export function makeBid(overrides: Partial<BidEvent> = {}): BidEvent {
   return {
     id: "bid-1",
     listingId: makeListing().id,
@@ -50,7 +50,7 @@ export function makeBid(overrides: Partial<BidWithAuthor> = {}): BidWithAuthor {
   };
 }
 
-export function makeComment(overrides: Partial<CommentWithAuthor> = {}): CommentWithAuthor {
+export function makeComment(overrides: Partial<CommentEvent> = {}): CommentEvent {
   return {
     id: "comment-1",
     listingId: makeListing().id,

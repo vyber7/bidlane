@@ -92,7 +92,7 @@ describe("auction state reconciliation", () => {
       initialProps: { listing, bids: [] as BidWithAuthor[] },
     });
     const bid = makeBid();
-    act(() => result.current.acceptBid({ bid, auctionEndsAt: new Date(Date.now() + 120000).toISOString() }));
+    act(() => result.current.acceptBid({ bid, currentBid: bid.amount, auctionEndsAt: new Date(Date.now() + 120000).toISOString() }));
     expect(result.current.listing.currentBid).toBe(bid.amount);
     expect(result.current.remainingMs).toBe(120000);
     emit("new-bid", bid);

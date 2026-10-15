@@ -4,6 +4,14 @@ import type { Listing } from "@prisma/client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
+import type {
+  AcceptedBidResponse,
+  AuctionEndTimeEvent,
+  AuctionStartedEvent,
+  AuctionEndedEvent,
+  BidEvent,
+  CommentEvent,
+} from "@/app/types/auction-events";
 import useCountDown from "./useCountDown";
 import usePusherEvent from "./usePusherEvent";
 
@@ -11,18 +19,6 @@ interface AuctionSnapshot {
   listing: Listing;
   bids: BidWithAuthor[];
   comments: CommentWithAuthor[];
-}
-
-interface AuctionStarted {
-  auctionStartsAt: string;
-  auctionEndsAt: string;
-  startingBid: number;
-  bidIncrement: number;
-}
-
-export interface AcceptedBid {
-  bid: BidWithAuthor;
-  auctionEndsAt: string;
 }
 
 const emptyBids: BidWithAuthor[] = [];
@@ -124,14 +120,14 @@ export default function useAuction(
   }
 
   const channel = `listing-${listing.id}`;
-  usePusherEvent<BidWithAuthor>(channel, "new-bid", (bid) => {
+  usePusherEvent<BidEvent>(channel, "new-bid", (bid) => {
     receiveBid(bid);
     router.refresh();
   });
-  usePusherEvent<{ newEndTime: string }>(channel, "new-end-time", ({ newEndTime }) => {
+  usePusherEvent<AuctionEndTimeEvent>(channel, "new-end-time", ({ newEndTime }) => {
     updateListing({ auctionEndsAt: new Date(newEndTime) });
   });
-  usePusherEvent<AuctionStarted>(channel, "auction-started", (event) => {
+  usePusherEvent<AuctionStartedEvent>(channel, "auction-started", (event) => {
     updateListing({
       ...event,
       status: "LIVE",
@@ -140,11 +136,11 @@ export default function useAuction(
     });
     router.refresh();
   });
-  usePusherEvent<{ result: string; auctionEndsAt: string }>(channel, "auction-ended", (event) => {
+  usePusherEvent<AuctionEndedEvent>(channel, "auction-ended", (event) => {
     updateListing({ status: "ENDED", result: event.result, auctionEndsAt: new Date(event.auctionEndsAt) });
     router.refresh();
   });
-  usePusherEvent<CommentWithAuthor>(bids === emptyBids && comments === emptyComments ? null : channel, "new-comment", (comment) => {
+  usePusherEvent<CommentEvent>(bids === emptyBids && comments === emptyComments ? null : channel, "new-comment", (comment) => {
     receiveComment(comment);
     router.refresh();
   });
@@ -156,7 +152,7 @@ export default function useAuction(
   return {
     ...state.current,
     ...useCountDown(state.current.listing.status === "LIVE" ? state.current.listing.auctionEndsAt : null),
-    acceptBid: ({ bid, auctionEndsAt }: AcceptedBid) => receiveBid(bid, auctionEndsAt),
+    acceptBid: ({ bid, auctionEndsAt }: AcceptedBidResponse) => receiveBid(bid, auctionEndsAt),
     acceptComment: receiveComment,
   };
 }

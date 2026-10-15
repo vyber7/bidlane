@@ -8,6 +8,11 @@ export function capitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+export function formatDisplayName(name: string | null | undefined, fallback = "User") {
+  const trimmed = name?.trim();
+  return trimmed ? capitalize(trimmed) : fallback;
+}
+
 //format date to MM/DD/YYYY
 export function formatDate(date: Date) {
   const d = new Date(date);

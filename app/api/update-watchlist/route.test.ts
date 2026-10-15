@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { makeListing } from "@/app/test/auction-fixtures";
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
@@ -28,7 +29,7 @@ vi.mock("@/app/libs/logger", () => ({
 import { POST } from "./route";
 
 const listingId = "abcdef0123456789abcdef01";
-const listing = { id: listingId, make: "Porsche", watchersIds: [] };
+const listing = makeListing({ id: listingId });
 
 function request(body: unknown) {
   return new Request("http://localhost/api/update-watchlist", {
@@ -79,6 +80,17 @@ describe("POST /api/update-watchlist", () => {
       `listing-${listingId}`,
       "watchlist-update",
       { listingId, userId: "user-1", watching }
+    );
+    expect(mocks.trigger).toHaveBeenCalledWith(
+      `user-user-1-watching`,
+      "watching-update",
+      expect.objectContaining({
+        listing: expect.objectContaining({
+          createdAt: listing.createdAt.toISOString(),
+          auctionEndsAt: listing.auctionEndsAt?.toISOString(),
+        }),
+        watching,
+      })
     );
   });
 
