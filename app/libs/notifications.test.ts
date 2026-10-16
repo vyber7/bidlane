@@ -66,4 +66,15 @@ describe("notification events", () => {
     expect(mocks.trigger).toHaveBeenCalledExactlyOnceWith("private-user-buyer", "notifications-changed", {});
     expect(mocks.warn).toHaveBeenCalledWith("notification.live_update_failed", {});
   });
+
+  it("queues outbid email atomically without requeuing it on an event replay", async () => {
+    const upsert = vi.fn();
+    const tx = { notification: { upsert } } as unknown as Parameters<typeof saveNotifications>[0];
+    const events = outbidNotifications(makeListing({ highestBidderId: "previous" }), { ...makeBid(), createdAt: auctionNow });
+    await saveNotifications(tx, events);
+    await saveNotifications(tx, events);
+    expect(upsert).toHaveBeenCalledTimes(2);
+    expect(upsert.mock.calls[0][0]).toMatchObject({ create: { emailListingId: makeListing().id, emailStatus: "PENDING", emailNextAttemptAt: expect.any(Date) }, update: {} });
+    expect(upsert.mock.calls[1][0].update).toEqual({});
+  });
 });

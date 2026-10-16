@@ -33,14 +33,15 @@ model Account {
 }
 
 model User {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
-  name           String?
-  email          String?   @unique
-  emailVerified  DateTime?
-  image          String?
-  hashedPassword String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+  name                String?
+  email               String?   @unique
+  emailVerified       DateTime?
+  image               String?
+  hashedPassword      String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  outbidEmailsEnabled Boolean   @default(true)
 
   listingsCommentedOnIds String[]  @db.ObjectId
   listingsCommentedOn    Listing[] @relation(name: "commentedOn", fields: [listingsCommentedOnIds], references: [id])
@@ -65,7 +66,7 @@ model User {
   highestBidsIds String[]  @db.ObjectId
   highestBids    Listing[] @relation(name: "highestBidder")
 
-  bids Bid[]
+  bids          Bid[]
   notifications Notification[]
 }
 
@@ -81,23 +82,44 @@ enum NotificationTone {
   neutral
 }
 
+enum EmailDeliveryStatus {
+  PENDING
+  SENDING
+  SENT
+  SKIPPED
+  FAILED
+}
+
 model Notification {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String    @db.ObjectId
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  eventKey    String
-  kind        NotificationKind
-  title       String
-  message     String
-  href        String
-  actionLabel String
-  tone        NotificationTone
-  createdAt   DateTime  @default(now())
-  readAt      DateTime?
+  id                  String               @id @default(auto()) @map("_id") @db.ObjectId
+  userId              String               @db.ObjectId
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventKey            String
+  kind                NotificationKind
+  title               String
+  message             String
+  href                String
+  actionLabel         String
+  tone                NotificationTone
+  createdAt           DateTime             @default(now())
+  readAt              DateTime?
+  emailListingId      String?              @db.ObjectId
+  emailStatus         EmailDeliveryStatus?
+  emailAttempts       Int                  @default(0)
+  emailNextAttemptAt  DateTime?
+  emailLockedUntil    DateTime?
+  emailLockToken      String?
+  emailFirstAttemptAt DateTime?
+  emailPayload        Json?
+  emailSentAt         DateTime?
+  emailProviderId     String?
+  emailLastError      String?
 
   @@unique([userId, eventKey])
   @@index([userId, createdAt, id])
   @@index([userId, readAt])
+  @@index([emailStatus, emailNextAttemptAt])
+  @@index([emailStatus, emailLockedUntil])
 }
 
 model Listing {

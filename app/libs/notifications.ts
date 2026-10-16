@@ -8,6 +8,7 @@ export type NotificationDraft = Omit<AccountNotification, "id" | "createdAt" | "
   userId: string;
   eventKey: string;
   createdAt: Date;
+  emailListingId?: string;
 };
 const vehicleName = (listing: Vehicle) => `${listing.year} ${listing.make} ${listing.model}`;
 
@@ -16,7 +17,7 @@ export function outbidNotifications(listing: Vehicle & Pick<Listing, "highestBid
   return [{
     userId: listing.highestBidderId, eventKey: `outbid:${bid.id}`, kind: "bid",
     title: "You’ve been outbid", message: `Another bidder has taken the lead on the ${vehicleName(listing)}. There’s still time to bid again.`,
-    href: `/listing/${listing.id}#bids`, actionLabel: "Bid again", tone: "warning", createdAt: bid.createdAt,
+    href: `/listing/${listing.id}#bids`, actionLabel: "Bid again", tone: "warning", createdAt: bid.createdAt, emailListingId: listing.id,
   }];
 }
 
@@ -64,7 +65,7 @@ export async function saveNotifications(tx: Pick<Prisma.TransactionClient, "noti
   for (const item of notifications) {
     await tx.notification.upsert({
       where: { userId_eventKey: { userId: item.userId, eventKey: item.eventKey } },
-      create: { ...item, readAt: null }, update: {},
+      create: { ...item, readAt: null, ...(item.emailListingId && { emailStatus: "PENDING", emailNextAttemptAt: new Date() }) }, update: {},
     });
   }
   return [...new Set(notifications.map((item) => item.userId))];

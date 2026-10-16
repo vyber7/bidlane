@@ -216,7 +216,7 @@ describe("POST /api/place-bid", () => {
     expect((await POST(request({ listingId, bidAmount: 1000 }))).status).toBe(201);
     expect(mocks.notificationUpsert).toHaveBeenCalledWith({
       where: { userId_eventKey: { userId: "previous", eventKey: "outbid:bid-1" } },
-      create: expect.objectContaining({ userId: "previous", title: "You’ve been outbid", readAt: null }), update: {},
+      create: expect.objectContaining({ userId: "previous", title: "You’ve been outbid", readAt: null, emailListingId: listingId, emailStatus: "PENDING", emailNextAttemptAt: expect.any(Date) }), update: {},
     });
     expect(mocks.trigger).toHaveBeenCalledWith("private-user-previous", "notifications-changed", {});
   });

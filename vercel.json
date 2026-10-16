@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/finalize-auctions",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/send-notification-emails",
+      "schedule": "* * * * *"
     }
   ]
 }

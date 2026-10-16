@@ -62,6 +62,10 @@ PUSHER_SECRET="your-app-secret"
 # Authenticates scheduled auction finalization
 CRON_SECRET="replace-with-another-random-secret"
 
+# Optional: outbid emails through Resend
+RESEND_API_KEY="re_your-api-key"
+EMAIL_FROM="BidLane <alerts@your-verified-domain.com>"
+
 # GitHub OAuth
 GITHUB_ID="your-github-client-id"
 GITHUB_SECRET="your-github-client-secret"
@@ -183,7 +187,19 @@ Outbid alerts, auction results for sellers and bidders, watched-auction starts, 
 
 The inbox loads 50 records at a time and stores read timestamps on the server. “Mark all as read” applies through the newest event currently shown, leaving newer arrivals unread. The header and inbox refresh on private Pusher events, reconnect, window focus, and every 30 seconds while the page is visible. Live delivery failures do not discard saved notifications or fail a committed bid or result.
 
-Apply the schema with `npx prisma db push` before deploying this feature; this creates the `Notification` collection and its unique and query indexes. Notifications are recorded for new events after deployment. Previously generated activity cards and browser-local read receipts are not imported. Email delivery is a separate follow-up.
+Apply the schema with `npx prisma db push` before deploying this feature; this creates the `Notification` collection and its unique and query indexes. Notifications are recorded for new events after deployment. Previously generated activity cards and browser-local read receipts are not imported.
+
+### Outbid email delivery
+
+Configure a [Resend](https://resend.com/docs/api-reference/emails/send-email) API key and a sender on a verified domain using `RESEND_API_KEY` and `EMAIL_FROM`. `NEXTAUTH_URL` supplies the public origin for auction and preference links; use HTTPS in production. Never use a `NEXT_PUBLIC_` variable for the API key. Without this configuration the worker returns `503` and leaves the email queue untouched.
+
+New outbid events enter the email queue in the same transaction as the bid and in-app notification. The second schedule in `vercel.json` calls `/api/cron/send-notification-emails` every minute, independently of auction finalization. It uses the existing `CRON_SECRET` bearer header, processes up to 20 records within a 40-second work budget, and returns `checked`, `sent`, `skipped`, `retried`, `failed`, and `hasMore`. Typical notification latency is up to a scheduler interval plus provider processing. On other hosts, schedule this endpoint alongside the finalization endpoint. Local development requires an explicit authenticated request to exercise the worker.
+
+Outbid emails are enabled by default and can be disabled under **Account → Notifications → Email notifications**. The worker checks that preference before sending, including queued retries. Before a first attempt it also skips missing recipients, already-read alerts, closed or expired auctions, and bidders who have regained the lead. Only outbid alerts are emailed; other notification types remain in the inbox.
+
+Workers claim records with a two-minute lease. Before contacting Resend, the worker saves an immutable message payload and uses `outbid/<notification-id>` as its [idempotency key](https://resend.com/docs/dashboard/emails/idempotency-keys). Retried requests retain the original recipient and content; a changed recipient address cancels the queued message. Temporary failures retry with exponential delays from one minute to 30 minutes, honoring longer provider retry delays up to an hour, with at most eight claimed attempts. Rate-limit and authorization errors pause the rest of the batch. To stay inside Resend’s 24-hour duplicate-protection window, previously attempted messages stop retrying after 23 hours. A crashed worker can resume using the same request without creating a new event or key.
+
+Delivery state is stored on the notification (`emailStatus`, attempt count, next attempt time, provider ID, and a sanitized failure code). `SENT` means Resend accepted the request; this feature does not consume delivery/bounce webhooks. Retries use the original message, so an alert first attempted while an auction was live may arrive after its status changes. Failed or skipped mail does not remove the in-app notification. No historical email backfill runs during deployment.
 
 Authenticated endpoints:
 
@@ -192,6 +208,7 @@ Authenticated endpoints:
 | `/api/notifications` | GET | Current account's paginated inbox; `view=unread` filters unread records; `cursor=<id>` loads older events; `summary=1` returns only account ID and unread count |
 | `/api/notifications` | PATCH | Mark owned records read using `{ "ids": ["<id>"] }`, or mark older records using `{ "all": true, "before": "<ISO timestamp>" }` |
 | `/api/pusher/auth` | POST | Authorize the signed-in account's `private-user-<id>` channel; accepts Pusher's form-encoded `socket_id` and `channel_name` |
+| `/api/account/notification-preferences` | PATCH | Save the current account’s `{ "outbidEmailsEnabled": true/false }` preference |
 
 ## Deployment
 
@@ -199,7 +216,7 @@ Authenticated endpoints:
 2. Ensure the deployment can reach MongoDB, Cloudinary, and Pusher.
 3. Build the app with `npm run build`, which generates the Prisma client before running the Next.js production build. On Vercel, use `npm run build` as the Build Command. Synchronize reviewed schema changes with the target database using `npx prisma db push`.
 4. On a Node.js host, run `npm start` to serve the build.
-5. Configure scheduled finalization. For Vercel, use the included schedule and a plan that supports its one-minute frequency. On another host, schedule an authenticated GET request to `/api/cron/finalize-auctions` every minute.
+5. Configure both scheduled jobs. For Vercel, use the included schedules and a plan that supports their one-minute frequency. On another host, schedule authenticated GET requests to `/api/cron/finalize-auctions` and `/api/cron/send-notification-emails` every minute. Configure Resend and apply the updated Prisma schema before enabling email delivery.
 
 Local development does not run the Vercel schedule automatically. To exercise the cron route locally, send the same authenticated GET request using your configured `CRON_SECRET`.
 
@@ -211,6 +228,8 @@ Local development does not run the Vercel schedule automatically. To exercise th
 - **Live updates are missing:** Verify the Pusher app credentials and the `us2` cluster setting in both client and server configuration.
 - **OAuth sign-in fails:** Check provider credentials and the callback URL for the current origin.
 - **Auctions remain live after expiry:** Check the scheduler and its authorization header. The cron endpoint returns `401` when `CRON_SECRET` is absent or the header does not match.
+- **Outbid emails are missing:** Check Resend credentials, verified sender, `NEXTAUTH_URL`, the email scheduler, and the account’s email preference. Inspect notification delivery fields with Prisma Studio: `PENDING` waits for its next attempt, `SENDING` has a recoverable lease, and `FAILED`/`SKIPPED` retain a reason code. A successful provider request is not proof of inbox delivery; inspect the Resend dashboard for delivery and bounce status.
+- **Editor cannot load the Vercel schema:** `https://openapi.vercel.sh/vercel.json` is the official schema URL and is reachable from this development environment. Check editor network/proxy access and retry the JSON schema download. The current upstream schema also declares draft-04 while using numeric `exclusiveMinimum` from later drafts; strict draft-04 validators reject that schema, which may explain some editor warnings. The current configuration passes its constraints when evaluated with draft-07 keyword semantics.
 
 ## License
 

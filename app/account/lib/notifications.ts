@@ -13,6 +13,7 @@ export async function getNotificationFeed(userId: string, { cursor, unreadOnly =
         ...(anchor && { OR: [{ createdAt: { lt: anchor.createdAt } }, { createdAt: anchor.createdAt, id: { lt: anchor.id } }] }),
       },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 51,
+      select: { id: true, kind: true, title: true, message: true, createdAt: true, readAt: true, href: true, actionLabel: true, tone: true },
     }),
     prisma.notification.count({ where: { userId } }),
     prisma.notification.count({ where: { userId, readAt: null } }),
