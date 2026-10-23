@@ -17,6 +17,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { FiArrowLeft, FiMapPin } from "react-icons/fi";
+import VehicleHistory from "@/app/components/VehicleHistory";
+import { vehicleSpecificationFields } from "@/app/libs/vehicle-details";
 
 export const metadata: Metadata = {
   title: "BidLane | Vehicle Auction",
@@ -68,8 +70,8 @@ const Listing = async (props: Params) => {
               <section className="rounded-2xl border border-slate-200 bg-white p-6">
                 <h2 className="mb-4 text-lg font-bold tracking-tight">Vehicle at a glance</h2>
                 <dl className="divide-y divide-slate-100 text-sm">
-                  {[["Year", listing.year], ["Make", listing.make], ["Model", listing.model], ["Mileage", `${listing.miles.toLocaleString("en-US")} miles`], ["Location", listing.location]].map(([label, value]) => (
-                    <div key={label} className="flex justify-between gap-4 py-3"><dt className="text-slate-500">{label}</dt><dd className="text-right font-semibold text-slate-900">{value}</dd></div>
+                  {[["Year", listing.year], ["Make", listing.make], ["Model", listing.model], ["Mileage", `${listing.miles.toLocaleString("en-US")} miles`], ["Location", listing.location], ...vehicleSpecificationFields.map(({ id: field, label }) => [label, listing[field]?.trim() || "Not provided"])].map(([label, value]) => (
+                    <div key={label} className="flex justify-between gap-4 py-3"><dt className="shrink-0 text-slate-500">{label}</dt><dd className="min-w-0 break-words text-right font-semibold text-slate-900">{value}</dd></div>
                   ))}
                 </dl>
               </section>
@@ -84,12 +86,14 @@ const Listing = async (props: Params) => {
             <nav aria-label="Listing sections" className="my-8 flex gap-6 overflow-x-auto border-b border-slate-200 pb-4 text-sm font-semibold text-slate-600">
               <a href="#overview" className="hover:text-slate-950">Overview</a>
               <a href="#photos" className="hover:text-slate-950">Photos</a>
+              <a href="#condition" className="whitespace-nowrap hover:text-slate-950">History & condition</a>
               {listing.status !== "UPCOMING" && <a href="#bids" className="hover:text-slate-950">Bidding</a>}
               <a href="#comments" className="whitespace-nowrap hover:text-slate-950">Comments & bids</a>
             </nav>
             <div className="space-y-6">
               {owner && listing.status === "UPCOMING" && <AuctionStartForm listingId={id} />}
               <Description description={listing.description} />
+              <VehicleHistory details={listing} id="condition" />
               {listing.status !== "UPCOMING" && <Bids sellerName={seller?.name} currentUserId={currentUser?.id} />}
               <Comments />
             </div>

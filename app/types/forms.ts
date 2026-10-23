@@ -13,6 +13,12 @@ export interface ListingDetailsFormValues {
   reservePrice: string;
   location: string;
   description: string;
+  transmission: string;
+  drivetrain: string;
+  titleStatus: string;
+  serviceHistory: string;
+  modifications: string;
+  knownFlaws: string;
 }
 
 export interface BidFormValues {

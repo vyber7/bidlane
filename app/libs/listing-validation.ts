@@ -1,4 +1,5 @@
 import { ApiRequestError, isJsonObject } from "@/app/libs/api-request";
+import { MAX_VEHICLE_DISCLOSURE_LENGTH, vehicleDisclosureFields, vehicleSpecificationFields } from "./vehicle-details";
 
 export const MAX_LISTING_PHOTOS = 10;
 export const MAX_LISTING_NUMBER = 2147483647;
@@ -32,6 +33,12 @@ export interface ValidatedListing {
   location: string;
   description: string;
   images: string[];
+  transmission: string;
+  drivetrain: string;
+  titleStatus: string;
+  serviceHistory: string;
+  modifications: string;
+  knownFlaws: string;
 }
 
 function listingText(value: unknown, field: string): string {
@@ -65,6 +72,25 @@ export function parseListing(data: unknown): ValidatedListing {
   const miles = listingNumber(data.miles, "miles");
   const reservePrice = data.reservePrice === "" || data.reservePrice == null
     ? null : listingNumber(data.reservePrice, "reservePrice");
+  const specifications = {} as Pick<ValidatedListing, "transmission" | "drivetrain" | "titleStatus">;
+  for (const field of vehicleSpecificationFields) {
+    const value = data[field.id];
+    if (typeof value !== "string" || !field.options.some((option) => option === value)) {
+      throw new ApiRequestError(400, `Please select a valid ${field.label.toLowerCase()}.`);
+    }
+    specifications[field.id] = value;
+  }
+  const disclosures = {} as Pick<ValidatedListing, "serviceHistory" | "modifications" | "knownFlaws">;
+  for (const field of vehicleDisclosureFields) {
+    const value = data[field.id];
+    if (typeof value !== "string" || !value.trim()) {
+      throw new ApiRequestError(400, `Please provide ${field.label.toLowerCase()}.`);
+    }
+    if (value.trim().length > MAX_VEHICLE_DISCLOSURE_LENGTH) {
+      throw new ApiRequestError(400, `${field.label} must be ${MAX_VEHICLE_DISCLOSURE_LENGTH} characters or fewer.`);
+    }
+    disclosures[field.id] = value.trim();
+  }
   const images = data.images;
   if (!Array.isArray(images) || images.length < 1 || images.length > MAX_LISTING_PHOTOS) {
     throw new ApiRequestError(400, `Please add between 1 and ${MAX_LISTING_PHOTOS} photos.`);
@@ -72,7 +98,7 @@ export function parseListing(data: unknown): ValidatedListing {
   if (!images.every((image: unknown): image is string => isCloudinaryImageUrl(image))) {
     throw new ApiRequestError(400, "Please use uploaded images for your listing.");
   }
-  return { make, model, location, description, year, miles, reservePrice, images };
+  return { make, model, location, description, year, miles, reservePrice, images, ...specifications, ...disclosures };
 }
 
 export function validateListing(data: unknown): string | null {

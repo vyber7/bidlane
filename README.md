@@ -6,7 +6,7 @@ BidLane is a vehicle auction app built with Next.js, React, TypeScript, and Mong
 
 - **Auction browsing:** Share URL-based search, status filters, and sorting by newest, ending soon, bid amount, or mileage; view photo galleries and follow live countdowns.
 - **Live bidding:** Pusher broadcasts bids, auction status changes, comments, and countdown extensions.
-- **Seller tools:** Create listings with reserve prices, manage gallery and cover images, and start auctions with a starting bid, bid increment, and end time.
+- **Seller tools:** Submit vehicle specifications, service history, modifications, and known flaws through a guided details → condition → photos → preview flow; set reserve prices, manage photos, and start auctions with a starting bid, bid increment, and end time.
 - **Accounts:** Email/password registration and sign-in, plus GitHub and Google OAuth.
 - **Personal dashboards:** Manage listings and watchlists, review bids and wins, edit profiles, and view saved auction activity notifications with read status shared across devices and a live unread badge.
 - **Post-auction coordination:** Buyers and sellers can find sold vehicles and counterparty contact details in the shipments dashboard.
@@ -126,6 +126,10 @@ Tests live alongside the implementation as `*.test.ts` or `*.test.tsx` files. AP
 Before changing Next.js code, follow [AGENTS.md](AGENTS.md) and read the relevant guides in `node_modules/next/dist/docs/` for the installed version.
 
 ## Auction lifecycle
+
+New listings require transmission, drivetrain, title status, service history, modifications, and known flaws alongside the existing listing fields. Specifications use the choices in `app/libs/vehicle-details.ts`, including an explicit `Unknown` option. Each disclosure is trimmed and limited to 4,000 characters; sellers must describe unknown history or state “None known” where appropriate. The preview and public listing show these disclosures, and the vehicle summary includes the three specifications. These are seller-reported details, not independent verification.
+
+The six new `Listing` fields are nullable so existing MongoDB documents remain readable and display **Not provided** for missing information. Regenerate the Prisma client with `npx prisma generate` when updating an existing checkout. This change adds no indexes and requires no data backfill; deploying the regenerated client enables reads and writes of the optional MongoDB fields.
 
 1. A submitted listing starts as `UPCOMING`.
 2. Its seller starts the auction, setting a starting bid, bid increment, and future end time. The listing becomes `LIVE`.

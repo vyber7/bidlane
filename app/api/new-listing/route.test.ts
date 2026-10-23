@@ -5,7 +5,7 @@ vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
 vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { create: mocks.create } } }));
 import { POST } from "./route";
 const photo = "https://res.cloudinary.com/demo/image/upload/car.jpg";
-const data = { make: " Porsche ", model: "911", year: "2020", miles: "0", reservePrice: "", location: "Miami, FL", description: "Serviced regularly", images: [photo] };
+const data = { make: " Porsche ", model: "911", year: "2020", miles: "0", reservePrice: "", location: "Miami, FL", description: "Serviced regularly", images: [photo], transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: " Oil service at 42,000 miles. Records available. ", modifications: "None known", knownFlaws: "Stone chips on the hood" };
 const request = (data: unknown) => new Request("http://localhost/api/new-listing", { method: "POST", body: JSON.stringify({ data }) });
 describe("listing submission", () => {
   beforeEach(() => { vi.clearAllMocks(); mocks.user.mockResolvedValue({ id: "seller" }); mocks.create.mockResolvedValue({ id: "listing" }); });
@@ -22,6 +22,23 @@ describe("listing submission", () => {
     const second = photo.replace("car.jpg", "interior.jpg");
     await POST(request({ ...data, images: [second, photo], reservePrice: "5000" }));
     expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ images: [second, photo], coverImage: second, reservePrice: 5000 }) });
+  });
+  it("saves normalized specifications and seller disclosures", async () => {
+    expect((await POST(request(data))).status).toBe(201);
+    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: "Oil service at 42,000 miles. Records available.", modifications: "None known", knownFlaws: "Stone chips on the hood" }) });
+  });
+  it.each([
+    { transmission: "Invalid" }, { drivetrain: null }, { titleStatus: "" },
+    { serviceHistory: " " }, { modifications: 12 }, { knownFlaws: [] },
+    { serviceHistory: "a".repeat(4001) },
+  ])("rejects incomplete or invalid vehicle disclosures", async (change) => {
+    const response = await POST(request({ ...data, ...change }));
+    expect(response.status).toBe(400);
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it("accepts explicit unknown information without inventing a condition claim", async () => {
+    expect((await POST(request({ ...data, transmission: "Unknown", drivetrain: "Unknown", titleStatus: "Unknown", serviceHistory: "History unknown; records unavailable." }))).status).toBe(201);
+    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ transmission: "Unknown", titleStatus: "Unknown", serviceHistory: "History unknown; records unavailable." }) });
   });
   it.each([{ images: [] }, { images: Array(11).fill(photo) }, { images: ["javascript:alert(1)"] }, { make: " " }, { year: "" }, { miles: -1 }, { miles: "1.5" }, { reservePrice: -5 }, { miles: 2147483648 }])("rejects invalid listing %j", async (change) => {
     const response = await POST(request({ ...data, ...change }));

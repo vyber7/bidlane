@@ -131,6 +131,12 @@ model Listing {
   images        String[]
   location      String
   description   String
+  transmission  String?
+  drivetrain    String?
+  titleStatus   String?
+  serviceHistory String?
+  modifications String?
+  knownFlaws    String?
   reservePrice  Int?
   createdAt     DateTime  @default(now())
   lastCommentAt DateTime? @default(now())
