@@ -113,7 +113,7 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
         </div>
         {errors.bidAmount && <p id="bid-error" role="alert" className="mt-2 text-sm text-rose-700">{errors.bidAmount.message}</p>}
       </form>
-      <p className="text-xs leading-5 text-slate-500">Accepted bids in the final two minutes reset the timer to two minutes. A sale requires any reserve to be met. <Link href="/faq#auction-rules" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">Read the auction rules</Link> · <Link href="/faq#fees" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">Payment & costs</Link></p>
+      <p className="text-xs leading-5 text-slate-500">BidLane currently charges no platform fees. Accepted bids in the final two minutes reset the timer to two minutes. A sale requires any reserve to be met. <Link href="/faq#auction-rules" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">Read the auction rules</Link> · <Link href="/faq#fees" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">Payment & costs</Link></p>
       {requestError && <p role="alert" className="text-sm text-rose-700">{requestError}</p>}
       {review && (
         <section aria-labelledby="bid-review-title" aria-busy={isLoading} className="space-y-4 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5">

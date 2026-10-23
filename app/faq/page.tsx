@@ -60,6 +60,11 @@ const faqs = [
       "You can edit the amount before confirming, but you cannot edit or cancel an accepted bid yourself. Confirming commits you to purchase at your bid amount if you win and any reserve is met. If you make an error, contact BidLane support; reporting it does not automatically cancel the bid.",
   },
   {
+    question: "Does BidLane charge any platform fees?",
+    answer:
+      "BidLane currently charges no platform fees: no listing fees, buyer’s premiums, or seller commissions. The winning buyer and seller arrange vehicle payment directly. Inspection, transport, insurance, taxes, and registration are separate costs to agree before completing the sale.",
+  },
+  {
     question: "How does the auction timer work?",
     answer:
       "Each accepted bid with two minutes or less remaining resets the deadline to two minutes after that bid. More late bids can extend it again. Bids received at or after the deadline are rejected. When the countdown reaches zero, bidding closes while the result is finalized.",
@@ -194,7 +199,7 @@ export default function FAQPage() {
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Payment & costs</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Know what you’re agreeing to.</h2>
           <div className="mt-7 grid gap-7 md:grid-cols-2">
-            <div><h3 className="font-bold text-slate-950">Payment in the current app</h3><p className="mt-3 text-sm leading-7 text-slate-600">No payments or platform fees are collected in the current app. A bid records your offer; the winning buyer and seller arrange vehicle payment directly.</p></div>
+            <div><h3 className="font-bold text-slate-950">No platform fees for now</h3><p className="mt-3 text-sm leading-7 text-slate-600">BidLane currently charges no listing fees, buyer’s premiums, or seller commissions. The winning buyer and seller arrange vehicle payment directly; BidLane does not process that payment.</p></div>
             <div><h3 className="font-bold text-slate-950">Costs beyond the winning bid</h3><p className="mt-3 text-sm leading-7 text-slate-600">Inspection, transport, insurance, taxes, and registration may add to the vehicle price. Agree who will handle these costs and the payment arrangements with the other party before completing the sale.</p></div>
           </div>
           <Link href="/contact" className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-slate-900 hover:text-amber-600">Questions about costs? Contact BidLane <FiArrowRight aria-hidden="true" /></Link>
