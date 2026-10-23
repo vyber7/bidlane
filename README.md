@@ -5,10 +5,11 @@ BidLane is a vehicle auction app built with Next.js, React, TypeScript, and Mong
 ## Features
 
 - **Auction browsing:** Share URL-based search, status filters, and sorting by newest, ending soon, bid amount, or mileage; view photo galleries and follow live countdowns.
+- **Home page spotlight:** Feature vehicle photography with live auction, upcoming listing, and past result fallbacks, plus watchlist controls.
 - **Live bidding:** Pusher broadcasts bids, auction status changes, comments, and countdown extensions.
 - **Seller tools:** Submit vehicle specifications, service history, modifications, and known flaws through a guided details → condition → photos → preview flow; set reserve prices, manage photos, and start auctions with a starting bid, bid increment, and end time.
 - **Accounts:** Email/password registration and sign-in, plus GitHub and Google OAuth.
-- **Personal dashboards:** Manage listings and watchlists, review bids and wins, edit profiles, and view saved auction activity notifications with read status shared across devices and a live unread badge.
+- **Personal dashboards:** Manage listings and watchlists, review bids and wins, edit profiles, and view saved auction activity notifications with read status shared across devices and a live unread badge. Optional outbid emails include an account-level opt-out.
 - **Post-auction coordination:** Buyers and sellers can find sold auction results and counterparty contact details under **Account → Purchases & sales**, with guidance for agreeing payment, paperwork, and pickup. The existing `/account/shipments` URL remains valid for saved links and notifications.
 - **Responsive interface:** Tailwind CSS styling for desktop and mobile layouts.
 
@@ -59,7 +60,7 @@ PUSHER_APP_ID="your-app-id"
 NEXT_PUBLIC_PUSHER_APP_KEY="your-app-key"
 PUSHER_SECRET="your-app-secret"
 
-# Authenticates scheduled auction finalization
+# Authenticates scheduled auction finalization and notification email delivery
 CRON_SECRET="replace-with-another-random-secret"
 
 # Optional: outbid emails through Resend
@@ -80,7 +81,7 @@ Generate independent values for `NEXTAUTH_SECRET` and `CRON_SECRET`, for example
 Service configuration:
 
 - **MongoDB:** Allow the development machine to connect and create a database user with access to the configured database.
-- **Pusher:** Create the app in `us2`. To use another cluster, update both client and server configuration in [app/libs/pusher.ts](app/libs/pusher.ts).
+- **Pusher:** Create the app in `us2`. To use another cluster, update both [app/libs/pusher-client.ts](app/libs/pusher-client.ts) and [app/libs/pusher.ts](app/libs/pusher.ts).
 - **Cloudinary:** Create an unsigned upload preset named `auctions`, which the listing and profile upload widgets use.
 - **OAuth:** Configure callback URLs as `http://localhost:3000/api/auth/callback/github` and `http://localhost:3000/api/auth/callback/google`. Credentials sign-in does not require OAuth keys, but both social providers are registered and their buttons require valid provider credentials.
 
@@ -123,11 +124,13 @@ Auction views use `q` for search, `status=live|upcoming|ended` for the home page
 
 Tests live alongside the implementation as `*.test.ts` or `*.test.tsx` files. API and data tests run in Vitest's Node environment; React hook and component tests opt into jsdom. Coverage includes auction transitions, bid validation, finalization, API authorization, data helpers, and live auction state reconciliation after refreshes and missed events.
 
+Run `npm run lint` separately from `npm run build`; the Next.js production build does not run ESLint.
+
 Before changing Next.js code, follow [AGENTS.md](AGENTS.md) and read the relevant guides in `node_modules/next/dist/docs/` for the installed version.
 
 ## Auction lifecycle
 
-New listings require transmission, drivetrain, title status, service history, modifications, and known flaws alongside the existing listing fields. Specifications use the choices in `app/libs/vehicle-details.ts`, including an explicit `Unknown` option. Each disclosure is trimmed and limited to 4,000 characters; sellers must describe unknown history or state “None known” where appropriate. The preview and public listing show these disclosures, and the vehicle summary includes the three specifications. These are seller-reported details, not independent verification.
+New listings require transmission, drivetrain, title status, service history, modifications, and known flaws alongside the existing listing fields, plus 1–10 uploaded photos. Specifications use the choices in `app/libs/vehicle-details.ts`, including an explicit `Unknown` option. Each disclosure is trimmed and limited to 4,000 characters; sellers must describe unknown history or state “None known” where appropriate. The preview and public listing show these disclosures, and the vehicle summary includes the three specifications. These are seller-reported details, not independent verification.
 
 The six new `Listing` fields are nullable so existing MongoDB documents remain readable and display **Not provided** for missing information. Regenerate the Prisma client with `npx prisma generate` when updating an existing checkout. This change adds no indexes and requires no data backfill; deploying the regenerated client enables reads and writes of the optional MongoDB fields.
 
@@ -151,7 +154,7 @@ app/
 ├── actions/         # Server-side data access helpers
 ├── api/             # Route handlers and colocated tests
 ├── components/      # Shared interface components
-├── context/         # Authentication, auction state, and toast providers
+├── context/         # Authentication, auction state, notification, and toast providers
 ├── hooks/           # Countdown, listing, watchlist, and Pusher hooks
 ├── libs/            # Service clients, validation, auction finalization
 ├── listing/[id]/    # Auction detail page and interactions
@@ -160,9 +163,10 @@ app/
 ├── past/            # Past auctions
 ├── submit-listing/  # Vehicle submission
 └── utils/           # Formatting helpers
-prisma/schema.prisma # User, Account, Listing, Bid, and Comment models
+prisma/schema.prisma # User, Account, Listing, Bid, Comment, and Notification models
+proxy.ts             # Authentication for account, submission, and user routes
 public/              # Static assets
-vercel.json          # Scheduled auction finalization
+vercel.json          # Auction finalization and notification email schedules
 vitest.config.ts     # Test configuration
 ```
 
@@ -176,7 +180,7 @@ vitest.config.ts     # Test configuration
 | `/api/new-listing` | POST | Create a vehicle listing |
 | `/api/auction-start` | POST | Start a seller's upcoming auction |
 | `/api/place-bid` | POST | Place a bid on a live auction |
-| `/api/auction-end` | POST | Seller-triggered auction ending |
+| `/api/auction-end` | POST | Seller-triggered finalization after the scheduled end time |
 | `/api/auction-finalize` | POST | Finalize an expired auction |
 | `/api/cron/finalize-auctions` | GET | Finalize expired auctions in a batch |
 | `/api/comments` | POST | Add a listing comment |
@@ -220,11 +224,11 @@ Authenticated endpoints:
 
 ## Deployment
 
-1. Configure the environment variables on the deployment platform. Set `NEXTAUTH_URL` and OAuth callbacks to the production origin.
+1. Configure the environment variables on the deployment platform. Set `NEXTAUTH_URL` and OAuth callbacks to the production origin. Set `NEXT_PUBLIC_` values before building; changes to those values require a rebuild.
 2. Ensure the deployment can reach MongoDB, Cloudinary, and Pusher.
 3. Build the app with `npm run build`, which generates the Prisma client before running the Next.js production build. On Vercel, use `npm run build` as the Build Command. Synchronize reviewed schema changes with the target database using `npx prisma db push`.
 4. On a Node.js host, run `npm start` to serve the build.
-5. Configure both scheduled jobs. For Vercel, use the included schedules and a plan that supports their one-minute frequency. On another host, schedule authenticated GET requests to `/api/cron/finalize-auctions` and `/api/cron/send-notification-emails` every minute. Configure Resend and apply the updated Prisma schema before enabling email delivery.
+5. Configure scheduled auction finalization. For Vercel, the included configuration declares both jobs at one-minute intervals; use a plan that supports that frequency. On another host, schedule authenticated GET requests to `/api/cron/finalize-auctions` every minute. To enable optional outbid emails, configure Resend, apply the updated Prisma schema, and also schedule `/api/cron/send-notification-emails` every minute. If email delivery is disabled, remove its entry from `vercel.json` to avoid scheduled `503` responses.
 
 Local development does not run the Vercel schedule automatically. To exercise the cron route locally, send the same authenticated GET request using your configured `CRON_SECRET`.
 
@@ -237,7 +241,6 @@ Local development does not run the Vercel schedule automatically. To exercise th
 - **OAuth sign-in fails:** Check provider credentials and the callback URL for the current origin.
 - **Auctions remain live after expiry:** Check the scheduler and its authorization header. The cron endpoint returns `401` when `CRON_SECRET` is absent or the header does not match.
 - **Outbid emails are missing:** Check Resend credentials, verified sender, `NEXTAUTH_URL`, the email scheduler, and the account’s email preference. Inspect notification delivery fields with Prisma Studio: `PENDING` waits for its next attempt, `SENDING` has a recoverable lease, and `FAILED`/`SKIPPED` retain a reason code. A successful provider request is not proof of inbox delivery; inspect the Resend dashboard for delivery and bounce status.
-- **Editor cannot load the Vercel schema:** `https://openapi.vercel.sh/vercel.json` is the official schema URL and is reachable from this development environment. Check editor network/proxy access and retry the JSON schema download. The current upstream schema also declares draft-04 while using numeric `exclusiveMinimum` from later drafts; strict draft-04 validators reject that schema, which may explain some editor warnings. The current configuration passes its constraints when evaluated with draft-07 keyword semantics.
 
 ## License
 
