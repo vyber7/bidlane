@@ -1,9 +1,12 @@
 "use client";
 
 import { Listing } from "@prisma/client";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { FiSearch } from "react-icons/fi";
 import Listings from "./Listings";
+import AuctionSearchControls from "./AuctionSearchControls";
+import useAuctionFilters from "@/app/hooks/useAuctionFilters";
+import { filterAndSortAuctions } from "@/app/libs/auction-filters";
 
 interface AuctionSearchBrowserProps {
   listings: Listing[];
@@ -22,33 +25,17 @@ const AuctionSearchBrowser: React.FC<AuctionSearchBrowserProps> = ({
   eyebrow,
   description,
 }) => {
-  const [query, setQuery] = useState("");
+  const { q: query, sort, setQuery, setSort } = useAuctionFilters();
   const hasQuery = query.trim().length > 0;
 
-  const visibleListings = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    if (!normalizedQuery) {
-      return listings;
-    }
-
-    return listings.filter((listing) =>
-      [
-        listing.year,
-        listing.make,
-        listing.model,
-        listing.location,
-        listing.description,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedQuery)
-    );
-  }, [listings, query]);
+  const visibleListings = useMemo(
+    () => filterAndSortAuctions(listings, { q: query, status: "ALL", sort }),
+    [listings, query, sort],
+  );
 
   return (
     <>
-      <div className="flex flex-col gap-5 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-5 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           {eyebrow && (
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-600">
@@ -64,27 +51,23 @@ const AuctionSearchBrowser: React.FC<AuctionSearchBrowserProps> = ({
           >
             {title}
             <span
-              aria-label={`${listings.length} auctions`}
+              aria-label={`${visibleListings.length} auctions`}
               className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold tracking-normal text-amber-800"
             >
-              {listings.length}
+              {visibleListings.length}
             </span>
           </h2>
           {description && (
             <p className="mt-2 text-sm text-slate-500">{description}</p>
           )}
         </div>
-        <label className="relative block w-full max-w-80">
-          <span className="sr-only">Search {auctionType} auctions</span>
-          <FiSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={`Search ${auctionType} auctions`}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
-          />
-        </label>
+        <AuctionSearchControls
+          auctionType={auctionType}
+          query={query}
+          sort={sort}
+          onQueryChange={setQuery}
+          onSortChange={setSort}
+        />
       </div>
 
       {visibleListings.length === 0 && hasQuery ? (

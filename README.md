@@ -4,7 +4,7 @@ BidLane is a vehicle auction app built with Next.js, React, TypeScript, and Mong
 
 ## Features
 
-- **Auction browsing:** Search and filter vehicle listings, view photo galleries, and follow live countdowns.
+- **Auction browsing:** Share URL-based search, status filters, and sorting by newest, ending soon, bid amount, or mileage; view photo galleries and follow live countdowns.
 - **Live bidding:** Pusher broadcasts bids, auction status changes, comments, and countdown extensions.
 - **Seller tools:** Create listings with reserve prices, manage gallery and cover images, and start auctions with a starting bid, bid increment, and end time.
 - **Accounts:** Email/password registration and sign-in, plus GitHub and Google OAuth.
@@ -102,6 +102,8 @@ npm run dev
 ```
 
 Open [localhost:3000](http://localhost:3000). To try bidding, use a second account: sellers cannot bid on their own listings.
+
+Auction views use `q` for search, `status=live|upcoming|ended` for the home page tabs, and `sort=newest|ending-soon|bid-low|bid-high|mileage-low`. For example, `/?status=live&q=Porsche&sort=bid-high#auctions` opens matching live auctions with the highest bids first. Search and sorting also work on `/live/listings`, `/future/listings`, and `/past/listings`, where the route determines the auction status. Missing or unsupported values use all statuses and newest listings. Status and sort changes create browser history entries; typing search updates the current entry. Unknown bid amounts appear last in both bid sort directions, and ending soon puts live auctions with scheduled end times first.
 
 ## Development commands
 

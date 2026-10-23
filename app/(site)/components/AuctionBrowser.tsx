@@ -1,19 +1,20 @@
 "use client";
 
 import { Listing } from "@prisma/client";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { FiCheckCircle, FiClock, FiSearch, FiZap } from "react-icons/fi";
 import Listings from "../../components/Listings";
+import AuctionSearchControls from "@/app/components/AuctionSearchControls";
+import useAuctionFilters from "@/app/hooks/useAuctionFilters";
+import { filterAndSortAuctions, type AuctionStatus } from "@/app/libs/auction-filters";
 
 interface AuctionBrowserProps {
   listings: Listing[];
   currentUserId?: string | null;
 }
 
-type AuctionTab = "ALL" | "LIVE" | "UPCOMING" | "ENDED";
-
 const tabs: {
-  id: AuctionTab;
+  id: AuctionStatus;
   label: string;
   icon: typeof FiCheckCircle;
 }[] = [
@@ -27,8 +28,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
   listings,
   currentUserId,
 }) => {
-  const [activeTab, setActiveTab] = useState<AuctionTab>("ALL");
-  const [query, setQuery] = useState("");
+  const { status: activeTab, q: query, sort, setQuery, setStatus, setSort } = useAuctionFilters();
 
   const counts = useMemo(
     () => ({
@@ -40,31 +40,16 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
     [listings]
   );
 
-  const visibleListings = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    return listings.filter((listing) => {
-      const matchesTab = activeTab === "ALL" || listing.status === activeTab;
-      const searchable = [
-        listing.year,
-        listing.make,
-        listing.model,
-        listing.location,
-        listing.description,
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return matchesTab &&
-        (!normalizedQuery || searchable.includes(normalizedQuery));
-    });
-  }, [activeTab, listings, query]);
+  const visibleListings = useMemo(
+    () => filterAndSortAuctions(listings, { status: activeTab, q: query, sort }),
+    [activeTab, listings, query, sort],
+  );
 
   const activeLabel = tabs.find((tab) => tab.id === activeTab)?.label;
 
   return (
     <>
-      <div className="mt-6 flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mt-6 flex flex-col gap-4 border-b border-slate-200 pb-6 xl:flex-row xl:items-center xl:justify-between">
         <div
           className="grid grid-cols-2 gap-2 sm:flex"
           role="tablist"
@@ -79,7 +64,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => setActiveTab(id)}
+                onClick={() => setStatus(id)}
                 className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-sm font-semibold transition sm:justify-start ${
                   active
                     ? "border-slate-950 bg-slate-950 text-white shadow-sm"
@@ -104,17 +89,13 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
           })}
         </div>
 
-        <label className="relative block w-full lg:w-80">
-          <span className="sr-only">Search {activeLabel} auctions</span>
-          <FiSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={`Search ${activeLabel?.toLowerCase()} auctions`}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
-          />
-        </label>
+        <AuctionSearchControls
+          auctionType={activeLabel ?? "all"}
+          query={query}
+          sort={sort}
+          onQueryChange={setQuery}
+          onSortChange={setSort}
+        />
       </div>
 
       {visibleListings.length > 0 ? (
