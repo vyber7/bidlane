@@ -7,6 +7,7 @@ import Aside from "@/app/submit-listing/components/Aside";
 import getLiveAuctions from "@/app/actions/getLiveAuctions";
 import getBids from "@/app/actions/getBids";
 import AuctionStatusBar from "./components/AuctionStatusBar";
+import MobileAuctionBar from "./components/MobileAuctionBar";
 import AuctionStartForm from "./components/AuctionStartForm";
 import Bids from "./components/Bids";
 import Gallery from "./components/Gallery";
@@ -58,24 +59,28 @@ const Listing = async (props: Params) => {
           </div>
         </header>
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="min-w-0 space-y-6">
+          <div className="min-w-0 lg:col-start-1 lg:row-start-1">
             <CoverImage listingId={id} owner={owner} url={listing.coverImage || undefined} alt={title} />
-            <Gallery key={id} listingId={id} owner={owner} vehicleName={title} initialImages={listing.images} />
           </div>
-          <div className="space-y-5 lg:col-start-2 lg:row-span-2" role="complementary" aria-label="Auction overview">
+          <div className="contents lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:block lg:space-y-5" role="complementary" aria-label="Auction overview">
             <AuctionStatusBar currentUser={currentUser?.id} />
-            <section className="rounded-2xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-4 text-lg font-bold tracking-tight">Vehicle at a glance</h2>
-              <dl className="divide-y divide-slate-100 text-sm">
-                {[["Year", listing.year], ["Make", listing.make], ["Model", listing.model], ["Mileage", `${listing.miles.toLocaleString("en-US")} miles`], ["Location", listing.location]].map(([label, value]) => (
-                  <div key={label} className="flex justify-between gap-4 py-3"><dt className="text-slate-500">{label}</dt><dd className="text-right font-semibold text-slate-900">{value}</dd></div>
-                ))}
-              </dl>
-            </section>
-            <Aside auctions={liveAuctions.filter((auction) => auction.id !== id).slice(0, 4)} variant="live" />
-            <Link href="/faq" className="block px-2 text-sm text-slate-500 hover:text-slate-950">New to BidLane? Learn how bidding works →</Link>
+            <div className="order-1 space-y-5">
+              <section className="rounded-2xl border border-slate-200 bg-white p-6">
+                <h2 className="mb-4 text-lg font-bold tracking-tight">Vehicle at a glance</h2>
+                <dl className="divide-y divide-slate-100 text-sm">
+                  {[["Year", listing.year], ["Make", listing.make], ["Model", listing.model], ["Mileage", `${listing.miles.toLocaleString("en-US")} miles`], ["Location", listing.location]].map(([label, value]) => (
+                    <div key={label} className="flex justify-between gap-4 py-3"><dt className="text-slate-500">{label}</dt><dd className="text-right font-semibold text-slate-900">{value}</dd></div>
+                  ))}
+                </dl>
+              </section>
+              <Aside auctions={liveAuctions.filter((auction) => auction.id !== id).slice(0, 4)} variant="live" />
+              <Link href="/faq" className="block px-2 text-sm text-slate-500 hover:text-slate-950">New to BidLane? Learn how bidding works →</Link>
+            </div>
           </div>
           <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+            <Gallery key={id} listingId={id} owner={owner} vehicleName={title} initialImages={listing.images} />
+          </div>
+          <div className="order-2 min-w-0 lg:order-none lg:col-start-1 lg:row-start-3">
             <nav aria-label="Listing sections" className="my-8 flex gap-6 overflow-x-auto border-b border-slate-200 pb-4 text-sm font-semibold text-slate-600">
               <a href="#overview" className="hover:text-slate-950">Overview</a>
               <a href="#photos" className="hover:text-slate-950">Photos</a>
@@ -91,6 +96,7 @@ const Listing = async (props: Params) => {
           </div>
         </div>
       </main>
+      <MobileAuctionBar currentUserId={currentUser?.id} />
     </AuctionProvider>
   );
 };

@@ -106,7 +106,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   return (
     <section className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
       {live && <ProgressBar remainingMs={remainingMs} />}
-      <div className="space-y-6 p-6">
+      <div className="space-y-4 p-5 sm:space-y-6 sm:p-6">
         <div className="flex items-center justify-between gap-3">
           <span className={clsx("rounded-full px-3 py-1 text-xs font-bold", live ? "bg-amber-400 text-slate-950" : "bg-white/10 text-slate-200")}>
             {live ? "● Live auction" : ended ? "Auction ended" : "Coming soon"}
