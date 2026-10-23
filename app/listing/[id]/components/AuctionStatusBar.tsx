@@ -141,6 +141,12 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
         ) : !ended ? (
           <p className="text-sm leading-6 text-slate-400">Bidding hasn’t opened yet. {currentUser === listing.userId ? "Set up your auction below when you’re ready." : "Add this vehicle to your watchlist to find it again easily."}</p>
         ) : null}
+        {ended && listing.result === "SOLD" && currentUser && (currentUser === listing.userId || currentUser === listing.highestBidderId) && (
+          <div className="space-y-3">
+            <Link href="/account/shipments" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">{currentUser === listing.userId ? "View sale details" : "View purchase details"}</Link>
+            <p className="text-xs leading-5 text-slate-400">Contact the {currentUser === listing.userId ? "buyer" : "seller"} to agree payment, paperwork, and pickup.</p>
+          </div>
+        )}
         <div className="flex flex-wrap gap-5 text-sm text-slate-400">
           {(live || ended) && <Link href="#bids" className="flex items-center gap-2 hover:text-white"><FaHashtag />{bids.length} bids</Link>}
           <Link href="#comments" aria-live="polite" aria-atomic="true" className="flex items-center gap-2 hover:text-white"><FaRegCommentAlt />{comments.length} comments</Link>

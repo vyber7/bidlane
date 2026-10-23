@@ -6,7 +6,7 @@ import {
   FiBell,
   FiCreditCard,
   FiGrid,
-  FiPackage,
+  FiShoppingBag,
   FiUser,
 } from "react-icons/fi";
 
@@ -17,7 +17,7 @@ const AccountLinks = () => {
     { name: "Notifications", href: "/account/notifications", icon: FiBell },
     { name: "Listings", href: "/account/listings", icon: FiGrid },
     { name: "Bids & Wins", href: "/account/bids-and-wins", icon: FiCreditCard },
-    { name: "Shipments", href: "/account/shipments", icon: FiPackage },
+    { name: "Purchases & sales", href: "/account/shipments", icon: FiShoppingBag },
   ];
 
   return (

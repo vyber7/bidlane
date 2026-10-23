@@ -36,6 +36,24 @@ afterEach(() => {
 });
 
 describe("auction expiry controls", () => {
+  it.each([
+    ["seller", "View sale details"],
+    ["buyer", "View purchase details"],
+  ])("takes the sold vehicle's %s to the handoff details", (user, label) => {
+    render(auction(makeListing({ status: "ENDED", result: "SOLD", currentBid: 10000, highestBidderId: "buyer" }), user));
+    expect(screen.getByRole("link", { name: label }).getAttribute("href")).toBe("/account/shipments");
+  });
+
+  it.each(["visitor", ""])("does not offer contact details to an uninvolved visitor (%s)", (user) => {
+    render(auction(makeListing({ status: "ENDED", result: "SOLD", currentBid: 10000, highestBidderId: "buyer" }), user));
+    expect(screen.queryByRole("link", { name: /View (purchase|sale) details/ })).toBeNull();
+  });
+
+  it("does not offer a sale handoff when the reserve was not met", () => {
+    render(auction(makeListing({ status: "ENDED", result: "RESERVE_NOT_MET", highestBidderId: "buyer" })));
+    expect(screen.queryByRole("link", { name: /View (purchase|sale) details/ })).toBeNull();
+  });
+
   it("enables the seller's retry button after finalization settles", async () => {
     await act(async () => {
       render(auction(makeListing({ auctionEndsAt: auctionNow })));

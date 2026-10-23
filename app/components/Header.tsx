@@ -34,7 +34,7 @@ const profileLinks = [
   { name: "Notifications", href: "/account/notifications" },
   { name: "Listings", href: "/account/listings" },
   { name: "Bids & wins", href: "/account/bids-and-wins" },
-  { name: "Shipments", href: "/account/shipments" },
+  { name: "Purchases & sales", href: "/account/shipments" },
 ];
 
 function Header() {

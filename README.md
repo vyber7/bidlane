@@ -9,7 +9,7 @@ BidLane is a vehicle auction app built with Next.js, React, TypeScript, and Mong
 - **Seller tools:** Submit vehicle specifications, service history, modifications, and known flaws through a guided details → condition → photos → preview flow; set reserve prices, manage photos, and start auctions with a starting bid, bid increment, and end time.
 - **Accounts:** Email/password registration and sign-in, plus GitHub and Google OAuth.
 - **Personal dashboards:** Manage listings and watchlists, review bids and wins, edit profiles, and view saved auction activity notifications with read status shared across devices and a live unread badge.
-- **Post-auction coordination:** Buyers and sellers can find sold vehicles and counterparty contact details in the shipments dashboard.
+- **Post-auction coordination:** Buyers and sellers can find sold auction results and counterparty contact details under **Account → Purchases & sales**, with guidance for agreeing payment, paperwork, and pickup. The existing `/account/shipments` URL remains valid for saved links and notifications.
 - **Responsive interface:** Tailwind CSS styling for desktop and mobile layouts.
 
 ## Stack
@@ -138,6 +138,8 @@ The six new `Listing` fields are nullable so existing MongoDB documents remain r
 
 Pusher events use listing-specific channels (`listing-<id>`). Auction finalization runs through a scheduled endpoint, and active listing pages also request finalization when their countdown reaches zero.
 
+The **How it works** page (`/faq`) explains the two-minute extension, bid minimums, reserves, auction results, and the handoff. Direct links are `/faq#auction-rules`, `/faq#after-auction`, and `/faq#fees`. Bidding views link to these explanations, and a sold listing links its winning buyer and seller to their purchase or sale details. The current app records auction outcomes and contact information; it does not collect payments or platform fees, confirm payment, or track vehicle delivery. Fee copy describes this implemented behavior rather than a future fee schedule.
+
 [vercel.json](vercel.json) declares a once-per-minute request to `/api/cron/finalize-auctions`. The endpoint requires an `Authorization: Bearer <CRON_SECRET>` header and processes up to 100 expired auctions per request. Its response reports `checked`, `finalized`, `skipped`, `failed`, and `hasMore`.
 
 ## Project layout
@@ -145,7 +147,7 @@ Pusher events use listing-specific channels (`listing-<id>`). Auction finalizati
 ```text
 app/
 ├── (site)/          # Home page, auction browser, authentication components
-├── account/         # Listings, bids and wins, profile, notifications, shipments
+├── account/         # Listings, bids and wins, profile, notifications, purchases and sales
 ├── actions/         # Server-side data access helpers
 ├── api/             # Route handlers and colocated tests
 ├── components/      # Shared interface components

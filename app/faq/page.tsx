@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { auctionRules, handoffSteps } from "@/app/libs/auction-guidance";
 import {
   FiArrowRight,
   FiCheck,
@@ -38,7 +39,7 @@ const steps = [
     icon: FiTag,
     title: "Finish the deal",
     description:
-      "When time runs out, the winning buyer and seller can move forward with confidence using the listing details and auction record.",
+      "If the highest bid meets any reserve, the winner and seller can find the result and contact details in Account → Purchases & sales, then agree payment, paperwork, and pickup directly.",
   },
 ];
 
@@ -51,27 +52,37 @@ const faqs = [
   {
     question: "What should I review before placing a bid?",
     answer:
-      "Read the full description, study every photo, review the auction activity, and ask the seller about anything that is unclear. A bid should reflect your own assessment of the vehicle.",
+      "Read the description, specifications, service history, modifications, and known flaws. Study the photos, review the auction activity, and arrange any inspection or ask the seller questions before bidding. Seller-reported details are not independent verification.",
   },
   {
     question: "Can I change or cancel a bid?",
     answer:
-      "Treat every bid as a serious commitment. Double-check the amount and listing before you submit. If you make an obvious error, contact Bidlane support as soon as possible.",
+      "You can edit the amount before confirming, but you cannot edit or cancel an accepted bid yourself. Confirming commits you to purchase at your bid amount if you win and any reserve is met. If you make an error, contact BidLane support; reporting it does not automatically cancel the bid.",
   },
   {
     question: "How does the auction timer work?",
     answer:
-      "Each listing shows its remaining time. Keep the listing open near the end and watch for updates so you don’t miss late auction activity.",
+      "Each accepted bid with two minutes or less remaining resets the deadline to two minutes after that bid. More late bids can extend it again. Bids received at or after the deadline are rejected. When the countdown reaches zero, bidding closes while the result is finalized.",
+  },
+  {
+    question: "What does reserve not met mean?",
+    answer:
+      "The highest accepted bid did not reach the seller’s minimum sale price, so the auction ended without a sale or winning buyer. An auction with no bids also ends without a sale. A no-reserve listing sells to its highest accepted bidder.",
   },
   {
     question: "How do I sell a vehicle on Bidlane?",
     answer:
-      "Start with the vehicle submission form. Share accurate specifications, a detailed description, and clear photos. A complete, honest presentation helps bidders make informed decisions.",
+      "Use the submission form to provide the vehicle’s specifications, description, service history, modifications, and known flaws. Add photos and review the preview. The listing starts as Coming soon; its seller then sets the starting bid, bid increment, and end time to open bidding. A reserve price is optional.",
   },
   {
     question: "What happens after an auction ends?",
     answer:
-      "The final result is recorded on Bidlane. The buyer and seller are responsible for confirming the vehicle, payment, paperwork, pickup, and any shipping arrangements before completing the transaction.",
+      "Check the listing’s finalized result and your in-app Notifications. If it sold, the winning buyer and seller can open Account → Purchases & sales to find the winning amount and each other’s contact details. Contact the other party to agree payment, documents, and pickup or transport. A sold result records the auction outcome; it does not confirm payment or vehicle delivery.",
+  },
+  {
+    question: "Does BidLane arrange shipping or hold the vehicle payment?",
+    answer:
+      "The buyer and seller arrange vehicle payment, paperwork, pickup, and any transport directly. BidLane provides the auction result and contact details. Confirm the handoff and any carrier or insurance arrangements with the other party.",
   },
 ];
 
@@ -92,6 +103,11 @@ export default function FAQPage() {
             <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
               Everything you need to find, bid on, or sell an enthusiast vehicle—without losing the thrill of the auction.
             </p>
+            <nav aria-label="How it works sections" className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-amber-400">
+              <a href="#auction-rules" className="hover:text-amber-300">Bidding rules ↓</a>
+              <a href="#after-auction" className="hover:text-amber-300">After the auction ↓</a>
+              <a href="#fees" className="hover:text-amber-300">Payment & costs ↓</a>
+            </nav>
           </div>
         </div>
       </section>
@@ -124,6 +140,15 @@ export default function FAQPage() {
         </ol>
       </section>
 
+      <section id="auction-rules" className="mx-auto max-w-6xl scroll-mt-24 px-5 pb-16 sm:px-6 lg:px-8 lg:pb-24">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Before you bid</p>
+        <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Know how the auction closes.</h2>
+        <div className="mt-8 grid gap-5 lg:grid-cols-3">
+          {auctionRules.map(({ title, description }) => <article key={title} className="rounded-2xl border border-slate-200 bg-white p-6"><h3 className="text-lg font-bold text-slate-950">{title}</h3><p className="mt-3 text-sm leading-7 text-slate-600">{description}</p></article>)}
+        </div>
+        <p className="mt-5 text-sm leading-6 text-slate-500">Read the listing and arrange any inspection before confirming. <Link href="/terms#bidding" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">Review the bidding terms</Link>.</p>
+      </section>
+
       <section className="border-y border-slate-200 bg-white">
         <div className="mx-auto grid max-w-6xl gap-12 px-5 py-16 sm:px-6 lg:grid-cols-[0.7fr_1.3fr] lg:gap-20 lg:px-8 lg:py-24">
           <div>
@@ -151,6 +176,28 @@ export default function FAQPage() {
               );
             })}
           </div>
+        </div>
+      </section>
+
+      <section id="after-auction" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">After the auction</p>
+        <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Turn a winning bid into a handoff.</h2>
+        <p className="mt-5 max-w-3xl text-sm leading-7 text-slate-600">Once a sale is finalized, sign in and open <Link href="/account/shipments" className="font-bold text-slate-950 underline decoration-amber-400 underline-offset-4">Account → Purchases & sales</Link>. The winning buyer and seller can see the winning bid and each other’s contact details there. Check your in-app Notifications for the result.</p>
+        <ol className="mt-8 grid gap-5 lg:grid-cols-3">
+          {handoffSteps.map(({ title, description }, index) => <li key={title} className="rounded-2xl border border-slate-200 bg-white p-6"><span className="text-xs font-bold text-amber-600">Step {index + 1}</span><h3 className="mt-3 text-lg font-bold text-slate-950">{title}</h3><p className="mt-3 text-sm leading-7 text-slate-600">{description}</p></li>)}
+        </ol>
+        <p className="mt-5 text-sm leading-6 text-slate-500">If the reserve was not met or there were no bids, there is no sale to coordinate. If contact details are missing after a sold result, <Link href="/contact" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">contact BidLane support</Link>.</p>
+      </section>
+
+      <section id="fees" className="scroll-mt-24 border-y border-slate-200 bg-white">
+        <div className="mx-auto max-w-6xl px-5 py-12 sm:px-6 lg:px-8">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Payment & costs</p>
+          <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Know what you’re agreeing to.</h2>
+          <div className="mt-7 grid gap-7 md:grid-cols-2">
+            <div><h3 className="font-bold text-slate-950">Payment in the current app</h3><p className="mt-3 text-sm leading-7 text-slate-600">No payments or platform fees are collected in the current app. A bid records your offer; the winning buyer and seller arrange vehicle payment directly.</p></div>
+            <div><h3 className="font-bold text-slate-950">Costs beyond the winning bid</h3><p className="mt-3 text-sm leading-7 text-slate-600">Inspection, transport, insurance, taxes, and registration may add to the vehicle price. Agree who will handle these costs and the payment arrangements with the other party before completing the sale.</p></div>
+          </div>
+          <Link href="/contact" className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-slate-900 hover:text-amber-600">Questions about costs? Contact BidLane <FiArrowRight aria-hidden="true" /></Link>
         </div>
       </section>
 

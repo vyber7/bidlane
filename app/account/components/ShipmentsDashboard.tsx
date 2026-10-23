@@ -6,14 +6,15 @@ import { CldImage } from "next-cloudinary";
 import { useMemo, useState } from "react";
 import {
   FiArrowUpRight,
-  FiCheck,
+  FiGrid,
   FiClock,
   FiMail,
   FiMapPin,
-  FiPackage,
-  FiTruck,
+  FiShoppingBag,
+  FiTag,
 } from "react-icons/fi";
 import type { ShipmentTransaction } from "@/app/types/account";
+import { handoffSteps } from "@/app/libs/auction-guidance";
 
 type Tab = "all" | "purchases" | "sales";
 
@@ -45,7 +46,7 @@ const ShipmentsDashboard = ({ shipments }: { shipments: ShipmentTransaction[] })
   );
 
   const tabs: { id: Tab; label: string; count: number }[] = [
-    { id: "all", label: "All shipments", count: shipments.length },
+    { id: "all", label: "All", count: shipments.length },
     { id: "purchases", label: "Purchases", count: purchases.length },
     { id: "sales", label: "Sales", count: sales.length },
   ];
@@ -58,28 +59,36 @@ const ShipmentsDashboard = ({ shipments }: { shipments: ShipmentTransaction[] })
             <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
               Vehicle handoff
             </p>
-            <h2 className="text-2xl font-bold text-gray-950">Shipments</h2>
+            <h2 className="text-2xl font-bold text-gray-950">Purchases & sales</h2>
             <p className="mt-1 max-w-xl text-sm text-gray-500">
-              Coordinate pickup or delivery for vehicles you have bought and sold.
+              Find your sold auction results and contact the other party to arrange payment, paperwork, and pickup.
             </p>
           </div>
           <Link
-            href="/faq"
+            href="/faq#after-auction"
             className="inline-flex w-fit items-center gap-1 text-sm font-bold text-gray-900 hover:underline"
           >
-            Shipping help <FiArrowUpRight />
+            After-auction guide <FiArrowUpRight />
           </Link>
         </div>
       </div>
 
+      {shipments.length > 0 && <div className="border-b border-gray-200 bg-stone-50 px-5 py-5 sm:px-6">
+        <h3 className="text-sm font-bold text-gray-950">Your next steps</h3>
+        <ol className="mt-3 grid gap-3 md:grid-cols-3">
+          {handoffSteps.map(({ title }, index) => <li key={title} className="text-xs font-bold text-gray-900">{index + 1}. {title}</li>)}
+        </ol>
+        <p className="mt-4 text-xs leading-5 text-gray-500">These are auction results. Payment and vehicle handoff are arranged directly between buyer and seller.</p>
+      </div>}
+
       <div className="grid grid-cols-3 border-b border-gray-200 bg-gray-50">
-        <Stat icon={<FiPackage />} label="Total" value={shipments.length} />
-        <Stat icon={<FiTruck />} label="Purchases" value={purchases.length} />
-        <Stat icon={<FiCheck />} label="Sales" value={sales.length} />
+        <Stat icon={<FiGrid />} label="Total" value={shipments.length} />
+        <Stat icon={<FiShoppingBag />} label="Purchases" value={purchases.length} />
+        <Stat icon={<FiTag />} label="Sales" value={sales.length} />
       </div>
 
       <div className="border-b border-gray-200 px-4 pt-3 sm:px-6">
-        <div className="flex gap-5 overflow-x-auto" role="tablist" aria-label="Shipments">
+        <div className="flex gap-5 overflow-x-auto" role="tablist" aria-label="Purchases and sales">
           {tabs.map((item) => (
             <button
               key={item.id}
@@ -93,7 +102,7 @@ const ShipmentsDashboard = ({ shipments }: { shipments: ShipmentTransaction[] })
                   : "border-transparent text-gray-500 hover:text-gray-900"
               }`}
             >
-              {item.label}
+              {item.label}{" "}
               <span
                 className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
                   tab === item.id ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"
@@ -164,31 +173,28 @@ const ShipmentRow = ({ shipment }: { shipment: ShipmentTransaction }) => {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-wide text-gray-500">
-                {isBuyer ? "Purchased" : "Sold"} · {date.format(new Date(shipment.soldAt))}
+                {isBuyer ? "Auction won" : "Sold at auction"} · {date.format(new Date(shipment.soldAt))}
               </p>
               <Link href={`/listing/${shipment.id}`} className="hover:underline">
                 <h3 className="mt-1 truncate text-lg font-bold text-gray-950">{vehicle}</h3>
               </Link>
             </div>
-            <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
-              Action needed
-            </span>
           </div>
 
           <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
             <span className="flex items-center gap-1.5 text-gray-600">
               <FiMapPin className="text-gray-400" /> {shipment.location}
             </span>
-            <span className="font-bold text-gray-950">{money.format(shipment.price)}</span>
+            <span className="font-bold text-gray-950">Winning bid {money.format(shipment.price)}</span>
           </div>
 
           <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="flex items-center gap-1.5 text-xs font-bold text-gray-900">
-                <FiClock className="text-gray-500" /> Arrange pickup or transport
+                <FiClock className="text-gray-500" /> Contact {isBuyer ? "the seller" : "the buyer"}
               </p>
               <p className="mt-0.5 text-xs text-gray-500">
-                Coordinate with {shipment.contactName} to complete the handoff.
+                {shipment.contactEmail ? `Coordinate payment, paperwork, and pickup with ${shipment.contactName}.` : "Contact details are unavailable. Ask BidLane support for help with the handoff."}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-3">
@@ -200,6 +206,7 @@ const ShipmentRow = ({ shipment }: { shipment: ShipmentTransaction }) => {
                   <FiMail /> Contact {isBuyer ? "seller" : "buyer"}
                 </a>
               )}
+              {!shipment.contactEmail && <Link href="/contact" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-bold text-gray-800 hover:bg-gray-100">Get help</Link>}
               <Link
                 href={`/listing/${shipment.id}`}
                 aria-label={`View ${vehicle}`}
@@ -216,16 +223,16 @@ const ShipmentRow = ({ shipment }: { shipment: ShipmentTransaction }) => {
 };
 
 const EmptyShipments = ({ tab }: { tab: Tab }) => {
-  const label = tab === "purchases" ? "purchases" : tab === "sales" ? "sales" : "shipments";
+  const label = tab === "purchases" ? "purchases" : tab === "sales" ? "sales" : "purchases or sales";
 
   return (
     <div className="flex flex-col items-center px-6 py-16 text-center">
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-2xl text-gray-700">
-        <FiTruck />
+        <FiShoppingBag />
       </div>
       <h3 className="text-lg font-bold text-gray-950">No {label} yet</h3>
       <p className="mt-1 max-w-sm text-sm text-gray-500">
-        Sold vehicles will appear here so buyers and sellers can coordinate the handoff.
+        Auctions marked Sold will appear here for the winning buyer and seller, with contact details for arranging the handoff.
       </p>
       <Link
         href="/live/listings"

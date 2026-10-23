@@ -10,6 +10,7 @@ import { getApiErrorMessage } from "@/app/utils/api-error";
 import { capitalize, formatAmount } from "@/app/utils/format";
 import type { AcceptedBidResponse } from "@/app/types/auction-events";
 import type { BidFormValues } from "@/app/types/forms";
+import Link from "next/link";
 
 const primaryButton = "rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -112,6 +113,7 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
         </div>
         {errors.bidAmount && <p id="bid-error" role="alert" className="mt-2 text-sm text-rose-700">{errors.bidAmount.message}</p>}
       </form>
+      <p className="text-xs leading-5 text-slate-500">Accepted bids in the final two minutes reset the timer to two minutes. A sale requires any reserve to be met. <Link href="/faq#auction-rules" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">Read the auction rules</Link> · <Link href="/faq#fees" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">Payment & costs</Link></p>
       {requestError && <p role="alert" className="text-sm text-rose-700">{requestError}</p>}
       {review && (
         <section aria-labelledby="bid-review-title" aria-busy={isLoading} className="space-y-4 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5">

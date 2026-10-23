@@ -2,6 +2,12 @@ import ShipmentsDashboard from "@/app/account/components/ShipmentsDashboard";
 import { getAccountUser } from "@/app/account/lib/current-user";
 import prisma from "@/app/libs/prismadb";
 import { buildShipments } from "@/app/account/lib/shipments";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "BidLane | Purchases & sales",
+  description: "View auction results and contact the buyer or seller to arrange payment, paperwork, and vehicle handoff.",
+};
 
 const Shipments = async () => {
   const currentUser = await getAccountUser();

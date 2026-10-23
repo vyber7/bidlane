@@ -61,6 +61,11 @@ describe("shared account layout", () => {
 
     expect(screen.getByRole("link", { name: "Profile" }).hasAttribute("aria-current")).toBe(false);
     expect(screen.getByRole("link", { name: "Notifications" }).getAttribute("aria-current")).toBe("page");
+    mocks.pathname = "/account/shipments";
+    rerender(<AccountLinks />);
+    const purchases = screen.getByRole("link", { name: "Purchases & sales" });
+    expect(purchases.getAttribute("aria-current")).toBe("page");
+    expect(purchases.getAttribute("href")).toBe("/account/shipments");
   });
 
   it("shows a shared sign-in fallback without exposing page content", async () => {
