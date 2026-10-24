@@ -24,6 +24,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { logger } from "@/app/libs/logger";
+import { profileSchema } from "@/app/schemas/account";
 
 type ProfileUser = {
   name: string;
@@ -67,16 +68,17 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const cleanName = name.trim();
-    if (cleanName.length < 2) {
-      toast.error("Please enter at least 2 characters for your name.");
+    const result = profileSchema.safeParse({ name, image });
+    if (!result.success) {
+      toast.error(result.error.issues[0].message);
       return;
     }
+    const { name: cleanName, image: cleanImage } = result.data;
 
     setSaving(true);
     try {
-      await axios.patch("/api/account/profile", { name: cleanName, image });
-      setSaved({ name: cleanName, image });
+      await axios.patch("/api/account/profile", { name: cleanName, image: cleanImage });
+      setSaved({ name: cleanName, image: cleanImage });
       setName(cleanName);
       setEditing(false);
       toast.success("Profile updated.");

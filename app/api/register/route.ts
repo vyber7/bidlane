@@ -4,25 +4,18 @@ import prisma from "../../libs/prismadb";
 import { NextResponse } from "next/server";
 import { logger } from "@/app/libs/logger";
 import { Prisma } from "@prisma/client";
-import { ApiRequestError, apiErrorResponse, errorResponse, readJsonObject } from "@/app/libs/api-request";
+import { apiErrorResponse, errorResponse, parseApiInput, readJsonObject } from "@/app/libs/api-request";
+import { registrationSchema } from "@/app/schemas/account";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await readJsonObject(request);
-
-    if (
-      typeof name !== "string" || !name.trim() ||
-      typeof email !== "string" || !email.trim() ||
-      typeof password !== "string" || !password
-    ) {
-      throw new ApiRequestError(400, "Name, email, and password are required");
-    }
+    const { name, email, password } = parseApiInput(registrationSchema, await readJsonObject(request));
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({
       data: {
-        name: name.trim(),
-        email: email.trim(),
+        name,
+        email,
         hashedPassword,
       },
       select: { id: true },

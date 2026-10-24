@@ -79,4 +79,21 @@ describe("POST /api/register", () => {
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toEqual({ error: "An account with this email already exists" });
   });
+
+  it("rejects malformed email addresses before hashing or writing", async () => {
+    const response = await POST(request({ name: "Driver", email: "not-an-email", password: "secret" }));
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Please enter a valid email address" });
+    expect(mocks.hash).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("normalizes registration details without changing the password", async () => {
+    const response = await POST(request({ name: " Driver ", email: " driver@example.com ", password: " secret " }));
+    expect(response.status).toBe(201);
+    expect(mocks.hash).toHaveBeenCalledWith(" secret ", 12);
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: { name: "Driver", email: "driver@example.com", hashedPassword: "bcrypt-secret" },
+    }));
+  });
 });

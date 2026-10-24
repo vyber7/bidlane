@@ -9,6 +9,8 @@ import { useEffect, useRef, useState } from "react";
 import { CldImage, CldUploadWidget } from "next-cloudinary";
 import { useRouter } from "next/navigation";
 import { MAX_LISTING_NUMBER, MAX_LISTING_PHOTOS, validateListing } from "@/app/libs/listing-validation";
+import { listingSchema } from "@/app/schemas/listing";
+import { validationMessage } from "@/app/schemas/common";
 import type { ListingDetailsFormValues } from "@/app/types/forms";
 import { MAX_VEHICLE_DISCLOSURE_LENGTH, vehicleDisclosureFields, vehicleSpecificationFields } from "@/app/libs/vehicle-details";
 import VehicleHistory from "@/app/components/VehicleHistory";
@@ -102,7 +104,7 @@ export default function SubmitForm() {
               <div key={field.id}>
                 <label htmlFor={field.id} className="mb-2 block text-sm font-semibold">{field.label}</label>
                 <input id={field.id} type={field.type || "text"} min={field.min} max={field.max} step={field.type === "number" ? 1 : undefined} placeholder={field.placeholder} aria-invalid={!!errors[field.id]} aria-describedby={errors[field.id] ? `${field.id}-error` : undefined}
-                  {...register(field.id, { validate: (value) => field.id === "reservePrice" || value.trim().length > 0 || `${field.label} is required.`, ...(field.type === "number" ? { min: { value: field.min, message: `Minimum value is ${field.min}.` }, max: { value: field.max, message: `Maximum value is ${field.max}.` } } : {}) })}
+                  {...register(field.id, { validate: (value) => validationMessage(listingSchema.shape[field.id], value) })}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm" />
                 {errors[field.id] && <p id={`${field.id}-error`} className="mt-1 text-sm text-red-600">{errors[field.id]?.message}</p>}
               </div>
@@ -113,7 +115,7 @@ export default function SubmitForm() {
             {vehicleSpecificationFields.map(({ id, label, options }) => (
               <div key={id}>
                 <label htmlFor={id} className="mb-2 block text-sm font-semibold">{label}</label>
-                <select id={id} {...register(id, { required: `Please select a ${label.toLowerCase()}.` })} aria-invalid={!!errors[id]} aria-describedby={errors[id] ? `${id}-error` : "specification-hint"} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm">
+                <select id={id} {...register(id, { validate: (value) => validationMessage(listingSchema.shape[id], value) })} aria-invalid={!!errors[id]} aria-describedby={errors[id] ? `${id}-error` : "specification-hint"} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm">
                   <option value="">Select {label.toLowerCase()}</option>
                   {options.map((option) => <option key={option} value={option}>{option}</option>)}
                 </select>
@@ -123,7 +125,7 @@ export default function SubmitForm() {
           </div>
           <p id="specification-hint" className="mt-3 text-xs leading-5 text-slate-500">Choose “Unknown” if you’re unsure. For title status, check the current ownership document.</p>
           <label htmlFor="description" className="mb-2 mt-6 block text-sm font-semibold">Description</label>
-          <textarea id="description" rows={5} placeholder="Share what makes this vehicle special, its ownership story, and why you’re selling it. You’ll add history and condition details next." {...register("description", { validate: (value) => !!value.trim() || "Please add a description." })} aria-invalid={!!errors.description} aria-describedby={errors.description ? "description-error" : undefined} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm" />
+          <textarea id="description" rows={5} placeholder="Share what makes this vehicle special, its ownership story, and why you’re selling it. You’ll add history and condition details next." {...register("description", { validate: (value) => validationMessage(listingSchema.shape.description, value) })} aria-invalid={!!errors.description} aria-describedby={errors.description ? "description-error" : undefined} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm" />
           {errors.description && <p id="description-error" className="text-sm text-red-600">{errors.description.message}</p>}
         </fieldset>
         <fieldset hidden={step !== 1} className="min-w-0 space-y-6">
@@ -133,8 +135,7 @@ export default function SubmitForm() {
               <label htmlFor={id} className="mb-2 block text-sm font-semibold">{label}</label>
               <p id={`${id}-hint`} className="mb-3 text-xs leading-5 text-slate-500">{hint}</p>
               <textarea id={id} rows={4} maxLength={MAX_VEHICLE_DISCLOSURE_LENGTH} placeholder={placeholder} {...register(id, {
-                validate: (value) => !!value.trim() || `Please provide ${label.toLowerCase()}.`,
-                maxLength: { value: MAX_VEHICLE_DISCLOSURE_LENGTH, message: `Use ${MAX_VEHICLE_DISCLOSURE_LENGTH} characters or fewer.` },
+                validate: (value) => validationMessage(listingSchema.shape[id], value),
               })} aria-invalid={!!errors[id]} aria-describedby={`${id}-hint${errors[id] ? ` ${id}-error` : ""}`} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm" />
               {errors[id] && <p id={`${id}-error`} className="mt-1 text-sm text-red-600">{errors[id]?.message}</p>}
             </div>

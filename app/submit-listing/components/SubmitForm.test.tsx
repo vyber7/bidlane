@@ -40,10 +40,20 @@ function fillDetails() {
 }
 
 describe("guided vehicle submission", () => {
+  it("blocks fractional mileage before leaving the details step", async () => {
+    render(<SubmitForm />);
+    fillDetails();
+    fireEvent.change(screen.getByLabelText("Mileage"), { target: { value: "1.5" } });
+    await next("Continue to condition →");
+    expect(screen.getByText("Please enter a valid miles.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Vehicle details" })).toBeDefined();
+    expect(mocks.post).not.toHaveBeenCalled();
+  });
+
   it("validates only the active step and requires explicit disclosures before photos", async () => {
     render(<SubmitForm />);
     await next("Continue to condition →");
-    expect(screen.getByText("Please select a transmission.")).toBeDefined();
+    expect(screen.getByText("Please select a valid transmission.")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Vehicle details" })).toBeDefined();
     fillDetails();
     await next("Continue to condition →");

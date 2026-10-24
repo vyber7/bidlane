@@ -12,6 +12,8 @@ import { toast } from "react-hot-toast";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import type { AuthFormValues } from "@/app/types/forms";
+import { registrationSchema } from "@/app/schemas/account";
+import { validationMessage } from "@/app/schemas/common";
 
 type Variant = "LOGIN" | "REGISTER";
 
@@ -50,17 +52,22 @@ const AuthForm = () => {
   });
 
   const onSubmit: SubmitHandler<AuthFormValues> = (data) => {
-    setIsLoading(true);
-
     if (variant === "REGISTER") {
+      const result = registrationSchema.safeParse(data);
+      if (!result.success) {
+        toast.error(result.error.issues[0].message);
+        return;
+      }
+      setIsLoading(true);
       axios
-        .post("/api/register", data)
-        .then(() => signIn("credentials", { ...data }))
+        .post("/api/register", result.data)
+        .then(() => signIn("credentials", { ...result.data }))
         .catch((error: unknown) => toast.error(getApiErrorMessage(error, "Unable to create account. Please try again.")))
         .finally(() => setIsLoading(false));
     }
 
     if (variant === "LOGIN") {
+      setIsLoading(true);
       signIn("credentials", {
         ...data,
         redirect: false,
@@ -122,7 +129,10 @@ const AuthForm = () => {
               disabled={isLoading}
               aria-invalid={Boolean(errors[id])}
               aria-describedby={errors[id] ? `${id}-error` : undefined}
-              {...register(id, { required: `${label} is required.` })}
+              {...register(id, {
+                required: `${label} is required.`,
+                validate: (value) => variant === "REGISTER" ? validationMessage(registrationSchema.shape[id], value) : true,
+              })}
               className={`mt-2 block w-full rounded-xl border bg-white px-4 py-3.5 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-400/20 disabled:cursor-wait disabled:opacity-60 sm:text-sm ${errors[id] ? "border-rose-400" : "border-slate-200 hover:border-slate-300"}`}
             />
             {errors[id] && <p id={`${id}-error`} role="alert" className="mt-2 text-xs text-rose-600">{errors[id]?.message}</p>}

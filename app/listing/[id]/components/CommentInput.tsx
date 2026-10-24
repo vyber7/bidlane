@@ -3,6 +3,8 @@
 import { FieldErrors, UseFormRegister } from "react-hook-form";
 import clsx from "clsx";
 import type { CommentFormValues } from "@/app/types/forms";
+import { commentRequestSchema } from "@/app/schemas/auction";
+import { validationMessage } from "@/app/schemas/common";
 
 interface CommentInputProps {
   id: keyof CommentFormValues;
@@ -25,7 +27,8 @@ const CommentInput: React.FC<CommentInputProps> = ({
     <input
       id={id}
       autoComplete={id}
-      {...register(id, { required })}
+      {...register(id, { required, validate: (value) => validationMessage(commentRequestSchema.shape[id], value) })}
+      aria-invalid={!!errors[id]}
       type={type}
       placeholder={placeholder}
       className={clsx(

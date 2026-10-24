@@ -10,6 +10,8 @@ import { getApiErrorMessage } from "@/app/utils/api-error";
 import { capitalize, formatAmount } from "@/app/utils/format";
 import type { AcceptedBidResponse } from "@/app/types/auction-events";
 import type { BidFormValues } from "@/app/types/forms";
+import { bidRequestSchema } from "@/app/schemas/auction";
+import { MAX_INTEGER, validationMessage } from "@/app/schemas/common";
 import Link from "next/link";
 
 const primaryButton = "rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:cursor-not-allowed disabled:opacity-50";
@@ -98,12 +100,12 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
             id="bidAmount" type="number" inputMode="numeric" placeholder="Your bid ($)"
-            min={minimumBid ?? undefined} max={2_147_483_647} step={1}
+            min={minimumBid ?? undefined} max={MAX_INTEGER} step={1}
             aria-invalid={!!errors.bidAmount} aria-describedby={`bid-minimum${errors.bidAmount ? " bid-error" : ""}`}
             {...register("bidAmount", {
               valueAsNumber: true,
               required: "Enter your bid amount.",
-              validate: (value) => (Number.isSafeInteger(value) && value >= 0 && value <= 2_147_483_647) || "Enter a whole dollar amount within the allowed range.",
+              validate: (value) => validationMessage(bidRequestSchema.shape.bidAmount, value),
               min: { value: minimumBid ?? 0, message: `Your bid must be at least $${formatAmount(minimumBid ?? 0)}.` },
             })}
             disabled={!canBid || review !== null || isLoading}

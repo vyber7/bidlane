@@ -7,12 +7,12 @@ import {
   apiErrorResponse,
   readJsonObject,
   errorResponse,
-  requireListingId,
-  requireSafeInteger,
+  parseApiInput,
 } from "@/app/libs/api-request";
 import { logger } from "@/app/libs/logger";
 import { outbidNotifications, publishNotificationChanges, saveNotifications } from "@/app/libs/notifications";
 import type { AcceptedBidResponse, AuctionEndTimeEvent, BidEvent } from "@/app/types/auction-events";
+import { bidRequestSchema } from "@/app/schemas/auction";
 
 export async function POST(req: Request) {
   try {
@@ -20,10 +20,7 @@ export async function POST(req: Request) {
     if (!currentUser?.id || !currentUser?.email)
       return errorResponse("Unauthorized", 401);
 
-    const body = await readJsonObject(req);
-
-    const listingId = requireListingId(body.listingId);
-    const bidAmount = requireSafeInteger(body.bidAmount, "Bid amount");
+    const { listingId, bidAmount } = parseApiInput(bidRequestSchema, await readJsonObject(req));
     const bidTime = new Date();
 
     const result = await prisma.$transaction(async (tx) => {

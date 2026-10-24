@@ -14,8 +14,9 @@ import {
   apiErrorResponse,
   readJsonObject,
   errorResponse,
-  requireListingId,
+  parseApiInput,
 } from "@/app/libs/api-request";
+import { commentRequestSchema } from "@/app/schemas/auction";
 
 // POST /api/comments
 // Required fields in the body: comment, listingId
@@ -28,13 +29,7 @@ export async function POST(req: Request) {
     if (!currentUser?.id || !currentUser?.email)
       return errorResponse("Unauthorized", 401);
 
-    const body = await readJsonObject(req);
-
-    const listingId = requireListingId(body.listingId);
-    const comment = typeof body.comment === "string" ? body.comment.trim() : "";
-    const image = typeof body.image === "string" ? body.image : undefined;
-
-    if (!comment) throw new ApiRequestError(400, "Comment is required");
+    const { listingId, comment, image } = parseApiInput(commentRequestSchema, await readJsonObject(req));
 
     const { newComment, notificationUsers } = await prisma.$transaction(
       async (tx) => {

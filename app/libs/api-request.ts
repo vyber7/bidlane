@@ -1,4 +1,6 @@
 import type { ApiErrorPayload } from "@/app/types/api";
+import type { z } from "zod";
+import { listingIdSchema, safeIntegerSchema } from "@/app/schemas/common";
 
 export class ApiRequestError extends Error {
   constructor(
@@ -36,11 +38,7 @@ export function errorResponse(message: string, status = 500): Response {
 }
 
 export function requireListingId(value: unknown): string {
-  if (typeof value !== "string" || !/^[a-f\d]{24}$/i.test(value)) {
-    throw new ApiRequestError(400, "Invalid listing ID");
-  }
-
-  return value;
+  return parseApiInput(listingIdSchema, value);
 }
 
 export function requireSafeInteger(
@@ -48,25 +46,16 @@ export function requireSafeInteger(
   field: string,
   options: { allowZero?: boolean } = {}
 ): number {
-  if (
-    (typeof value !== "number" && typeof value !== "string") ||
-    (typeof value === "string" && value.trim() === "")
-  ) {
-    throw new ApiRequestError(400, `${field} must be an integer`);
+  return parseApiInput(safeIntegerSchema(field, options), value);
+}
+
+/** Only validation at a request boundary becomes a 400; internal errors stay 500s. */
+export function parseApiInput<T extends z.ZodType>(schema: T, value: unknown): z.output<T> {
+  const result = schema.safeParse(value);
+  if (!result.success) {
+    throw new ApiRequestError(400, result.error.issues[0].message);
   }
-
-  const parsed = typeof value === "number" ? value : Number(value);
-  const minimum = options.allowZero ? 0 : 1;
-  const maximum = 2_147_483_647;
-
-  if (!Number.isSafeInteger(parsed) || parsed < minimum || parsed > maximum) {
-    throw new ApiRequestError(
-      400,
-      `${field} must be an integer between ${minimum} and ${maximum}`
-    );
-  }
-
-  return parsed;
+  return result.data;
 }
 
 export function apiErrorResponse(error: unknown): Response | null {
