@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import Gallery from "./Gallery";
 
 const mocks = vi.hoisted(() => ({
@@ -26,8 +26,9 @@ vi.mock("react-hot-toast", () => ({
 }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
 vi.mock("next-cloudinary", () => ({
-  CldImage: ({ src, alt }: { src: string; alt: string }) => (
-    <span role="img" aria-label={alt} data-src={src} />
+  CldImage: ({ crop, ...props }: ComponentProps<"img"> & { crop?: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element -- Exercise image load events without Cloudinary requests.
+    <img {...props} alt={props.alt} data-src={props.src} data-crop={crop} />
   ),
   CldUploadButton: ({ onSuccess, children }: {
     onSuccess: (result: { info: { secure_url: string } }) => void;
@@ -48,6 +49,90 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+describe("gallery preview loading", () => {
+  const imageUrls = [savedUrl, uploadedUrl, "https://res.cloudinary.com/demo/image/upload/third.jpg", "https://res.cloudinary.com/demo/image/upload/fourth.jpg"];
+  const setup = () => {
+    const view = render(<Gallery listingId={listingId} vehicleName={vehicleName} initialImages={imageUrls} />);
+    const dialog = view.container.querySelector("dialog")!;
+    dialog.showModal = vi.fn(() => dialog.setAttribute("open", ""));
+    dialog.close = vi.fn(() => {
+      dialog.removeAttribute("open");
+      dialog.dispatchEvent(new Event("close"));
+    });
+    return { ...view, dialog };
+  };
+
+  it("waits for intent before fetching previews, then warms only the pointed-to photo", () => {
+    const { dialog } = setup();
+    expect(dialog.querySelectorAll("img")).toHaveLength(0);
+
+    fireEvent.pointerEnter(photos()[2]);
+
+    const warmed = dialog.querySelector("img")!;
+    expect(dialog.querySelectorAll("img")).toHaveLength(1);
+    expect(warmed.getAttribute("src")).toBe(imageUrls[2]);
+    expect(warmed.getAttribute("loading")).toBe("eager");
+    expect(warmed.getAttribute("fetchpriority")).toBe("low");
+
+    fireEvent.focus(photos()[1]);
+    expect(dialog.querySelectorAll("img")).toHaveLength(1);
+    expect(dialog.querySelector("img")!.getAttribute("src")).toBe(imageUrls[1]);
+  });
+
+  it("prioritizes the selected photo and prefetches only its neighbors with matching responsive sizes", () => {
+    const { dialog } = setup();
+    fireEvent.click(photos()[1]);
+
+    const selected = within(dialog).getByRole("img", { name: `${vehicleName}, photo 2` });
+    const previews = Array.from(dialog.querySelectorAll("img"));
+    expect(previews).toHaveLength(3);
+    expect(selected.getAttribute("fetchpriority")).toBe("high");
+    expect(selected.getAttribute("loading")).toBe("eager");
+    expect(selected.getAttribute("sizes")).toContain("calc(100vw - 64px)");
+    expect(selected.getAttribute("data-crop")).toBe("limit");
+    expect(previews.map((image) => image.getAttribute("src"))).toEqual(imageUrls.slice(0, 3));
+    expect(previews.every((image) => image.getAttribute("sizes") === selected.getAttribute("sizes"))).toBe(true);
+
+    const nextImage = previews[2];
+    fireEvent.load(nextImage);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Next →" }));
+
+    expect(within(dialog).getByRole("img", { name: `${vehicleName}, photo 3` })).toBe(nextImage);
+    expect(nextImage.className).not.toContain("opacity-0");
+    expect(nextImage.getAttribute("fetchpriority")).toBe("high");
+    expect(Array.from(dialog.querySelectorAll("img")).map((image) => image.getAttribute("src"))).toEqual(imageUrls.slice(1, 4));
+  });
+
+  it("shows the cached thumbnail immediately and replaces it after the preview loads", () => {
+    const { dialog } = setup();
+    const thumbnail = within(photos()[0]).getByRole("img");
+    Object.defineProperty(thumbnail, "currentSrc", { value: `${savedUrl}?thumbnail=320` });
+    fireEvent.load(thumbnail);
+    fireEvent.click(photos()[0]);
+
+    const selected = within(dialog).getByRole("img", { name: `${vehicleName}, photo 1` });
+    expect(dialog.querySelector('img[alt=""]')!.getAttribute("src")).toBe(`${savedUrl}?thumbnail=320`);
+    expect(selected.className).toContain("opacity-0");
+    fireEvent.load(selected);
+    expect(selected.className).not.toContain("opacity-0");
+    expect(dialog.querySelector(`img[src="${savedUrl}?thumbnail=320"]`)).toBeNull();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close ×" }));
+    expect(dialog.querySelectorAll("img")).toHaveLength(0);
+  });
+
+  it("keeps the thumbnail visible when a full-size photo fails", () => {
+    const { dialog } = setup();
+    fireEvent.load(within(photos()[0]).getByRole("img"));
+    fireEvent.click(photos()[0]);
+    fireEvent.error(within(dialog).getByRole("img", { name: `${vehicleName}, photo 1` }));
+
+    expect(within(dialog).getByRole("status").textContent).toContain("Showing thumbnail");
+    expect(dialog.querySelector('img[alt=""]')!.getAttribute("src")).toBe(savedUrl);
+  });
 });
 
 const photos = () => screen.queryAllByRole("button", { name: /^View photo/ });
