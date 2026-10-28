@@ -207,13 +207,3 @@ model Bid {
   userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
-//   name          String?
-//   isGroup       Boolean?
-
-//   commentsIds String[]  @db.ObjectId
-//   comments    Comment[]
-
-//   userIds String[] @db.ObjectId
-//   users   User[]   @relation(fields: [userIds], references: [id])
-// }
