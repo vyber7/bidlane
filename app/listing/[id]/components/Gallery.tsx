@@ -66,7 +66,7 @@ const Gallery: React.FC<GalleryProps> = ({ listingId, owner, vehicleName = "Vehi
       <div
         className={clsx(
           images.length ? "grid" : "hidden",
-          "grid-cols-3 md:grid-cols-4 gap-px"
+          "grid-cols-3 md:grid-cols-4 gap-px overflow-hidden rounded-lg"
         )}
       >
         {images.map((imageUrl, index) => (
@@ -75,7 +75,7 @@ const Gallery: React.FC<GalleryProps> = ({ listingId, owner, vehicleName = "Vehi
             onFocus={() => setPreparedImage(imageUrl)}
             onClick={() => { setSelectedImage(index); setIsOpen(true); dialogRef.current?.showModal(); }}
             aria-label={`View photo ${index + 1} of ${vehicleName}`}
-            className="overflow-hidden rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500">
+            className="overflow-hidden focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-amber-500">
             <CldImage width={160} height={110} crop="fill" src={imageUrl}
               onLoad={(event) => {
                 const src = event.currentTarget.currentSrc || event.currentTarget.src;
