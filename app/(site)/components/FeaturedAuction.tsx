@@ -22,19 +22,20 @@ export default function FeaturedAuction({ listing: initialListing, currentUserId
   const amount = listing.currentBid ?? (live ? listing.startingBid : null);
 
   return (
-    <article aria-label={`Featured vehicle: ${title}`} className="min-w-0 overflow-hidden rounded-2xl border border-white/15 bg-white/[0.06] shadow-xl shadow-black/10">
-      <Link href={href} aria-label={`View ${title}`} className="group relative block h-44 overflow-hidden bg-slate-800 sm:h-48">
+    <article aria-label={`Featured vehicle: ${title}`} className="relative isolate min-w-0 overflow-hidden rounded-2xl border border-white/15 bg-slate-800 shadow-xl shadow-black/10">
+      <Link href={href} aria-label={`View ${title}`} className="group absolute inset-0 block overflow-hidden focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-amber-400">
         {image ? (
           <CldImage src={image} alt={title} fill sizes="(min-width: 1152px) 520px, (min-width: 1024px) 45vw, 100vw" crop="fill" loading="eager" fetchPriority="high" className="object-cover transition duration-300 group-hover:scale-[1.03] motion-reduce:transition-none" />
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-slate-400"><FiCamera size={28} aria-hidden="true" />Photos coming soon</div>
+          <div className="absolute inset-x-0 top-16 flex flex-col items-center justify-center gap-2 text-sm text-slate-400"><FiCamera size={28} aria-hidden="true" />Photos coming soon</div>
         )}
+        <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
         <span className="absolute left-3 top-3 rounded-full bg-slate-950/90 px-3 py-1.5 text-xs font-bold text-amber-400">
           {upcoming ? "Coming soon" : live ? expired ? "Bidding closed" : "Live auction" : "Recent result"}
         </span>
-        <span aria-hidden="true" className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-white text-slate-950 transition group-hover:bg-amber-400"><FiArrowUpRight size={18} /></span>
+        <span aria-hidden="true" className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white text-slate-950 transition group-hover:bg-amber-400"><FiArrowUpRight size={18} /></span>
       </Link>
-      <div className="p-4">
+      <div className="pointer-events-none relative mt-44 p-4 sm:mt-48 [&_a]:pointer-events-auto [&_button]:pointer-events-auto">
         <Link href={href} className="block rounded-sm hover:text-amber-400 focus-visible:outline-amber-400">
           <h2 className="text-lg font-bold leading-6 tracking-tight">{title}</h2>
         </Link>
