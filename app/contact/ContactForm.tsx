@@ -23,7 +23,7 @@ export default function ContactForm() {
       `Name: ${name}\nEmail: ${email}\nTopic: ${topic}\n\n${message}`,
     );
 
-    window.location.href = `mailto:support@bidlane.com?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:support@bidlane.net?subject=${subject}&body=${body}`;
     window.setTimeout(() => setOpening(false), 1000);
   }
 

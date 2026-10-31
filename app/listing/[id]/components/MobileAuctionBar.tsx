@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuctionContext } from "@/app/context/AuctionContext";
+import NoReserveBadge from "@/app/components/NoReserveBadge";
 import { formatAmount } from "@/app/utils/format";
 
 export default function MobileAuctionBar({ currentUserId }: { currentUserId?: string | null }) {
@@ -22,7 +23,10 @@ export default function MobileAuctionBar({ currentUserId }: { currentUserId?: st
     <section aria-label="Live auction quick actions" className="sticky bottom-0 z-40 border-t border-white/10 bg-slate-950 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-white shadow-[0_-4px_20px_rgba(2,6,23,0.15)] lg:hidden">
       <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:px-2">
         <div className="min-w-0">
-          <p className="text-xs text-slate-400">{listing.currentBid === null ? "Starting bid" : "Current bid"}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs text-slate-400">{listing.currentBid === null ? "Starting bid" : "Current bid"}</p>
+            <NoReserveBadge reservePrice={listing.reservePrice} />
+          </div>
           <p className="text-lg font-bold tabular-nums sm:text-xl">{amount === null ? "To be announced" : `$${formatAmount(amount)}`}</p>
           <p className="text-xs tabular-nums text-amber-400">{expired ? "Finalizing results…" : `Time left: ${timeLeft || "Syncing…"}`}</p>
         </div>

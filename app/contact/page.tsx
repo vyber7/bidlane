@@ -53,9 +53,9 @@ export default function ContactPage() {
             <span className="text-amber-400"> driver&apos;s seat.</span>
           </h1>
           <p className="mt-7 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-            Whether you&apos;re eyeing your next car, listing one you love, or just
-            need a hand, tell us what&apos;s going on. A real person will point you
-            in the right direction.
+            Whether you&apos;re eyeing your next car, listing one you love, or
+            just need a hand, tell us what&apos;s going on. A real person will
+            point you in the right direction.
           </p>
         </div>
       </section>
@@ -76,7 +76,7 @@ export default function ContactPage() {
 
             <div className="mt-8 space-y-4">
               <a
-                href="mailto:support@bidlane.com"
+                href="mailto:support@bidlane.net"
                 className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-amber-300 hover:shadow-lg hover:shadow-slate-900/5"
               >
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-slate-950 text-amber-400">
@@ -87,7 +87,7 @@ export default function ContactPage() {
                     Email us directly
                   </span>
                   <span className="mt-1 block text-sm font-bold text-slate-950 group-hover:text-amber-600">
-                    support@bidlane.com
+                    support@bidlane.net
                   </span>
                 </span>
               </a>
@@ -139,8 +139,12 @@ export default function ContactPage() {
                 className="rounded-2xl border border-slate-200 bg-stone-50 p-6"
               >
                 <Icon className="text-amber-600" size={22} aria-hidden="true" />
-                <h3 className="mt-5 text-lg font-bold text-slate-950">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+                <h3 className="mt-5 text-lg font-bold text-slate-950">
+                  {title}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {description}
+                </p>
               </article>
             ))}
           </div>

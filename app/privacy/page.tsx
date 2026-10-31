@@ -146,7 +146,7 @@ const sections: LegalSection[] = [
         </p>
         <p>
           To make a request, email{" "}
-          <a href="mailto:support@bidlane.com">support@bidlane.com</a>. We may
+          <a href="mailto:support@bidlane.net">support@bidlane.net</a>. We may
           need to verify your identity. Some information may be retained when
           required by law or needed for security, fraud prevention, transaction
           records, or legal claims. You may appeal a denied request by replying

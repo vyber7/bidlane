@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { GoStar, GoStarFill } from "react-icons/go";
 import Title from "./Title";
+import NoReserveBadge from "./NoReserveBadge";
 import { GrEdit } from "react-icons/gr";
 import { FaRegClock } from "react-icons/fa";
 import { Listing } from "@prisma/client";
@@ -52,7 +53,10 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
       )}
 
       <div className="flex flex-col w-full">
-        <Link className="w-full" href={`/listing/${listing.id}`}>
+        <Link className="relative block w-full" href={`/listing/${listing.id}`}>
+          <span className="absolute left-3 top-3 z-10">
+            <NoReserveBadge reservePrice={listing.reservePrice} />
+          </span>
           {listing.coverImage && (
             <CldImage
               src={listing.coverImage}

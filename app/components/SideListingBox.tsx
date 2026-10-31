@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import NoReserveBadge from "./NoReserveBadge";
 import Link from "next/link";
 import { Listing } from "@prisma/client";
 import { formatAmount } from "@/app/utils/format";
@@ -39,6 +40,7 @@ const SideListingBox: React.FC<SideListingBoxProps> = ({ auction, variant = "sol
           <p className="line-clamp-2 text-sm font-bold leading-5 text-slate-950 group-hover:text-amber-700">
             {auction.year} {auction.make} {auction.model}
           </p>
+          {auction.reservePrice === null && <div className="mt-2"><NoReserveBadge reservePrice={auction.reservePrice} /></div>}
           <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-400">
             {variant === "live" ? auction.currentBid === null ? "Starting bid" : "Current bid" : "Sold for"}
           </p>

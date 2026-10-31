@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { formatAmount } from "@/app/utils/format";
 import Button from "@/app/components/Button";
+import NoReserveBadge from "@/app/components/NoReserveBadge";
 import { useAuctionContext } from "@/app/context/AuctionContext";
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
@@ -119,6 +120,12 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
             </button>
           )}
         </div>
+        {listing.reservePrice === null && (
+          <div className="space-y-2">
+            <NoReserveBadge reservePrice={listing.reservePrice} />
+            <p className="text-xs leading-5 text-slate-300">{ended ? "This auction had no reserve." : "No minimum sale price. The highest accepted bid wins."}</p>
+          </div>
+        )}
         <div>
           <p className="mb-2 text-sm text-slate-400">{label}</p>
           <p className="text-4xl font-bold tracking-tight tabular-nums">{ended && bid === null ? "—" : amount !== null ? `$${formatAmount(amount)}` : "To be announced"}</p>

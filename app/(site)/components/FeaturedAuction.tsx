@@ -6,6 +6,7 @@ import { CldImage } from "next-cloudinary";
 import { FiArrowUpRight, FiCamera } from "react-icons/fi";
 import useAuction from "@/app/hooks/useAuction";
 import WatchAuctionButton from "./WatchAuctionButton";
+import NoReserveBadge from "@/app/components/NoReserveBadge";
 import { formatAmount } from "@/app/utils/format";
 
 export default function FeaturedAuction({ listing: initialListing, currentUserId }: {
@@ -39,6 +40,7 @@ export default function FeaturedAuction({ listing: initialListing, currentUserId
         <Link href={href} className="block rounded-sm hover:text-amber-400 focus-visible:outline-amber-400">
           <h2 className="text-lg font-bold leading-6 tracking-tight">{title}</h2>
         </Link>
+        {listing.reservePrice === null && <div className="mt-2"><NoReserveBadge reservePrice={listing.reservePrice} /></div>}
         <p className="mt-1 text-xs text-slate-300">{listing.miles.toLocaleString("en-US")} miles · {listing.location}</p>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
           <p className="text-xs leading-5 text-slate-300">
