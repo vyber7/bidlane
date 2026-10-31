@@ -60,7 +60,8 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
               height={250}
               alt="listing Image"
               className="aspect-[16/10] w-full object-cover"
-              priority={true}
+              loading="lazy"
+              sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw"
               crop="fill"
             />
           )}

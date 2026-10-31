@@ -131,6 +131,7 @@ describe("auction state reconciliation", () => {
     rerender({ listing: makeListing({ status: "LIVE" }) });
     expect(vi.getTimerCount()).toBe(1);
     emit("auction-ended", { result: "RESERVE_NOT_MET", auctionEndsAt: auctionNow.toISOString() });
+    act(() => vi.advanceTimersByTime(250));
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -151,10 +152,46 @@ describe("auction state reconciliation", () => {
     const listing = makeListing();
     const { unmount } = renderHook(() => useAuction(listing));
     emit("pusher:subscription_succeeded", {});
+    act(() => vi.advanceTimersByTime(250));
     emit("pusher:subscription_succeeded", {});
+    act(() => vi.advanceTimersByTime(250));
     expect(mocks.refresh).toHaveBeenCalledTimes(2);
     unmount();
     emit("pusher:subscription_succeeded", {});
     expect(mocks.refresh).toHaveBeenCalledTimes(2);
+  });
+
+  it("batches a full home page of subscription acknowledgements into one refresh", () => {
+    const cards = Array.from({ length: 100 }, (_, index) => {
+      const listing = makeListing({ id: `listing-${index}`, status: "UPCOMING", auctionEndsAt: null });
+      return renderHook(() => useAuction(listing));
+    });
+    for (let index = 0; index < cards.length; index++) {
+      emit("pusher:subscription_succeeded", {}, `listing-${index}`);
+    }
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(250));
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+
+    // A later reconnect still resynchronizes, once for the whole page.
+    for (let index = 0; index < cards.length; index++) {
+      emit("pusher:subscription_succeeded", {}, `listing-${index}`);
+    }
+    act(() => vi.advanceTimersByTime(250));
+    expect(mocks.refresh).toHaveBeenCalledTimes(2);
+  });
+
+  it("cancels queued home refreshes when navigating away", () => {
+    const first = makeListing({ id: "first", status: "UPCOMING" });
+    const second = makeListing({ id: "second", status: "UPCOMING" });
+    const cards = [first, second].map((listing) => renderHook(() => useAuction(listing)));
+    emit("pusher:subscription_succeeded", {}, first.id);
+    emit("pusher:subscription_succeeded", {}, second.id);
+    cards[0].unmount();
+    expect(vi.getTimerCount()).toBe(1);
+    cards[1].unmount();
+    act(() => vi.advanceTimersByTime(1000));
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

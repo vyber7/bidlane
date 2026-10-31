@@ -2,7 +2,6 @@
 
 import type { Listing } from "@prisma/client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 import type {
   AcceptedBidResponse,
@@ -14,6 +13,7 @@ import type {
 } from "@/app/types/auction-events";
 import useCountDown from "./useCountDown";
 import usePusherEvent from "./usePusherEvent";
+import useAuctionRefresh from "./useAuctionRefresh";
 
 interface AuctionSnapshot {
   listing: Listing;
@@ -68,7 +68,7 @@ export default function useAuction(
     source,
     current: source,
   });
-  const router = useRouter();
+  const refresh = useAuctionRefresh(listing.id);
 
   if (state.source.listing !== listing || state.source.bids !== bids || state.source.comments !== comments) {
     // Reconcile before rendering consumers, so an expired old deadline cannot
@@ -122,7 +122,7 @@ export default function useAuction(
   const channel = `listing-${listing.id}`;
   usePusherEvent<BidEvent>(channel, "new-bid", (bid) => {
     receiveBid(bid);
-    router.refresh();
+    refresh();
   });
   usePusherEvent<AuctionEndTimeEvent>(channel, "new-end-time", ({ newEndTime }) => {
     updateListing({ auctionEndsAt: new Date(newEndTime) });
@@ -134,19 +134,19 @@ export default function useAuction(
       auctionStartsAt: new Date(event.auctionStartsAt),
       auctionEndsAt: new Date(event.auctionEndsAt),
     });
-    router.refresh();
+    refresh();
   });
   usePusherEvent<AuctionEndedEvent>(channel, "auction-ended", (event) => {
     updateListing({ status: "ENDED", result: event.result, auctionEndsAt: new Date(event.auctionEndsAt) });
-    router.refresh();
+    refresh();
   });
   usePusherEvent<CommentEvent>(bids === emptyBids && comments === emptyComments ? null : channel, "new-comment", (comment) => {
     receiveComment(comment);
-    router.refresh();
+    refresh();
   });
   usePusherEvent(channel, "pusher:subscription_succeeded", () => {
     // Recover events missed before subscribing or while disconnected.
-    router.refresh();
+    refresh();
   });
 
   return {
