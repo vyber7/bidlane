@@ -88,11 +88,17 @@ describe("/api/cloudinary-images", () => {
   it("enforces the image limit", async () => {
     mocks.findUnique.mockResolvedValue({
       userId: "seller",
-      images: Array.from({ length: 10 }, (_, index) => `image-${index}`),
+      images: Array.from({ length: 20 }, (_, index) => `image-${index}`),
     });
 
     expect((await POST(post({ listingId, imageUrl }))).status).toBe(409);
     expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("allows the twentieth image", async () => {
+    mocks.findUnique.mockResolvedValue({ userId: "seller", images: Array.from({ length: 19 }, (_, index) => `image-${index}`) });
+    expect((await POST(post({ listingId, imageUrl }))).status).toBe(200);
+    expect(mocks.updateMany).toHaveBeenCalledOnce();
   });
 
   it("scopes an optimistic gallery write to the owner", async () => {

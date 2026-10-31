@@ -2,7 +2,7 @@ import { z } from "zod";
 import { MAX_INTEGER, requiredTextSchema } from "./common";
 import { MAX_VEHICLE_DISCLOSURE_LENGTH, vehicleDisclosureFields, vehicleSpecificationFields } from "@/app/libs/vehicle-details";
 
-export const MAX_LISTING_PHOTOS = 10;
+export const MAX_LISTING_PHOTOS = 20;
 export const MAX_LISTING_NUMBER = MAX_INTEGER;
 
 export function isCloudinaryImageUrl(value: unknown, listingId?: string): value is string {

@@ -40,7 +40,7 @@ describe("listing submission", () => {
     expect((await POST(request({ ...data, transmission: "Unknown", drivetrain: "Unknown", titleStatus: "Unknown", serviceHistory: "History unknown; records unavailable." }))).status).toBe(201);
     expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ transmission: "Unknown", titleStatus: "Unknown", serviceHistory: "History unknown; records unavailable." }) });
   });
-  it.each([{ images: [] }, { images: Array(11).fill(photo) }, { images: ["javascript:alert(1)"] }, { make: " " }, { year: "" }, { miles: -1 }, { miles: "1.5" }, { reservePrice: -5 }, { miles: 2147483648 }])("rejects invalid listing %j", async (change) => {
+  it.each([{ images: [] }, { images: Array(21).fill(photo) }, { images: ["javascript:alert(1)"] }, { make: " " }, { year: "" }, { miles: -1 }, { miles: "1.5" }, { reservePrice: -5 }, { miles: 2147483648 }])("rejects invalid listing %j", async (change) => {
     const response = await POST(request({ ...data, ...change }));
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: validateListing({ ...data, ...change }) });

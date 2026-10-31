@@ -17,6 +17,11 @@ const listing = {
 afterEach(() => vi.useRealTimers());
 
 describe("shared validation boundaries", () => {
+  it("accepts a 20-photo listing and rejects a 21st photo", () => {
+    const images = Array.from({ length: 20 }, (_, i) => `https://res.cloudinary.com/demo/image/upload/photo-${i}.jpg`);
+    expect(listingSchema.parse({ ...listing, images }).images).toHaveLength(20);
+    expect(listingSchema.safeParse({ ...listing, images: [...images, "https://res.cloudinary.com/demo/image/upload/extra.jpg"] }).success).toBe(false);
+  });
   it("parses native listing input, trims text, and excludes server-owned fields", () => {
     const parsed = listingSchema.parse({ ...listing, userId: "another-seller", status: "LIVE" });
     expect(parsed).toMatchObject({ make: "Porsche", location: "Miami", description: "Maintained regularly", year: 2020, miles: 0, reservePrice: null, serviceHistory: "Records available" });

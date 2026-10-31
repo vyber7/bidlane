@@ -86,7 +86,7 @@ export default function SubmitForm() {
         {steps.map(({ label }, index) => <li key={label} aria-current={step === index ? "step" : undefined} className={`border-t-4 pt-3 text-xs sm:text-sm ${step === index ? "border-amber-500 font-bold text-slate-900" : "border-slate-200 text-slate-500"}`}><span className="block text-xs">Step {index + 1}</span>{label}</li>)}
       </ol>
       <h2 ref={heading} tabIndex={-1} className="mb-2 text-xl font-bold outline-none">{steps[step].title}</h2>
-      <p className="mb-6 text-sm leading-6 text-slate-500">{step === 0 ? "Tell buyers about your vehicle. All details are required except the reserve price. You can edit everything before submitting." : step === 1 ? "Help buyers understand what they’re bidding on. Share what you know and be explicit about anything unknown." : step === 2 ? "Add up to 10 photos. The first photo will be your cover image." : "Review your listing below. Submit when everything looks right."}</p>
+      <p className="mb-6 text-sm leading-6 text-slate-500">{step === 0 ? "Tell buyers about your vehicle. All details are required except the reserve price. You can edit everything before submitting." : step === 1 ? "Help buyers understand what they’re bidding on. Share what you know and be explicit about anything unknown." : step === 2 ? `Add up to ${MAX_LISTING_PHOTOS} photos. The first photo will be your cover image.` : "Review your listing below. Submit when everything looks right."}</p>
       {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <form hidden={step > 1} noValidate onSubmit={async (event) => {
         event.preventDefault();

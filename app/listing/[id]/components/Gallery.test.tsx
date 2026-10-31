@@ -139,6 +139,13 @@ const photos = () => screen.queryAllByRole("button", { name: /^View photo/ });
 const upload = () => fireEvent.click(screen.getByRole("button", { name: "Add Images" }));
 
 describe("gallery image data", () => {
+  it("renders all 20 photos and hides uploads when the gallery is full", () => {
+    const images = Array.from({ length: 20 }, (_, i) => `https://res.cloudinary.com/demo/image/upload/photo-${i}.jpg`);
+    render(<Gallery listingId={listingId} initialImages={images} owner />);
+    expect(photos()).toHaveLength(20);
+    expect(screen.getByText("20 photos")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add Images" })).toBeNull();
+  });
   it("renders unique server photos immediately without another image-list request", () => {
     render(<Gallery listingId={listingId} vehicleName={vehicleName} initialImages={[savedUrl, savedUrl]} />);
 

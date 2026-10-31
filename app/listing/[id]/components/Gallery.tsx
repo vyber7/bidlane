@@ -13,6 +13,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import clsx from "clsx";
 import { logger } from "@/app/libs/logger";
+import { MAX_LISTING_PHOTOS } from "@/app/libs/listing-validation";
 
 interface GalleryProps {
   listingId: string;
@@ -85,10 +86,10 @@ const Gallery: React.FC<GalleryProps> = ({ listingId, owner, vehicleName = "Vehi
           </button>
         ))}
       </div>
-      {owner && (
+      {owner && images.length < MAX_LISTING_PHOTOS && (
         <CldUploadButton
           options={{
-            maxFiles: 10,
+            maxFiles: MAX_LISTING_PHOTOS - images.length,
             resourceType: "image",
             folder: `listing-${listingId}`,
           }}
