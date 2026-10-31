@@ -22,7 +22,8 @@ import { vehicleSpecificationFields } from "@/app/libs/vehicle-details";
 
 export const metadata: Metadata = {
   title: "BidLane | Vehicle Auction",
-  description: "Explore vehicle details, browse photos, and join the auction on BidLane.",
+  description:
+    "Explore vehicle details, browse photos, and join the auction on BidLane.",
 };
 
 interface Params {
@@ -35,66 +36,133 @@ const Listing = async (props: Params) => {
   const listing = await prisma.listing.findUnique({ where: { id } });
   if (!listing) notFound();
 
-  const [comments, currentUser, bids, seller, liveAuctions] = await Promise.all([
-    getComments(id),
-    getCurrentUser(),
-    getBids(id),
-    prisma.user.findUnique({ where: { id: listing.userId }, select: { name: true } }),
-    getLiveAuctions(),
-  ]);
+  const [comments, currentUser, bids, seller, liveAuctions] = await Promise.all(
+    [
+      getComments(id),
+      getCurrentUser(),
+      getBids(id),
+      prisma.user.findUnique({
+        where: { id: listing.userId },
+        select: { name: true },
+      }),
+      getLiveAuctions(),
+    ],
+  );
   const title = `${listing.year} ${listing.make} ${listing.model}`;
   const owner = listing.userId === currentUser?.id;
 
   return (
     <AuctionProvider key={id} listing={listing} bids={bids} comments={comments}>
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-24 sm:px-6 lg:px-8">
-        <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-950">
+        <Link
+          href="/"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-950"
+        >
           <FiArrowLeft /> All auctions
         </Link>
         <header className="mb-6">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">The details make the drive</p>
-          <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">{title}</h1>
+          <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
+            {title}
+          </h1>
           <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500">
-            <span className="inline-flex items-center gap-1.5"><FiMapPin />{listing.location}</span>
+            <span className="inline-flex items-center gap-1.5">
+              <FiMapPin />
+              {listing.location}
+            </span>
             <span>{listing.miles.toLocaleString("en-US")} miles</span>
-            <span>Listed by <span className="font-semibold text-slate-900">{seller?.name || "Seller"}</span></span>
+            <span>
+              Listed by{" "}
+              <span className="font-semibold text-slate-900">
+                {seller?.name || "Seller"}
+              </span>
+            </span>
           </div>
         </header>
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-            <CoverImage listingId={id} owner={owner} url={listing.coverImage || undefined} alt={title} />
+            <CoverImage
+              listingId={id}
+              owner={owner}
+              url={listing.coverImage || undefined}
+              alt={title}
+            />
           </div>
-          <div className="contents lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:block lg:space-y-5" role="complementary" aria-label="Auction overview">
+          <div
+            className="contents lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:block lg:space-y-5"
+            role="complementary"
+            aria-label="Auction overview"
+          >
             <AuctionStatusBar currentUser={currentUser?.id} />
             <div className="order-1 space-y-5">
               <section className="rounded-2xl border border-slate-200 bg-white p-6">
-                <h2 className="mb-4 text-lg font-bold tracking-tight">Vehicle at a glance</h2>
+                <h2 className="mb-4 text-lg font-bold tracking-tight">
+                  Vehicle at a glance
+                </h2>
                 <dl className="divide-y divide-slate-100 text-sm">
-                  {[["Year", listing.year], ["Make", listing.make], ["Model", listing.model], ["Mileage", `${listing.miles.toLocaleString("en-US")} miles`], ["Location", listing.location], ...vehicleSpecificationFields.map(({ id: field, label }) => [label, listing[field]?.trim() || "Not provided"])].map(([label, value]) => (
-                    <div key={label} className="flex justify-between gap-4 py-3"><dt className="shrink-0 text-slate-500">{label}</dt><dd className="min-w-0 break-words text-right font-semibold text-slate-900">{value}</dd></div>
+                  {[
+                    ["Year", listing.year],
+                    ["Make", listing.make],
+                    ["Model", listing.model],
+                    [
+                      "Mileage",
+                      `${listing.miles.toLocaleString("en-US")} miles`,
+                    ],
+                    ["Location", listing.location],
+                    ...vehicleSpecificationFields.map(
+                      ({ id: field, label }) => [
+                        label,
+                        listing[field]?.trim() || "Not provided",
+                      ],
+                    ),
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="flex justify-between gap-4 py-3"
+                    >
+                      <dt className="shrink-0 text-slate-500">{label}</dt>
+                      <dd className="min-w-0 break-words text-right font-semibold text-slate-900">
+                        {value}
+                      </dd>
+                    </div>
                   ))}
                 </dl>
               </section>
-              <Aside auctions={liveAuctions.filter((auction) => auction.id !== id).slice(0, 4)} variant="live" />
-              <Link href="/faq" className="block px-2 text-sm text-slate-500 hover:text-slate-950">New to BidLane? Learn how bidding works →</Link>
+              <Aside
+                auctions={liveAuctions
+                  .filter((auction) => auction.id !== id)
+                  .slice(0, 4)}
+                variant="live"
+              />
+              <Link
+                href="/faq"
+                className="block px-2 text-sm text-slate-500 hover:text-slate-950"
+              >
+                New to BidLane? Learn how bidding works →
+              </Link>
             </div>
           </div>
           <div className="min-w-0 lg:col-start-1 lg:row-start-2">
-            <Gallery key={id} listingId={id} owner={owner} vehicleName={title} initialImages={listing.images} />
+            <Gallery
+              key={id}
+              listingId={id}
+              owner={owner}
+              vehicleName={title}
+              initialImages={listing.images}
+            />
           </div>
           <div className="order-2 min-w-0 lg:order-none lg:col-start-1 lg:row-start-3">
-            <nav aria-label="Listing sections" className="my-8 flex gap-6 overflow-x-auto border-b border-slate-200 pb-4 text-sm font-semibold text-slate-600">
-              <a href="#overview" className="hover:text-slate-950">Overview</a>
-              <a href="#photos" className="hover:text-slate-950">Photos</a>
-              <a href="#condition" className="whitespace-nowrap hover:text-slate-950">History & condition</a>
-              {listing.status !== "UPCOMING" && <a href="#bids" className="hover:text-slate-950">Bidding</a>}
-              <a href="#comments" className="whitespace-nowrap hover:text-slate-950">Comments & bids</a>
-            </nav>
             <div className="space-y-6">
-              {owner && listing.status === "UPCOMING" && <AuctionStartForm listingId={id} />}
+              {owner && listing.status === "UPCOMING" && (
+                <AuctionStartForm listingId={id} />
+              )}
               <Description description={listing.description} />
               <VehicleHistory details={listing} id="condition" />
-              {listing.status !== "UPCOMING" && <Bids sellerName={seller?.name} currentUserId={currentUser?.id} />}
+              {listing.status !== "UPCOMING" && (
+                <Bids
+                  sellerName={seller?.name}
+                  currentUserId={currentUser?.id}
+                />
+              )}
               <Comments />
             </div>
           </div>
