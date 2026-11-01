@@ -65,18 +65,18 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
                 role="tab"
                 aria-selected={active}
                 onClick={() => setStatus(id)}
-                className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-sm font-semibold transition sm:justify-start ${
+                className={`flex min-h-11 items-center justify-between gap-1.5 rounded-xl border px-2 py-2.5 text-xs font-semibold transition sm:justify-start sm:gap-3 sm:px-4 sm:text-sm ${
                   active
                     ? "border-slate-950 bg-slate-950 text-white shadow-sm"
                     : "border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-950"
                 }`}
               >
-                <span className="flex items-center gap-2">
-                  <Icon className={id === "LIVE" ? "text-amber-500" : ""} />
+                <span className="flex items-center gap-1 whitespace-nowrap sm:gap-2">
+                  <Icon className={`shrink-0 ${id === "LIVE" ? "text-amber-500" : ""}`} />
                   {label}
                 </span>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs ${
+                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-xs sm:px-2 ${
                     active
                       ? "bg-white/15 text-white"
                       : "bg-slate-100 text-slate-500"
