@@ -235,7 +235,7 @@ const EmptyShipments = ({ tab }: { tab: Tab }) => {
         Auctions marked Sold will appear here for the winning buyer and seller, with contact details for arranging the handoff.
       </p>
       <Link
-        href="/live/listings"
+        href="/?status=live#auctions"
         className="mt-5 rounded-lg bg-gray-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gray-700"
       >
         Browse live auctions

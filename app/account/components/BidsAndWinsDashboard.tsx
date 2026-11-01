@@ -62,7 +62,7 @@ const BidsAndWinsDashboard = ({ bids }: { bids: AuctionBid[] }) => {
             </p>
           </div>
           <Link
-            href="/live/listings"
+            href="/?status=live#auctions"
             className="inline-flex w-fit items-center gap-1 text-sm font-bold text-gray-900 hover:underline"
           >
             Browse auctions <FiArrowUpRight />
@@ -256,7 +256,7 @@ const EmptyTab = ({ tab }: { tab: Tab }) => {
       <h3 className="text-lg font-bold text-gray-950">{copy.title}</h3>
       <p className="mt-1 max-w-sm text-sm text-gray-500">{copy.body}</p>
       <Link
-        href="/live/listings"
+        href="/?status=live#auctions"
         className="mt-5 rounded-md bg-gray-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gray-700"
       >
         Browse live auctions

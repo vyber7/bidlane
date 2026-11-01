@@ -275,7 +275,7 @@ const EmptyState = ({
       </button>
     ) : (
       <Link
-        href={tab === "uploaded" ? "/submit-listing" : "/live/listings"}
+        href={tab === "uploaded" ? "/submit-listing" : "/?status=live#auctions"}
         className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-gray-950 hover:underline"
       >
         {tab === "uploaded" ? "Submit a vehicle" : "Browse auctions"} <FiArrowUpRight />

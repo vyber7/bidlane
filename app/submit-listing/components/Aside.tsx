@@ -37,7 +37,7 @@ const Aside: React.FC<AsideProps> = ({ auctions, variant = "sold" }) => {
 
       <div className="mt-5 border-t border-slate-200 pt-4">
         <Link
-          href={live ? "/live/listings" : "/past/listings"}
+          href={live ? "/?status=live#auctions" : "/?status=ended#auctions"}
           className="inline-flex items-center gap-2 text-sm font-bold text-slate-950 transition hover:text-amber-600"
         >
           {live ? "View all live auctions" : "View all results"}{" "}

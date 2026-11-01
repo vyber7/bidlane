@@ -80,7 +80,7 @@ export default function AboutPage() {
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <Link
-                href="/live/listings"
+                href="/?status=live#auctions"
                 className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300"
               >
                 Explore live auctions <FiArrowRight aria-hidden="true" />
@@ -200,7 +200,7 @@ export default function AboutPage() {
             </h2>
           </div>
           <Link
-            href="/live/listings"
+            href="/?status=live#auctions"
             className="relative mt-7 inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-slate-800 lg:mt-0"
           >
             Browse auctions <FiArrowRight aria-hidden="true" />

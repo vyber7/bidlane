@@ -41,6 +41,6 @@ describe("purchases and sales handoff", () => {
     expect(screen.getByRole("heading", { name: "No purchases or sales yet" })).toBeDefined();
     fireEvent.click(screen.getByRole("tab", { name: "Purchases 0" }));
     expect(screen.getByRole("heading", { name: "No purchases yet" })).toBeDefined();
-    expect(screen.getByRole("link", { name: "Browse live auctions" }).getAttribute("href")).toBe("/live/listings");
+    expect(screen.getByRole("link", { name: "Browse live auctions" }).getAttribute("href")).toBe("/?status=live#auctions");
   });
 });

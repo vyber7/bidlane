@@ -14,9 +14,9 @@ import {
 } from "react-icons/fa6";
 
 const auctionLinks = [
-  { label: "Live auctions", href: "/live/listings", icon: FiZap },
-  { label: "Coming soon", href: "/future/listings", icon: FiClock },
-  { label: "Auction results", href: "/past/listings", icon: FiCheckCircle },
+  { label: "Live auctions", href: "/?status=live#auctions", icon: FiZap },
+  { label: "Coming soon", href: "/?status=upcoming#auctions", icon: FiClock },
+  { label: "Auction results", href: "/?status=ended#auctions", icon: FiCheckCircle },
   ];
 
 const companyLinks = [
@@ -92,7 +92,7 @@ const Footer = () => {
                       <Icon
                         aria-hidden="true"
                         className={
-                          href === "/live/listings"
+                          href === "/?status=live#auctions"
                             ? "text-amber-400"
                             : "text-slate-600 transition group-hover:text-slate-400"
                         }

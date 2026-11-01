@@ -287,7 +287,7 @@ const EmptyNotifications = ({ unreadOnly }: { unreadOnly: boolean }) => (
     </p>
     {!unreadOnly && (
       <Link
-        href="/live/listings"
+        href="/?status=live#auctions"
         className="mt-5 rounded-md bg-gray-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gray-700"
       >
         Browse live auctions

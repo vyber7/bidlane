@@ -5,7 +5,6 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import type { Listing } from "@prisma/client";
 import { makeListing } from "@/app/test/auction-fixtures";
 import AuctionBrowser from "@/app/(site)/components/AuctionBrowser";
-import AuctionSearchBrowser from "./AuctionSearchBrowser";
 
 const navigation = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
 
@@ -114,14 +113,19 @@ describe("URL-driven auction browsers", () => {
     expect(screen.getByRole("combobox")).toHaveProperty("value", "bid-low");
   });
 
-  it.each(["live", "future", "past"])("supports shared search and sort on the %s page without overriding its status", (auctionType) => {
-    window.history.replaceState(null, "", `/${auctionType}/listings?q=BMW&sort=bid-high&status=ended`);
-    render(<AuctionSearchBrowser listings={listings.filter((listing) => listing.status === "LIVE")} title="Auctions" auctionType={auctionType} />);
-    expect(screen.getByRole("searchbox")).toHaveProperty("value", "BMW");
-    expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(["BMW M3"]);
-    expect(screen.getByLabelText("1 auctions")).toBeDefined();
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "newest" } });
-    expect(new URLSearchParams(window.location.search).has("sort")).toBe(false);
-    expect(window.location.pathname).toBe(`/${auctionType}/listings`);
+  it.each([
+    ["live", "Live", "Porsche", "Porsche 911"],
+    ["upcoming", "Coming soon", "MINI", "MINI Cooper"],
+    ["ended", "Results", "Audi", "Audi R8"],
+  ])("opens the %s homepage filter with search and sorting", (status, label, query, expected) => {
+    window.history.replaceState(null, "", `/?status=${status}&q=${query}&sort=bid-high#auctions`);
+    render(<AuctionBrowser listings={[
+      ...listings,
+      makeListing({ id: "audi", make: "Audi", model: "R8", status: "ENDED" }),
+    ]} />);
+    expect(screen.getByRole("tab", { name: new RegExp(label) }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("searchbox")).toHaveProperty("value", query);
+    expect(screen.getByRole("combobox")).toHaveProperty("value", "bid-high");
+    expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([expected]);
   });
 });

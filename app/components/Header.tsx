@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 import {
   FiChevronDown,
   FiCheckCircle,
@@ -15,14 +15,15 @@ import {
   FiZap,
 } from "react-icons/fi";
 
+import { readAuctionFilters, type AuctionStatus } from "@/app/libs/auction-filters";
 import Avatar from "./Avatar";
 import NotificationBell from "./NotificationBell";
 
 const auctionLinks = [
-  { name: "Live auctions", href: "/live/listings", icon: FiZap },
+  { name: "Live auctions", href: "/?status=live#auctions", icon: FiZap },
   { name: "No reserve", href: "/?status=no_reserve#auctions", icon: FiTag },
-  { name: "Coming soon", href: "/future/listings", icon: FiClock },
-  { name: "Results", href: "/past/listings", icon: FiCheckCircle },
+  { name: "Coming soon", href: "/?status=upcoming#auctions", icon: FiClock },
+  { name: "Results", href: "/?status=ended#auctions", icon: FiCheckCircle },
 ];
 
 const navLinks = [
@@ -39,7 +40,7 @@ const profileLinks = [
   { name: "Purchases & sales", href: "/account/shipments" },
 ];
 
-function Header() {
+function Header({ auctionStatus = "LIVE" }: { auctionStatus?: AuctionStatus }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const user = session?.user;
@@ -73,7 +74,9 @@ function Header() {
     };
   }, []);
 
-  const auctionsActive = auctionLinks.some(({ href }) => pathname === href);
+  const auctionsActive = pathname === "/";
+  const auctionLinkActive = (href: string) => auctionsActive &&
+    new URLSearchParams(href.split("?")[1]?.split("#")[0]).get("status") === auctionStatus.toLowerCase();
   const linkClass = (active: boolean) =>
     `rounded-lg px-3 py-2 text-sm font-semibold transition ${
       active
@@ -134,12 +137,12 @@ function Header() {
                     key={href}
                     onClick={() => setAuctionsOpen(false)}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
-                      pathname === href
+                      auctionLinkActive(href)
                         ? "bg-slate-100 text-slate-950"
                         : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
                     }`}
                   >
-                    <Icon className={href === "/live/listings" ? "text-amber-500" : "text-slate-400"} />
+                    <Icon className={href === "/?status=live#auctions" ? "text-amber-500" : "text-slate-400"} />
                     {name}
                   </Link>
                 ))}
@@ -251,8 +254,8 @@ function Header() {
             <Link href="/" className={linkClass(pathname === "/")}>Discover</Link>
             <p className="px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Auctions</p>
             {auctionLinks.map(({ name, href, icon: Icon }) => (
-              <Link href={href} key={href} onClick={() => setMobileOpen(false)} className={`${linkClass(pathname === href)} flex items-center gap-3`}>
-                <Icon className={href === "/live/listings" ? "text-amber-500" : "text-slate-400"} />
+              <Link href={href} key={href} onClick={() => setMobileOpen(false)} className={`${linkClass(auctionLinkActive(href))} flex items-center gap-3`}>
+                <Icon className={href === "/?status=live#auctions" ? "text-amber-500" : "text-slate-400"} />
                 {name}
               </Link>
             ))}
@@ -290,4 +293,15 @@ function Header() {
   );
 }
 
-export default Header;
+function HeaderWithFilters() {
+  const filters = readAuctionFilters(useSearchParams());
+  return <Header auctionStatus={filters.status === "ALL" ? "LIVE" : filters.status} />;
+}
+
+export default function HeaderNavigation() {
+  return (
+    <Suspense fallback={<Header />}>
+      <HeaderWithFilters />
+    </Suspense>
+  );
+}

@@ -45,7 +45,7 @@ export default function SignIn() {
                 </div>
               ))}
             </div>
-            <Link href="/live/listings" className="mt-8 inline-flex items-center gap-2 rounded-sm text-sm font-semibold text-amber-400 transition hover:text-amber-300 focus-visible:outline-amber-400 lg:mt-10">Explore live auctions <FiArrowUpRight aria-hidden="true" /></Link>
+            <Link href="/?status=live#auctions" className="mt-8 inline-flex items-center gap-2 rounded-sm text-sm font-semibold text-amber-400 transition hover:text-amber-300 focus-visible:outline-amber-400 lg:mt-10">Explore live auctions <FiArrowUpRight aria-hidden="true" /></Link>
           </div>
         </section>
         <section aria-label="Your Bidlane account" className="mx-auto w-full max-w-md py-3 lg:py-6">

@@ -123,7 +123,7 @@ export default function FAQPage() {
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">For buyers</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Three steps to the driver&apos;s seat.</h2>
           </div>
-          <Link href="/live/listings" className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 transition hover:text-amber-600">
+          <Link href="/?status=live#auctions" className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 transition hover:text-amber-600">
             See what&apos;s live <FiArrowRight aria-hidden="true" />
           </Link>
         </div>
@@ -232,7 +232,7 @@ export default function FAQPage() {
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-700"><FiCheck aria-hidden="true" /> Ready when you are</div>
             <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Find the car that earns your bid.</h2>
           </div>
-          <Link href="/live/listings" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
+          <Link href="/?status=live#auctions" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
             Browse live auctions <FiArrowRight aria-hidden="true" />
           </Link>
         </div>
