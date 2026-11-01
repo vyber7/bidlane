@@ -18,7 +18,7 @@ const tabs: {
   label: string;
   icon: typeof FiCheckCircle;
 }[] = [
-  { id: "ALL", label: "All", icon: FiCheckCircle },
+  { id: "NO_RESERVE", label: "No reserve", icon: FiCheckCircle },
   { id: "LIVE", label: "Live", icon: FiZap },
   { id: "UPCOMING", label: "Coming soon", icon: FiClock },
   { id: "ENDED", label: "Results", icon: FiCheckCircle },
@@ -28,11 +28,13 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
   listings,
   currentUserId,
 }) => {
-  const { status: activeTab, q: query, sort, setQuery, setStatus, setSort } = useAuctionFilters();
+  const { status, q: query, sort, setQuery, setStatus, setSort } = useAuctionFilters();
+
+  const activeTab = status === "ALL" ? "NO_RESERVE" : status;
 
   const counts = useMemo(
     () => ({
-      ALL: listings.length,
+      NO_RESERVE: listings.filter((listing) => listing.reservePrice === null).length,
       LIVE: listings.filter((listing) => listing.status === "LIVE").length,
       UPCOMING: listings.filter((listing) => listing.status === "UPCOMING").length,
       ENDED: listings.filter((listing) => listing.status === "ENDED").length,
@@ -53,7 +55,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
         <div
           className="grid grid-cols-2 gap-2 sm:flex"
           role="tablist"
-          aria-label="Filter auctions by status"
+          aria-label="Filter auctions"
         >
           {tabs.map(({ id, label, icon: Icon }) => {
             const active = id === activeTab;

@@ -50,6 +50,29 @@ afterEach(() => {
 });
 
 describe("URL-driven auction browsers", () => {
+  it("defaults to no reserve and restores it after switching tabs", () => {
+    const mixedListings = [
+      makeListing({ id: "no-reserve", make: "Porsche", reservePrice: null }),
+      makeListing({ id: "reserved", make: "BMW", reservePrice: 25000 }),
+      makeListing({ id: "zero-reserve", make: "MINI", reservePrice: 0 }),
+    ];
+    render(<AuctionBrowser listings={mixedListings} />);
+    const noReserve = screen.getByRole("tab", { name: /No reserve\s*1/ });
+    expect(noReserve.getAttribute("aria-selected")).toBe("true");
+    expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Porsche 911"]);
+
+    fireEvent.click(screen.getByRole("tab", { name: /Live/ }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+    fireEvent.click(noReserve);
+    expect(new URLSearchParams(window.location.search).get("status")).toBe("no_reserve");
+    expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Porsche 911"]);
+
+    cleanup();
+    render(<AuctionBrowser listings={mixedListings} />);
+    expect(screen.getByRole("tab", { name: /No reserve\s*1/ }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+  });
+
   it("opens a shared home view with matching controls and listings", () => {
     window.history.replaceState(null, "", "/?status=live&q=Porsche&sort=bid-high#auctions");
     render(<AuctionBrowser listings={listings} />);

@@ -1,6 +1,6 @@
 import type { Listing } from "@prisma/client";
 
-export type AuctionStatus = "ALL" | "LIVE" | "UPCOMING" | "ENDED";
+export type AuctionStatus = "ALL" | "NO_RESERVE" | "LIVE" | "UPCOMING" | "ENDED";
 
 export const auctionSortOptions = [
   { value: "newest", label: "Newest listings" },
@@ -24,7 +24,7 @@ export function readAuctionFilters(params: Pick<URLSearchParams, "get">): Auctio
 
   return {
     q: params.get("q") ?? "",
-    status: status === "LIVE" || status === "UPCOMING" || status === "ENDED" ? status : "ALL",
+    status: status === "NO_RESERVE" || status === "LIVE" || status === "UPCOMING" || status === "ENDED" ? status : "ALL",
     sort: auctionSortOptions.find((option) => option.value === sort)?.value ?? "newest",
   };
 }
@@ -55,7 +55,9 @@ function bidAmount(listing: Listing) {
 export function filterAndSortAuctions(listings: Listing[], filters: AuctionFilters) {
   const query = filters.q.trim().toLowerCase();
   const visible = listings.filter((listing) => {
-    if (filters.status !== "ALL" && listing.status !== filters.status) return false;
+    if (filters.status === "NO_RESERVE") {
+      if (listing.reservePrice !== null) return false;
+    } else if (filters.status !== "ALL" && listing.status !== filters.status) return false;
     return !query || [listing.year, listing.make, listing.model, listing.location, listing.description]
       .join(" ").toLowerCase().includes(query);
   });
