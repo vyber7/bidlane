@@ -22,6 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning={true} data-scroll-behavior="smooth" data-lt-installed="true">
       <body className={`${inter.className} flex flex-col min-h-screen`}>
+        <aside className="sticky top-0 z-[110] flex h-[var(--preview-banner-height)] shrink-0 items-center justify-center bg-slate-950 px-4 text-center text-xs leading-4 text-amber-400">
+          <p>This site is in preview. All cars are illustrative.</p>
+        </aside>
         <AuthContext>
           <ToasterContext />
           <NotificationProvider><ConditionalLayout>{children}</ConditionalLayout></NotificationProvider>

@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --preview-banner-height: 2.5rem;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --preview-banner-height: 2rem;
+  }
+}
+
 html,
 body,
 :root {

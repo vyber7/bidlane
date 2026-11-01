@@ -82,7 +82,7 @@ function Header() {
   return (
     <header
       ref={headerRef}
-      className="fixed inset-x-0 top-0 z-[100] border-b border-slate-200/90 bg-white/95 shadow-[0_1px_2px_rgba(15,23,42,0.04)] backdrop-blur"
+      className="fixed inset-x-0 top-[var(--preview-banner-height)] z-[100] border-b border-slate-200/90 bg-white/95 shadow-[0_1px_2px_rgba(15,23,42,0.04)] backdrop-blur"
     >
       <nav
         className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8"
@@ -233,7 +233,7 @@ function Header() {
       </nav>
 
       {mobileOpen && (
-        <div className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-200 bg-white px-4 py-4 lg:hidden">
+        <div className="max-h-[calc(100dvh-4rem-var(--preview-banner-height))] overflow-y-auto border-t border-slate-200 bg-white px-4 py-4 lg:hidden">
           {user && (
             <div className="mb-3 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
               <Avatar user={user} />
