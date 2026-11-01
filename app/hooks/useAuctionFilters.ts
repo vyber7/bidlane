@@ -1,9 +1,10 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { readAuctionFilters, updateAuctionParams, type AuctionFilters } from "@/app/libs/auction-filters";
 
 export default function useAuctionFilters() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const filters = readAuctionFilters(searchParams);
 
@@ -13,8 +14,12 @@ export default function useAuctionFilters() {
     url.search = updateAuctionParams(url.searchParams, updates).toString();
     if (url.href === window.location.href) return;
 
-    // Next.js syncs native history updates with useSearchParams without refetching listings.
-    window.history[replace ? "replaceState" : "pushState"](null, "", `${url.pathname}${url.search}${url.hash}`);
+    const href = `${url.pathname}${url.search}${url.hash}`;
+    if (replace) {
+      router.replace(href, { scroll: false });
+    } else {
+      router.push(href, { scroll: false });
+    }
   }
 
   return {

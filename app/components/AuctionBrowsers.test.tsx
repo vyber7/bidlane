@@ -7,9 +7,12 @@ import { makeListing } from "@/app/test/auction-fixtures";
 import AuctionBrowser from "@/app/(site)/components/AuctionBrowser";
 import AuctionSearchBrowser from "./AuctionSearchBrowser";
 
+const navigation = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
+
 vi.mock("next/navigation", async () => {
   const { useSyncExternalStore } = await import("react");
   return {
+    useRouter: () => navigation,
     useSearchParams: () => new URLSearchParams(useSyncExternalStore(
       (notify) => {
         window.addEventListener("popstate", notify);
@@ -33,6 +36,10 @@ const listings = [
 ];
 
 beforeEach(() => {
+  navigation.push.mockReset();
+  navigation.replace.mockReset();
+  navigation.push.mockImplementation((href: string) => window.history.pushState(null, "", href));
+  navigation.replace.mockImplementation((href: string) => window.history.replaceState(null, "", href));
   window.history.replaceState(null, "", "/");
   // Emulate Next.js notifying useSearchParams after native history updates.
   for (const method of ["pushState", "replaceState"] as const) {
@@ -63,6 +70,7 @@ describe("URL-driven auction browsers", () => {
     expect(noReserve.getAttribute("aria-selected")).toBe("false");
     expect(screen.getAllByRole("listitem")).toHaveLength(3);
     fireEvent.click(noReserve);
+    expect(navigation.push).toHaveBeenLastCalledWith("/?status=no_reserve", { scroll: false });
     expect(new URLSearchParams(window.location.search).get("status")).toBe("no_reserve");
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Porsche 911"]);
 
@@ -86,6 +94,7 @@ describe("URL-driven auction browsers", () => {
     render(<AuctionBrowser listings={listings} />);
     fireEvent.click(screen.getByRole("tab", { name: /Live/ }));
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "bid-low" } });
+    expect(navigation.push).toHaveBeenLastCalledWith("/?utm_source=share&status=live&sort=bid-low#auctions", { scroll: false });
     expect(window.location.search).toBe("?utm_source=share&status=live&sort=bid-low");
     expect(window.location.hash).toBe("#auctions");
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(["BMW M3", "Porsche 911"]);
@@ -97,6 +106,7 @@ describe("URL-driven auction browsers", () => {
     await waitFor(() => expect(screen.getByRole("combobox")).toHaveProperty("value", "bid-low"));
 
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "BMW & MINI" } });
+    expect(navigation.replace).toHaveBeenLastCalledWith(expect.any(String), { scroll: false });
     expect(new URLSearchParams(window.location.search).get("q")).toBe("BMW & MINI");
     expect(screen.getByText("No auctions found")).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
