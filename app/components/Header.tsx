@@ -9,6 +9,7 @@ import {
   FiCheckCircle,
   FiClock,
   FiMenu,
+  FiTag,
   FiUser,
   FiX,
   FiZap,
@@ -19,7 +20,7 @@ import NotificationBell from "./NotificationBell";
 
 const auctionLinks = [
   { name: "Live auctions", href: "/live/listings", icon: FiZap },
-  { name: "No reserve", href: "/?status=no_reserve#auctions", icon: FiCheckCircle },
+  { name: "No reserve", href: "/?status=no_reserve#auctions", icon: FiTag },
   { name: "Coming soon", href: "/future/listings", icon: FiClock },
   { name: "Results", href: "/past/listings", icon: FiCheckCircle },
 ];

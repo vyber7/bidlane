@@ -2,7 +2,7 @@
 
 import { Listing } from "@prisma/client";
 import { useMemo } from "react";
-import { FiCheckCircle, FiClock, FiSearch, FiZap } from "react-icons/fi";
+import { FiCheckCircle, FiClock, FiSearch, FiTag, FiZap } from "react-icons/fi";
 import Listings from "../../components/Listings";
 import AuctionSearchControls from "@/app/components/AuctionSearchControls";
 import useAuctionFilters from "@/app/hooks/useAuctionFilters";
@@ -19,7 +19,7 @@ const tabs: {
   icon: typeof FiCheckCircle;
 }[] = [
   { id: "LIVE", label: "Live", icon: FiZap },
-  { id: "NO_RESERVE", label: "No reserve", icon: FiCheckCircle },
+  { id: "NO_RESERVE", label: "No reserve", icon: FiTag },
   { id: "UPCOMING", label: "Coming soon", icon: FiClock },
   { id: "ENDED", label: "Results", icon: FiCheckCircle },
 ];
