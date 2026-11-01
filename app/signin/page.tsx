@@ -30,7 +30,7 @@ export default function SignIn() {
       </header>
 
       <div className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-5 py-8 sm:px-8 sm:py-12 lg:grid-cols-2 lg:gap-16">
-        <section className="relative overflow-hidden rounded-3xl bg-slate-950 px-7 py-9 text-white sm:p-10 lg:py-14">
+        <section className="relative hidden overflow-hidden rounded-3xl bg-slate-950 px-7 py-9 text-white sm:p-10 lg:block lg:py-14">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_90%_10%,rgba(245,158,11,0.20),transparent_45%)]" />
           <div aria-hidden="true" className="pointer-events-none absolute -bottom-36 -right-36 h-96 w-96 rounded-full border-[48px] border-white/[0.03]" />
           <div className="relative">
