@@ -14,7 +14,7 @@ interface AuctionBrowserProps {
 }
 
 const tabs: {
-  id: AuctionStatus;
+  id: Exclude<AuctionStatus, "ALL">;
   label: string;
   icon: typeof FiCheckCircle;
 }[] = [
