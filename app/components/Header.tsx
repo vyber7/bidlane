@@ -19,6 +19,7 @@ import NotificationBell from "./NotificationBell";
 
 const auctionLinks = [
   { name: "Live auctions", href: "/live/listings", icon: FiZap },
+  { name: "No reserve", href: "/?status=no_reserve#auctions", icon: FiCheckCircle },
   { name: "Coming soon", href: "/future/listings", icon: FiClock },
   { name: "Results", href: "/past/listings", icon: FiCheckCircle },
 ];
@@ -130,6 +131,7 @@ function Header() {
                     role="menuitem"
                     href={href}
                     key={href}
+                    onClick={() => setAuctionsOpen(false)}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
                       pathname === href
                         ? "bg-slate-100 text-slate-950"
@@ -248,7 +250,7 @@ function Header() {
             <Link href="/" className={linkClass(pathname === "/")}>Discover</Link>
             <p className="px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Auctions</p>
             {auctionLinks.map(({ name, href, icon: Icon }) => (
-              <Link href={href} key={href} className={`${linkClass(pathname === href)} flex items-center gap-3`}>
+              <Link href={href} key={href} onClick={() => setMobileOpen(false)} className={`${linkClass(pathname === href)} flex items-center gap-3`}>
                 <Icon className={href === "/live/listings" ? "text-amber-500" : "text-slate-400"} />
                 {name}
               </Link>
