@@ -18,8 +18,8 @@ const tabs: {
   label: string;
   icon: typeof FiCheckCircle;
 }[] = [
-  { id: "NO_RESERVE", label: "No reserve", icon: FiCheckCircle },
   { id: "LIVE", label: "Live", icon: FiZap },
+  { id: "NO_RESERVE", label: "No reserve", icon: FiCheckCircle },
   { id: "UPCOMING", label: "Coming soon", icon: FiClock },
   { id: "ENDED", label: "Results", icon: FiCheckCircle },
 ];
@@ -30,7 +30,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
 }) => {
   const { status, q: query, sort, setQuery, setStatus, setSort } = useAuctionFilters();
 
-  const activeTab = status === "ALL" ? "NO_RESERVE" : status;
+  const activeTab = status === "ALL" ? "LIVE" : status;
 
   const counts = useMemo(
     () => ({
@@ -53,7 +53,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
     <>
       <div className="mt-6 flex flex-col gap-4 border-b border-slate-200 pb-6 xl:flex-row xl:items-center xl:justify-between">
         <div
-          className="grid grid-cols-2 gap-2 sm:flex"
+          className="flex min-w-0 max-w-full snap-x snap-proximity gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="tablist"
           aria-label="Filter auctions"
         >
@@ -67,7 +67,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
                 role="tab"
                 aria-selected={active}
                 onClick={() => setStatus(id)}
-                className={`flex min-h-11 items-center justify-between gap-1.5 rounded-xl border px-2 py-2.5 text-xs font-semibold transition sm:justify-start sm:gap-3 sm:px-4 sm:text-sm ${
+                className={`flex min-h-11 shrink-0 snap-start items-center justify-between gap-1.5 rounded-xl border px-2 py-2.5 text-xs font-semibold transition sm:justify-start sm:gap-3 sm:px-4 sm:text-sm ${
                   active
                     ? "border-slate-950 bg-slate-950 text-white shadow-sm"
                     : "border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-950"

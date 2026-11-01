@@ -50,18 +50,17 @@ afterEach(() => {
 });
 
 describe("URL-driven auction browsers", () => {
-  it("defaults to no reserve and restores it after switching tabs", () => {
+  it("defaults to live and preserves an explicit no reserve selection", () => {
     const mixedListings = [
       makeListing({ id: "no-reserve", make: "Porsche", reservePrice: null }),
       makeListing({ id: "reserved", make: "BMW", reservePrice: 25000 }),
       makeListing({ id: "zero-reserve", make: "MINI", reservePrice: 0 }),
+      makeListing({ id: "upcoming", make: "Audi", status: "UPCOMING", reservePrice: 30000 }),
     ];
     render(<AuctionBrowser listings={mixedListings} />);
     const noReserve = screen.getByRole("tab", { name: /No reserve\s*1/ });
-    expect(noReserve.getAttribute("aria-selected")).toBe("true");
-    expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Porsche 911"]);
-
-    fireEvent.click(screen.getByRole("tab", { name: /Live/ }));
+    expect(screen.getByRole("tab", { name: /Live/ }).getAttribute("aria-selected")).toBe("true");
+    expect(noReserve.getAttribute("aria-selected")).toBe("false");
     expect(screen.getAllByRole("listitem")).toHaveLength(3);
     fireEvent.click(noReserve);
     expect(new URLSearchParams(window.location.search).get("status")).toBe("no_reserve");
