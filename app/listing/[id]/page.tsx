@@ -93,7 +93,7 @@ const Listing = async (props: Params) => {
             aria-label="Auction overview"
           >
             <AuctionStatusBar currentUser={currentUser?.id} />
-            <div className="order-1 space-y-5">
+            <div className="order-1">
               <section className="rounded-2xl border border-slate-200 bg-white p-6">
                 <h2 className="mb-4 text-lg font-bold tracking-tight">
                   Vehicle at a glance
@@ -127,6 +127,8 @@ const Listing = async (props: Params) => {
                   ))}
                 </dl>
               </section>
+            </div>
+            <div className="order-3 space-y-5">
               <Aside
                 auctions={liveAuctions
                   .filter((auction) => auction.id !== id)
