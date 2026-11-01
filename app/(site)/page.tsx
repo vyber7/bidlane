@@ -34,11 +34,11 @@ export default async function Home() {
               <span className="h-px w-8 bg-amber-400" /> Curated enthusiast cars
             </p>
             <h1 className="max-w-xl text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl lg:text-5xl">
-              Find the car you&apos;ll talk about for years.
+              Great cars. Worth the chase.
             </h1>
             <p className="mt-4 max-w-lg text-sm leading-6 text-slate-300 sm:text-base">
-              Discover exceptional vehicles, watch your favorites, and follow
-              the bidding from first look to final call.
+              Discover enthusiast cars, follow the bidding, and make your next
+              great drive yours.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link
