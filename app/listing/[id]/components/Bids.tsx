@@ -93,10 +93,10 @@ const Bids: React.FC<BidsProps> = ({
       {listing.status === "LIVE" && minimumBid === null && (
         <p className="mt-2 text-sm text-slate-500">Bidding is unavailable until the auction is configured.</p>
       )}
-      {listing.status !== "LIVE" ? null : session &&
+      {session &&
         listing.userId !== currentUserId ? (
-        <BidForm key={listing.id} minimumBid={minimumBid} canBid={canBid} currentUserId={currentUserId} />
-      ) : !session ? (
+        <BidForm key={`${listing.id}:${currentUserId ?? ""}`} minimumBid={minimumBid} canBid={canBid} currentUserId={currentUserId} />
+      ) : !session && listing.status === "LIVE" ? (
         <>
           <hr />
           <div className="text-rose-500 mt-2 md:mt-4 text-center">

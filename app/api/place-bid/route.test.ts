@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -7,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   listingUpdateMany: vi.fn(),
   listingUpdate: vi.fn(),
   bidCreate: vi.fn(),
+  submissionFindUnique: vi.fn(),
+  submissionCreate: vi.fn(),
   userUpdate: vi.fn(),
   trigger: vi.fn(),
   notificationUpsert: vi.fn(),
@@ -32,16 +35,19 @@ const tx = {
     updateMany: mocks.listingUpdateMany,
     update: mocks.listingUpdate,
   },
+  bidSubmission: { findUnique: mocks.submissionFindUnique, create: mocks.submissionCreate },
   bid: { create: mocks.bidCreate },
   user: { update: mocks.userUpdate },
   notification: { upsert: mocks.notificationUpsert },
 };
 
-function request(body: unknown) {
+const key = "test-bid-request-0001";
+
+function request(body: unknown, idempotencyKey: string | null = key) {
   return new Request("http://localhost/api/place-bid", {
     method: "POST",
     body: JSON.stringify(body),
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...(idempotencyKey === null ? {} : { "Idempotency-Key": idempotencyKey }) },
   });
 }
 
@@ -69,6 +75,8 @@ describe("POST /api/place-bid", () => {
     mocks.transaction.mockImplementation(
       (callback: (client: typeof tx) => unknown) => callback(tx)
     );
+    mocks.submissionFindUnique.mockResolvedValue(null);
+    mocks.submissionCreate.mockResolvedValue({});
     mocks.listingFindUnique.mockResolvedValue(liveListing());
     mocks.listingUpdateMany.mockResolvedValue({ count: 1 });
     mocks.listingUpdate.mockResolvedValue({});
@@ -82,6 +90,85 @@ describe("POST /api/place-bid", () => {
       user: { name: "Buyer" },
     });
     mocks.trigger.mockResolvedValue(undefined);
+  });
+
+
+  it.each([null, "", "short", "x".repeat(129), "invalid key with spaces"])("rejects invalid idempotency key %j before database work", async (key) => {
+    const response = await POST(request({ listingId, bidAmount: 1000 }, key));
+    expect(response.status).toBe(400);
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it("replays the exact accepted response after the auction ends without repeating side effects", async () => {
+    mocks.listingFindUnique.mockResolvedValue(liveListing({ highestBidderId: "previous", currentBid: 900 }));
+    const first = await POST(request({ listingId, bidAmount: 1000 }));
+    const response = await first.json();
+    const stored = mocks.submissionCreate.mock.calls[0][0].data;
+    expect(stored).toEqual({ userId: "bidder", key, listingId, amount: 1000, response });
+    mocks.submissionFindUnique.mockResolvedValue(stored);
+    mocks.listingFindUnique.mockResolvedValue(liveListing({ status: "ENDED" }));
+    const broadcastCount = mocks.trigger.mock.calls.length;
+
+    const replay = await POST(request({ listingId, bidAmount: "1000" }));
+    expect(replay.status).toBe(201);
+    expect(await replay.json()).toEqual(response);
+    expect(mocks.listingFindUnique).toHaveBeenCalledTimes(1);
+    expect(mocks.listingUpdateMany).toHaveBeenCalledTimes(1);
+    expect(mocks.bidCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.submissionCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.notificationUpsert).toHaveBeenCalledTimes(1);
+    expect(mocks.trigger).toHaveBeenCalledTimes(broadcastCount);
+  });
+
+  it.each([
+    { listingId, bidAmount: 1100 },
+    { listingId: "abcdef0123456789abcdef02", bidAmount: 1000 },
+  ])("rejects key reuse with changed request data %j", async (body) => {
+    mocks.submissionFindUnique.mockResolvedValue({ listingId, amount: 1000, response: {} });
+    const response = await POST(request(body));
+    expect(response.status).toBe(409);
+    expect(mocks.listingFindUnique).not.toHaveBeenCalled();
+    expect(mocks.bidCreate).not.toHaveBeenCalled();
+  });
+
+  it("scopes the key to the authenticated user", async () => {
+    await POST(request({ listingId, bidAmount: 1000 }));
+    mocks.getCurrentUser.mockResolvedValue({ id: "another-bidder", email: "another@test.dev" });
+    await POST(request({ listingId, bidAmount: 1000 }));
+    expect(mocks.submissionFindUnique).toHaveBeenNthCalledWith(1, { where: { userId_key: { userId: "bidder", key } } });
+    expect(mocks.submissionFindUnique).toHaveBeenNthCalledWith(2, { where: { userId_key: { userId: "another-bidder", key } } });
+  });
+
+  it.each(["P2002", "P2034"])("replays a concurrently committed request after %s", async (code) => {
+    const response = { bid: { id: "winning-bid" }, currentBid: 1000, auctionEndsAt: now.toISOString() };
+    mocks.transaction.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError("race", { code, clientVersion: "test" }));
+    mocks.submissionFindUnique.mockResolvedValue({ listingId, amount: 1000, response });
+    const replay = await POST(request({ listingId, bidAmount: 1000 }));
+    expect(replay.status).toBe(201);
+    expect(await replay.json()).toEqual(response);
+    expect(mocks.transaction).toHaveBeenCalledTimes(2);
+    expect(mocks.bidCreate).not.toHaveBeenCalled();
+    expect(mocks.trigger).not.toHaveBeenCalled();
+  });
+
+  it("bounds transaction retries and returns a retryable failure", async () => {
+    mocks.transaction.mockRejectedValue(new Prisma.PrismaClientKnownRequestError("race", { code: "P2034", clientVersion: "test" }));
+    expect((await POST(request({ listingId, bidAmount: 1000 }))).status).toBe(503);
+    expect(mocks.transaction).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not reserve a key for a rejected bid", async () => {
+    expect((await POST(request({ listingId, bidAmount: 900 }))).status).toBe(400);
+    expect(mocks.submissionCreate).not.toHaveBeenCalled();
+    expect((await POST(request({ listingId, bidAmount: 1000 }))).status).toBe(201);
+  });
+
+  it("fails before broadcasting if the request snapshot cannot be stored", async () => {
+    mocks.submissionCreate.mockRejectedValueOnce(new Error("snapshot write failed"));
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect((await POST(request({ listingId, bidAmount: 1000 }))).status).toBe(500);
+    expect(mocks.trigger).not.toHaveBeenCalled();
+    log.mockRestore();
   });
 
   it("requires authentication before opening a transaction", async () => {

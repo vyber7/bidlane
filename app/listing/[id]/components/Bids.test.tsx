@@ -39,6 +39,50 @@ async function reviewBid(amount = "12000") {
 }
 
 describe("bid review", () => {
+
+  it.each([
+    new Error("Network response lost"),
+    { isAxiosError: true, response: { status: 500 } },
+    { isAxiosError: true, response: { status: 503 } },
+  ])("retains the request key and amount after an uncertain outcome, even after auction end (%j)", async (error) => {
+    mocks.post.mockRejectedValueOnce(error);
+    const listing = makeListing();
+    const { rerender } = render(view(listing));
+    await reviewBid();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm bid of $12,000" })); });
+    const firstRequest = mocks.post.mock.calls[0];
+    expect(firstRequest[2].headers["Idempotency-Key"]).toMatch(/^[a-f0-9-]{36}$/);
+    expect(screen.getByRole("alert").textContent).toContain("couldn’t confirm");
+    expect(screen.getByRole("button", { name: "Edit bid" })).toHaveProperty("disabled", true);
+    rerender(view({ ...listing, status: "ENDED", currentBid: 13000, highestBidderId: "other-buyer" }));
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Retry same bid" })); });
+    expect(mocks.post.mock.calls[1]).toEqual(firstRequest);
+    expect(screen.getByText("Your bid of $12,000 was accepted.")).toBeDefined();
+    expect(screen.queryByText("You’re leading")).toBeNull();
+  });
+
+
+  it("uses a fresh key for a subsequent bid after success", async () => {
+    const listing = makeListing();
+    const { rerender } = render(view(listing));
+    await reviewBid();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm bid of $12,000" })); });
+    rerender(view({ ...listing, currentBid: 13000, highestBidderId: "other-buyer" }));
+    await reviewBid("14000");
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm bid of $14,000" })); });
+    expect(mocks.post.mock.calls[1][2].headers["Idempotency-Key"]).not.toBe(mocks.post.mock.calls[0][2].headers["Idempotency-Key"]);
+  });
+
+  it("uses a new key for a new confirmation after a definitive rejection", async () => {
+    mocks.post.mockRejectedValueOnce({ isAxiosError: true, response: { status: 409, data: { error: "Auction changed" } } });
+    render(view());
+    await reviewBid();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm bid of $12,000" })); });
+    await reviewBid("13000");
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm bid of $13,000" })); });
+    expect(mocks.post.mock.calls[1][2].headers["Idempotency-Key"]).not.toBe(mocks.post.mock.calls[0][2].headers["Idempotency-Key"]);
+  });
+
   it("requires an explicit confirmation of the vehicle, amount, and commitment before posting", async () => {
     render(view());
     expect(screen.getByText("Minimum next bid: $10,000")).toBeDefined();
@@ -50,7 +94,7 @@ describe("bid review", () => {
     expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Review your bid" }));
     expect(mocks.post).not.toHaveBeenCalled();
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm bid of $12,000" })); });
-    expect(mocks.post).toHaveBeenCalledExactlyOnceWith("/api/place-bid", { listingId: makeListing().id, bidAmount: 12000 });
+    expect(mocks.post).toHaveBeenCalledExactlyOnceWith("/api/place-bid", { listingId: makeListing().id, bidAmount: 12000 }, { headers: { "Idempotency-Key": expect.any(String) } });
     expect(screen.queryByRole("region", { name: "Review your bid" })).toBeNull();
     expect(screen.getByText("Your bid of $12,000 was accepted.")).toBeDefined();
     expect(screen.getByText("You’re leading")).toBeDefined();
@@ -93,7 +137,7 @@ describe("bid review", () => {
     const confirmation = screen.getByRole("button", { name: `Confirm bid of $${updated.toLocaleString("en-US")}` });
     mocks.post.mockResolvedValueOnce({ data: { bid: makeBid({ amount: updated }), currentBid: updated, auctionEndsAt: listing.auctionEndsAt!.toISOString() } });
     await act(async () => { fireEvent.click(confirmation); });
-    expect(mocks.post).toHaveBeenCalledExactlyOnceWith("/api/place-bid", { listingId: listing.id, bidAmount: updated });
+    expect(mocks.post).toHaveBeenCalledExactlyOnceWith("/api/place-bid", { listingId: listing.id, bidAmount: updated }, { headers: { "Idempotency-Key": expect.any(String) } });
   });
 
   it("blocks confirmation when the auction expires during review", async () => {

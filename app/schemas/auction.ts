@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { listingIdSchema, requiredTextSchema, safeIntegerSchema } from "./common";
 
+export const bidIdempotencyKeySchema = z.string({ error: "A valid Idempotency-Key header is required" })
+  .regex(/^[a-zA-Z0-9_-]{16,128}$/, "Idempotency-Key must contain 16–128 letters, digits, underscores, or hyphens");
+
 export const bidRequestSchema = z.object({
   listingId: listingIdSchema,
   bidAmount: safeIntegerSchema("Bid amount"),

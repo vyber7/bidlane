@@ -179,7 +179,7 @@ vitest.config.ts     # Test configuration
 | `/api/account/profile` | PATCH | Update the current user's profile |
 | `/api/new-listing` | POST | Create a vehicle listing |
 | `/api/auction-start` | POST | Start a seller's upcoming auction |
-| `/api/place-bid` | POST | Place a bid on a live auction |
+| `/api/place-bid` | POST | Place a bid on a live auction (requires `Idempotency-Key`) |
 | `/api/auction-end` | POST | Seller-triggered finalization after the scheduled end time |
 | `/api/auction-finalize` | POST | Finalize an expired auction |
 | `/api/cron/finalize-auctions` | GET | Finalize expired auctions in a batch |
@@ -192,6 +192,16 @@ vitest.config.ts     # Test configuration
 Image uploads use Cloudinary widgets. New listings include the uploaded photo URLs in `/api/new-listing`; adding photos to an existing listing saves them through `/api/cloudinary-images`. The gallery renders saved images supplied by the listing page without a second image-list request.
 
 Application-owned API failures return JSON with an `error` string and an appropriate HTTP status. Malformed JSON, non-object bodies, and invalid fields return `400`; unexpected failures return `500` with a public message while details are logged on the server. Partial cron failures retain the batch summary and add an `error` string. NextAuth's authentication endpoints use their own protocol.
+
+### Bid request retries
+
+`POST /api/place-bid` requires an `Idempotency-Key` header containing 16–128 ASCII letters, digits, underscores, or hyphens. Generate a fresh UUID for each confirmed bid; reuse that key with the same listing and amount when retrying an uncertain request. Keys are scoped to the authenticated user. Reusing an accepted key with a different listing or amount returns `409`.
+
+The bid, auction updates, notifications, and `BidSubmission` response snapshot commit in one transaction. Successful retries return the original `201` response, including its original auction deadline, even after the auction changes or ends; they create no new bids, notifications, or extensions. A replay confirms historical acceptance, not that the bidder still leads. Rejected requests do not reserve a key. Transaction contention is retried up to three times, then returns `503`; retry with the same key.
+
+The bid form preserves its request key and exact amount while retrying network failures or server errors, and allows that retry after auction end. This pending state lasts while the form remains mounted; reloading or leaving the page clears it. Successful request records have no automatic expiration.
+
+Before deploying, run `npx prisma db push` against the target database to create the `BidSubmission` collection and its unique `(userId, key)` index, then deploy the generated Prisma client and application together. Existing bids need no backfill. MongoDB must support transactions (a replica set).
 
 ## Notifications
 

@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import prisma from "@/app/libs/prismadb";
 import getCurrentUser from "@/app/actions/getCurrentUser";
@@ -11,8 +12,8 @@ import {
 } from "@/app/libs/api-request";
 import { logger } from "@/app/libs/logger";
 import { outbidNotifications, publishNotificationChanges, saveNotifications } from "@/app/libs/notifications";
-import type { AcceptedBidResponse, AuctionEndTimeEvent, BidEvent } from "@/app/types/auction-events";
-import { bidRequestSchema } from "@/app/schemas/auction";
+import type { AcceptedBidResponse, AuctionEndTimeEvent } from "@/app/types/auction-events";
+import { bidIdempotencyKeySchema, bidRequestSchema } from "@/app/schemas/auction";
 
 export async function POST(req: Request) {
   try {
@@ -21,9 +22,19 @@ export async function POST(req: Request) {
       return errorResponse("Unauthorized", 401);
 
     const { listingId, bidAmount } = parseApiInput(bidRequestSchema, await readJsonObject(req));
-    const bidTime = new Date();
+    const key = parseApiInput(bidIdempotencyKeySchema, req.headers.get("Idempotency-Key"));
 
-    const result = await prisma.$transaction(async (tx) => {
+    const placeBid = () => prisma.$transaction(async (tx) => {
+      const previous = await tx.bidSubmission.findUnique({
+        where: { userId_key: { userId: currentUser.id, key } },
+      });
+      if (previous) {
+        if (previous.listingId !== listingId || previous.amount !== bidAmount) {
+          throw new ApiRequestError(409, "Idempotency-Key was already used for a different bid");
+        }
+        return { replayed: true as const, response: previous.response as unknown as AcceptedBidResponse };
+      }
+      const bidTime = new Date();
       const listing = await tx.listing.findUnique({ where: { id: listingId } });
 
       if (!listing) throw new ApiRequestError(404, "Listing not found");
@@ -119,21 +130,47 @@ export async function POST(req: Request) {
       });
 
       const notificationUsers = await saveNotifications(tx, outbidNotifications(listing, newBid));
-      return { newBid, auctionEndsAt, shouldExtend, notificationUsers };
+      const response = {
+        bid: { ...newBid, createdAt: newBid.createdAt.toISOString() },
+        currentBid: newBid.amount,
+        auctionEndsAt: auctionEndsAt.toISOString(),
+      } satisfies AcceptedBidResponse;
+      await tx.bidSubmission.create({
+        data: { userId: currentUser.id, key, listingId, amount: bidAmount, response },
+      });
+      return { replayed: false as const, response, shouldExtend, notificationUsers };
     });
 
-    // A notification failure must not turn an already-committed bid into a 500
-    // response, since a retry could submit the same bid a second time.
-    const bid = { ...result.newBid, createdAt: result.newBid.createdAt.toISOString() } satisfies BidEvent;
+    // MongoDB can abort a competing transaction before it sees the winner's
+    // record. Retry with a fresh snapshot; the unique index is the final guard.
+    let result: Awaited<ReturnType<typeof placeBid>> | undefined;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        result = await placeBid();
+        break;
+      } catch (error) {
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError) ||
+          !["P2002", "P2034"].includes(error.code)) throw error;
+        if (attempt === 2) {
+          return errorResponse("Bidding is busy; retry this same request", 503);
+        }
+      }
+    }
+    if (!result) throw new Error("Bid transaction did not complete");
+    if (result.replayed) return NextResponse.json(result.response, { status: 201 });
+
+    // Publishing is best effort after commit. Replays never publish again.
+    const { response, notificationUsers, shouldExtend } = result;
+    const { bid } = response;
     const notifications: Promise<unknown>[] = [
-      pusherServer.trigger(`listing-${listingId}`, "new-bid", bid),
-      publishNotificationChanges(result.notificationUsers),
+      Promise.resolve().then(() => pusherServer.trigger(`listing-${listingId}`, "new-bid", bid)),
+      Promise.resolve().then(() => publishNotificationChanges(notificationUsers)),
     ];
-    if (result.shouldExtend) {
+    if (shouldExtend) {
       notifications.push(
-        pusherServer.trigger(`listing-${listingId}`, "new-end-time", {
-          newEndTime: result.auctionEndsAt.toISOString(),
-        } satisfies AuctionEndTimeEvent)
+        Promise.resolve().then(() => pusherServer.trigger(`listing-${listingId}`, "new-end-time", {
+          newEndTime: response.auctionEndsAt,
+        } satisfies AuctionEndTimeEvent))
       );
     }
     const notificationResults = await Promise.allSettled(notifications);
@@ -141,14 +178,7 @@ export async function POST(req: Request) {
       logger.warn("bid.notification_failed", { listingId });
     }
 
-    return NextResponse.json(
-      {
-        bid,
-        currentBid: result.newBid.amount,
-        auctionEndsAt: result.auctionEndsAt.toISOString(),
-      } satisfies AcceptedBidResponse,
-      { status: 201 }
-    );
+    return NextResponse.json(result.response, { status: 201 });
   } catch (error) {
     const response = apiErrorResponse(error);
     if (response) return response;

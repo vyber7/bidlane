@@ -24,6 +24,7 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
   const { listing, acceptBid } = useAuctionContext();
   const router = useRouter();
   const [review, setReview] = useState<{ amount: number; minimumBid: number } | null>(null);
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [acceptedAmount, setAcceptedAmount] = useState<number | null>(null);
@@ -50,7 +51,10 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
   async function confirmBid() {
     // Check again at the moment of confirmation; live events can change the
     // minimum while the bidder is reviewing. Never silently raise their bid.
-    if (!review || !canBid || minimumChanged || review.amount < (minimumBid ?? Infinity) || submitting.current) return;
+    if (!review || submitting.current) return;
+    if (!pendingKey && (!canBid || minimumChanged || review.amount < (minimumBid ?? Infinity))) return;
+    const key = pendingKey ?? crypto.randomUUID();
+    setPendingKey(key);
     submitting.current = true;
     setIsLoading(true);
     setRequestError(null);
@@ -58,7 +62,8 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
       const response = await axios.post<AcceptedBidResponse>("/api/place-bid", {
         bidAmount: review.amount,
         listingId: listing.id,
-      });
+      }, { headers: { "Idempotency-Key": key } });
+      setPendingKey(null);
       acceptBid(response.data);
       setAcceptedAmount(response.data.bid.amount);
       reset();
@@ -67,8 +72,16 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
       toast.success("Bid placed successfully!");
     } catch (error: unknown) {
       const message = getApiErrorMessage(error, "Error placing bid");
-      setRequestError(message);
-      closeReview();
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+      // A missing response, timeout, or server error may follow a committed bid.
+      // Keep the exact reviewed amount and key until its outcome is resolved.
+      if (status && status >= 400 && status < 500 && status !== 408 && status !== 429) {
+        setPendingKey(null);
+        setRequestError(message);
+        closeReview();
+      } else {
+        setRequestError("We couldn’t confirm whether your bid was accepted. Retry the same bid to check its result.");
+      }
       // Recover a price change missed by the live connection. The server still
       // validates the exact confirmed amount if it changes during the request.
       router.refresh();
@@ -78,6 +91,8 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
       setIsLoading(false);
     }
   }
+
+  if (listing.status !== "LIVE" && !pendingKey && acceptedAmount === null) return null;
 
   return (
     <div className="mt-3 space-y-4">
@@ -123,13 +138,15 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
           <p className="font-semibold text-slate-950">{listing.year} {capitalize(listing.make)} {capitalize(listing.model)}</p>
           <div><p className="text-sm text-slate-600">Your bid</p><p className="text-3xl font-black tracking-tight text-slate-950">${formatAmount(review.amount)}</p></div>
           <p className="text-sm leading-6 text-slate-700">By confirming, you commit to purchasing this vehicle for your bid amount if you win and the reserve is met. Review the listing and arrange any inspection before bidding.</p>
-          {!canBid ? (
+          {pendingKey ? null : !canBid ? (
             <p role="alert" className="text-sm font-semibold text-rose-700">This auction is no longer accepting bids.</p>
           ) : minimumChanged && (
             <p role="alert" className="text-sm font-semibold text-amber-950">The minimum bid changed while you were reviewing. The minimum is now ${formatAmount(minimumBid!)}. Review the updated bid before confirming.</p>
           )}
           <div className="flex flex-col gap-2 sm:flex-row">
-            {minimumChanged ? (
+            {pendingKey ? (
+              <button type="button" disabled={isLoading} className={primaryButton} onClick={confirmBid}>{isLoading ? "Placing bid…" : "Retry same bid"}</button>
+            ) : minimumChanged ? (
               <button type="button" disabled={!canBid || isLoading} className={primaryButton} onClick={() => {
                 if (!canBid || minimumBid === null) return;
                 const amount = Math.max(review.amount, minimumBid);
@@ -139,7 +156,7 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
             ) : (
               <button type="button" disabled={!canBid || isLoading} className={primaryButton} onClick={confirmBid}>{isLoading ? "Placing bid…" : `Confirm bid of $${formatAmount(review.amount)}`}</button>
             )}
-            <button type="button" disabled={isLoading} onClick={closeReview} className="rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50">Edit bid</button>
+            <button type="button" disabled={isLoading || pendingKey !== null} onClick={closeReview} className="rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50">Edit bid</button>
           </div>
         </section>
       )}

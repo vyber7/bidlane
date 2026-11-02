@@ -41,7 +41,7 @@ describe("shared auction views", () => {
   it("shows a rejected bid's API message while preserving the bid input", async () => {
     mocks.post.mockRejectedValueOnce({
       isAxiosError: true,
-      response: { data: { error: "The auction changed; please try again" } },
+      response: { status: 409, data: { error: "The auction changed; please try again" } },
     });
     render(
       <AuctionProvider listing={makeListing()} bids={[]} comments={[]}>

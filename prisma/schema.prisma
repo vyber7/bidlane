@@ -66,8 +66,9 @@ model User {
   highestBidsIds String[]  @db.ObjectId
   highestBids    Listing[] @relation(name: "highestBidder")
 
-  bids          Bid[]
-  notifications Notification[]
+  bidSubmissions BidSubmission[]
+  bids           Bid[]
+  notifications  Notification[]
 }
 
 enum NotificationKind {
@@ -206,4 +207,19 @@ model Bid {
 
   userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// A separate collection avoids nullable unique keys on historical bids.
+// Keep successful request snapshots so retries never depend on mutable auction data.
+model BidSubmission {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String
+  listingId String   @db.ObjectId
+  amount    Int
+  response  Json
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key])
 }
