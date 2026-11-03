@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { FiUser } from "react-icons/fi";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSellerProfile } from "@/app/libs/seller-profile";
@@ -17,6 +18,12 @@ export default async function SellerPage({ params, searchParams }: {
   const profile = await getSellerProfile(id, page);
   if (!profile || (page > 1 && (page - 1) * 12 >= profile.salesCount)) notFound();
   const { seller, salesCount, active, sales } = profile;
+  const initials = (seller.name || "")
+    .split(/\s|@/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
   return <main className="mx-auto max-w-5xl space-y-7 px-4 pb-16 pt-28 sm:px-6">
     <Link href="/#auctions" className="text-sm font-semibold text-slate-600 hover:underline">← Browse auctions</Link>
     <header className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
@@ -30,14 +37,20 @@ export default async function SellerPage({ params, searchParams }: {
             <span className="rounded-full bg-slate-100 px-3 py-1">{salesCount} {salesCount === 1 ? "vehicle" : "vehicles"} sold at auction</span>
           </div>
         </div>
-        <Image
-          src={seller.image || "/images/default-profile-picture-avatar-png-green.png"}
+        {seller.image ? <Image
+          src={seller.image}
           alt={`${seller.name || "Seller"}'s profile photo`}
           width={160}
           height={160}
           unoptimized
           className="aspect-square w-full rounded-2xl bg-slate-100 object-cover ring-1 ring-slate-200"
-        />
+        /> : <div
+          role="img"
+          aria-label={`${seller.name || "Seller"}'s profile avatar`}
+          className="flex aspect-square w-full items-center justify-center rounded-2xl bg-gradient-to-br from-gray-800 to-gray-950 text-2xl font-bold text-white shadow-sm ring-4 ring-gray-100 sm:text-4xl"
+        >
+          {initials || <FiUser aria-hidden="true" />}
+        </div>}
       </div>
       <p className="mt-4 text-xs leading-5 text-slate-500">Email verification confirms inbox access, not identity, ownership, or vehicle condition. Auction results do not confirm payment or vehicle handoff.</p>
     </header>
