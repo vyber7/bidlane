@@ -20,16 +20,24 @@ export default async function SellerPage({ params, searchParams }: {
   return <main className="mx-auto max-w-5xl space-y-7 px-4 pb-16 pt-28 sm:px-6">
     <Link href="/#auctions" className="text-sm font-semibold text-slate-600 hover:underline">← Browse auctions</Link>
     <header className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
-      <div className="flex items-center gap-4">
-        {seller.image && <Image src={seller.image} alt="" width={72} height={72} unoptimized className="h-[72px] w-[72px] rounded-full object-cover" />}
-        <div><p className="text-xs font-bold uppercase tracking-widest text-amber-700">Seller profile</p>
+      <div className="grid grid-cols-[minmax(0,1fr)_5rem] items-start gap-4 sm:grid-cols-[minmax(0,1fr)_10rem] sm:gap-8">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Seller profile</p>
           <h1 className="mt-1 break-words text-3xl font-black">{seller.name || "BidLane seller"}</h1>
           <p className="mt-2 text-sm text-slate-600">Member since {seller.createdAt.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
+          <div className="mt-5 flex flex-wrap gap-3 text-sm font-semibold">
+            <span className={`rounded-full px-3 py-1 ${seller.emailVerified ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{seller.emailVerified ? "Email verified" : "Email not verified"}</span>
+            <span className="rounded-full bg-slate-100 px-3 py-1">{salesCount} {salesCount === 1 ? "vehicle" : "vehicles"} sold at auction</span>
+          </div>
         </div>
-      </div>
-      <div className="mt-5 flex flex-wrap gap-3 text-sm font-semibold">
-        <span className={`rounded-full px-3 py-1 ${seller.emailVerified ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{seller.emailVerified ? "Email verified" : "Email not verified"}</span>
-        <span className="rounded-full bg-slate-100 px-3 py-1">{salesCount} {salesCount === 1 ? "vehicle" : "vehicles"} sold at auction</span>
+        <Image
+          src={seller.image || "/images/default-profile-picture-avatar-png-green.png"}
+          alt={`${seller.name || "Seller"}'s profile photo`}
+          width={160}
+          height={160}
+          unoptimized
+          className="aspect-square w-full rounded-2xl bg-slate-100 object-cover ring-1 ring-slate-200"
+        />
       </div>
       <p className="mt-4 text-xs leading-5 text-slate-500">Email verification confirms inbox access, not identity, ownership, or vehicle condition. Auction results do not confirm payment or vehicle handoff.</p>
     </header>
