@@ -13,7 +13,7 @@ interface AuctionSearchControlsProps {
 
 export default function AuctionSearchControls({ auctionType, query, sort, onQueryChange, onSortChange }: AuctionSearchControlsProps) {
   return (
-    <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
+    <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto xl:min-w-0 xl:flex-1">
       <label className="relative block min-w-0 flex-1 lg:w-64">
         <span className="sr-only">Search {auctionType} auctions</span>
         <FiSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -25,7 +25,7 @@ export default function AuctionSearchControls({ auctionType, query, sort, onQuer
           className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
         />
       </label>
-      <label className="block sm:w-48">
+      <label className="block sm:w-48 sm:shrink-0">
         <span className="sr-only">Sort auctions</span>
         <select
           value={sort}

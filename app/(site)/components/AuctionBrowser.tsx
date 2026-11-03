@@ -53,7 +53,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
     <>
       <div className="mt-6 flex flex-col gap-4 border-b border-slate-200 pb-6 xl:flex-row xl:items-center xl:justify-between">
         <div
-          className="flex min-w-0 max-w-full snap-x snap-proximity gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex min-w-0 max-w-full snap-x snap-proximity gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:thin] xl:shrink-0 [&::-webkit-scrollbar]:h-1"
           role="tablist"
           aria-label="Filter auctions"
         >
@@ -67,7 +67,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
                 role="tab"
                 aria-selected={active}
                 onClick={() => setStatus(id)}
-                className={`flex min-h-11 shrink-0 snap-start items-center justify-between gap-1.5 rounded-xl border px-2 py-2.5 text-xs font-semibold transition sm:justify-start sm:gap-3 sm:px-4 sm:text-sm ${
+                className={`flex min-h-11 shrink-0 snap-start items-center justify-between gap-1.5 rounded-xl border px-2 py-2.5 text-xs font-semibold transition sm:justify-start sm:gap-3 sm:px-4 sm:text-sm xl:gap-2 xl:px-3 ${
                   active
                     ? "border-slate-950 bg-slate-950 text-white shadow-sm"
                     : "border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-950"
