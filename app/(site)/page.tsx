@@ -31,7 +31,7 @@ export default async function Home() {
         <div className="relative mx-auto grid max-w-6xl items-center gap-7 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-12 lg:px-8">
           <div>
             <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-amber-400">
-              <span className="h-px w-8 bg-amber-400" /> Curated enthusiast cars
+              <span className="h-px w-8 bg-amber-400" /> Enthusiast car auctions
             </p>
             <h1 className="max-w-xl text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl lg:text-5xl">
               Great cars. Worth the chase.

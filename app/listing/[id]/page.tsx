@@ -17,6 +17,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { FiArrowLeft, FiMapPin } from "react-icons/fi";
+import VehicleRecords from "@/app/components/VehicleRecords";
+import VehicleTrustEditor from "./components/VehicleTrustEditor";
 import VehicleHistory from "@/app/components/VehicleHistory";
 import { vehicleSpecificationFields } from "@/app/libs/vehicle-details";
 
@@ -43,7 +45,7 @@ const Listing = async (props: Params) => {
       getBids(id),
       prisma.user.findUnique({
         where: { id: listing.userId },
-        select: { name: true },
+        select: { name: true, emailVerified: true },
       }),
       getLiveAuctions(),
     ],
@@ -72,11 +74,13 @@ const Listing = async (props: Params) => {
             <span>{listing.miles.toLocaleString("en-US")} miles</span>
             <span>
               Listed by{" "}
-              <span className="font-semibold text-slate-900">
+              <Link href={`/sellers/${listing.userId}`} className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">
                 {seller?.name || "Seller"}
-              </span>
+              </Link>
             </span>
+            <span title="Confirms inbox access, not identity or vehicle condition." className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold">{seller?.emailVerified ? "Seller email verified" : "Seller email not verified"}</span>
           </div>
+          <p className="mt-3 text-xs text-slate-500">Vehicle details and records are seller-reported. BidLane has not independently verified ownership, history, or condition.</p>
         </header>
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0 lg:col-start-1 lg:row-start-1">
@@ -108,6 +112,7 @@ const Listing = async (props: Params) => {
                       `${listing.miles.toLocaleString("en-US")} miles`,
                     ],
                     ["Location", listing.location],
+                    ["VIN / chassis", listing.vin?.trim() || "Not provided"],
                     ...vehicleSpecificationFields.map(
                       ({ id: field, label }) => [
                         label,
@@ -157,8 +162,10 @@ const Listing = async (props: Params) => {
               {owner && listing.status === "UPCOMING" && (
                 <AuctionStartForm listingId={id} />
               )}
+              {owner && listing.status === "UPCOMING" && <VehicleTrustEditor id={id} initialVin={listing.vin} initialRecords={listing.vehicleRecords} />}
               <Description description={listing.description} />
               <VehicleHistory details={listing} id="condition" />
+              <VehicleRecords records={listing.vehicleRecords} />
               {listing.status !== "UPCOMING" && (
                 <Bids
                   sellerName={seller?.name}

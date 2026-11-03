@@ -45,6 +45,18 @@ const steps = [
 
 const faqs = [
   {
+    question: "What does email verified mean?",
+    answer: "The seller confirmed access to their account’s email inbox. It does not verify identity, vehicle ownership, documents, or condition. You can verify your own email from Account → Profile.",
+  },
+  {
+    question: "Are vehicles and records vetted by BidLane?",
+    answer: "BidLane does not currently independently inspect or authenticate vehicles, VINs, ownership, or uploaded records. Listing details and documents are seller-reported. Review the VIN or chassis number, request supporting records, and arrange any independent inspection before bidding. Public seller profiles show sold auction results, not confirmed payment or completed handoff.",
+  },
+  {
+    question: "How do I share vehicle records?",
+    answer: "Upload PDFs or images of service receipts, inspection reports, or vehicle history when creating a listing. You can also add or correct VIN and records from your listing before bidding opens. Remove personal information before uploading: records are public and cannot be changed through the app once bidding starts. Contact support if a published record exposes personal information.",
+  },
+  {
     question: "Do I need an account to browse auctions?",
     answer:
       "No. Anyone can explore listings and follow auction activity. You’ll need to sign in to bid, comment, save vehicles, or submit a listing.",

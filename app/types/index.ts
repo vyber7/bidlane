@@ -5,6 +5,7 @@ export type CurrentUser = Pick<
   "id" | "name" | "email" | "image" | "createdAt"
 > & {
   hasPassword: boolean;
+  emailVerified?: Date | null;
 };
 
 export type FullUserType = {

@@ -20,6 +20,8 @@ export function makeListing(overrides: Partial<Listing> = {}): Listing {
     serviceHistory: null,
     modifications: null,
     knownFlaws: null,
+    vin: null,
+    vehicleRecords: null,
     reservePrice: null,
     createdAt: auctionNow,
     updatedAt: auctionNow,

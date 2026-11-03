@@ -17,6 +17,7 @@ const getCurrentUser = async (): Promise<CurrentUser | null> => {
         id: true,
         name: true,
         email: true,
+        emailVerified: true,
         image: true,
         createdAt: true,
         hashedPassword: true,

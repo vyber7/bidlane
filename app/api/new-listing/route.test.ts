@@ -18,6 +18,12 @@ describe("listing submission", () => {
     expect((await POST(request(data))).status).toBe(201);
     expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ make: "Porsche", miles: 0, reservePrice: null, images: [photo], coverImage: photo, user: { connect: { id: "seller" } } }) });
   });
+  it("persists VIN and uploaded records while keeping verification server-owned", async () => {
+    const record = { label: " Receipt ", url: "https://res.cloudinary.com/demo/image/upload/receipt.pdf" };
+    expect((await POST(request({ ...data, vin: " bcnr33-012345 ", vehicleRecords: [record], emailVerified: true }))).status).toBe(201);
+    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ vin: "BCNR33-012345", vehicleRecords: [{ ...record, label: "Receipt" }] }) });
+    expect(mocks.create.mock.calls[0][0].data).not.toHaveProperty("emailVerified");
+  });
   it("preserves photo order and selected cover", async () => {
     const second = photo.replace("car.jpg", "interior.jpg");
     await POST(request({ ...data, images: [second, photo], reservePrice: "5000" }));

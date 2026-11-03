@@ -1,3 +1,5 @@
+import Link from "next/link";
+import getCurrentUser from "@/app/actions/getCurrentUser";
 import type { Metadata } from "next";
 import SubmitForm from "./components/SubmitForm";
 import Aside from "./components/Aside";
@@ -11,13 +13,14 @@ export const metadata: Metadata = {
 };
 
 async function SubmitVehicle() {
-  const soldAuctions = await getSoldAuctions();
+  const [soldAuctions, currentUser] = await Promise.all([getSoldAuctions(), getCurrentUser()]);
 
   return (
     <div className="m-auto grid min-h-lvh max-w-6xl gap-10 px-4 pb-10 pt-16 lg:grid-cols-[minmax(0,1fr)_18rem] lg:px-0">
       <main className="w-full rounded-md lg:p-0">
         <h1 className="pb-2 text-3xl font-bold">Submit your vehicle</h1>
         <p className="mb-6 text-sm text-slate-500">Add your details and photos, then preview your listing before submitting.</p>
+        {currentUser && !currentUser.emailVerified && <p className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-slate-700">Help buyers recognize your account. <Link href="/account/profile" className="font-bold underline">Verify your email in your profile</Link> to display an email verified badge.</p>}
         <SubmitForm />
       </main>
       <Aside auctions={soldAuctions} />

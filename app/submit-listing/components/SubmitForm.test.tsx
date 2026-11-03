@@ -79,14 +79,19 @@ describe("guided vehicle submission", () => {
   it("preserves edits, previews every disclosure, and submits the complete listing", async () => {
     render(<SubmitForm />);
     fillDetails();
+    fireEvent.change(screen.getByLabelText("VIN or chassis number (optional)"), { target: { value: "WP0AB2997YS123456" } });
     await next("Continue to condition →");
     fireEvent.change(screen.getByLabelText("Service history"), { target: { value: "Oil service at 42,000 miles; receipts available." } });
     fireEvent.change(screen.getByLabelText("Modifications"), { target: { value: "None known" } });
     fireEvent.change(screen.getByLabelText("Known flaws"), { target: { value: "Stone chips on hood." } });
     await next("Continue to photos →");
     await next("Add photos");
+    await next("Upload vehicle record");
+    fireEvent.change(screen.getByLabelText("Record 1 name"), { target: { value: "Service receipt" } });
     await next("Preview listing →");
     let preview = screen.getByRole("article");
+    expect(within(preview).getByText("WP0AB2997YS123456")).toBeDefined();
+    expect(within(preview).getByRole("link", { name: /Service receipt/ })).toBeDefined();
     expect(within(preview).getByText("Manual")).toBeDefined();
     expect(within(preview).getByText("Rear-wheel drive")).toBeDefined();
     expect(within(preview).getByText("Unknown")).toBeDefined();
@@ -100,6 +105,7 @@ describe("guided vehicle submission", () => {
     expect(within(preview).getByText("Stone chips on hood. Driver’s seat bolster wear.")).toBeDefined();
     await next("Submit listing");
     expect(mocks.post).toHaveBeenCalledExactlyOnceWith("/api/new-listing", { data: expect.objectContaining({
+      vin: "WP0AB2997YS123456", vehicleRecords: [{ label: "Service receipt", url: "https://res.cloudinary.com/demo/image/upload/car.jpg" }],
       transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Unknown",
       serviceHistory: "Oil service at 42,000 miles; receipts available.", modifications: "None known",
       knownFlaws: "Stone chips on hood. Driver’s seat bolster wear.",

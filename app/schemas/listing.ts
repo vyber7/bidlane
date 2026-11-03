@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { vinSchema, vehicleRecordsSchema } from "./vehicle-trust";
 import { MAX_INTEGER, requiredTextSchema } from "./common";
 import { MAX_VEHICLE_DISCLOSURE_LENGTH, vehicleDisclosureFields, vehicleSpecificationFields } from "@/app/libs/vehicle-details";
 
@@ -42,6 +43,8 @@ const photosRequired = `Please add between 1 and ${MAX_LISTING_PHOTOS} photos.`;
 const uploadedPhotoRequired = "Please use uploaded images for your listing.";
 
 export const listingSchema = z.object({
+  vin: vinSchema.optional(),
+  vehicleRecords: vehicleRecordsSchema.optional(),
   make: requiredTextSchema("Please enter a make."),
   model: requiredTextSchema("Please enter a model."),
   location: requiredTextSchema("Please enter a location."),

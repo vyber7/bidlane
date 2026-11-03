@@ -38,6 +38,7 @@ describe("getCurrentUser", () => {
         id: true,
         name: true,
         email: true,
+        emailVerified: true,
         image: true,
         createdAt: true,
         hashedPassword: true,

@@ -13,15 +13,18 @@ import { listingSchema } from "@/app/schemas/listing";
 import { validationMessage } from "@/app/schemas/common";
 import type { ListingDetailsFormValues } from "@/app/types/forms";
 import { MAX_VEHICLE_DISCLOSURE_LENGTH, vehicleDisclosureFields, vehicleSpecificationFields } from "@/app/libs/vehicle-details";
+import RecordUploads from "./RecordUploads";
+import VehicleRecords from "@/app/components/VehicleRecords";
+import type { VehicleRecord } from "@/app/schemas/vehicle-trust";
 import VehicleHistory from "@/app/components/VehicleHistory";
 
 type ListingField = { label: string } & (
-  | { id: "make" | "model" | "location"; type?: "text"; placeholder: string; min?: never; max?: never }
+  | { id: "make" | "model" | "location" | "vin"; type?: "text"; placeholder: string; min?: never; max?: never }
   | { id: "year" | "miles" | "reservePrice"; type: "number"; min: number; max: number; placeholder?: never }
 );
 
 const initialDetails: ListingDetailsFormValues = {
-  make: "", model: "", year: "", miles: "", reservePrice: "", location: "", description: "",
+  vin: "", make: "", model: "", year: "", miles: "", reservePrice: "", location: "", description: "",
   transmission: "", drivetrain: "", titleStatus: "", serviceHistory: "", modifications: "", knownFlaws: "",
 };
 
@@ -35,6 +38,7 @@ const primary = "rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-wh
 const secondary = "rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50";
 
 export default function SubmitForm() {
+  const [records, setRecords] = useState<VehicleRecord[]>([]);
   const [step, setStep] = useState(0);
   const [images, setImages] = useState<string[]>([]);
   const [details, setDetails] = useState<ListingDetailsFormValues>(initialDetails);
@@ -52,7 +56,7 @@ export default function SubmitForm() {
 
   async function submitListing() {
     if (submitting.current) return;
-    const data = { ...details, images };
+    const data = { ...details, images, vehicleRecords: records };
     const validationError = validateListing(data);
     if (validationError) { setError(validationError); return; }
     submitting.current = true;
@@ -71,6 +75,7 @@ export default function SubmitForm() {
   }
 
   const fields: ListingField[] = [
+    { id: "vin", label: "VIN or chassis number (optional)", placeholder: "VIN, or chassis number for older or imported vehicles" },
     { id: "make", label: "Make", placeholder: "e.g. Porsche" },
     { id: "model", label: "Model", placeholder: "e.g. 911 Carrera" },
     { id: "year", label: "Year", type: "number", min: 1886, max: new Date().getFullYear() + 1 },
@@ -86,7 +91,7 @@ export default function SubmitForm() {
         {steps.map(({ label }, index) => <li key={label} aria-current={step === index ? "step" : undefined} className={`border-t-4 pt-3 text-xs sm:text-sm ${step === index ? "border-amber-500 font-bold text-slate-900" : "border-slate-200 text-slate-500"}`}><span className="block text-xs">Step {index + 1}</span>{label}</li>)}
       </ol>
       <h2 ref={heading} tabIndex={-1} className="mb-2 text-xl font-bold outline-none">{steps[step].title}</h2>
-      <p className="mb-6 text-sm leading-6 text-slate-500">{step === 0 ? "Tell buyers about your vehicle. All details are required except the reserve price. You can edit everything before submitting." : step === 1 ? "Help buyers understand what they’re bidding on. Share what you know and be explicit about anything unknown." : step === 2 ? `Add up to ${MAX_LISTING_PHOTOS} photos. The first photo will be your cover image.` : "Review your listing below. Submit when everything looks right."}</p>
+      <p className="mb-6 text-sm leading-6 text-slate-500">{step === 0 ? "Tell buyers about your vehicle. All details are required except the VIN and reserve price. You can edit everything before submitting." : step === 1 ? "Help buyers understand what they’re bidding on. Share what you know and be explicit about anything unknown." : step === 2 ? `Add up to ${MAX_LISTING_PHOTOS} photos. The first photo will be your cover image.` : "Review your listing below. Submit when everything looks right."}</p>
       {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <form hidden={step > 1} noValidate onSubmit={async (event) => {
         event.preventDefault();
@@ -110,7 +115,7 @@ export default function SubmitForm() {
               </div>
             ))}
           </div>
-          <p className="mt-3 text-xs text-slate-500">Leave the reserve blank to list without a minimum sale price.</p>
+          <p className="mt-3 text-xs text-slate-500">Leave the reserve blank to list without a minimum sale price. VINs and chassis numbers are seller-reported; format checks do not verify ownership or vehicle history.</p>
           <div className="mt-6 grid gap-5 sm:grid-cols-2">
             {vehicleSpecificationFields.map(({ id, label, options }) => (
               <div key={id}>
@@ -168,6 +173,7 @@ export default function SubmitForm() {
             </div>
           </div>)}
         </div>
+        <RecordUploads records={records} onChange={setRecords} />
         <div className="mt-6 flex flex-wrap justify-between gap-3"><button type="button" onClick={() => changeStep(1)} className={secondary}>← Edit condition</button><button type="button" onClick={() => images.length ? changeStep(3) : setError("Add at least one photo to preview your listing.")} className={primary}>Preview listing →</button></div>
       </>}
       {step === 3 && <>
@@ -179,7 +185,9 @@ export default function SubmitForm() {
             <h3 className="break-words text-2xl font-bold">{title}</h3>
             <dl className="my-5 grid grid-cols-2 gap-4 text-sm"><div><dt className="text-slate-500">Mileage</dt><dd className="font-semibold">{Number(details.miles).toLocaleString()} miles</dd></div><div><dt className="text-slate-500">Location</dt><dd className="break-words font-semibold">{details.location}</dd></div><div><dt className="text-slate-500">Reserve price</dt><dd className="font-semibold">{details.reservePrice === "" ? "No reserve" : `$${Number(details.reservePrice).toLocaleString()}`}</dd></div></dl>
             <dl className="mb-5 grid grid-cols-2 gap-4 text-sm">{vehicleSpecificationFields.map(({ id, label }) => <div key={id}><dt className="text-slate-500">{label}</dt><dd className="font-semibold">{details[id]}</dd></div>)}</dl>
-            <h4 className="mb-2 font-semibold">About this vehicle</h4><p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-600">{details.description}</p>
+            <p className="mb-4 text-sm"><strong>VIN / chassis (seller-reported):</strong> {details.vin || "Not provided"}</p>
+            <VehicleRecords records={records} headingLevel={4} />
+            <h4 className="mb-2 mt-5 font-semibold">About this vehicle</h4><p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-600">{details.description}</p>
             <div className="mt-6"><VehicleHistory details={details} headingLevel={4} /></div>
             <h4 className="mb-3 mt-6 font-semibold">Photos ({images.length})</h4>
             <div className="grid grid-cols-2 gap-3">{images.map((url, index) => <CldImage key={url} src={url} width={600} height={450} crop="fit" alt={`${title}, photo ${index + 1}`} className="aspect-[4/3] w-full rounded-lg bg-slate-100 object-contain" />)}</div>
