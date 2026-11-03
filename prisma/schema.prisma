@@ -38,6 +38,7 @@ model User {
   email               String?   @unique
   emailVerified       DateTime?
   image               String?
+  sessionVersion      String?
   hashedPassword      String?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -241,4 +242,44 @@ model EmailVerification {
   tokenHash   String   @unique
   requestedAt DateTime
   expiresAt   DateTime
+}
+
+model PasswordReset {
+  id              String    @id @map("_id")
+  email           String
+  nonce           String
+  tokenHash       String    @unique
+  requestedAt     DateTime
+  expiresAt       DateTime
+  userId          String?   @db.ObjectId
+  sessionVersion  String?
+  usedAt          DateTime?
+
+  @@index([expiresAt])
+}
+
+model PasswordResetQuota {
+  id        String   @id @map("_id")
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+model RecoveryEmail {
+  id            String    @id @map("_id")
+  email         String
+  kind          String
+  resetId       String?
+  nonce         String?
+  status        String    @default("PENDING")
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime
+  lockedUntil   DateTime?
+  lockToken     String?
+  createdAt     DateTime  @default(now())
+
+  @@index([status, nextAttemptAt])
+  @@index([status, lockedUntil])
+  @@index([createdAt])
 }

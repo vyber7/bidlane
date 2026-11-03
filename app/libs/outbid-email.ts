@@ -73,10 +73,10 @@ export class EmailProviderError extends Error {
   }
 }
 
-export async function sendOutbidEmail(
+export async function sendEmail(
   apiKey: string,
   payload: OutbidEmailPayload,
-  notificationId: string,
+  idempotencyKey: string,
 ) {
   let response: Response;
   try {
@@ -85,7 +85,7 @@ export async function sendOutbidEmail(
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "Idempotency-Key": `outbid/${notificationId}`,
+        "Idempotency-Key": idempotencyKey,
       },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(8000),
@@ -123,4 +123,9 @@ export async function sendOutbidEmail(
   if (typeof body?.id !== "string" || !body.id)
     throw new EmailProviderError("invalid_provider_response", true);
   return body.id as string;
+}
+
+// Preserve notification delivery’s existing idempotency namespace.
+export function sendOutbidEmail(apiKey: string, payload: OutbidEmailPayload, notificationId: string) {
+  return sendEmail(apiKey, payload, `outbid/${notificationId}`);
 }

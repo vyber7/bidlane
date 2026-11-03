@@ -1,3 +1,4 @@
+import { decodeSessionToken } from "./session-token";
 import bcrypt from "bcrypt";
 import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -53,10 +54,25 @@ export const authOptions: AuthOptions = {
           name: user.name,
           email: user.email,
           image: user.image,
+          sessionVersion: user.sessionVersion ?? "",
         };
       },
     }),
   ],
+  jwt: { decode: decodeSessionToken },
+  callbacks: {
+    async jwt({ token, user, account }) {
+      if (user) {
+        // Credentials carry the version read BEFORE the password comparison,
+        // so a login racing a reset cannot inherit the newly reset session.
+        token.sessionVersion = account?.provider === "credentials" && "sessionVersion" in user
+          ? user.sessionVersion
+          : (await prisma.user.findUnique({ where: { id: user.id }, select: { sessionVersion: true } }))?.sessionVersion ?? "";
+      }
+      // Never refresh the version from client-supplied session updates.
+      return token;
+    },
+  },
   debug: process.env.NODE_ENV === "development",
   session: {
     strategy: "jwt",

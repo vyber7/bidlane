@@ -3,6 +3,7 @@
 import { getApiErrorMessage } from "@/app/utils/api-error";
 
 import axios from "axios";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import AuthSocialButton from "./AuthSocialButton";
@@ -138,6 +139,7 @@ const AuthForm = () => {
             {errors[id] && <p id={`${id}-error`} role="alert" className="mt-2 text-xs text-rose-600">{errors[id]?.message}</p>}
           </div>
         ))}
+        {variant === "LOGIN" && <div className="text-right"><Link href="/forgot-password" className="text-sm font-semibold text-slate-700 underline decoration-amber-400 underline-offset-4 hover:text-amber-700">Forgot password?</Link></div>}
         <button disabled={isLoading} type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber-400 px-6 py-3.5 text-sm font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500 disabled:cursor-wait disabled:opacity-60">
           {isLoading ? <><FiLoader className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> Please wait…</> : <>{variant === "LOGIN" ? "Sign in" : "Create account"}<FiArrowRight aria-hidden="true" /></>}
         </button>
