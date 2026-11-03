@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import AuthSocialButton from "./AuthSocialButton";
 import { BsGithub, BsGoogle } from "react-icons/bs";
-import { FiArrowRight, FiLoader } from "react-icons/fi";
+import { FiArrowRight, FiEye, FiEyeOff, FiLoader } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -22,6 +22,7 @@ const AuthForm = () => {
   const session = useSession();
   const router = useRouter();
   const [variant, setVariant] = useState<Variant>("LOGIN");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ const AuthForm = () => {
 
   const toggleVariant = () => {
     clearErrors();
+    setShowPassword(false);
     if (variant === "LOGIN") {
       setVariant("REGISTER");
     } else {
@@ -122,20 +124,34 @@ const AuthForm = () => {
         {fields.map(({ id, label, type, placeholder, autoComplete }) => (
           <div key={id}>
             <label htmlFor={id} className="block text-sm font-semibold text-slate-700">{label}</label>
-            <input
-              id={id}
-              type={type}
-              autoComplete={autoComplete}
-              placeholder={placeholder}
-              disabled={isLoading}
-              aria-invalid={Boolean(errors[id])}
-              aria-describedby={errors[id] ? `${id}-error` : undefined}
-              {...register(id, {
-                required: `${label} is required.`,
-                validate: (value) => variant === "REGISTER" ? validationMessage(registrationSchema.shape[id], value) : true,
-              })}
-              className={`mt-2 block w-full rounded-xl border bg-white px-4 py-3.5 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-400/20 disabled:cursor-wait disabled:opacity-60 sm:text-sm ${errors[id] ? "border-rose-400" : "border-slate-200 hover:border-slate-300"}`}
-            />
+            <div className="relative mt-2">
+              <input
+                id={id}
+                type={id === "password" && showPassword ? "text" : type}
+                autoComplete={autoComplete}
+                placeholder={placeholder}
+                disabled={isLoading}
+                aria-invalid={Boolean(errors[id])}
+                aria-describedby={errors[id] ? `${id}-error` : undefined}
+                {...register(id, {
+                  required: `${label} is required.`,
+                  validate: (value) => variant === "REGISTER" ? validationMessage(registrationSchema.shape[id], value) : true,
+                })}
+                className={`block w-full rounded-xl border bg-white px-4 py-3.5 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-400/20 disabled:cursor-wait disabled:opacity-60 sm:text-sm ${id === "password" ? "pr-14" : ""} ${errors[id] ? "border-rose-400" : "border-slate-200 hover:border-slate-300"}`}
+              />
+              {id === "password" && (
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  disabled={isLoading}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-controls="password"
+                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-slate-500 transition hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {showPassword ? <FiEyeOff size={20} aria-hidden="true" /> : <FiEye size={20} aria-hidden="true" />}
+                </button>
+              )}
+            </div>
             {errors[id] && <p id={`${id}-error`} role="alert" className="mt-2 text-xs text-rose-600">{errors[id]?.message}</p>}
           </div>
         ))}
