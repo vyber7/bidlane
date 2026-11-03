@@ -1,3 +1,6 @@
+import { parseApiInput } from "@/app/libs/api-request";
+import { publishListingDraft } from "@/app/libs/listing-drafts";
+import { publishDraftSchema } from "@/app/schemas/listing-draft";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import prisma from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
@@ -12,6 +15,11 @@ export async function POST(req: Request) {
     if (!currentUser?.id) return errorResponse("Please sign in to submit a listing.", 401);
     userId = currentUser.id;
     const body = await readJsonObject(req);
+    if (body.draftId !== undefined) {
+      const { draftId, revision } = parseApiInput(publishDraftSchema, body);
+      const listing = await publishListingDraft(currentUser.id, draftId, revision);
+      return NextResponse.json(listing, { status: 201 });
+    }
     const listing = parseListing(body.data);
     const newListing = await prisma.listing.create({
       data: {
@@ -24,6 +32,9 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     const response = apiErrorResponse(error);
     if (response) return response;
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2034") {
+      return errorResponse("The listing changed while submitting. Retry with the same draft.", 503);
+    }
     logger.error("listing.create_failed", error, { userId });
     return errorResponse("Your listing could not be submitted. Please try again.", 500);
   }

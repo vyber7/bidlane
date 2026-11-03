@@ -5,10 +5,10 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SubmitForm from "./SubmitForm";
 
-const mocks = vi.hoisted(() => ({ post: vi.fn(), push: vi.fn(), refresh: vi.fn() }));
+const mocks = vi.hoisted(() => ({ post: vi.fn(), patch: vi.fn(), push: vi.fn(), refresh: vi.fn() }));
 vi.mock("axios", async (importOriginal) => {
   const actual = await importOriginal<typeof import("axios")>();
-  return { ...actual, default: { ...actual.default, post: mocks.post } };
+  return { ...actual, default: { ...actual.default, post: mocks.post, patch: mocks.patch } };
 });
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push, refresh: mocks.refresh }) }));
 vi.mock("react-hot-toast", () => ({ default: { success: vi.fn(), error: vi.fn() } }));
@@ -22,7 +22,9 @@ vi.mock("next-cloudinary", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.post.mockResolvedValue({ data: { id: "new-listing" } });
+  window.history.replaceState(null, "", "/submit-listing");
+  mocks.post.mockImplementation(async (url, body) => ({ data: url === "/api/listing-drafts" ? { id: body.id, revision: 1, payload: body.payload, updatedAt: new Date().toISOString(), publishedListingId: null } : { id: "new-listing" } }));
+  mocks.patch.mockImplementation(async (url, body) => ({ data: { id: url.split("/").at(-1), revision: body.revision + 1, payload: body.payload, updatedAt: new Date().toISOString(), publishedListingId: null } }));
 });
 afterEach(cleanup);
 
@@ -104,13 +106,39 @@ describe("guided vehicle submission", () => {
     preview = screen.getByRole("article");
     expect(within(preview).getByText("Stone chips on hood. Driver’s seat bolster wear.")).toBeDefined();
     await next("Submit listing");
-    expect(mocks.post).toHaveBeenCalledExactlyOnceWith("/api/new-listing", { data: expect.objectContaining({
-      vin: "WP0AB2997YS123456", vehicleRecords: [{ label: "Service receipt", url: "https://res.cloudinary.com/demo/image/upload/car.jpg" }],
-      transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Unknown",
-      serviceHistory: "Oil service at 42,000 miles; receipts available.", modifications: "None known",
-      knownFlaws: "Stone chips on hood. Driver’s seat bolster wear.",
+    const saved = mocks.post.mock.calls.find(([url]) => url === "/api/listing-drafts")![1];
+    expect(saved.payload).toMatchObject({
+      details: { vin: "WP0AB2997YS123456", transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Unknown", serviceHistory: "Oil service at 42,000 miles; receipts available.", modifications: "None known", knownFlaws: "Stone chips on hood. Driver’s seat bolster wear." },
+      vehicleRecords: [{ label: "Service receipt", url: "https://res.cloudinary.com/demo/image/upload/car.jpg" }],
       images: ["https://res.cloudinary.com/demo/image/upload/car.jpg"],
-    }) });
+    });
+    expect(mocks.post).toHaveBeenCalledWith("/api/new-listing", { draftId: saved.id, revision: 1 });
     expect(mocks.push).toHaveBeenCalledWith("/listing/new-listing");
+  });
+});
+
+describe("draft resume and exit", () => {
+  it("saves incomplete details and exits without publishing", async () => {
+    render(<SubmitForm />);
+    fireEvent.change(screen.getByLabelText("Make", { exact: true }), { target: { value: "Porsche" } });
+    await next("Save & exit");
+    expect(mocks.post).toHaveBeenCalledWith("/api/listing-drafts", expect.objectContaining({ payload: expect.objectContaining({ details: expect.objectContaining({ make: "Porsche", model: "" }), step: 0 }) }));
+    expect(mocks.post.mock.calls.some(([url]) => url === "/api/new-listing")).toBe(false);
+    expect(mocks.push).toHaveBeenCalledWith("/account/listings");
+  });
+  it("restores saved photos, records, checklist, step, and unfinished inputs", async () => {
+    const { emptyDraftPayload } = await import("@/app/schemas/listing-draft");
+    const initialDraft = {
+      id: "abcdef0123456789abcdef01", revision: 4, updatedAt: new Date().toISOString(), publishedListingId: null,
+      payload: { ...emptyDraftPayload, details: { ...emptyDraftPayload.details, make: "Porsche", year: "2020", knownFlaws: "Still writing this" }, images: ["https://res.cloudinary.com/demo/image/upload/car.jpg"], vehicleRecords: [{ label: "Receipt", url: "https://res.cloudinary.com/demo/image/upload/receipt.pdf" }], photoChecklist: ["exterior" as const], step: 2 },
+    };
+    render(<SubmitForm initialDraft={initialDraft} />);
+    expect(screen.getByRole("heading", { name: "Photos" })).toBeDefined();
+    expect(screen.getByRole("checkbox", { name: /Exterior/ })).toHaveProperty("checked", true);
+    expect(screen.getByLabelText("Record 1 name")).toHaveProperty("value", "Receipt");
+    await next("← Edit condition");
+    expect(screen.getByLabelText("Known flaws")).toHaveProperty("value", "Still writing this");
+    await next("← Edit vehicle details");
+    expect(screen.getByLabelText("Make", { exact: true })).toHaveProperty("value", "Porsche");
   });
 });

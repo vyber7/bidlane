@@ -130,7 +130,7 @@ Before changing Next.js code, follow [AGENTS.md](AGENTS.md) and read the relevan
 
 ## Auction lifecycle
 
-New listings require transmission, drivetrain, title status, service history, modifications, and known flaws alongside the existing listing fields, plus 1–10 uploaded photos. Specifications use the choices in `app/libs/vehicle-details.ts`, including an explicit `Unknown` option. Each disclosure is trimmed and limited to 4,000 characters; sellers must describe unknown history or state “None known” where appropriate. The preview and public listing show these disclosures, and the vehicle summary includes the three specifications. These are seller-reported details, not independent verification.
+New listings require transmission, drivetrain, title status, service history, modifications, and known flaws alongside the existing listing fields, plus 1–20 uploaded photos. Specifications use the choices in `app/libs/vehicle-details.ts`, including an explicit `Unknown` option. Each disclosure is trimmed and limited to 4,000 characters; sellers must describe unknown history or state “None known” where appropriate. The preview and public listing show these disclosures, and the vehicle summary includes the three specifications. These are seller-reported details, not independent verification.
 
 The six new `Listing` fields are nullable so existing MongoDB documents remain readable and display **Not provided** for missing information. Regenerate the Prisma client with `npx prisma generate` when updating an existing checkout. This change adds no indexes and requires no data backfill; deploying the regenerated client enables reads and writes of the optional MongoDB fields.
 
@@ -202,6 +202,20 @@ The bid, auction updates, notifications, and `BidSubmission` response snapshot c
 The bid form preserves its request key and exact amount while retrying network failures or server errors, and allows that retry after auction end. This pending state lasts while the form remains mounted; reloading or leaving the page clears it. Successful request records have no automatic expiration.
 
 Before deploying, run `npx prisma db push` against the target database to create the `BidSubmission` collection and its unique `(userId, key)` index, then deploy the generated Prisma client and application together. Existing bids need no backfill. MongoDB must support transactions (a replica set).
+
+## Saved listing drafts and photo guidance
+
+Vehicle submissions autosave after 1.5 seconds of inactivity to a separate, owner-only `ListingDraft` collection. Incomplete or temporarily invalid fields are preserved without publishing anything. **Save draft** saves immediately; **Save & exit** waits for a save before returning to Account → Listings. Wait for **Draft saved** before navigating away. Refreshing a saved `/submit-listing?draft=<id>` link restores details, current step, photo order/cover, vehicle records (including unfinished labels), and the private photo checklist. Reloading or closing a tab with unsaved changes triggers the browser’s standard warning; in-app navigation and browser shutdown cannot guarantee a final write. Drafts are saved to the account, not browser local storage.
+
+Account → Listings shows saved drafts with resume and delete actions. Every draft read/write/delete and server-side resume lookup checks the signed-in owner. Drafts do not enter public auction browsing, seller profiles, search, or live bidding. Cloudinary upload URLs are still publicly accessible if someone has the URL: private draft metadata is not private media hosting. Removing a photo, record, or draft removes saved references, not Cloudinary assets. Deleting a draft clears its saved payload and keeps an internal marker so an uncertain create retry cannot resurrect it.
+
+Saves serialize in the browser and use version checks on the server. A stale tab receives `409` and keeps its unsaved inputs visible instead of overwriting another device’s work. Lost responses retry with the same draft ID/save key; the client resolves an uncertain earlier save before applying newer edits. Publication uses `POST /api/new-listing` with `{ draftId, revision }`, validates the saved snapshot against the full listing schema, and atomically creates the listing and links the draft to it. Repeated publication of that revision returns the same listing. Only publication creates a public **UPCOMING** listing; published drafts disappear from the draft list and old resume links redirect to the listing. Existing direct `{ data }` submissions remain supported for compatibility.
+
+Draft endpoints are `POST /api/listing-drafts` and `GET`, `PATCH`, `DELETE /api/listing-drafts/[id]`. Creation accepts a client-generated ObjectId, UUID save key, and bounded payload. Updates include the saved revision; deletion requires `{ revision }`. Photo URLs and record URLs remain validated even in incomplete drafts. Draft fields allow up to 100 characters for make/model, 200 for location, 10,000 for description, and the existing 4,000 per disclosure.
+
+The photo step provides an optional private checklist for exterior, interior, engine bay, underside, wheels/tires, and known damage/flaws, plus safe capture guidance. It is a seller planning tool, not automatic photo or condition verification. The existing **20-photo** limit applies to drafts, listing creation, and later gallery uploads. Sellers can choose the cover, move photos earlier, or remove them; order and cover persist through resume and publication.
+
+Before deploying, run `npx prisma generate` and `npx prisma db push` against the target database to create `ListingDraft` and its owner/status/update index, then deploy the generated client and app together. MongoDB transactions are required for draft creation/publication. Existing listings need no backfill. Tests mock database and uploads; verify a real save, cross-device resume, and publication after setup.
 
 ## Password recovery
 

@@ -45,6 +45,14 @@ const steps = [
 
 const faqs = [
   {
+    question: "Can I save a listing and finish it later?",
+    answer: "Yes. The submission form saves a private draft as you work. Wait for Draft saved, or choose Save & exit before leaving. Resume from Account → Listings on the same account, including your photos, records, and photo checklist. The listing becomes public only when you submit it. Uploaded files still use publicly accessible links, so remove personal details before uploading.",
+  },
+  {
+    question: "Which vehicle photos should I include?",
+    answer: "Add up to 20 clear, unfiltered photos covering the exterior, interior and odometer, engine bay, safely accessible underside, wheels and tires, and any known damage. Use the optional private photo checklist to plan your shots. Choose a clear exterior image as the cover and explain any missing views in the description. Never get underneath an unsupported vehicle.",
+  },
+  {
     question: "What does email verified mean?",
     answer: "The seller confirmed access to their account’s email inbox. It does not verify identity, vehicle ownership, documents, or condition. You can verify your own email from Account → Profile.",
   },

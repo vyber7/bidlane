@@ -2,7 +2,7 @@
 
 import { getApiErrorMessage } from "@/app/utils/api-error";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { useEffect, useRef, useState } from "react";
@@ -16,6 +16,9 @@ import { MAX_VEHICLE_DISCLOSURE_LENGTH, vehicleDisclosureFields, vehicleSpecific
 import RecordUploads from "./RecordUploads";
 import VehicleRecords from "@/app/components/VehicleRecords";
 import type { VehicleRecord } from "@/app/schemas/vehicle-trust";
+import useListingDraft from "./useListingDraft";
+import PhotoChecklist from "./PhotoChecklist";
+import { initialListingDetails, type DraftPayload, type ListingDraftDTO } from "@/app/schemas/listing-draft";
 import VehicleHistory from "@/app/components/VehicleHistory";
 
 type ListingField = { label: string } & (
@@ -23,10 +26,6 @@ type ListingField = { label: string } & (
   | { id: "year" | "miles" | "reservePrice"; type: "number"; min: number; max: number; placeholder?: never }
 );
 
-const initialDetails: ListingDetailsFormValues = {
-  vin: "", make: "", model: "", year: "", miles: "", reservePrice: "", location: "", description: "",
-  transmission: "", drivetrain: "", titleStatus: "", serviceHistory: "", modifications: "", knownFlaws: "",
-};
 
 const steps = [
   { label: "Details", title: "Vehicle details" },
@@ -37,20 +36,33 @@ const steps = [
 const primary = "rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50";
 const secondary = "rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50";
 
-export default function SubmitForm() {
-  const [records, setRecords] = useState<VehicleRecord[]>([]);
-  const [step, setStep] = useState(0);
-  const [images, setImages] = useState<string[]>([]);
-  const [details, setDetails] = useState<ListingDetailsFormValues>(initialDetails);
+export default function SubmitForm({ initialDraft }: { initialDraft?: ListingDraftDTO }) {
+  const [records, setRecords] = useState<VehicleRecord[]>(initialDraft?.payload.vehicleRecords ?? []);
+  const [step, setStep] = useState(initialDraft?.payload.step === 3 && !initialDraft.payload.images.length ? 2 : initialDraft?.payload.step ?? 0);
+  const [images, setImages] = useState<string[]>(initialDraft?.payload.images ?? []);
+  const [details, setDetails] = useState<ListingDetailsFormValues>(initialDraft?.payload.details ?? initialListingDetails);
+  const [photoChecklist, setPhotoChecklist] = useState<DraftPayload["photoChecklist"]>(initialDraft?.payload.photoChecklist ?? []);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const submitting = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const router = useRouter();
-  const { register, getValues, trigger, formState: { errors } } = useForm<ListingDetailsFormValues>({
-    defaultValues: initialDetails,
+  const { register, getValues, trigger, control, formState: { errors } } = useForm<ListingDetailsFormValues>({
+    defaultValues: initialDraft?.payload.details ?? initialListingDetails,
     mode: "onChange",
   });
+  const watched = useWatch({ control });
+  const payload: DraftPayload = { details: { ...initialListingDetails, ...watched }, images, vehicleRecords: records, photoChecklist, step };
+  const draft = useListingDraft(payload, initialDraft, isLoading);
+  const snapshot = (): DraftPayload => ({ ...payload, details: getValues() });
+
+  async function saveDraft(exit = false) {
+    if (exit) setIsLoading(true);
+    try {
+      await draft.save(snapshot());
+      if (exit) { router.push("/account/listings"); router.refresh(); }
+    } catch { setIsLoading(false); /* The draft banner keeps the failure visible. */ }
+  }
   useEffect(() => { heading.current?.focus(); }, [step]);
   const changeStep = (next: number) => { setError(""); setStep(next); };
 
@@ -63,7 +75,8 @@ export default function SubmitForm() {
     setIsLoading(true);
     setError("");
     try {
-      const response = await axios.post<{ id: string }>("/api/new-listing", { data });
+      const saved = await draft.save(snapshot());
+      const response = await axios.post<{ id: string }>("/api/new-listing", { draftId: saved.id, revision: saved.revision });
       toast.success("Listing submitted successfully!");
       router.push(`/listing/${response.data.id}`);
       router.refresh();
@@ -87,6 +100,20 @@ export default function SubmitForm() {
   const title = `${details.year || ""} ${details.make || ""} ${details.model || ""}`.trim();
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-8">
+      <div className="mb-6 rounded-xl border border-slate-200 bg-stone-50 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p role="status" className="text-sm font-semibold text-slate-700">{draft.saving ? "Saving draft…" : draft.dirty ? "Unsaved changes" : draft.status === "saved" ? "Draft saved" : "Private listing draft"}</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={isLoading || draft.saving || draft.status === "conflict"} onClick={() => void saveDraft()} className={secondary}>Save draft</button>
+            <button type="button" disabled={isLoading || draft.saving || draft.status === "conflict"} onClick={() => void saveDraft(true)} className={secondary}>Save & exit</button>
+          </div>
+        </div>
+        <p className="mt-2 text-xs leading-5 text-slate-500">Changes save automatically. Wait for “Draft saved” before leaving, or use Save & exit. Drafts aren’t listed publicly; find them in Account → Listings.</p>
+        {draft.message && <p role="alert" className="mt-3 text-sm text-rose-700">{draft.message}</p>}
+        {draft.status === "conflict" && <button type="button" onClick={() => window.location.reload()} className="mt-2 text-sm font-bold underline">Reload saved draft</button>}
+      </div>
+      <fieldset disabled={isLoading} className="min-w-0">
+      <legend className="sr-only">Vehicle listing draft</legend>
       <ol aria-label="Submission progress" className="mb-8 grid grid-cols-4 gap-2">
         {steps.map(({ label }, index) => <li key={label} aria-current={step === index ? "step" : undefined} className={`border-t-4 pt-3 text-xs sm:text-sm ${step === index ? "border-amber-500 font-bold text-slate-900" : "border-slate-200 text-slate-500"}`}><span className="block text-xs">Step {index + 1}</span>{label}</li>)}
       </ol>
@@ -108,7 +135,7 @@ export default function SubmitForm() {
             {fields.map((field) => (
               <div key={field.id}>
                 <label htmlFor={field.id} className="mb-2 block text-sm font-semibold">{field.label}</label>
-                <input id={field.id} type={field.type || "text"} min={field.min} max={field.max} step={field.type === "number" ? 1 : undefined} placeholder={field.placeholder} aria-invalid={!!errors[field.id]} aria-describedby={errors[field.id] ? `${field.id}-error` : undefined}
+                <input id={field.id} type={field.type || "text"} min={field.min} max={field.max} step={field.type === "number" ? 1 : undefined} placeholder={field.placeholder} maxLength={field.id === "vin" ? 30 : field.id === "location" ? 200 : field.id === "make" || field.id === "model" ? 100 : undefined} aria-invalid={!!errors[field.id]} aria-describedby={errors[field.id] ? `${field.id}-error` : undefined}
                   {...register(field.id, { validate: (value) => validationMessage(listingSchema.shape[field.id], value) })}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm" />
                 {errors[field.id] && <p id={`${field.id}-error`} className="mt-1 text-sm text-red-600">{errors[field.id]?.message}</p>}
@@ -130,7 +157,7 @@ export default function SubmitForm() {
           </div>
           <p id="specification-hint" className="mt-3 text-xs leading-5 text-slate-500">Choose “Unknown” if you’re unsure. For title status, check the current ownership document.</p>
           <label htmlFor="description" className="mb-2 mt-6 block text-sm font-semibold">Description</label>
-          <textarea id="description" rows={5} placeholder="Share what makes this vehicle special, its ownership story, and why you’re selling it. You’ll add history and condition details next." {...register("description", { validate: (value) => validationMessage(listingSchema.shape.description, value) })} aria-invalid={!!errors.description} aria-describedby={errors.description ? "description-error" : undefined} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm" />
+          <textarea id="description" rows={5} maxLength={10000} placeholder="Share what makes this vehicle special, its ownership story, and why you’re selling it. You’ll add history and condition details next." {...register("description", { validate: (value) => validationMessage(listingSchema.shape.description, value) })} aria-invalid={!!errors.description} aria-describedby={errors.description ? "description-error" : undefined} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm" />
           {errors.description && <p id="description-error" className="text-sm text-red-600">{errors.description.message}</p>}
         </fieldset>
         <fieldset hidden={step !== 1} className="min-w-0 space-y-6">
@@ -152,6 +179,7 @@ export default function SubmitForm() {
         </div>
       </form>
       {step === 2 && <>
+        <PhotoChecklist checked={photoChecklist} onChange={setPhotoChecklist} />
         <div className="mb-5 rounded-xl border-2 border-dashed border-slate-200 p-6 text-center">
           <p className="mb-3 text-sm text-slate-600">Include exterior, interior, and detail shots.</p>
           <CldUploadWidget uploadPreset="auctions" options={{ resourceType: "image", clientAllowedFormats: ["jpg", "jpeg", "png", "webp"], maxFiles: MAX_LISTING_PHOTOS - images.length, multiple: true }} onSuccess={(result) => {
@@ -169,6 +197,7 @@ export default function SubmitForm() {
             <CldImage src={url} width={400} height={280} crop="fill" alt={`Vehicle photo ${index + 1}`} className="aspect-[4/3] w-full object-cover" />
             <div className="flex flex-wrap items-center justify-between gap-2 p-2 text-xs">
               {index === 0 ? <span className="font-bold text-slate-700">Cover photo</span> : <button type="button" onClick={() => setImages((current) => [url, ...current.filter((image) => image !== url)])} className="underline">Make cover<span className="sr-only"> photo {index + 1}</span></button>}
+              {index > 0 && <button type="button" aria-label={`Move photo ${index + 1} earlier`} onClick={() => setImages((current) => { const next = [...current]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; return next; })} className="p-1 underline">Move earlier</button>}
               <button type="button" aria-label={`Remove photo ${index + 1}`} onClick={() => setImages((current) => current.filter((image) => image !== url))} className="p-1 text-red-700 underline">Remove</button>
             </div>
           </div>)}
@@ -193,8 +222,9 @@ export default function SubmitForm() {
             <div className="grid grid-cols-2 gap-3">{images.map((url, index) => <CldImage key={url} src={url} width={600} height={450} crop="fit" alt={`${title}, photo ${index + 1}`} className="aspect-[4/3] w-full rounded-lg bg-slate-100 object-contain" />)}</div>
           </div>
         </article>
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">Ready? Submit to create your listing.</p><button type="button" disabled={isLoading} onClick={submitListing} className={primary}>{isLoading ? "Submitting…" : "Submit listing"}</button></div>
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">Ready? Submit to create your listing.</p><button type="button" disabled={isLoading || draft.status === "conflict"} onClick={submitListing} className={primary}>{isLoading ? "Submitting…" : "Submit listing"}</button></div>
       </>}
+      </fieldset>
     </div>
   );
 }

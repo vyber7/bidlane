@@ -1,3 +1,5 @@
+import ListingDrafts from "@/app/account/components/ListingDrafts";
+import { serializeDraft } from "@/app/libs/listing-drafts";
 import ListingsDashboard from "@/app/account/components/ListingsDashboard";
 import { getAccountUser } from "@/app/account/lib/current-user";
 import prisma from "@/app/libs/prismadb";
@@ -6,7 +8,7 @@ const MyListings = async () => {
   const currentUser = await getAccountUser();
   if (!currentUser) return null;
 
-  const [uploaded, watching] = await Promise.all([
+  const [uploaded, watching, drafts] = await Promise.all([
     prisma.listing.findMany({
       where: { userId: currentUser.id },
       orderBy: { createdAt: "desc" },
@@ -15,14 +17,21 @@ const MyListings = async () => {
       where: { watchersIds: { has: currentUser.id } },
       orderBy: { updatedAt: "desc" },
     }),
+    prisma.listingDraft.findMany({ where: { userId: currentUser.id, publishedListingId: null, deletedAt: null }, orderBy: { updatedAt: "desc" } }),
   ]);
 
   return (
-    <ListingsDashboard
-      uploaded={uploaded}
-      initialWatching={watching}
-      currentUserId={currentUser.id}
-    />
+    <div>
+      <ListingDrafts drafts={drafts.map((draft) => {
+        const saved = serializeDraft(draft);
+        return { id: saved.id, revision: saved.revision, title: [saved.payload.details.year, saved.payload.details.make, saved.payload.details.model].filter(Boolean).join(" ") || "Untitled vehicle", photoCount: saved.payload.images.length, updatedAt: saved.updatedAt };
+      })} />
+      <ListingsDashboard
+        uploaded={uploaded}
+        initialWatching={watching}
+        currentUserId={currentUser.id}
+      />
+    </div>
   );
 };
 
