@@ -223,3 +223,12 @@ model BidSubmission {
 
   @@unique([userId, key])
 }
+
+// Shared contact-form quotas across application instances. No email/IP stored.
+model ContactRateLimit {
+  id        String   @id @map("_id")
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}

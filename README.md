@@ -63,7 +63,7 @@ PUSHER_SECRET="your-app-secret"
 # Authenticates scheduled auction finalization and notification email delivery
 CRON_SECRET="replace-with-another-random-secret"
 
-# Optional: outbid emails through Resend
+# Resend: required for the contact form; optional for outbid emails
 RESEND_API_KEY="re_your-api-key"
 EMAIL_FROM="BidLane <alerts@your-verified-domain.com>"
 
@@ -202,6 +202,14 @@ The bid, auction updates, notifications, and `BidSubmission` response snapshot c
 The bid form preserves its request key and exact amount while retrying network failures or server errors, and allows that retry after auction end. This pending state lasts while the form remains mounted; reloading or leaving the page clears it. Successful request records have no automatic expiration.
 
 Before deploying, run `npx prisma db push` against the target database to create the `BidSubmission` collection and its unique `(userId, key)` index, then deploy the generated Prisma client and application together. Existing bids need no backfill. MongoDB must support transactions (a replica set).
+
+## Contact form
+
+`/contact` posts to `POST /api/contact` and sends a plain-text email through Resend to the fixed `support@bidlane.net` inbox. It uses the server-only `RESEND_API_KEY` and verified `EMAIL_FROM` sender above, with the visitor’s email as `Reply-To`. The page confirms provider acceptance, preserves fields on failure, and reuses a provider idempotency key on retries to reduce duplicate sends. Acceptance does not guarantee inbox delivery; check Resend delivery/bounce logs if a message is missing. No acknowledgment email is sent to the visitor.
+
+Spam protection includes a hidden honeypot, bounded/validated fields, and atomic MongoDB quotas shared across instances: three attempts per email per fixed 15-minute window and 30 total per fixed minute. A `429` response includes `Retry-After`. Rotating addresses can exhaust the global budget; these are basic abuse controls, not a replacement for a CAPTCHA if targeted spam develops. Expired quota records are removed on subsequent requests; email addresses are hashed in quota keys and message bodies are not stored in MongoDB or application logs.
+
+Before deploying, run `npx prisma generate` and `npx prisma db push` against the target database to create the `ContactRateLimit` collection/index, then deploy the generated client and application together. Missing mail configuration or database failures return a retryable error with the direct support address. Verify a real submission in the support inbox after configuring Resend.
 
 ## Notifications
 
