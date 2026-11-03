@@ -6,9 +6,13 @@ import { getApiErrorMessage } from "@/app/utils/api-error";
 
 export default function EmailNotificationSettings({
   initialEnabled,
+  preference = "outbidEmailsEnabled",
 }: {
   initialEnabled: boolean;
+  preference?: "outbidEmailsEnabled" | "endingSoonEmailsEnabled";
 }) {
+  const endingSoon = preference === "endingSoonEmailsEnabled";
+  const titleId = `${preference}-title`;
   const [enabled, setEnabled] = useState(initialEnabled);
   const [saved, setSaved] = useState(initialEnabled);
   const [saving, setSaving] = useState(false);
@@ -17,17 +21,16 @@ export default function EmailNotificationSettings({
   return (
     <section
       className="mb-5 rounded-xl border border-slate-200 bg-white p-5 sm:p-6"
-      aria-labelledby="email-settings-title"
+      aria-labelledby={titleId}
     >
       <h2
-        id="email-settings-title"
+        id={titleId}
         className="text-lg font-bold text-slate-950"
       >
-        Email notifications
+        {endingSoon ? "Ending-soon reminders" : "Email notifications"}
       </h2>
       <p className="mt-1 text-sm leading-6 text-slate-600">
-        Get an email when another bidder takes the lead, even when you’re away
-        from BidLane.
+        {endingSoon ? "Get a reminder in the final hour of auctions you watch or bid on." : "Get an email when another bidder takes the lead, even when you’re away from BidLane."}
       </p>
       <form
         className="mt-4 space-y-3"
@@ -38,13 +41,11 @@ export default function EmailNotificationSettings({
           setError(null);
           setConfirmation(null);
           try {
-            const response = await axios.patch<{
-              outbidEmailsEnabled: boolean;
-            }>("/api/account/notification-preferences", {
-              outbidEmailsEnabled: enabled,
+            const response = await axios.patch<Record<typeof preference, boolean>>("/api/account/notification-preferences", {
+              [preference]: enabled,
             });
-            setSaved(response.data.outbidEmailsEnabled);
-            setEnabled(response.data.outbidEmailsEnabled);
+            setSaved(response.data[preference]);
+            setEnabled(response.data[preference]);
             setConfirmation("Email preferences saved.");
           } catch (error) {
             setError(
@@ -66,11 +67,10 @@ export default function EmailNotificationSettings({
             }}
             className="mt-0.5 h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
           />
-          Email me when I’m outbid
+          {endingSoon ? "Email me when auctions are ending soon" : "Email me when I’m outbid"}
         </label>
         <p className="text-xs leading-5 text-slate-500">
-          Turning this off also stops queued outbid emails. Your in-app
-          notifications stay available.
+          Turning this off also stops queued {endingSoon ? "ending-soon" : "outbid"} emails. Your in-app notifications stay available.
         </p>
         <button
           type="submit"

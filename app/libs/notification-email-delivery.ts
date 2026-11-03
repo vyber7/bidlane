@@ -7,6 +7,7 @@ import {
   EmailProviderError,
   getEmailConfiguration,
   sendOutbidEmail,
+  sendEmail,
   type OutbidEmailPayload,
 } from "./outbid-email";
 
@@ -71,7 +72,7 @@ export async function sendNotificationEmails(batchSize = 20) {
       const notification = await prisma.notification.findUnique({
         where: { id: candidate.id },
         include: {
-          user: { select: { email: true, outbidEmailsEnabled: true } },
+          user: { select: { email: true, outbidEmailsEnabled: true, endingSoonEmailsEnabled: true } },
         },
       });
       if (!notification || notification.emailLockToken !== token) continue;
@@ -83,9 +84,10 @@ export async function sendNotificationEmails(batchSize = 20) {
         summary.failed += 1;
         continue;
       }
+      const endingSoon = notification.eventKey.startsWith("ending-soon:");
       if (
         !notification.user?.email ||
-        notification.user.outbidEmailsEnabled === false
+        (endingSoon ? notification.user.endingSoonEmailsEnabled : notification.user.outbidEmailsEnabled) === false
       ) {
         await finish({
           emailStatus: "SKIPPED",
@@ -117,7 +119,7 @@ export async function sendNotificationEmails(batchSize = 20) {
         summary.skipped += 1;
         continue;
       }
-      if (!payload) {
+      if (!payload || endingSoon) {
         const listing = notification.emailListingId
           ? await prisma.listing.findUnique({
               where: { id: notification.emailListingId },
@@ -129,6 +131,8 @@ export async function sendNotificationEmails(batchSize = 20) {
                 status: true,
                 auctionEndsAt: true,
                 highestBidderId: true,
+                watchersIds: true,
+                biddersIds: true,
               },
             })
           : null;
@@ -138,7 +142,8 @@ export async function sendNotificationEmails(batchSize = 20) {
           listing.status !== "LIVE" ||
           !listing.auctionEndsAt ||
           listing.auctionEndsAt <= now ||
-          listing.highestBidderId === notification.userId
+          (!endingSoon && listing.highestBidderId === notification.userId) ||
+          (endingSoon && !listing.watchersIds.includes(notification.userId) && !listing.biddersIds.includes(notification.userId) && listing.highestBidderId !== notification.userId)
         ) {
           await finish({
             emailStatus: "SKIPPED",
@@ -147,25 +152,30 @@ export async function sendNotificationEmails(batchSize = 20) {
           summary.skipped += 1;
           continue;
         }
-        payload = buildOutbidEmail({
-          ...config,
-          to: notification.user.email,
-          vehicle: `${listing.year} ${listing.make} ${listing.model}`,
-          listingId: listing.id,
-        });
-        // Freeze the recipient and content before HTTP. Retries must use the
-        // same payload as well as the same provider idempotency key.
-        const prepared = await prisma.notification.updateMany({
-          where,
-          data: { emailPayload: payload, emailFirstAttemptAt: now },
-        });
-        if (prepared.count !== 1) continue;
+        if (!payload) {
+          payload = buildOutbidEmail({
+            ...config,
+            to: notification.user.email,
+            vehicle: `${listing.year} ${listing.make} ${listing.model}`,
+            listingId: listing.id,
+            endingSoon,
+          });
+          // Freeze the recipient and content before HTTP. Retries must use the
+          // same payload as well as the same provider idempotency key.
+          const prepared = await prisma.notification.updateMany({
+            where,
+            data: { emailPayload: payload, emailFirstAttemptAt: now },
+          });
+          if (prepared.count !== 1) continue;
+        }
       }
-      const providerId = await sendOutbidEmail(
-        config.apiKey,
-        payload,
-        notification.id,
-      );
+      const providerId = endingSoon
+        ? await sendEmail(config.apiKey, payload, `ending-soon/${notification.id}`)
+        : await sendOutbidEmail(
+            config.apiKey,
+            payload,
+            notification.id,
+          );
       const completed = await finish({
         emailStatus: "SENT",
         emailSentAt: new Date(),

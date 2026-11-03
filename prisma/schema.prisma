@@ -43,6 +43,7 @@ model User {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   outbidEmailsEnabled Boolean   @default(true)
+  endingSoonEmailsEnabled Boolean @default(true)
 
   listingsCommentedOnIds String[]  @db.ObjectId
   listingsCommentedOn    Listing[] @relation(name: "commentedOn", fields: [listingsCommentedOnIds], references: [id])
@@ -151,6 +152,7 @@ model Listing {
 
   auctionStartsAt DateTime?
   auctionEndsAt   DateTime?
+  endingSoonReminderAt DateTime?
 
   status String  @default("UPCOMING") // UPCOMING, LIVE, ENDED
   result String? // SOLD, RESERVE_NOT_MET
@@ -175,6 +177,8 @@ model Listing {
 
   watchersIds String[] @db.ObjectId
   watchers    User[]   @relation(name: "watchlist", fields: [watchersIds], references: [id])
+
+  @@index([status, auctionEndsAt])
 
   commentsIds String[]  @db.ObjectId
   comments    Comment[]

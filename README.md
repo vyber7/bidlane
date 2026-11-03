@@ -280,13 +280,21 @@ Authenticated endpoints:
 | `/api/pusher/auth` | POST | Authorize the signed-in account's `private-user-<id>` channel; accepts Pusher's form-encoded `socket_id` and `channel_name` |
 | `/api/account/notification-preferences` | PATCH | Save the current account’s `{ "outbidEmailsEnabled": true/false }` preference |
 
+### Ending-soon reminders
+
+Auctions in their final hour generate one in-app reminder per watcher or bidder (including the leading bidder, excluding the seller). The same event queues an optional email. Overlapping runs and retries use stable notification keys; an auction is marked as reminded in the same transaction as its notifications. Each auction is reminded once, so watching or bidding after that batch does not generate another reminder.
+
+`GET /api/cron/ending-soon-reminders` requires `Authorization: Bearer <CRON_SECRET>` and runs every minute via `vercel.json`. It processes up to 100 auctions within a 40-second work budget and returns `checked`, `queued` (auctions processed), `skipped`, `failed`, and `hasMore`. Missing reminder fields on existing MongoDB listings are treated as unreminded. On other hosts, schedule this endpoint every minute alongside the existing jobs.
+
+Before deploying, run `npx prisma generate` and `npx prisma db push` to apply the updated MongoDB schema/index. Reminder emails use the existing Resend configuration and `/api/cron/send-notification-emails` worker; in-app reminders work without email configuration. Accounts can independently disable reminder emails under `/account/notifications`, using `PATCH /api/account/notification-preferences` with `{ "endingSoonEmailsEnabled": false }`. This also suppresses queued emails. Before every reminder email attempt, the worker checks that the auction is still live and unexpired, the reminder is unread, and the recipient still watches or has bid. Retries preserve the original payload and provider idempotency key. Delivery timing depends on scheduler and email queue capacity.
+
 ## Deployment
 
 1. Configure the environment variables on the deployment platform. Set `NEXTAUTH_URL` and OAuth callbacks to the production origin. Set `NEXT_PUBLIC_` values before building; changes to those values require a rebuild.
 2. Ensure the deployment can reach MongoDB, Cloudinary, and Pusher.
 3. Build the app with `npm run build`, which generates the Prisma client before running the Next.js production build. On Vercel, use `npm run build` as the Build Command. Synchronize reviewed schema changes with the target database using `npx prisma db push`.
 4. On a Node.js host, run `npm start` to serve the build.
-5. Configure scheduled auction finalization. For Vercel, the included configuration declares both jobs at one-minute intervals; use a plan that supports that frequency. On another host, schedule authenticated GET requests to `/api/cron/finalize-auctions` every minute. To enable optional outbid emails, configure Resend, apply the updated Prisma schema, and also schedule `/api/cron/send-notification-emails` every minute. If email delivery is disabled, remove its entry from `vercel.json` to avoid scheduled `503` responses.
+5. Configure scheduled auction finalization. For Vercel, the included configuration declares the jobs at one-minute intervals; use a plan that supports that frequency. On another host, schedule authenticated GET requests to `/api/cron/finalize-auctions` and `/api/cron/ending-soon-reminders` every minute. To enable optional outbid emails, configure Resend, apply the updated Prisma schema, and also schedule `/api/cron/send-notification-emails` every minute. If email delivery is disabled, remove its entry from `vercel.json` to avoid scheduled `503` responses.
 
 Local development does not run the Vercel schedule automatically. To exercise the cron route locally, send the same authenticated GET request using your configured `CRON_SECRET`.
 

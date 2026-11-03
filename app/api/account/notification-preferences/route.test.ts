@@ -13,5 +13,10 @@ describe("email preferences", () => {
     expect(mocks.update).toHaveBeenCalledExactlyOnceWith({ where: { id: "buyer" }, data: { outbidEmailsEnabled: false }, select: { outbidEmailsEnabled: true } });
   });
   it.each([{}, { outbidEmailsEnabled: "false" }, { outbidEmailsEnabled: null }, []])("rejects invalid settings %j", async (body) => { expect((await patch(body)).status).toBe(400); expect(mocks.update).not.toHaveBeenCalled(); });
+  it("updates ending-soon emails independently", async () => {
+    await patch({ endingSoonEmailsEnabled: false });
+    expect(mocks.update).toHaveBeenCalledWith({ where: { id: "buyer" }, data: { endingSoonEmailsEnabled: false }, select: { endingSoonEmailsEnabled: true } });
+    expect((await patch({ endingSoonEmailsEnabled: "false" })).status).toBe(400);
+  });
   it("reports persistence failures", async () => { mocks.update.mockRejectedValueOnce(new Error("offline")); expect((await patch({ outbidEmailsEnabled: true })).status).toBe(500); });
 });

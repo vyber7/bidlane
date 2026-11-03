@@ -30,6 +30,7 @@ export function makeListing(overrides: Partial<Listing> = {}): Listing {
     coverImage: null,
     auctionStartsAt: new Date(auctionNow.getTime() - 3600000),
     auctionEndsAt: new Date(auctionNow.getTime() + 60000),
+    endingSoonReminderAt: null,
     status: "LIVE",
     result: null,
     isFeatured: false,

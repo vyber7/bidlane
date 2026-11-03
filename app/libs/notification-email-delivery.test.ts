@@ -5,11 +5,11 @@ import type { Notification } from "@prisma/client";
 const mocks = vi.hoisted(() => ({ findMany: vi.fn(), findUnique: vi.fn(), updateMany: vi.fn(), listing: vi.fn(), send: vi.fn(), config: vi.fn(), warn: vi.fn() }));
 vi.mock("./prismadb", () => ({ default: { notification: { findMany: mocks.findMany, findUnique: mocks.findUnique, updateMany: mocks.updateMany }, listing: { findUnique: mocks.listing } } }));
 vi.mock("./logger", () => ({ logger: { warn: mocks.warn } }));
-vi.mock("./outbid-email", async (importOriginal) => ({ ...await importOriginal<typeof import("./outbid-email")>(), sendOutbidEmail: mocks.send, getEmailConfiguration: mocks.config }));
+vi.mock("./outbid-email", async (importOriginal) => ({ ...await importOriginal<typeof import("./outbid-email")>(), sendOutbidEmail: mocks.send, sendEmail: mocks.send, getEmailConfiguration: mocks.config }));
 import { sendNotificationEmails } from "./notification-email-delivery";
 import { buildOutbidEmail, EmailProviderError } from "./outbid-email";
 
-let job: Notification & { user: { email: string | null; outbidEmailsEnabled: boolean } };
+let job: Notification & { user: { email: string | null; outbidEmailsEnabled: boolean; endingSoonEmailsEnabled?: boolean } };
 beforeEach(() => {
   vi.clearAllMocks(); vi.useFakeTimers(); vi.setSystemTime(auctionNow);
   job = { id: "abcdef0123456789abcdef02", userId: "buyer", eventKey: "outbid:bid-1", kind: "bid", title: "You’ve been outbid", message: "Outbid", href: `/listing/${makeListing().id}#bids`, actionLabel: "Bid again", tone: "warning", createdAt: auctionNow, readAt: null,
@@ -51,6 +51,36 @@ describe("durable outbid email delivery", () => {
     if (scenario === "expired") mocks.listing.mockResolvedValue(makeListing({ auctionEndsAt: auctionNow }));
     await expect(sendNotificationEmails()).resolves.toMatchObject({ skipped: 1 });
     expect(mocks.send).not.toHaveBeenCalled(); expect(job.emailStatus).toBe("SKIPPED");
+  });
+
+  it("sends a reminder to the leading bidder with its own content and idempotency key", async () => {
+    job.eventKey = `ending-soon:${makeListing().id}`;
+    job.user.outbidEmailsEnabled = false;
+    mocks.listing.mockResolvedValue(makeListing({ highestBidderId: "buyer" }));
+    await expect(sendNotificationEmails()).resolves.toMatchObject({ sent: 1 });
+    expect(mocks.send).toHaveBeenCalledWith("test-key", expect.objectContaining({ subject: "Auction ending soon — 2020 Porsche 911" }), `ending-soon/${job.id}`);
+  });
+
+  it.each(["disabled", "unwatched", "ended"])("skips %s reminders", async (scenario) => {
+    job.eventKey = `ending-soon:${makeListing().id}`;
+    if (scenario === "disabled") job.user.endingSoonEmailsEnabled = false;
+    if (scenario === "unwatched") mocks.listing.mockResolvedValue(makeListing());
+    if (scenario === "ended") mocks.listing.mockResolvedValue(makeListing({ status: "ENDED" }));
+    await expect(sendNotificationEmails()).resolves.toMatchObject({ skipped: 1 });
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+
+  it("rechecks reminder relevance on retries without changing the frozen payload", async () => {
+    job.eventKey = `ending-soon:${makeListing().id}`;
+    mocks.listing.mockResolvedValue(makeListing({ watchersIds: ["buyer"] }));
+    mocks.send.mockRejectedValueOnce(new EmailProviderError("network_error", true));
+    await sendNotificationEmails();
+    const payload = structuredClone(job.emailPayload);
+    await sendNotificationEmails();
+    expect(mocks.send.mock.calls[1][1]).toEqual(payload);
+    mocks.listing.mockResolvedValue(makeListing({ status: "ENDED" }));
+    await expect(sendNotificationEmails()).resolves.toMatchObject({ skipped: 1 });
+    expect(mocks.send).toHaveBeenCalledTimes(2);
   });
 
   it("backs off temporary errors without losing the immutable request", async () => {

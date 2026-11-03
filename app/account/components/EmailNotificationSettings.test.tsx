@@ -16,6 +16,14 @@ describe("email notification settings", () => {
     expect(screen.getByRole("checkbox")).toHaveProperty("checked", false);
     expect(screen.getByRole("button", { name: "Save email preferences" })).toHaveProperty("disabled", true);
   });
+  it("saves ending-soon emails separately", async () => {
+    mocks.patch.mockResolvedValue({ data: { endingSoonEmailsEnabled: false } });
+    render(<EmailNotificationSettings initialEnabled={true} preference="endingSoonEmailsEnabled" />);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Email me when auctions are ending soon" }));
+    await act(async () => { fireEvent.click(screen.getByRole("button")); });
+    expect(mocks.patch).toHaveBeenCalledExactlyOnceWith("/api/account/notification-preferences", { endingSoonEmailsEnabled: false });
+    expect(screen.getByRole("checkbox")).toHaveProperty("checked", false);
+  });
   it("retains an unsaved change for retry after failure", async () => {
     mocks.patch.mockRejectedValueOnce({ isAxiosError: true, response: { data: { error: "Could not save" } } });
     render(<EmailNotificationSettings initialEnabled={true} />);

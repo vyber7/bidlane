@@ -13,15 +13,22 @@ export async function PATCH(request: Request) {
     const user = await getCurrentUser();
     if (!user) return errorResponse("Unauthorized", 401);
     const body = await readJsonObject(request);
-    if (typeof body.outbidEmailsEnabled !== "boolean")
-      throw new ApiRequestError(
-        400,
-        "Outbid email preference must be true or false",
-      );
+    const data: { outbidEmailsEnabled?: boolean; endingSoonEmailsEnabled?: boolean } = {};
+    for (const key of ["outbidEmailsEnabled", "endingSoonEmailsEnabled"] as const) {
+      if (!(key in body)) continue;
+      if (typeof body[key] !== "boolean")
+        throw new ApiRequestError(400, "Email preferences must be true or false");
+      data[key] = body[key];
+    }
+    if (!Object.keys(data).length)
+      throw new ApiRequestError(400, "Provide an email preference");
     const preferences = await prisma.user.update({
       where: { id: user.id },
-      data: { outbidEmailsEnabled: body.outbidEmailsEnabled },
-      select: { outbidEmailsEnabled: true },
+      data,
+      select: {
+        ...(data.outbidEmailsEnabled !== undefined && { outbidEmailsEnabled: true }),
+        ...(data.endingSoonEmailsEnabled !== undefined && { endingSoonEmailsEnabled: true }),
+      },
     });
     return Response.json(preferences);
   } catch (error) {

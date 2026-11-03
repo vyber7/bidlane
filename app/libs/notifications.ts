@@ -104,6 +104,27 @@ export function auctionLiveNotifications(
     }));
 }
 
+export function endingSoonNotifications(
+  listing: Vehicle & Pick<Listing, "watchersIds" | "biddersIds" | "highestBidderId">,
+  createdAt: Date,
+): NotificationDraft[] {
+  return [...new Set([...listing.watchersIds, ...listing.biddersIds,
+    ...(listing.highestBidderId ? [listing.highestBidderId] : [])])]
+    .filter((id) => id !== listing.userId)
+    .map((userId) => ({
+      userId,
+      eventKey: `ending-soon:${listing.id}`,
+      kind: "auction",
+      title: "Auction ending soon",
+      message: `The ${vehicleName(listing)} is in its final hour. Check the latest bid and time remaining.`,
+      createdAt,
+      href: `/listing/${listing.id}#bids`,
+      actionLabel: "View auction",
+      tone: "warning",
+      emailListingId: listing.id,
+    }));
+}
+
 export function commentNotifications(
   listing: Vehicle,
   comment: {

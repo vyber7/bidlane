@@ -43,22 +43,27 @@ export function buildOutbidEmail({
   to,
   vehicle,
   listingId,
+  endingSoon = false,
 }: {
   from: string;
   origin: string;
   to: string;
   vehicle: string;
   listingId: string;
+  endingSoon?: boolean;
 }): OutbidEmailPayload {
   const auctionUrl = new URL(`/listing/${listingId}#bids`, origin).href;
   const settingsUrl = new URL("/account/notifications", origin).href;
-  const message = `Another bidder has taken the lead on the ${vehicle}. Open the auction to check the latest price and time remaining.`;
+  const title = endingSoon ? "Auction ending soon" : "You’ve been outbid";
+  const reason = endingSoon ? "you watch or bid on this vehicle" : "you bid on this vehicle";
+  const preference = endingSoon ? "ending-soon" : "outbid";
+  const message = endingSoon ? `The ${vehicle} is in its final hour. Open the auction to check the latest bid and time remaining.` : `Another bidder has taken the lead on the ${vehicle}. Open the auction to check the latest price and time remaining.`;
   return {
     from,
     to: [to],
-    subject: `You’ve been outbid — ${vehicle.replace(/[\r\n]/g, " ")}`,
-    text: `You’ve been outbid\n\n${message}\n\nView auction: ${auctionUrl}\n\nYou received this because you bid on this vehicle. Manage outbid emails: ${settingsUrl}`,
-    html: `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>You’ve been outbid</title></head><body style="margin:0;background:#f8fafc;color:#0f172a;font-family:Arial,sans-serif"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px"><table role="presentation" width="100%" style="max-width:560px;background:#fff;border:1px solid #e2e8f0;border-radius:16px" cellpadding="0" cellspacing="0"><tr><td style="padding:32px"><p style="margin:0 0 24px;font-size:22px;font-weight:bold">Bid<span style="color:#b45309">Lane</span></p><h1 style="font-size:28px;margin:0 0 16px">You’ve been outbid</h1><p style="font-size:16px;line-height:1.6">${escapeHtml(message)}</p><p style="margin:28px 0"><a href="${escapeHtml(auctionUrl)}" style="display:inline-block;background:#fbbf24;color:#0f172a;padding:14px 24px;border-radius:8px;text-decoration:none;font-weight:bold">View auction</a></p><p style="font-size:12px;line-height:1.6;color:#64748b">You received this because you bid on this vehicle. <a href="${escapeHtml(settingsUrl)}" style="color:#475569">Manage outbid emails</a></p></td></tr></table></td></tr></table></body></html>`,
+    subject: `${title} — ${vehicle.replace(/[\r\n]/g, " ")}`,
+    text: `${title}\n\n${message}\n\nView auction: ${auctionUrl}\n\nYou received this because ${reason}. Manage ${preference} emails: ${settingsUrl}`,
+    html: `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title></head><body style="margin:0;background:#f8fafc;color:#0f172a;font-family:Arial,sans-serif"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px"><table role="presentation" width="100%" style="max-width:560px;background:#fff;border:1px solid #e2e8f0;border-radius:16px" cellpadding="0" cellspacing="0"><tr><td style="padding:32px"><p style="margin:0 0 24px;font-size:22px;font-weight:bold">Bid<span style="color:#b45309">Lane</span></p><h1 style="font-size:28px;margin:0 0 16px">${title}</h1><p style="font-size:16px;line-height:1.6">${escapeHtml(message)}</p><p style="margin:28px 0"><a href="${escapeHtml(auctionUrl)}" style="display:inline-block;background:#fbbf24;color:#0f172a;padding:14px 24px;border-radius:8px;text-decoration:none;font-weight:bold">View auction</a></p><p style="font-size:12px;line-height:1.6;color:#64748b">You received this because ${reason}. <a href="${escapeHtml(settingsUrl)}" style="color:#475569">Manage ${preference} emails</a></p></td></tr></table></td></tr></table></body></html>`,
   };
 }
 

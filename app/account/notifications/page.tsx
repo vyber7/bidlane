@@ -9,7 +9,7 @@ export default async function Notifications() {
   if (!currentUser) return null;
   const [initialFeed, preferences] = await Promise.all([
     getNotificationFeed(currentUser.id),
-    prisma.user.findUnique({ where: { id: currentUser.id }, select: { outbidEmailsEnabled: true } }),
+    prisma.user.findUnique({ where: { id: currentUser.id }, select: { outbidEmailsEnabled: true, endingSoonEmailsEnabled: true } }),
   ]);
-  return <div key={currentUser.id}><EmailNotificationSettings initialEnabled={preferences?.outbidEmailsEnabled ?? true} /><NotificationsCenter initialFeed={initialFeed} userId={currentUser.id} /></div>;
+  return <div key={currentUser.id}><EmailNotificationSettings initialEnabled={preferences?.outbidEmailsEnabled ?? true} /><EmailNotificationSettings preference="endingSoonEmailsEnabled" initialEnabled={preferences?.endingSoonEmailsEnabled ?? true} /><NotificationsCenter initialFeed={initialFeed} userId={currentUser.id} /></div>;
 }

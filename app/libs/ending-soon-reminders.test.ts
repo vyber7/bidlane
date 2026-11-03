@@ -1,0 +1,41 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { auctionNow, makeListing } from "@/app/test/auction-fixtures";
+
+const mocks = vi.hoisted(() => ({ findMany: vi.fn(), claim: vi.fn(), listing: vi.fn(), upsert: vi.fn(), trigger: vi.fn() }));
+vi.mock("./prismadb", () => ({ default: {
+  listing: { findMany: mocks.findMany },
+  $transaction: async (fn: (tx: unknown) => unknown) => fn({ listing: { updateMany: mocks.claim, findUniqueOrThrow: mocks.listing }, notification: { upsert: mocks.upsert } }),
+} }));
+vi.mock("./pusher", () => ({ pusherServer: { trigger: mocks.trigger } }));
+vi.mock("./logger", () => ({ logger: { error: vi.fn(), warn: vi.fn() } }));
+import { queueEndingSoonReminders } from "./ending-soon-reminders";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.findMany.mockResolvedValue([{ id: "auction" }]);
+  mocks.claim.mockResolvedValue({ count: 1 });
+  mocks.listing.mockResolvedValue(makeListing({ watchersIds: ["watcher", "buyer", "seller", "watcher"], biddersIds: ["buyer"], highestBidderId: "leader" }));
+});
+describe("ending-soon reminders", () => {
+  it("selects only unreminded live auctions in the final hour, including legacy missing fields", async () => {
+    await expect(queueEndingSoonReminders(auctionNow)).resolves.toMatchObject({ queued: 1, failed: 0 });
+    expect(mocks.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: {
+      status: "LIVE", auctionEndsAt: { gt: auctionNow, lte: new Date(auctionNow.getTime() + 3600000) },
+      OR: [{ endingSoonReminderAt: null }, { endingSoonReminderAt: { isSet: false } }],
+    } }));
+    expect(mocks.upsert.mock.calls.map(([arg]) => arg.create.userId)).toEqual(["watcher", "buyer", "leader"]);
+    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ eventKey: `ending-soon:${makeListing().id}`, emailStatus: "PENDING", kind: "auction" }), update: {} }));
+    expect(mocks.upsert.mock.invocationCallOrder[0]).toBeGreaterThan(mocks.claim.mock.invocationCallOrder[0]);
+  });
+  it("does not create alerts when another worker claimed it or the auction ended", async () => {
+    mocks.claim.mockResolvedValue({ count: 0 });
+    await expect(queueEndingSoonReminders(auctionNow)).resolves.toMatchObject({ skipped: 1, queued: 0 });
+    expect(mocks.upsert).not.toHaveBeenCalled();
+    expect(mocks.trigger).not.toHaveBeenCalled();
+  });
+  it("reports a failed transaction and continues processing other auctions", async () => {
+    mocks.findMany.mockResolvedValue([{ id: "failed" }, { id: "ok" }]);
+    mocks.upsert.mockRejectedValueOnce(new Error("database offline"));
+    await expect(queueEndingSoonReminders(auctionNow)).resolves.toMatchObject({ checked: 2, queued: 1, failed: 1 });
+  });
+});
