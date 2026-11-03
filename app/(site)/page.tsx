@@ -114,7 +114,7 @@ export default async function Home() {
               The lineup
             </p>
             <h2 className="mt-1 text-3xl font-black tracking-tight text-slate-950">
-              All auctions
+              Inventory
             </h2>
             <p className="mt-2 text-sm text-slate-500">
               Fresh listings, live bids, and recently completed sales.
