@@ -23,6 +23,31 @@ describe("verification link", () => {
     expect(screen.getByRole("alert").textContent).toBe("Expired link");
     expect(screen.getByRole("button", { name: "Verify email address" })).toHaveProperty("disabled", false);
   });
+  it("keeps the link usable after session hydration remounts the page", async () => {
+    mocks.post.mockResolvedValue({ data: { verified: true } });
+    const first = render(<VerificationForm />);
+    expect(window.location.hash).toBe("");
+    first.unmount();
+    const second = render(<VerificationForm />);
+    expect(screen.getByRole("button", { name: "Verify email address" })).toHaveProperty("disabled", false);
+    expect(mocks.post).not.toHaveBeenCalled();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Verify email address" })); });
+    expect(mocks.post).toHaveBeenCalledWith("/api/verify-email", { token: "a".repeat(64) });
+    second.unmount();
+    render(<VerificationForm />);
+    expect(screen.getByRole("button", { name: "Verify email address" })).toHaveProperty("disabled", true);
+  });
+  it("preserves existing history state and lets a new link replace the saved token", async () => {
+    window.history.replaceState({ routerState: "preserved" }, "", `/verify-email#token=${"a".repeat(64)}`);
+    const first = render(<VerificationForm />);
+    first.unmount();
+    window.history.replaceState(window.history.state, "", `/verify-email#token=${"b".repeat(64)}`);
+    mocks.post.mockResolvedValue({ data: { verified: true } });
+    render(<VerificationForm />);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Verify email address" })); });
+    expect(mocks.post).toHaveBeenCalledWith("/api/verify-email", { token: "b".repeat(64) });
+    expect(window.history.state.routerState).toBe("preserved");
+  });
   it("offers a recovery path for missing tokens", () => {
     window.history.replaceState(null, "", "/verify-email"); render(<VerificationForm />);
     expect(screen.getByRole("button", { name: "Verify email address" })).toHaveProperty("disabled", true);
