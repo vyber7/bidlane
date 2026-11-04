@@ -1,4 +1,4 @@
-import type { Bid, Comment, User } from "@prisma/client";
+import type { Bid, Comment, User, UserRole } from "@prisma/client";
 
 export type CurrentUser = Pick<
   User,
@@ -6,6 +6,7 @@ export type CurrentUser = Pick<
 > & {
   hasPassword: boolean;
   emailVerified?: Date | null;
+  role?: UserRole | null;
 };
 
 export type FullUserType = {

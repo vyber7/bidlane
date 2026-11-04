@@ -8,9 +8,10 @@ import {
   FiGrid,
   FiShoppingBag,
   FiUser,
+  FiShield,
 } from "react-icons/fi";
 
-const AccountLinks = () => {
+const AccountLinks = ({ isAdmin = false }: { isAdmin?: boolean }) => {
   const pathname = usePathname();
   const links = [
     { name: "Profile", href: "/account/profile", icon: FiUser },
@@ -18,6 +19,7 @@ const AccountLinks = () => {
     { name: "Listings", href: "/account/listings", icon: FiGrid },
     { name: "Bids & Wins", href: "/account/bids-and-wins", icon: FiCreditCard },
     { name: "Purchases & sales", href: "/account/shipments", icon: FiShoppingBag },
+    ...(isAdmin ? [{ name: "Administration", href: "/admin", icon: FiShield }] : []),
   ];
 
   return (

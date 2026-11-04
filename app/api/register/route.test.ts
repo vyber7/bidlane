@@ -61,6 +61,12 @@ describe("POST /api/register", () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
+  it("does not allow public registration to grant an admin role", async () => {
+    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "secret", role: "ADMIN", isAdmin: true }));
+    expect(response.status).toBe(201);
+    expect(mocks.create.mock.calls[0][0].data).toEqual({ name: "Driver", email: "driver@example.com", hashedPassword: "bcrypt-secret" });
+  });
+
   it.each([
     { name: {} }, { email: [] }, { password: 123 }, { name: "   " },
   ])("rejects invalid registration fields %j before hashing", async (change) => {

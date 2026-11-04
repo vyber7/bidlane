@@ -18,6 +18,7 @@ const getCurrentUser = async (): Promise<CurrentUser | null> => {
         name: true,
         email: true,
         emailVerified: true,
+        role: true,
         image: true,
         createdAt: true,
         hashedPassword: true,
@@ -27,7 +28,7 @@ const getCurrentUser = async (): Promise<CurrentUser | null> => {
     if (!currentUser) return null;
 
     const { hashedPassword, ...safeUser } = currentUser;
-    return { ...safeUser, hasPassword: Boolean(hashedPassword) };
+    return { ...safeUser, role: safeUser.role ?? "USER", hasPassword: Boolean(hashedPassword) };
   } catch (error: unknown) {
     logger.error("auth.current_user_failed", error);
     return null;

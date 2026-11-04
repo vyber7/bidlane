@@ -16,5 +16,5 @@ const proxy = withAuth(
 export default proxy;
 
 export const config = {
-  matcher: ["/users/:path*", "/submit-listing", "/account/:path*"],
+  matcher: ["/users/:path*", "/submit-listing", "/account/:path*", "/admin/:path*"],
 };

@@ -39,6 +39,7 @@ describe("getCurrentUser", () => {
         name: true,
         email: true,
         emailVerified: true,
+        role: true,
         image: true,
         createdAt: true,
         hashedPassword: true,
@@ -51,6 +52,7 @@ describe("getCurrentUser", () => {
       image: null,
       createdAt: new Date("2026-09-10T12:00:00.000Z"),
       hasPassword: true,
+      role: "USER",
     });
     expect(user).not.toHaveProperty("hashedPassword");
   });
@@ -60,5 +62,15 @@ describe("getCurrentUser", () => {
 
     await expect(getCurrentUser()).resolves.toBeNull();
     expect(mocks.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("uses the current database role rather than a session role", async () => {
+    mocks.getSession.mockResolvedValue({ user: { email: "driver@example.com", role: "ADMIN" } });
+    mocks.findUnique.mockResolvedValueOnce({ id: "user-1", role: "USER" });
+    expect((await getCurrentUser())?.role).toBe("USER");
+    mocks.findUnique.mockResolvedValueOnce({ id: "user-1", role: "ADMIN" });
+    expect((await getCurrentUser())?.role).toBe("ADMIN");
+    mocks.findUnique.mockResolvedValueOnce({ id: "user-1", role: null });
+    expect((await getCurrentUser())?.role).toBe("USER");
   });
 });

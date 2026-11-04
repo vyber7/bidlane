@@ -9,7 +9,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "admin:grant": "node --env-file-if-exists=.env scripts/admin-role.mjs grant",
+    "admin:revoke": "node --env-file-if-exists=.env scripts/admin-role.mjs revoke"
   },
   "engines": {
     "node": "24.x"

@@ -17,6 +17,12 @@ beforeEach(() => {
 });
 
 describe("profile request validation", () => {
+  it("does not allow a profile update to change the role", async () => {
+    const response = await PATCH(request({ name: "Driver", image: "", role: "ADMIN", isAdmin: true }));
+    expect(response.status).toBe(200);
+    expect(mocks.update.mock.calls[0][0].data).toEqual({ name: "Driver", image: null });
+  });
+
   it("preserves profile updates and the public success response", async () => {
     const response = await PATCH(request({ name: " Driver ", image: "" }));
     expect(response.status).toBe(200);

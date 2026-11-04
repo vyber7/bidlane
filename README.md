@@ -128,6 +128,54 @@ Run `npm run lint` separately from `npm run build`; the Next.js production build
 
 Before changing Next.js code, follow [AGENTS.md](AGENTS.md) and read the relevant guides in `node_modules/next/dist/docs/` for the installed version.
 
+## Administrator access
+
+Admins use ordinary BidLane accounts with the `ADMIN` role. Public registration
+and profile updates cannot assign roles. New accounts default to `USER`; existing
+MongoDB users with a missing or null role are treated as regular users. This
+release adds access controls and an overview, with listing moderation still to
+be implemented.
+
+After deploying this change, regenerate the Prisma client (`npx prisma generate`;
+also included in `npm run build`). The optional role field requires no backfill
+or new database indexes.
+
+1. Register normally or sign in with Google/GitHub to create the intended account.
+2. From a trusted checkout with the updated Prisma client and access to the
+   intended database, run:
+
+   ```bash
+   npm run admin:grant -- your@email.com
+   ```
+
+3. Visit `/admin`, or use **Account → Administration**. Refresh the account page
+   after granting access to see its new navigation link.
+
+To remove access:
+
+```bash
+npm run admin:revoke -- your@email.com
+```
+
+These commands load the root `.env` when present; already-set environment
+variables take precedence. Check that `DATABASE_URL` points to the intended
+database before running them. Email matching is exact, including case, just as
+it is for sign-in. The commands update only an existing account's role and are
+safe to repeat. They cannot create accounts or alter passwords. Admins can revoke
+their own access; a trusted operator can restore it with the grant command.
+
+`/admin` shows account, listing, and live auction counts. Its data endpoint,
+`GET /api/admin/overview`, returns `401` for signed-out requests and `403` for
+regular users. The page sends signed-out users to sign-in and returns a not-found
+page for regular users. Both paths authorize against the current database role;
+revocation applies on the next server request without signing out (an already
+open overview remains visible until refreshed).
+
+When adding admin tools, call `requireAdmin()` from `app/libs/admin.ts` at each
+server data or mutation entry point, before accessing privileged data. Do not
+rely on navigation visibility, a layout, the proxy, or a role supplied by the
+browser/JWT. `getAdminOverview()` demonstrates the shared page/API pattern.
+
 ## Auction lifecycle
 
 New listings require transmission, drivetrain, title status, service history, modifications, and known flaws alongside the existing listing fields, plus 1–20 uploaded photos. Specifications use the choices in `app/libs/vehicle-details.ts`, including an explicit `Unknown` option. Each disclosure is trimmed and limited to 4,000 characters; sellers must describe unknown history or state “None known” where appropriate. The preview and public listing show these disclosures, and the vehicle summary includes the three specifications. These are seller-reported details, not independent verification.
