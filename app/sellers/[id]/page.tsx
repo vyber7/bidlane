@@ -24,7 +24,7 @@ export default async function SellerPage({ params, searchParams }: {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("");
-  return <main className="mx-auto max-w-5xl space-y-7 px-4 pb-16 pt-28 sm:px-6">
+  return <main className="mx-auto max-w-6xl space-y-7 px-4 pb-16 pt-28 sm:px-6 lg:px-8">
     <Link href="/#auctions" className="text-sm font-semibold text-slate-600 hover:underline">← Browse auctions</Link>
     <header className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
       <div className="grid grid-cols-[minmax(0,1fr)_5rem] items-start gap-4 sm:grid-cols-[minmax(0,1fr)_10rem] sm:gap-8">

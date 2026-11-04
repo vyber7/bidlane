@@ -32,7 +32,7 @@ export default async function AccountLayout({ children }: { children: ReactNode 
   }
 
   return (
-    <div className="m-auto grid max-w-5xl grid-cols-4 gap-4 px-2 pb-8 lg:px-0">
+    <div className="mx-auto grid max-w-6xl grid-cols-4 gap-4 px-2 pb-8 lg:px-8">
       <AccountHeader userName={currentUser.name?.split(" ")[0]} />
       <AccountLinks isAdmin={currentUser.role === "ADMIN"} />
       <div className="col-span-4 lg:col-span-3">{children}</div>
