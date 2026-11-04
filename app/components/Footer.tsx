@@ -4,6 +4,7 @@ import {
   FiCheckCircle,
   FiClock,
   FiShield,
+  FiTag,
   FiZap,
 } from "react-icons/fi";
 import {
@@ -15,9 +16,10 @@ import {
 
 const auctionLinks = [
   { label: "Live auctions", href: "/?status=live#auctions", icon: FiZap },
+  { label: "No reserve", href: "/?status=no_reserve#auctions", icon: FiTag },
   { label: "Coming soon", href: "/?status=upcoming#auctions", icon: FiClock },
   { label: "Auction results", href: "/?status=ended#auctions", icon: FiCheckCircle },
-  ];
+];
 
 const companyLinks = [
   { label: "About Bidlane", href: "/about" },
