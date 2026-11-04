@@ -18,7 +18,7 @@ export default async function ReviewQueue({ searchParams }: { searchParams: Prom
     throw error;
   });
 
-  return <div className="mx-auto max-w-5xl px-4 py-12">
+  return <div className="mx-auto max-w-6xl px-4 pb-12 pt-24 sm:px-6 lg:px-8">
     <Link href="/admin" className="text-sm font-bold underline">← Administration</Link>
     <h1 className="mt-5 text-3xl font-black">Listing reviews</h1>
     <p className="mt-3 text-sm text-slate-600">Review upcoming listings before buyers can see them or bidding can open. Oldest submissions appear first.</p>

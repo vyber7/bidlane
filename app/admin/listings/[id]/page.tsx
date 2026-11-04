@@ -23,7 +23,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
     throw error;
   });
   const title = `${listing.year} ${listing.make} ${listing.model}`;
-  return <div className="mx-auto max-w-5xl space-y-6 px-4 py-12">
+  return <div className="mx-auto max-w-6xl space-y-6 px-4 pb-12 pt-24 sm:px-6 lg:px-8">
     <Link href="/admin/listings" className="text-sm font-bold underline">← Listing reviews</Link>
     <header><p className="text-sm font-bold text-amber-800">{reviewLabels[listing.reviewStatus ?? "PENDING"]} · {listing.status}</p><h1 className="mt-2 text-3xl font-black">{title}</h1><p className="mt-3 text-sm text-slate-600">Seller: {listing.user.name || "Seller"} · {listing.user.email || "Email unavailable"}</p><Link href={`/listing/${id}`} className="mt-3 inline-block text-sm font-bold underline">View listing page →</Link></header>
     <section className="rounded-2xl border bg-white p-6">

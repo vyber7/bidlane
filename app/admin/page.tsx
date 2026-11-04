@@ -15,7 +15,7 @@ export default async function AdminPage() {
   });
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-12">
+    <div className="mx-auto max-w-6xl px-4 pb-12 pt-24 sm:px-6 lg:px-8">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">BidLane admin</p>
       <h1 className="mt-2 text-3xl font-black text-slate-950">Administration</h1>
       <p className="mt-3 text-sm text-slate-600">Signed in as {overview.admin.email}.</p>
