@@ -15,15 +15,15 @@ BidLane is a vehicle auction app built with Next.js, React, TypeScript, and Mong
 
 ## Stack
 
-| Area | Technology |
-| --- | --- |
-| Application | Next.js 16 App Router, React 19, TypeScript |
-| Styling and forms | Tailwind CSS 3, React Hook Form, React Icons |
-| Database | MongoDB with Prisma 6 |
-| Authentication | NextAuth.js 4, Prisma adapter, bcrypt, JWT sessions |
-| Live updates | Pusher Channels |
-| Images | Cloudinary and next-cloudinary |
-| Checks | Vitest, ESLint 9, TypeScript |
+| Area              | Technology                                          |
+| ----------------- | --------------------------------------------------- |
+| Application       | Next.js 16 App Router, React 19, TypeScript         |
+| Styling and forms | Tailwind CSS 3, React Hook Form, React Icons        |
+| Database          | MongoDB with Prisma 6                               |
+| Authentication    | NextAuth.js 4, Prisma adapter, bcrypt, JWT sessions |
+| Live updates      | Pusher Channels                                     |
+| Images            | Cloudinary and next-cloudinary                      |
+| Checks            | Vitest, ESLint 9, TypeScript                        |
 
 ## Local setup
 
@@ -84,6 +84,7 @@ Service configuration:
 - **Pusher:** Create the app in `us2`. To use another cluster, update both [app/libs/pusher-client.ts](app/libs/pusher-client.ts) and [app/libs/pusher.ts](app/libs/pusher.ts).
 - **Cloudinary:** Create an unsigned upload preset named `auctions`, which the listing and profile upload widgets use.
 - **OAuth:** Configure callback URLs as `http://localhost:3000/api/auth/callback/github` and `http://localhost:3000/api/auth/callback/google`. Credentials sign-in does not require OAuth keys, but both social providers are registered and their buttons require valid provider credentials.
+- **GitHub account persistence:** Keep `Account.refresh_token_expires_in` in the Prisma schema. NextAuth v4 forwards GitHub's token response to the adapter, and Prisma rejects account creation if this optional field is missing. Regenerate Prisma Client and redeploy after schema changes (`npm run build` includes generation). MongoDB accepts the optional field without backfilling existing accounts.
 
 ### 3. Initialize Prisma and the database
 
@@ -108,19 +109,19 @@ Auction views use `q` for search, `status=live|upcoming|ended` for the home page
 
 ## Development commands
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start the development server |
-| `npm run build` | Create a production build |
-| `npm start` | Serve the production build |
-| `npm test` | Run Vitest once |
-| `npm run test:watch` | Run Vitest in watch mode |
-| `npm run lint` | Run ESLint |
-| `npm run lint:fix` | Apply automatic lint fixes |
-| `npx tsc --noEmit` | Check TypeScript types |
-| `npx prisma generate` | Regenerate the Prisma client after schema changes |
-| `npx prisma db push` | Synchronize the schema with the configured MongoDB database |
-| `npx prisma studio` | Open the database browser |
+| Command               | Purpose                                                     |
+| --------------------- | ----------------------------------------------------------- |
+| `npm run dev`         | Start the development server                                |
+| `npm run build`       | Create a production build                                   |
+| `npm start`           | Serve the production build                                  |
+| `npm test`            | Run Vitest once                                             |
+| `npm run test:watch`  | Run Vitest in watch mode                                    |
+| `npm run lint`        | Run ESLint                                                  |
+| `npm run lint:fix`    | Apply automatic lint fixes                                  |
+| `npx tsc --noEmit`    | Check TypeScript types                                      |
+| `npx prisma generate` | Regenerate the Prisma client after schema changes           |
+| `npx prisma db push`  | Synchronize the schema with the configured MongoDB database |
+| `npx prisma studio`   | Open the database browser                                   |
 
 Tests live alongside the implementation as `*.test.ts` or `*.test.tsx` files. API and data tests run in Vitest's Node environment; React hook and component tests opt into jsdom. Coverage includes auction transitions, bid validation, finalization, API authorization, data helpers, and live auction state reconciliation after refreshes and missed events.
 
@@ -257,22 +258,22 @@ vitest.config.ts     # Test configuration
 
 ## Key API routes
 
-| Route | Method | Purpose |
-| --- | --- | --- |
-| `/api/auth/[...nextauth]` | GET, POST | NextAuth authentication |
-| `/api/register` | POST | Register a credentials account |
-| `/api/account/profile` | PATCH | Update the current user's profile |
-| `/api/new-listing` | POST | Create a vehicle listing |
-| `/api/auction-start` | POST | Start a seller's upcoming auction |
-| `/api/place-bid` | POST | Place a bid on a live auction (requires `Idempotency-Key`) |
-| `/api/auction-end` | POST | Seller-triggered finalization after the scheduled end time |
-| `/api/auction-finalize` | POST | Finalize an expired auction |
-| `/api/cron/finalize-auctions` | GET | Finalize expired auctions in a batch |
-| `/api/comments` | POST | Add a listing comment |
-| `/api/update-watchlist` | POST | Update the current user's watchlist |
-| `/api/listing-view` | POST | Record a listing view |
-| `/api/cloudinary-images` | GET, POST | Read saved listing images or attach an uploaded image |
-| `/api/listing/[id]/cover-image` | POST | Update a listing's cover image |
+| Route                           | Method    | Purpose                                                    |
+| ------------------------------- | --------- | ---------------------------------------------------------- |
+| `/api/auth/[...nextauth]`       | GET, POST | NextAuth authentication                                    |
+| `/api/register`                 | POST      | Register a credentials account                             |
+| `/api/account/profile`          | PATCH     | Update the current user's profile                          |
+| `/api/new-listing`              | POST      | Create a vehicle listing                                   |
+| `/api/auction-start`            | POST      | Start a seller's upcoming auction                          |
+| `/api/place-bid`                | POST      | Place a bid on a live auction (requires `Idempotency-Key`) |
+| `/api/auction-end`              | POST      | Seller-triggered finalization after the scheduled end time |
+| `/api/auction-finalize`         | POST      | Finalize an expired auction                                |
+| `/api/cron/finalize-auctions`   | GET       | Finalize expired auctions in a batch                       |
+| `/api/comments`                 | POST      | Add a listing comment                                      |
+| `/api/update-watchlist`         | POST      | Update the current user's watchlist                        |
+| `/api/listing-view`             | POST      | Record a listing view                                      |
+| `/api/cloudinary-images`        | GET, POST | Read saved listing images or attach an uploaded image      |
+| `/api/listing/[id]/cover-image` | POST      | Update a listing's cover image                             |
 
 Image uploads use Cloudinary widgets. New listings include the uploaded photo URLs in `/api/new-listing`; adding photos to an existing listing saves them through `/api/cloudinary-images`. The gallery renders saved images supplied by the listing page without a second image-list request.
 
@@ -358,12 +359,12 @@ Delivery state is stored on the notification (`emailStatus`, attempt count, next
 
 Authenticated endpoints:
 
-| Route | Method | Purpose |
-| --- | --- | --- |
-| `/api/notifications` | GET | Current account's paginated inbox; `view=unread` filters unread records; `cursor=<id>` loads older events; `summary=1` returns only account ID and unread count |
-| `/api/notifications` | PATCH | Mark owned records read using `{ "ids": ["<id>"] }`, or mark older records using `{ "all": true, "before": "<ISO timestamp>" }` |
-| `/api/pusher/auth` | POST | Authorize the signed-in account's `private-user-<id>` channel; accepts Pusher's form-encoded `socket_id` and `channel_name` |
-| `/api/account/notification-preferences` | PATCH | Save the current account’s `{ "outbidEmailsEnabled": true/false }` preference |
+| Route                                   | Method | Purpose                                                                                                                                                         |
+| --------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/notifications`                    | GET    | Current account's paginated inbox; `view=unread` filters unread records; `cursor=<id>` loads older events; `summary=1` returns only account ID and unread count |
+| `/api/notifications`                    | PATCH  | Mark owned records read using `{ "ids": ["<id>"] }`, or mark older records using `{ "all": true, "before": "<ISO timestamp>" }`                                 |
+| `/api/pusher/auth`                      | POST   | Authorize the signed-in account's `private-user-<id>` channel; accepts Pusher's form-encoded `socket_id` and `channel_name`                                     |
+| `/api/account/notification-preferences` | PATCH  | Save the current account’s `{ "outbidEmailsEnabled": true/false }` preference                                                                                   |
 
 ### Ending-soon reminders
 
@@ -375,7 +376,7 @@ Before deploying, run `npx prisma generate` and `npx prisma db push` to apply th
 
 ## Deployment
 
-1. Configure the environment variables on the deployment platform. Set `NEXTAUTH_URL` and OAuth callbacks to the production origin. Set `NEXT_PUBLIC_` values before building; changes to those values require a rebuild.
+1. Configure the environment variables on the deployment platform. Set `NEXTAUTH_URL` and OAuth callbacks to the production origin. Bidlane redirects the apex domain to `www`, so set `NEXTAUTH_URL=https://www.bidlane.net`, the GitHub callback to `https://www.bidlane.net/api/auth/callback/github`, and the Google callback to `https://www.bidlane.net/api/auth/callback/google`. Start sign-in on that same host so OAuth cookies survive the round trip. Redeploy after updating server environment variables. Set `NEXT_PUBLIC_` values before building; changes to those values require a rebuild.
 2. Ensure the deployment can reach MongoDB, Cloudinary, and Pusher.
 3. Build the app with `npm run build`, which generates the Prisma client before running the Next.js production build. On Vercel, use `npm run build` as the Build Command. Synchronize reviewed schema changes with the target database using `npx prisma db push`.
 4. On a Node.js host, run `npm start` to serve the build.

@@ -42,7 +42,7 @@ export const authOptions: AuthOptions = {
 
         const isCorrectPassword = await bcrypt.compare(
           credentials.password,
-          user.hashedPassword
+          user.hashedPassword,
         );
 
         if (!isCorrectPassword) {
@@ -65,9 +65,15 @@ export const authOptions: AuthOptions = {
       if (user) {
         // Credentials carry the version read BEFORE the password comparison,
         // so a login racing a reset cannot inherit the newly reset session.
-        token.sessionVersion = account?.provider === "credentials" && "sessionVersion" in user
-          ? user.sessionVersion
-          : (await prisma.user.findUnique({ where: { id: user.id }, select: { sessionVersion: true } }))?.sessionVersion ?? "";
+        token.sessionVersion =
+          account?.provider === "credentials" && "sessionVersion" in user
+            ? user.sessionVersion
+            : ((
+                await prisma.user.findUnique({
+                  where: { id: user.id },
+                  select: { sessionVersion: true },
+                })
+              )?.sessionVersion ?? "");
       }
       // Never refresh the version from client-supplied session updates.
       return token;
