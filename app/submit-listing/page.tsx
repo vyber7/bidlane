@@ -31,7 +31,7 @@ async function SubmitVehicle({ searchParams }: { searchParams: Promise<{ draft?:
   }
 
   return (
-    <div className="m-auto grid min-h-lvh max-w-6xl gap-10 px-4 pb-10 pt-16 lg:grid-cols-[minmax(0,1fr)_18rem] lg:px-0">
+    <div className="mx-auto grid min-h-lvh max-w-6xl gap-10 px-4 pb-10 pt-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:px-8">
       <main className="w-full rounded-md lg:p-0">
         <h1 className="pb-2 text-3xl font-bold">Submit your vehicle</h1>
         <p className="mb-6 text-sm text-slate-500">Add your details and photos, then preview your listing before submitting. Your draft saves as you work. Submitted listings need admin approval before they appear publicly or bidding can open.</p>
