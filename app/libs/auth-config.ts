@@ -7,6 +7,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 
 import prisma from "./prismadb";
+import { githubUserinfo } from "./github-userinfo";
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -14,6 +15,9 @@ export const authOptions: AuthOptions = {
     GithubProvider({
       clientId: process.env.GITHUB_ID as string,
       clientSecret: process.env.GITHUB_SECRET as string,
+      // The custom userinfo handler verifies email ownership before linking.
+      userinfo: githubUserinfo,
+      allowDangerousEmailAccountLinking: true,
     }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
