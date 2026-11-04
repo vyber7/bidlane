@@ -77,7 +77,7 @@ export default function SubmitForm({ initialDraft }: { initialDraft?: ListingDra
     try {
       const saved = await draft.save(snapshot());
       const response = await axios.post<{ id: string }>("/api/new-listing", { draftId: saved.id, revision: saved.revision });
-      toast.success("Listing submitted successfully!");
+      toast.success("Listing submitted for admin review!");
       router.push(`/listing/${response.data.id}`);
       router.refresh();
     } catch (error) {

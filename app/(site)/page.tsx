@@ -6,14 +6,16 @@ import AuctionBrowser from "./components/AuctionBrowser";
 import FeaturedAuction from "./components/FeaturedAuction";
 import { getHomeSpotlight } from "../libs/featured-auction";
 import WatchAuctionButton from "./components/WatchAuctionButton";
+import { publicListingWhere, withoutReviewFeedback } from "../libs/listing-review";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [listings, currentUser] = await Promise.all([
-    prisma.listing.findMany({ orderBy: { createdAt: "desc" } }),
+  const [publicListings, currentUser] = await Promise.all([
+    prisma.listing.findMany({ where: publicListingWhere, orderBy: { createdAt: "desc" } }),
     getCurrentUser(),
   ]);
+  const listings = publicListings.map(withoutReviewFeedback);
   const { featured, live, upcoming } = getHomeSpotlight(listings);
   const comingNext = !live && featured?.status !== "UPCOMING" ? upcoming : null;
   const browse = live

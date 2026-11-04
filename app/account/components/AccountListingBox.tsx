@@ -10,6 +10,7 @@ import { FiArrowUpRight, FiClock, FiEye, FiMapPin } from "react-icons/fi";
 import useAuction from "@/app/hooks/useAuction";
 import { CldImage } from "next-cloudinary";
 import useWatchlist from "@/app/hooks/useWatchlist";
+import { reviewLabels } from "@/app/libs/listing-review";
 
 interface AccountListingBoxProps {
   listing: Listing;
@@ -82,6 +83,7 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="mb-1 flex items-center gap-2">
+                {uploaded && listing.status === "UPCOMING" && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">{reviewLabels[listing.reviewStatus ?? "PENDING"]}</span>}
                 <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-inset ${status.classes}`}>
                   {status.label}
                 </span>
@@ -115,6 +117,7 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
           <p className="mt-3 line-clamp-1 text-sm text-gray-600">
             {listing.description}
           </p>
+          {uploaded && listing.reviewNote && <p className="mt-2 whitespace-pre-wrap break-words text-sm text-amber-800">{listing.reviewNote}</p>}
 
           <div className="mt-4 flex flex-wrap items-end justify-between gap-4 border-t border-gray-100 pt-3">
             <div className="flex gap-6">

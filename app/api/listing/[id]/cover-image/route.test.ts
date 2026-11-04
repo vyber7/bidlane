@@ -40,7 +40,7 @@ describe("POST /api/listing/[id]/cover-image", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentUser.mockResolvedValue({ id: "seller" });
-    mocks.findUnique.mockResolvedValue({ userId: "seller" });
+    mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", reviewRevision: 2, images: [imageUrl] });
     mocks.updateMany.mockResolvedValue({ count: 1 });
   });
 
@@ -79,8 +79,26 @@ describe("POST /api/listing/[id]/cover-image", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.updateMany).toHaveBeenCalledWith({
-      where: { id: listingId, userId: "seller" },
-      data: { coverImage: imageUrl },
+      where: { id: listingId, userId: "seller", status: "UPCOMING", reviewRevision: 2 },
+      data: { coverImage: imageUrl, reviewStatus: "PENDING", reviewRevision: 3, reviewNote: null },
     });
+  });
+
+  it.each(["LIVE", "ENDED"])("freezes the cover for %s auctions", async (status) => {
+    mocks.findUnique.mockResolvedValue({ userId: "seller", status, images: [imageUrl] });
+    expect((await POST(request(), context())).status).toBe(409);
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("saves a newly uploaded cover as a reviewed gallery photo too", async () => {
+    mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", images: [], reviewRevision: 2 });
+    expect((await POST(request(), context())).status).toBe(200);
+    expect(mocks.updateMany.mock.calls[0][0].data).toMatchObject({ images: { push: imageUrl }, coverImage: imageUrl, reviewStatus: "PENDING" });
+  });
+
+  it("enforces the photo limit when uploading a new cover", async () => {
+    mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", images: Array(20).fill("other"), reviewRevision: 2 });
+    expect((await POST(request(), context())).status).toBe(409);
+    expect(mocks.updateMany).not.toHaveBeenCalled();
   });
 });

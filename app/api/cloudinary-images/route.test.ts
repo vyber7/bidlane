@@ -39,14 +39,14 @@ describe("/api/cloudinary-images", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentUser.mockResolvedValue({ id: "seller" });
-    mocks.findUnique.mockResolvedValue({ userId: "seller", images: [] });
+    mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", reviewRevision: 2, images: [] });
     mocks.updateMany.mockResolvedValue({ count: 1 });
   });
 
   it("only reads folders belonging to real listings", async () => {
     expect((await GET(new Request("http://localhost/api/cloudinary-images?folder=all"))).status).toBe(400);
 
-    mocks.findUnique.mockResolvedValue({ images: [imageUrl] });
+    mocks.findUnique.mockResolvedValue({ status: "LIVE", userId: "seller", images: [imageUrl] });
     const response = await GET(
       new Request(`http://localhost/api/cloudinary-images?folder=${folder}`)
     );
@@ -54,7 +54,7 @@ describe("/api/cloudinary-images", () => {
     expect(response.status).toBe(200);
     expect(mocks.findUnique).toHaveBeenCalledWith({
       where: { id: listingId },
-      select: { images: true },
+      select: { images: true, userId: true, status: true, reviewStatus: true },
     });
     await expect(response.json()).resolves.toEqual({ images: [{ url: imageUrl }] });
   });
@@ -64,6 +64,17 @@ describe("/api/cloudinary-images", () => {
 
     expect((await POST(post({ listingId, imageUrl }))).status).toBe(401);
     expect(mocks.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("hides unapproved image lists from other users", async () => {
+    mocks.getCurrentUser.mockResolvedValue({ id: "buyer" });
+    expect((await GET(new Request(`http://localhost/api/cloudinary-images?folder=${folder}`))).status).toBe(404);
+  });
+
+  it.each(["LIVE", "ENDED"])("freezes gallery content for %s auctions", async (status) => {
+    mocks.findUnique.mockResolvedValue({ userId: "seller", images: [], status });
+    expect((await POST(post({ listingId, imageUrl }))).status).toBe(409);
+    expect(mocks.updateMany).not.toHaveBeenCalled();
   });
 
   it("rejects non-Cloudinary and wrong-folder images", async () => {
@@ -87,7 +98,7 @@ describe("/api/cloudinary-images", () => {
 
   it("enforces the image limit", async () => {
     mocks.findUnique.mockResolvedValue({
-      userId: "seller",
+      userId: "seller", status: "UPCOMING", reviewRevision: 2,
       images: Array.from({ length: 20 }, (_, index) => `image-${index}`),
     });
 
@@ -96,7 +107,7 @@ describe("/api/cloudinary-images", () => {
   });
 
   it("allows the twentieth image", async () => {
-    mocks.findUnique.mockResolvedValue({ userId: "seller", images: Array.from({ length: 19 }, (_, index) => `image-${index}`) });
+    mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", reviewRevision: 2, images: Array.from({ length: 19 }, (_, index) => `image-${index}`) });
     expect((await POST(post({ listingId, imageUrl }))).status).toBe(200);
     expect(mocks.updateMany).toHaveBeenCalledOnce();
   });
@@ -108,10 +119,10 @@ describe("/api/cloudinary-images", () => {
     expect(mocks.updateMany).toHaveBeenCalledWith({
       where: {
         id: listingId,
-        userId: "seller",
+        userId: "seller", status: "UPCOMING", reviewRevision: 2,
         images: { equals: [] },
       },
-      data: { images: { push: imageUrl } },
+      data: { images: { push: imageUrl }, reviewStatus: "PENDING", reviewRevision: 3, reviewNote: null },
     });
   });
 });

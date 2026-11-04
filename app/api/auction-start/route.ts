@@ -13,6 +13,7 @@ import { logger } from "@/app/libs/logger";
 import { pusherServer } from "@/app/libs/pusher";
 import { auctionLiveNotifications, publishNotificationChanges, saveNotifications } from "@/app/libs/notifications";
 import type { AuctionStartedEvent } from "@/app/types/auction-events";
+import { reviewVersionWhere } from "@/app/libs/listing-review";
 
 export async function POST(req: Request) {
   try {
@@ -49,9 +50,12 @@ export async function POST(req: Request) {
       if (listing.status !== "UPCOMING") {
         throw new ApiRequestError(409, "Only an upcoming auction can be started");
       }
+      if (listing.reviewStatus !== "APPROVED") {
+        throw new ApiRequestError(409, "This listing must be approved by an admin before the auction can start.");
+      }
 
       const updated = await tx.listing.updateMany({
-        where: { id: listingId, userId: currentUser.id, status: "UPCOMING" },
+        where: { id: listingId, userId: currentUser.id, status: "UPCOMING", reviewStatus: "APPROVED", ...reviewVersionWhere(listing.reviewRevision ?? 0) },
         data: {
           auctionStartsAt: startTime,
           auctionEndsAt: endTime,
@@ -88,6 +92,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const response = apiErrorResponse(error);
     if (response) return response;
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2034") return errorResponse("The listing changed. Refresh before starting the auction.", 409);
     logger.error("auction.start_failed", error);
     return errorResponse("Failed to create auction", 500);
   }

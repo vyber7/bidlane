@@ -75,7 +75,7 @@ export async function publishListingDraft(userId: string, id: string, revision: 
     if (draft.revision !== revision) throw conflict();
     const payload = draftPayloadSchema.parse(draft.payload);
     const data = parseListing({ ...payload.details, images: payload.images, vehicleRecords: payload.vehicleRecords });
-    const listing = await tx.listing.create({ data: { ...data, user: { connect: { id: userId } }, coverImage: data.images[0] } });
+    const listing = await tx.listing.create({ data: { ...data, reviewStatus: "PENDING", reviewRevision: 0, user: { connect: { id: userId } }, coverImage: data.images[0] } });
     const claimed = await tx.listingDraft.updateMany({
       where: { id, userId, revision, publishedListingId: null, deletedAt: null },
       data: { publishedListingId: listing.id },

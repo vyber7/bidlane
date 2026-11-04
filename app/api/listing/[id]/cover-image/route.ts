@@ -9,7 +9,8 @@ import {
   errorResponse,
   requireListingId,
 } from "@/app/libs/api-request";
-import { isCloudinaryImageUrl } from "@/app/libs/listing-validation";
+import { isCloudinaryImageUrl, MAX_LISTING_PHOTOS } from "@/app/libs/listing-validation";
+import { pendingReviewUpdate, reviewVersionWhere } from "@/app/libs/listing-review";
 
 export async function POST(
   request: Request,
@@ -33,16 +34,19 @@ export async function POST(
 
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
-      select: { userId: true },
+      select: { userId: true, status: true, images: true, reviewRevision: true },
     });
     if (!listing) throw new ApiRequestError(404, "Listing not found");
     if (listing.userId !== currentUser.id) {
       throw new ApiRequestError(403, "Only the seller can update this listing");
     }
+    if (listing.status !== "UPCOMING") throw new ApiRequestError(409, "Photos cannot be changed after bidding opens.");
+    const addPhoto = !listing.images.includes(coverImageUrl);
+    if (addPhoto && listing.images.length >= MAX_LISTING_PHOTOS) throw new ApiRequestError(409, "This listing already has the maximum number of images");
 
     const updated = await prisma.listing.updateMany({
-      where: { id: listingId, userId: currentUser.id },
-      data: { coverImage: coverImageUrl },
+      where: { id: listingId, userId: currentUser.id, status: "UPCOMING", ...reviewVersionWhere(listing.reviewRevision ?? 0) },
+      data: { coverImage: coverImageUrl, ...(addPhoto && { images: { push: coverImageUrl } }), ...pendingReviewUpdate(listing.reviewRevision ?? 0) },
     });
     if (updated.count !== 1) {
       throw new ApiRequestError(

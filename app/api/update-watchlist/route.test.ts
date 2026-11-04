@@ -40,6 +40,12 @@ function request(body: unknown) {
 }
 
 describe("POST /api/update-watchlist", () => {
+  it("does not watch or broadcast the contents of an unapproved listing", async () => {
+    mocks.listingFindUnique.mockResolvedValue(makeListing({ status: "UPCOMING", reviewStatus: "PENDING" }));
+    expect((await POST(request({ listingId, watching: true }))).status).toBe(404);
+    expect(mocks.userUpdate).not.toHaveBeenCalled(); expect(mocks.trigger).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentUser.mockResolvedValue({ id: "user-1", email: "user@test.dev" });

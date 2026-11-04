@@ -17,6 +17,7 @@ import {
   parseApiInput,
 } from "@/app/libs/api-request";
 import { commentRequestSchema } from "@/app/schemas/auction";
+import { isPublicListing } from "@/app/libs/listing-review";
 
 // POST /api/comments
 // Required fields in the body: comment, listingId
@@ -37,6 +38,7 @@ export async function POST(req: Request) {
           where: { id: listingId },
         });
         if (!listing) throw new ApiRequestError(404, "Listing not found");
+        if (!isPublicListing(listing)) throw new ApiRequestError(409, "Comments open after the listing is approved.");
         const newComment = await tx.comment.create({
           data: {
             body: comment,

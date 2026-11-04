@@ -18,7 +18,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { FiArrowLeft, FiMapPin } from "react-icons/fi";
 import VehicleRecords from "@/app/components/VehicleRecords";
-import VehicleTrustEditor from "./components/VehicleTrustEditor";
+import ListingEditor from "./components/ListingEditor";
+import { canViewListing, isPublicListing, reviewLabels, withoutReviewFeedback } from "@/app/libs/listing-review";
 import VehicleHistory from "@/app/components/VehicleHistory";
 import { vehicleSpecificationFields } from "@/app/libs/vehicle-details";
 
@@ -37,11 +38,12 @@ const Listing = async (props: Params) => {
   if (!/^[a-f\d]{24}$/i.test(id)) notFound();
   const listing = await prisma.listing.findUnique({ where: { id } });
   if (!listing) notFound();
+  const currentUser = await getCurrentUser();
+  if (!canViewListing(listing, currentUser)) notFound();
 
-  const [comments, currentUser, bids, seller, liveAuctions] = await Promise.all(
+  const [comments, bids, seller, liveAuctions] = await Promise.all(
     [
       getComments(id),
-      getCurrentUser(),
       getBids(id),
       prisma.user.findUnique({
         where: { id: listing.userId },
@@ -54,7 +56,7 @@ const Listing = async (props: Params) => {
   const owner = listing.userId === currentUser?.id;
 
   return (
-    <AuctionProvider key={id} listing={listing} bids={bids} comments={comments}>
+    <AuctionProvider key={id} listing={owner || currentUser?.role === "ADMIN" ? listing : withoutReviewFeedback(listing)} bids={bids} comments={comments}>
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-24 sm:px-6 lg:px-8">
         <Link
           href="/"
@@ -82,11 +84,17 @@ const Listing = async (props: Params) => {
           </div>
           <p className="mt-3 text-xs text-slate-500">Vehicle details and records are seller-reported. BidLane has not independently verified ownership, history, or condition.</p>
         </header>
+        {(owner || currentUser?.role === "ADMIN") && listing.status === "UPCOMING" && <section className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5" aria-label="Listing review status">
+          <h2 className="font-bold">{reviewLabels[listing.reviewStatus ?? "PENDING"]}</h2>
+          <p className="mt-2 text-sm text-slate-700">{listing.reviewStatus === "APPROVED" ? "Your listing is public and the seller can start the auction. Changes will require another review." : "This listing is visible only to its seller and admins. Admin approval is required before buyers can see it or bidding can open."}</p>
+          {listing.reviewNote && <p className="mt-3 whitespace-pre-wrap break-words text-sm font-semibold">{listing.reviewNote}</p>}
+          {currentUser?.role === "ADMIN" && <Link href={`/admin/listings/${id}`} className="mt-3 inline-block text-sm font-bold underline">Review this listing →</Link>}
+        </section>}
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0 lg:col-start-1 lg:row-start-1">
             <CoverImage
+              key={`${id}:${listing.reviewRevision ?? 0}`}
               listingId={id}
-              owner={owner}
               url={listing.coverImage || undefined}
               alt={title}
             />
@@ -96,7 +104,7 @@ const Listing = async (props: Params) => {
             role="complementary"
             aria-label="Auction overview"
           >
-            <AuctionStatusBar currentUser={currentUser?.id} />
+            {isPublicListing(listing) && <AuctionStatusBar currentUser={currentUser?.id} />}
             <div className="order-1">
               <section className="rounded-2xl border border-slate-200 bg-white p-6">
                 <h2 className="mb-4 text-lg font-bold tracking-tight">
@@ -150,19 +158,18 @@ const Listing = async (props: Params) => {
           </div>
           <div className="min-w-0 lg:col-start-1 lg:row-start-2">
             <Gallery
-              key={id}
+              key={`${id}:${listing.reviewRevision ?? 0}`}
               listingId={id}
-              owner={owner}
               vehicleName={title}
               initialImages={listing.images}
             />
           </div>
           <div className="order-2 min-w-0 lg:order-none lg:col-start-1 lg:row-start-3">
             <div className="space-y-6">
-              {owner && listing.status === "UPCOMING" && (
+              {owner && listing.status === "UPCOMING" && listing.reviewStatus === "APPROVED" && (
                 <AuctionStartForm listingId={id} />
               )}
-              {owner && listing.status === "UPCOMING" && <VehicleTrustEditor id={id} initialVin={listing.vin} initialRecords={listing.vehicleRecords} />}
+              {owner && listing.status === "UPCOMING" && <ListingEditor key={listing.reviewRevision ?? 0} listing={listing} />}
               <Description description={listing.description} />
               <VehicleHistory details={listing} id="condition" />
               <VehicleRecords records={listing.vehicleRecords} />
@@ -172,7 +179,7 @@ const Listing = async (props: Params) => {
                   currentUserId={currentUser?.id}
                 />
               )}
-              <Comments />
+              {isPublicListing(listing) && <Comments />}
             </div>
           </div>
         </div>

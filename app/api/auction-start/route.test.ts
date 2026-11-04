@@ -46,7 +46,7 @@ describe("POST /api/auction-start", () => {
     mocks.findUnique.mockResolvedValue({
       id: listingId,
       userId: "seller", year: 2020, make: "Porsche", model: "911", watchersIds: ["watcher"],
-      status: "UPCOMING",
+      status: "UPCOMING", reviewStatus: "APPROVED", reviewRevision: 2,
     });
     mocks.updateMany.mockResolvedValue({ count: 1 });
     mocks.trigger.mockResolvedValue(undefined);
@@ -108,7 +108,7 @@ describe("POST /api/auction-start", () => {
     expect(response.status).toBe(201);
     expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ userId: "watcher", title: "A watched auction is live" }) }));
     expect(mocks.updateMany).toHaveBeenCalledWith({
-      where: { id: listingId, userId: "seller", status: "UPCOMING" },
+      where: { id: listingId, userId: "seller", status: "UPCOMING", reviewStatus: "APPROVED", reviewRevision: 2 },
       data: {
         auctionStartsAt: now,
         auctionEndsAt: new Date(endTime),
@@ -130,6 +130,14 @@ describe("POST /api/auction-start", () => {
         auctionEndsAt: endTime,
       })
     );
+  });
+
+  it.each([null, undefined, "PENDING", "CHANGES_REQUESTED"])("blocks auction start without approval (%s)", async (reviewStatus) => {
+    mocks.findUnique.mockResolvedValue({ id: listingId, userId: "seller", status: "UPCOMING", reviewStatus });
+    const response = await POST(request({ listingId, startingBid: 100, bidIncrement: 10, endTime: "2026-09-05T12:00:00.000Z" }));
+    expect(response.status).toBe(409);
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+    expect(mocks.trigger).not.toHaveBeenCalled();
   });
 
   it("reports a competing start request as a conflict", async () => {

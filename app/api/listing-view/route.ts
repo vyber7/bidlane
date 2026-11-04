@@ -2,6 +2,7 @@ import prisma from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 import { logger } from "@/app/libs/logger";
 import getCurrentUser from "@/app/actions/getCurrentUser";
+import { canViewListing } from "@/app/libs/listing-review";
 import {
   ApiRequestError,
   apiErrorResponse,
@@ -22,18 +23,20 @@ export async function POST(req: Request) {
     if (!currentUser?.id) {
       const listing = await prisma.listing.findUnique({
         where: { id: listingId },
-        select: { views: true },
+        select: { views: true, userId: true, status: true, reviewStatus: true },
       });
       if (!listing) throw new ApiRequestError(404, "Listing not found");
+      if (!canViewListing(listing, currentUser)) throw new ApiRequestError(404, "Listing not found");
       return NextResponse.json({ views: listing.views });
     }
 
     const views = await prisma.$transaction(async (tx) => {
       const listing = await tx.listing.findUnique({
         where: { id: listingId },
-        select: { views: true },
+        select: { views: true, userId: true, status: true, reviewStatus: true },
       });
       if (!listing) throw new ApiRequestError(404, "Listing not found");
+      if (!canViewListing(listing, currentUser)) throw new ApiRequestError(404, "Listing not found");
 
       const counted = await tx.listing.updateMany({
         where: {

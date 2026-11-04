@@ -7,6 +7,11 @@ beforeEach(() => {
   mocks.count.mockResolvedValue(20); mocks.listings.mockResolvedValue([]);
 });
 describe("public seller profile", () => {
+  it("excludes unapproved upcoming listings from the public seller inventory", async () => {
+    await getSellerProfile("seller");
+    expect(mocks.listings.mock.calls[0][0].where.AND).toEqual([{ OR: [{ status: { in: ["LIVE", "ENDED"] } }, { status: "UPCOMING", reviewStatus: "APPROVED" }] }]);
+  });
+
   it("selects only public account fields and exposes verification as a boolean", async () => {
     const profile = await getSellerProfile("seller");
     expect(mocks.findUser.mock.calls[0][0].select).toEqual({ id: true, name: true, image: true, createdAt: true, emailVerified: true });

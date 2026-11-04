@@ -32,6 +32,7 @@ export default async function AdminPage() {
         ))}
       </dl>
       <div className="mt-8 flex gap-5 text-sm font-bold">
+        <Link href="/admin/listings" className="underline">Review listings</Link>
         <Link href="/account/profile" className="underline">My account</Link>
         <Link href="/#auctions" className="underline">Browse auctions</Link>
       </div>

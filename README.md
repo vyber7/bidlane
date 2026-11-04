@@ -132,11 +132,10 @@ Before changing Next.js code, follow [AGENTS.md](AGENTS.md) and read the relevan
 
 Admins use ordinary BidLane accounts with the `ADMIN` role. Public registration
 and profile updates cannot assign roles. New accounts default to `USER`; existing
-MongoDB users with a missing or null role are treated as regular users. This
-release adds access controls and an overview, with listing moderation still to
-be implemented.
+MongoDB users with a missing or null role are treated as regular users.
+Administration includes an overview and listing review tools.
 
-After deploying this change, regenerate the Prisma client (`npx prisma generate`;
+Before deploying role changes, regenerate the Prisma client (`npx prisma generate`;
 also included in `npm run build`). The optional role field requires no backfill
 or new database indexes.
 
@@ -176,14 +175,52 @@ server data or mutation entry point, before accessing privileged data. Do not
 rely on navigation visibility, a layout, the proxy, or a role supplied by the
 browser/JWT. `getAdminOverview()` demonstrates the shared page/API pattern.
 
+## Listing review and moderation
+
+Open **Administration → Review listings** (`/admin/listings`) to see upcoming
+listings awaiting review, approved listings, or listings needing changes. The
+queue includes older upcoming listings without review fields and loads 20 at a
+time. Each review page shows the seller, reserve, disclosures, records, cover,
+and all photos. Admins can approve or request changes; requesting changes
+requires a reason of up to 2,000 characters, shown to the seller in Account →
+Listings and on their listing page.
+
+Unapproved upcoming listings are hidden from the homepage, seller profiles,
+watchlists, and other visitors' direct listing/image requests. Comments open
+only after approval. Sellers can use **Edit listing & submit for review** to
+correct all details, add/remove photos, select a cover, and update records. Each
+successful save requeues the listing as `PENDING`, clears its current feedback,
+and invalidates approval. Saved review decisions remain in the admin history.
+The seller can start bidding only while the latest revision is approved; all
+content edits are frozen after bidding opens.
+
+`POST /api/admin/listings/[id]/review` accepts `{ revision, decision, reason }`
+with `decision` equal to `APPROVED` or `CHANGES_REQUESTED`. It checks the current
+admin role, upcoming auction status, and expected revision. The decision and
+`ListingReview` audit entry (reviewer ID/name, decision, reason, revision, and
+timestamp) commit in one MongoDB transaction. Stale reviews and conflicting
+edits return `409`. `PATCH /api/listing/[id]` accepts `{ revision, data,
+coverImage }` from the owner to save and resubmit a complete corrected listing.
+Legacy VIN/record and photo mutation endpoints also invalidate approval.
+
+Before deploying, run `npx prisma generate` and `npx prisma db push` against the
+intended database to add the `ListingReview` collection/history index and the
+listing review queue index, then deploy the generated client and app together.
+No listing backfill runs: **existing upcoming listings require review and are
+hidden until approved**. Existing live auctions and completed results remain
+public and cannot be moderated through this workflow. This feature reviews
+submissions; it does not certify ownership or vehicle condition, cancel active
+auctions, delete listings, or suspend accounts. Review status and seller
+feedback update on a page refresh; moderation does not send email alerts.
+
 ## Auction lifecycle
 
 New listings require transmission, drivetrain, title status, service history, modifications, and known flaws alongside the existing listing fields, plus 1–20 uploaded photos. Specifications use the choices in `app/libs/vehicle-details.ts`, including an explicit `Unknown` option. Each disclosure is trimmed and limited to 4,000 characters; sellers must describe unknown history or state “None known” where appropriate. The preview and public listing show these disclosures, and the vehicle summary includes the three specifications. These are seller-reported details, not independent verification.
 
 The six new `Listing` fields are nullable so existing MongoDB documents remain readable and display **Not provided** for missing information. Regenerate the Prisma client with `npx prisma generate` when updating an existing checkout. This change adds no indexes and requires no data backfill; deploying the regenerated client enables reads and writes of the optional MongoDB fields.
 
-1. A submitted listing starts as `UPCOMING`.
-2. Its seller starts the auction, setting a starting bid, bid increment, and future end time. The listing becomes `LIVE`.
+1. A submitted listing starts as `UPCOMING` with review status `PENDING`, visible only to its seller and admins.
+2. An admin approves the listing or requests changes with feedback. After approval, the listing is public and its seller starts the auction, setting a starting bid, bid increment, and future end time. The listing becomes `LIVE`.
 3. Accepted bids update the current price and highest bidder. A bid in the final two minutes sets the end time to **two minutes after that bid**.
 4. Finalization changes an expired live auction to `ENDED`. The result is `SOLD` when a bid exists and meets any reserve; otherwise it is `RESERVE_NOT_MET`.
 
@@ -257,7 +294,7 @@ Vehicle submissions autosave after 1.5 seconds of inactivity to a separate, owne
 
 Account → Listings shows saved drafts with resume and delete actions. Every draft read/write/delete and server-side resume lookup checks the signed-in owner. Drafts do not enter public auction browsing, seller profiles, search, or live bidding. Cloudinary upload URLs are still publicly accessible if someone has the URL: private draft metadata is not private media hosting. Removing a photo, record, or draft removes saved references, not Cloudinary assets. Deleting a draft clears its saved payload and keeps an internal marker so an uncertain create retry cannot resurrect it.
 
-Saves serialize in the browser and use version checks on the server. A stale tab receives `409` and keeps its unsaved inputs visible instead of overwriting another device’s work. Lost responses retry with the same draft ID/save key; the client resolves an uncertain earlier save before applying newer edits. Publication uses `POST /api/new-listing` with `{ draftId, revision }`, validates the saved snapshot against the full listing schema, and atomically creates the listing and links the draft to it. Repeated publication of that revision returns the same listing. Only publication creates a public **UPCOMING** listing; published drafts disappear from the draft list and old resume links redirect to the listing. Existing direct `{ data }` submissions remain supported for compatibility.
+Saves serialize in the browser and use version checks on the server. A stale tab receives `409` and keeps its unsaved inputs visible instead of overwriting another device’s work. Lost responses retry with the same draft ID/save key; the client resolves an uncertain earlier save before applying newer edits. Publication uses `POST /api/new-listing` with `{ draftId, revision }`, validates the saved snapshot against the full listing schema, and atomically creates the listing and links the draft to it. Repeated publication of that revision returns the same listing. Publication creates an **UPCOMING** listing awaiting admin review; published drafts disappear from the draft list and old resume links redirect to the listing. Existing direct `{ data }` submissions remain supported for compatibility.
 
 Draft endpoints are `POST /api/listing-drafts` and `GET`, `PATCH`, `DELETE /api/listing-drafts/[id]`. Creation accepts a client-generated ObjectId, UUID save key, and bounded payload. Updates include the saved revision; deletion requires `{ revision }`. Photo URLs and record URLs remain validated even in incomplete drafts. Draft fields allow up to 100 characters for make/model, 200 for location, 10,000 for description, and the existing 4,000 per disclosure.
 

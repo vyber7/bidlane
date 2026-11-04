@@ -5,6 +5,7 @@ import { pusherServer } from "@/app/libs/pusher";
 import { logger } from "@/app/libs/logger";
 import type { WatchingUpdateEvent, WatchlistUpdateEvent, WatchlistResponse } from "@/app/types/auction-events";
 import { serializeListing } from "@/app/utils/listing-serialization";
+import { isPublicListing } from "@/app/libs/listing-review";
 import { ApiRequestError, apiErrorResponse, errorResponse, readJsonObject, requireListingId } from "@/app/libs/api-request";
 
 export async function POST(request: Request) {
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
       where: { id: listingId },
     });
 
-    if (!listing) {
+    if (!listing || !isPublicListing(listing)) {
       throw new ApiRequestError(404, "Listing not found");
     }
 

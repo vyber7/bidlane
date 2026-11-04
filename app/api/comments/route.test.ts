@@ -39,6 +39,13 @@ function request(body: unknown) {
 }
 
 describe("POST /api/comments", () => {
+  it("does not post or broadcast comments on an unapproved listing", async () => {
+    mocks.findUnique.mockResolvedValue({ id: listingId, userId: "seller", status: "UPCOMING", reviewStatus: "PENDING" });
+    expect((await POST(request({ listingId, comment: "Hello" }))).status).toBe(409);
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.trigger).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentUser.mockResolvedValue({
@@ -53,7 +60,7 @@ describe("POST /api/comments", () => {
       listingId,
       user: { name: "Driver" },
     });
-    mocks.findUnique.mockResolvedValue({ id: listingId, userId: "seller", year: 2020, make: "Porsche", model: "911" });
+    mocks.findUnique.mockResolvedValue({ id: listingId, userId: "seller", status: "LIVE", year: 2020, make: "Porsche", model: "911" });
     mocks.update.mockResolvedValue({ id: listingId });
     mocks.trigger.mockResolvedValue(undefined);
   });

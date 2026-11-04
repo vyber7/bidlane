@@ -32,10 +32,16 @@ function request(body: unknown) {
 }
 
 describe("POST /api/listing-view", () => {
+  it("does not expose views or count visits for a private listing", async () => {
+    mocks.findUnique.mockResolvedValue({ views: 7, status: "UPCOMING", reviewStatus: "PENDING", userId: "seller" });
+    expect((await POST(request({ listingId }))).status).toBe(404);
+    expect(mocks.listingUpdateMany).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentUser.mockResolvedValue({ id: "viewer-1" });
-    mocks.findUnique.mockResolvedValue({ views: 7 });
+    mocks.findUnique.mockResolvedValue({ views: 7, status: "LIVE", userId: "seller" });
     mocks.listingUpdateMany.mockResolvedValue({ count: 1 });
     mocks.userUpdateMany.mockResolvedValue({ count: 1 });
     mocks.transaction.mockImplementation((callback) =>

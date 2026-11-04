@@ -132,6 +132,12 @@ model Notification {
   @@index([emailStatus, emailLockedUntil])
 }
 
+enum ListingReviewStatus {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
 model Listing {
   id            String    @id @default(auto()) @map("_id") @db.ObjectId
   year          Int
@@ -162,6 +168,10 @@ model Listing {
 
   status String  @default("UPCOMING") // UPCOMING, LIVE, ENDED
   result String? // SOLD, RESERVE_NOT_MET
+  reviewStatus ListingReviewStatus? @default(PENDING)
+  reviewRevision Int? @default(0)
+  reviewNote String?
+  reviews ListingReview[]
 
   isFeatured Boolean @default(false)
 
@@ -185,6 +195,7 @@ model Listing {
   watchers    User[]   @relation(name: "watchlist", fields: [watchersIds], references: [id])
 
   @@index([status, auctionEndsAt])
+  @@index([status, reviewStatus, createdAt])
 
   commentsIds String[]  @db.ObjectId
   comments    Comment[]
@@ -193,6 +204,21 @@ model Listing {
   commenters   User[]   @relation(name: "commentedOn", fields: [commenterIds], references: [id])
 
   bids Bid[]
+}
+
+// Preserve the reviewer identity even if an account is later removed.
+model ListingReview {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  listingId String @db.ObjectId
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  reviewerId String @db.ObjectId
+  reviewerName String
+  decision ListingReviewStatus
+  reason String?
+  revision Int
+  createdAt DateTime @default(now())
+
+  @@index([listingId, createdAt])
 }
 
 model Comment {

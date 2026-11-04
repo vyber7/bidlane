@@ -18,6 +18,12 @@ describe("listing submission", () => {
     expect((await POST(request(data))).status).toBe(201);
     expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ make: "Porsche", miles: 0, reservePrice: null, images: [photo], coverImage: photo, user: { connect: { id: "seller" } } }) });
   });
+
+  it("ignores seller-supplied approval and submits to review", async () => {
+    expect((await POST(request({ ...data, reviewStatus: "APPROVED", reviewRevision: 999, status: "LIVE" }))).status).toBe(201);
+    expect(mocks.create.mock.calls[0][0].data).toMatchObject({ reviewStatus: "PENDING", reviewRevision: 0 });
+    expect(mocks.create.mock.calls[0][0].data).not.toHaveProperty("status");
+  });
   it("persists VIN and uploaded records while keeping verification server-owned", async () => {
     const record = { label: " Receipt ", url: "https://res.cloudinary.com/demo/image/upload/receipt.pdf" };
     expect((await POST(request({ ...data, vin: " bcnr33-012345 ", vehicleRecords: [record], emailVerified: true }))).status).toBe(201);

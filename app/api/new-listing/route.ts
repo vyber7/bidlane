@@ -24,6 +24,8 @@ export async function POST(req: Request) {
     const newListing = await prisma.listing.create({
       data: {
         ...listing,
+        reviewStatus: "PENDING",
+        reviewRevision: 0,
         user: { connect: { id: currentUser.id } },
         coverImage: listing.images[0],
       },

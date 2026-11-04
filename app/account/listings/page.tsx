@@ -3,6 +3,7 @@ import { serializeDraft } from "@/app/libs/listing-drafts";
 import ListingsDashboard from "@/app/account/components/ListingsDashboard";
 import { getAccountUser } from "@/app/account/lib/current-user";
 import prisma from "@/app/libs/prismadb";
+import { publicListingWhere, withoutReviewFeedback } from "@/app/libs/listing-review";
 
 const MyListings = async () => {
   const currentUser = await getAccountUser();
@@ -14,7 +15,7 @@ const MyListings = async () => {
       orderBy: { createdAt: "desc" },
     }),
     prisma.listing.findMany({
-      where: { watchersIds: { has: currentUser.id } },
+      where: { watchersIds: { has: currentUser.id }, AND: [publicListingWhere] },
       orderBy: { updatedAt: "desc" },
     }),
     prisma.listingDraft.findMany({ where: { userId: currentUser.id, publishedListingId: null, deletedAt: null }, orderBy: { updatedAt: "desc" } }),
@@ -28,7 +29,7 @@ const MyListings = async () => {
       })} />
       <ListingsDashboard
         uploaded={uploaded}
-        initialWatching={watching}
+        initialWatching={watching.map(withoutReviewFeedback)}
         currentUserId={currentUser.id}
       />
     </div>

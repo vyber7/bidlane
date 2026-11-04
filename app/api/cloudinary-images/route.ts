@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import prisma from "../../libs/prismadb";
 import { logger } from "@/app/libs/logger";
+import { canViewListing, pendingReviewUpdate, reviewVersionWhere } from "@/app/libs/listing-review";
 import {
   ApiRequestError,
   apiErrorResponse,
@@ -26,9 +27,10 @@ export async function GET(req: Request) {
     const listingId = requireListingId(match[1]);
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
-      select: { images: true },
+      select: { images: true, userId: true, status: true, reviewStatus: true },
     });
     if (!listing) throw new ApiRequestError(404, "Listing not found");
+    if (!canViewListing(listing, await getCurrentUser())) throw new ApiRequestError(404, "Listing not found");
 
     const images = listing.images.map((url) => ({ url }));
     return NextResponse.json({ images });
@@ -57,12 +59,13 @@ export async function POST(req: Request) {
 
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
-      select: { userId: true, images: true },
+      select: { userId: true, images: true, status: true, reviewRevision: true },
     });
     if (!listing) throw new ApiRequestError(404, "Listing not found");
     if (listing.userId !== currentUser.id) {
       throw new ApiRequestError(403, "Only the seller can update this listing");
     }
+    if (listing.status !== "UPCOMING") throw new ApiRequestError(409, "Photos cannot be changed after bidding opens.");
     if (listing.images.includes(imageUrl)) {
       return NextResponse.json({ message: "Image already saved", imageUrl });
     }
@@ -77,9 +80,11 @@ export async function POST(req: Request) {
       where: {
         id: listingId,
         userId: currentUser.id,
+        status: "UPCOMING",
+        ...reviewVersionWhere(listing.reviewRevision ?? 0),
         images: { equals: listing.images },
       },
-      data: { images: { push: imageUrl } },
+      data: { images: { push: imageUrl }, ...pendingReviewUpdate(listing.reviewRevision ?? 0) },
     });
     if (updated.count !== 1) {
       throw new ApiRequestError(

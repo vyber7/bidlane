@@ -4,6 +4,7 @@ import type { ListingEvent } from "@/app/types/auction-events";
 export function serializeListing(listing: Listing): ListingEvent {
   return {
     ...listing,
+    reviewNote: null,
     createdAt: listing.createdAt.toISOString(),
     updatedAt: listing.updatedAt?.toISOString() ?? null,
     lastCommentAt: listing.lastCommentAt?.toISOString() ?? null,

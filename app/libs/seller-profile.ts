@@ -1,4 +1,5 @@
 import prisma from "./prismadb";
+import { publicListingWhere } from "./listing-review";
 
 const vehicleSelect = {
   id: true, year: true, make: true, model: true, location: true,
@@ -13,7 +14,7 @@ export async function getSellerProfile(id: string, page = 1) {
   const soldWhere = { userId: id, status: "ENDED", result: "SOLD" };
   const [salesCount, active, sales] = await Promise.all([
     prisma.listing.count({ where: soldWhere }),
-    prisma.listing.findMany({ where: { userId: id, status: { in: ["LIVE", "UPCOMING"] } }, select: vehicleSelect, orderBy: { createdAt: "desc" }, take: 12 }),
+    prisma.listing.findMany({ where: { userId: id, status: { in: ["LIVE", "UPCOMING"] }, AND: [publicListingWhere] }, select: vehicleSelect, orderBy: { createdAt: "desc" }, take: 12 }),
     prisma.listing.findMany({ where: soldWhere, select: vehicleSelect, orderBy: [{ auctionEndsAt: "desc" }, { id: "desc" }], skip: (page - 1) * 12, take: 12 }),
   ]);
   // Only the boolean is public; never expose the email or verification timestamp.

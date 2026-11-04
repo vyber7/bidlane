@@ -66,7 +66,7 @@ describe("draft publication", () => {
   it("validates saved content and creates the listing and retry link in one transaction", async () => {
     mocks.findFirst.mockResolvedValue({ ...saved, payload: complete });
     expect(await publishListingDraft("seller", id, 2)).toMatchObject({ id: "listing" });
-    expect(mocks.createListing).toHaveBeenCalledWith({ data: expect.objectContaining({ year: 2020, make: "Porsche", miles: 1000, coverImage: complete.images[0], user: { connect: { id: "seller" } } }) });
+    expect(mocks.createListing).toHaveBeenCalledWith({ data: expect.objectContaining({ year: 2020, make: "Porsche", miles: 1000, reviewStatus: "PENDING", reviewRevision: 0, coverImage: complete.images[0], user: { connect: { id: "seller" } } }) });
     expect(mocks.updateMany).toHaveBeenCalledWith({ where: { id, userId: "seller", revision: 2, publishedListingId: null, deletedAt: null }, data: { publishedListingId: "listing" } });
     expect(mocks.createListing.mock.calls[0][0].data).not.toHaveProperty("photoChecklist");
   });

@@ -46,7 +46,7 @@ const steps = [
 const faqs = [
   {
     question: "Can I save a listing and finish it later?",
-    answer: "Yes. The submission form saves a private draft as you work. Wait for Draft saved, or choose Save & exit before leaving. Resume from Account → Listings on the same account, including your photos, records, and photo checklist. The listing becomes public only when you submit it. Uploaded files still use publicly accessible links, so remove personal details before uploading.",
+    answer: "Yes. The submission form saves a private draft as you work. Wait for Draft saved, or choose Save & exit before leaving. Resume from Account → Listings on the same account, including your photos, records, and photo checklist. After submission, an admin reviews the listing before it becomes public. Uploaded files still use publicly accessible links, so remove personal details before uploading.",
   },
   {
     question: "Which vehicle photos should I include?",
@@ -97,7 +97,7 @@ const faqs = [
   {
     question: "How do I sell a vehicle on Bidlane?",
     answer:
-      "Use the submission form to provide the vehicle’s specifications, description, service history, modifications, and known flaws. Add photos and review the preview. The listing starts as Coming soon; its seller then sets the starting bid, bid increment, and end time to open bidding. A reserve price is optional.",
+      "Use the submission form to provide the vehicle’s specifications, description, service history, modifications, and known flaws. Add photos and review the preview. The listing is submitted for admin review. If changes are requested, you can correct and resubmit it from Account → Listings. After approval it appears as Coming soon, and you can set the starting bid, bid increment, and end time to open bidding. Editing an approved listing requires another review. A reserve price is optional.",
   },
   {
     question: "What happens after an auction ends?",
