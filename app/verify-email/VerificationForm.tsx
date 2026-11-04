@@ -93,7 +93,7 @@ export default function VerificationForm() {
       )}
       <Link
         href="/account/profile"
-        className="mt-6 inline-block text-sm font-bold underline"
+        className="mt-6 block w-fit text-sm font-bold underline"
       >
         Go to profile
       </Link>
