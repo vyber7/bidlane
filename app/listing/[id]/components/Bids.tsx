@@ -82,7 +82,7 @@ const Bids: React.FC<BidsProps> = ({
           </p>
           <p className="flex justify-start">
             <span className="w-1/4">Watching</span>
-            <span className="font-semibold"> {listing.watchersIds.length}</span>
+            <span className="font-semibold"> {listing.watcherCount}</span>
           </p>
           <p className="flex justify-start">
             <span className="w-1/4">Bids</span>

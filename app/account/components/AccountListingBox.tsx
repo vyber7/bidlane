@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { GoTrash } from "react-icons/go";
 import Image from "next/image";
-import { Listing } from "@prisma/client";
+import type { PublicListing, SellerListing } from "@/app/libs/listing-payload";
 import { formatAmount } from "@/app/utils/format";
 import clsx from "clsx";
 import { FiArrowUpRight, FiClock, FiEye, FiMapPin } from "react-icons/fi";
@@ -13,7 +13,7 @@ import useWatchlist from "@/app/hooks/useWatchlist";
 import { reviewLabels } from "@/app/libs/listing-review";
 
 interface AccountListingBoxProps {
-  listing: Listing;
+  listing: PublicListing & Partial<Pick<SellerListing, "reviewStatus" | "reviewNote">>;
   currentUserId?: string | null;
   watching: boolean;
   uploaded: boolean;

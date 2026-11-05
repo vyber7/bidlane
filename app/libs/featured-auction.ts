@@ -1,6 +1,6 @@
-import type { Listing } from "@prisma/client";
+import type { PublicListing } from "@/app/libs/listing-payload";
 
-export function getHomeSpotlight(listings: Listing[], now = Date.now()) {
+export function getHomeSpotlight(listings: PublicListing[], now = Date.now()) {
   return {
     featured: selectFeaturedAuction(listings, now),
     live: listings.some((listing) => listing.status === "LIVE" && listing.auctionEndsAt && new Date(listing.auctionEndsAt).getTime() > now),
@@ -8,8 +8,8 @@ export function getHomeSpotlight(listings: Listing[], now = Date.now()) {
   };
 }
 
-export function selectFeaturedAuction(listings: Listing[], now = Date.now()): Listing | null {
-  const priority = (listing: Listing) => {
+export function selectFeaturedAuction(listings: PublicListing[], now = Date.now()): PublicListing | null {
+  const priority = (listing: PublicListing) => {
     if (listing.status === "LIVE" && listing.auctionEndsAt && new Date(listing.auctionEndsAt).getTime() > now) return 0;
     if (listing.status === "UPCOMING") return 1;
     if (listing.status === "ENDED") return 2;

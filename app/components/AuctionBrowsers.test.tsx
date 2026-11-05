@@ -2,8 +2,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { Listing } from "@prisma/client";
-import { makeListing } from "@/app/test/auction-fixtures";
+import type { PublicListing } from "@/app/libs/listing-payload";
+import { makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 import AuctionBrowser from "@/app/(site)/components/AuctionBrowser";
 
 const navigation = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
@@ -23,7 +23,7 @@ vi.mock("next/navigation", async () => {
 });
 
 vi.mock("./Listings", () => ({
-  default: ({ listings }: { listings: Listing[] }) => (
+  default: ({ listings }: { listings: PublicListing[] }) => (
     <ul>{listings.map((listing) => <li key={listing.id}>{listing.make} {listing.model}</li>)}</ul>
   ),
 }));

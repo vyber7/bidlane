@@ -1,6 +1,6 @@
 "use client";
 
-import type { Listing } from "@prisma/client";
+import type { SellerListing } from "@/app/libs/listing-payload";
 import axios from "axios";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -17,7 +17,7 @@ const textFields = [
 ] as const;
 const inputClass = "mt-2 block w-full rounded-lg border border-slate-300 px-3 py-2 font-normal";
 
-export default function ListingEditor({ listing }: { listing: Listing }) {
+export default function ListingEditor({ listing }: { listing: SellerListing }) {
   const [images, setImages] = useState(listing.images);
   const [cover, setCover] = useState(listing.coverImage || listing.images[0]);
   const [records, setRecords] = useState(() => readVehicleRecords(listing.vehicleRecords));

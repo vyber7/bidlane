@@ -1,5 +1,6 @@
 import prisma from "@/app/libs/prismadb";
 import { logger } from "@/app/libs/logger";
+import { toPublicListing } from "@/app/libs/listing-payload";
 
 async function getSoldAuctions() {
   try {
@@ -12,7 +13,7 @@ async function getSoldAuctions() {
       orderBy: { auctionEndsAt: "desc" },
       take: 4,
     });
-    return soldAuctions;
+    return soldAuctions.map((listing) => toPublicListing(listing));
   } catch (error) {
     logger.error("auctions.sold_fetch_failed", error);
     return [];

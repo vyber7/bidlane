@@ -25,7 +25,7 @@ export default function MobileAuctionBar({ currentUserId }: { currentUserId?: st
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs text-slate-400">{listing.currentBid === null ? "Starting bid" : "Current bid"}</p>
-            <NoReserveBadge reservePrice={listing.reservePrice} />
+            <NoReserveBadge isNoReserve={listing.isNoReserve} />
           </div>
           <p className="text-lg font-bold tabular-nums sm:text-xl">{amount === null ? "To be announced" : `$${formatAmount(amount)}`}</p>
           <p className="text-xs tabular-nums text-amber-400">{expired ? "Finalizing results…" : `Time left: ${timeLeft || "Syncing…"}`}</p>

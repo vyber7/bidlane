@@ -10,7 +10,7 @@ import Comments from "@/app/listing/[id]/components/Comments";
 import AccountListingBox from "@/app/account/components/AccountListingBox";
 import ListingsDashboard from "@/app/account/components/ListingsDashboard";
 import ListingBox from "@/app/components/ListingBox";
-import { auctionNow, makeBid, makeComment, makeListing } from "@/app/test/auction-fixtures";
+import { auctionNow, makeBid, makeComment, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 
 const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn() }));
 vi.mock("axios", async (importOriginal) => {

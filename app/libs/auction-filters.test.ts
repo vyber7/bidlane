@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makeListing } from "@/app/test/auction-fixtures";
+import { makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 import { filterAndSortAuctions, readAuctionFilters, updateAuctionParams, type AuctionSort } from "./auction-filters";
 
 const defaults = { q: "", status: "ALL", sort: "newest" } as const;

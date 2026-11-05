@@ -17,14 +17,25 @@ export default function useWatchlist({
   userId?: string | null;
   initialWatching: boolean;
 }) {
-  const [watching, setWatching] = useState(initialWatching);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [state, setState] = useState({ listingId, userId, initialWatching, watching: initialWatching, isUpdating: false });
+  const sameIdentity = state.listingId === listingId && state.userId === userId;
+  if (!sameIdentity || state.initialWatching !== initialWatching) {
+    // A refreshed snapshot must not unlock a second mutation while the first
+    // response can still arrive and replace it. Keep its optimistic state too.
+    const isUpdating = sameIdentity && state.isUpdating;
+    setState({ listingId, userId, initialWatching, watching: isUpdating ? state.watching : initialWatching, isUpdating });
+  }
+  const { watching, isUpdating } = state;
+  // An older account/listing's in-flight response must not replace new state.
+  const updateState = (patch: Partial<Pick<typeof state, "watching" | "isUpdating">>) => {
+    setState((current) => current.listingId === listingId && current.userId === userId ? { ...current, ...patch } : current);
+  };
 
   usePusherEvent<WatchlistUpdateEvent>(
-    userId ? `listing-${listingId}` : null,
+    userId ? `private-user-${userId}` : null,
     "watchlist-update",
     (update) => {
-      if (update.userId === userId) setWatching(update.watching);
+      if (update.userId === userId && update.listingId === listingId) updateState({ watching: update.watching });
     }
   );
 
@@ -37,20 +48,19 @@ export default function useWatchlist({
 
     const previous = watching;
     const desired = !previous;
-    setWatching(desired);
-    setIsUpdating(true);
+    updateState({ watching: desired, isUpdating: true });
 
     try {
       const response = await axios.post<WatchlistResponse>(
         "/api/update-watchlist",
         { listingId, watching: desired }
       );
-      setWatching(response.data.watching);
+      updateState({ watching: response.data.watching });
     } catch (error) {
-      setWatching(previous);
+      updateState({ watching: previous });
       toast.error(getApiErrorMessage(error, "The watchlist could not be updated. Please try again."));
     } finally {
-      setIsUpdating(false);
+      updateState({ isUpdating: false });
     }
   };
 

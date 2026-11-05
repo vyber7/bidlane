@@ -1,7 +1,17 @@
 import type { Listing } from "@prisma/client";
 import type { BidEvent, CommentEvent } from "@/app/types/auction-events";
+import { toPublicListing, toSellerListing } from "@/app/libs/listing-payload";
 
 export const auctionNow = new Date("2026-10-14T12:00:00.000Z");
+
+export function makePublicListing(overrides: Partial<Listing> = {}, viewerId?: string | null) {
+  return toPublicListing(makeListing(overrides), viewerId);
+}
+
+export function makeSellerListing(overrides: Partial<Listing> = {}) {
+  const listing = makeListing(overrides);
+  return toSellerListing(listing, { id: listing.userId });
+}
 
 export function makeListing(overrides: Partial<Listing> = {}): Listing {
   return {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Listing } from "@prisma/client";
+import type { PublicListing } from "@/app/libs/listing-payload";
 import { useMemo } from "react";
 import { FiCheckCircle, FiClock, FiSearch, FiTag, FiZap } from "react-icons/fi";
 import Listings from "../../components/Listings";
@@ -9,7 +9,7 @@ import useAuctionFilters from "@/app/hooks/useAuctionFilters";
 import { filterAndSortAuctions, type AuctionStatus } from "@/app/libs/auction-filters";
 
 interface AuctionBrowserProps {
-  listings: Listing[];
+  listings: PublicListing[];
   currentUserId?: string | null;
 }
 
@@ -34,7 +34,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
 
   const counts = useMemo(
     () => ({
-      NO_RESERVE: listings.filter((listing) => listing.reservePrice === null).length,
+      NO_RESERVE: listings.filter((listing) => listing.isNoReserve).length,
       LIVE: listings.filter((listing) => listing.status === "LIVE").length,
       UPCOMING: listings.filter((listing) => listing.status === "UPCOMING").length,
       ENDED: listings.filter((listing) => listing.status === "ENDED").length,

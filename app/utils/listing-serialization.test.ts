@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makeListing } from "@/app/test/auction-fixtures";
+import { makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 import { deserializeListing, serializeListing } from "./listing-serialization";
 
 describe("listing event dates", () => {

@@ -3,8 +3,9 @@ import getCurrentUser from "../../../app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
 import { pusherServer } from "@/app/libs/pusher";
 import { logger } from "@/app/libs/logger";
-import type { WatchingUpdateEvent, WatchlistUpdateEvent, WatchlistResponse } from "@/app/types/auction-events";
+import type { WatchingUpdateEvent, WatchlistUpdateEvent, WatchlistResponse, WatcherCountEvent } from "@/app/types/auction-events";
 import { serializeListing } from "@/app/utils/listing-serialization";
+import { toPublicListing } from "@/app/libs/listing-payload";
 import { isPublicListing } from "@/app/libs/listing-review";
 import { ApiRequestError, apiErrorResponse, errorResponse, readJsonObject, requireListingId } from "@/app/libs/api-request";
 
@@ -41,17 +42,34 @@ export async function POST(request: Request) {
       },
     });
 
+    // Read after the relation update so aggregates and the viewer's state
+    // reflect persisted data. Never broadcast a listing removed from public view.
+    const updatedListing = await prisma.listing.findUnique({ where: { id: listingId } }).catch(() => {
+      // The watch change is committed; a failed notification snapshot must
+      // not make the client roll back a successful write.
+      logger.warn("watchlist.notification_failed", { listingId, userId: currentUser.id });
+      return null;
+    });
+    if (!updatedListing || !isPublicListing(updatedListing)) {
+      return NextResponse.json({ listingId, watching } satisfies WatchlistResponse);
+    }
+    const publicListing = toPublicListing(updatedListing, currentUser.id);
     const update = { listingId, userId: currentUser.id, watching } satisfies WatchlistUpdateEvent;
     const notificationResults = await Promise.allSettled([
       pusherServer.trigger(
-        `listing-${listingId}`,
+        `private-user-${currentUser.id}`,
         "watchlist-update",
         update
       ),
       pusherServer.trigger(
-        `user-${currentUser.id}-watching`,
+        `private-user-${currentUser.id}`,
         "watching-update",
-        { listing: serializeListing(listing), watching } satisfies WatchingUpdateEvent
+        { listing: serializeListing(publicListing), watching } satisfies WatchingUpdateEvent
+      ),
+      pusherServer.trigger(
+        `listing-${listingId}`,
+        "watcher-count-update",
+        { listingId, watcherCount: publicListing.watcherCount } satisfies WatcherCountEvent
       ),
     ]);
 

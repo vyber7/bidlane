@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { AuctionProvider } from "@/app/context/AuctionContext";
-import { auctionNow, makeListing } from "@/app/test/auction-fixtures";
-import type { Listing } from "@prisma/client";
+import { auctionNow, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
+import type { PublicListing } from "@/app/libs/listing-payload";
 
 const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn() }));
 vi.mock("axios", () => ({ default: { post: mocks.post } }));
@@ -17,7 +17,7 @@ vi.mock("@/app/hooks/useWatchlist", () => ({
 
 import AuctionStatusBar from "./AuctionStatusBar";
 
-function auction(listing: Listing, currentUser = "seller") {
+function auction(listing: PublicListing, currentUser = "seller") {
   return createElement(AuctionProvider, {
     listing, bids: [], comments: [],
   }, createElement(AuctionStatusBar, { currentUser }));

@@ -1,4 +1,4 @@
-import type { Listing } from "@prisma/client";
+import type { PublicListing } from "@/app/libs/listing-payload";
 import type { BidWithAuthor, CommentWithAuthor } from ".";
 
 export type BidEvent = Omit<BidWithAuthor, "createdAt"> & { createdAt: string };
@@ -30,7 +30,7 @@ export interface CommentResponse {
   comment: CommentEvent;
 }
 
-export type ListingEvent = Omit<Listing,
+export type ListingEvent = Omit<PublicListing,
   "createdAt" | "updatedAt" | "lastCommentAt" | "auctionStartsAt" | "auctionEndsAt"
 > & {
   createdAt: string;
@@ -52,4 +52,9 @@ export interface WatchlistResponse {
 
 export interface WatchlistUpdateEvent extends WatchlistResponse {
   userId: string;
+}
+
+export interface WatcherCountEvent {
+  listingId: string;
+  watcherCount: number;
 }

@@ -36,7 +36,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
     userId: currentUser,
-    initialWatching: Boolean(currentUser && listing.watchersIds.includes(currentUser)),
+    initialWatching: listing.isWatching,
   });
   const router = useRouter();
   const finalizationRequested = useRef<string | null>(null);
@@ -120,9 +120,9 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
             </button>
           )}
         </div>
-        {listing.reservePrice === null && (
+        {listing.isNoReserve && (
           <div className="space-y-2">
-            <NoReserveBadge reservePrice={listing.reservePrice} />
+            <NoReserveBadge isNoReserve={listing.isNoReserve} />
             <p className="text-xs leading-5 text-slate-300">{ended ? "This auction had no reserve." : "No minimum sale price. The highest accepted bid wins."}</p>
           </div>
         )}

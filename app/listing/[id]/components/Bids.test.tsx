@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { AuctionProvider } from "@/app/context/AuctionContext";
-import { auctionNow, makeBid, makeListing } from "@/app/test/auction-fixtures";
+import { auctionNow, makeBid, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 import Bids from "./Bids";
 
 const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn() }));

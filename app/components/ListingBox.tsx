@@ -7,7 +7,7 @@ import Title from "./Title";
 import NoReserveBadge from "./NoReserveBadge";
 import { GrEdit } from "react-icons/gr";
 import { FaRegClock } from "react-icons/fa";
-import { Listing } from "@prisma/client";
+import type { PublicListing } from "@/app/libs/listing-payload";
 import useAuction from "../hooks/useAuction";
 import { formatAmount } from "../utils/format";
 import { clsx } from "clsx";
@@ -15,7 +15,7 @@ import { CldImage } from "next-cloudinary";
 import useWatchlist from "../hooks/useWatchlist";
 
 interface ListingBoxProps {
-  listing: Listing;
+  listing: PublicListing;
   currentUserId?: string | null;
 }
 
@@ -25,7 +25,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
     userId: currentUserId,
-    initialWatching: Boolean(currentUserId && listing.watchersIds.includes(currentUserId)),
+    initialWatching: listing.isWatching,
   });
 
   return (
@@ -55,7 +55,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
       <div className="flex flex-col w-full">
         <Link className="relative block w-full" href={`/listing/${listing.id}`}>
           <span className="absolute left-3 top-3 z-10">
-            <NoReserveBadge reservePrice={listing.reservePrice} />
+            <NoReserveBadge isNoReserve={listing.isNoReserve} />
           </span>
           {listing.coverImage && (
             <CldImage

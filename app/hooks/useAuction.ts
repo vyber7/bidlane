@@ -1,6 +1,6 @@
 "use client";
 
-import type { Listing } from "@prisma/client";
+import type { PublicListing } from "@/app/libs/listing-payload";
 import { useState } from "react";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 import type {
@@ -10,13 +10,14 @@ import type {
   AuctionEndedEvent,
   BidEvent,
   CommentEvent,
+  WatcherCountEvent,
 } from "@/app/types/auction-events";
 import useCountDown from "./useCountDown";
 import usePusherEvent from "./usePusherEvent";
 import useAuctionRefresh from "./useAuctionRefresh";
 
-interface AuctionSnapshot {
-  listing: Listing;
+interface AuctionSnapshot<T extends PublicListing> {
+  listing: T;
   bids: BidWithAuthor[];
   comments: CommentWithAuthor[];
 }
@@ -25,7 +26,7 @@ const emptyBids: BidWithAuthor[] = [];
 const emptyComments: CommentWithAuthor[] = [];
 const statusOrder = ["UPCOMING", "LIVE", "ENDED"];
 
-function mergeListing(previous: Listing, incoming: Listing): Listing {
+function mergeListing<T extends PublicListing>(previous: T, incoming: T): T {
   if (previous.id !== incoming.id) return incoming;
 
   // Bids, extensions, and lifecycle transitions only move forward. A refresh
@@ -58,13 +59,13 @@ function mergeActivity<T extends { id: string }>(previous: T[], incoming: T[]) {
   return Array.from(new Map([...previous, ...incoming].map((item) => [item.id, item])).values());
 }
 
-export default function useAuction(
-  listing: Listing,
+export default function useAuction<T extends PublicListing>(
+  listing: T,
   bids = emptyBids,
   comments = emptyComments
 ) {
   const source = { listing, bids, comments };
-  const [state, setState] = useState<{ source: AuctionSnapshot; current: AuctionSnapshot }>({
+  const [state, setState] = useState<{ source: AuctionSnapshot<T>; current: AuctionSnapshot<T> }>({
     source,
     current: source,
   });
@@ -84,7 +85,7 @@ export default function useAuction(
     });
   }
 
-  function updateListing(patch: Partial<Listing>) {
+  function updateListing(patch: Partial<PublicListing>) {
     setState((previous) => ({
       ...previous,
       current: {
@@ -120,6 +121,9 @@ export default function useAuction(
   }
 
   const channel = `listing-${listing.id}`;
+  usePusherEvent<WatcherCountEvent>(channel, "watcher-count-update", (event) => {
+    if (event.listingId === listing.id) updateListing({ watcherCount: event.watcherCount });
+  });
   usePusherEvent<BidEvent>(channel, "new-bid", (bid) => {
     receiveBid(bid);
     refresh();

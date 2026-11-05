@@ -18,10 +18,6 @@ export function isPublicListing(listing: ReviewableListing) {
     (listing.status === "UPCOMING" && listing.reviewStatus === "APPROVED");
 }
 
-export function withoutReviewFeedback<T extends { reviewNote: string | null }>(listing: T): T {
-  return { ...listing, reviewNote: null };
-}
-
 export function canViewListing(listing: ReviewableListing & { userId: string }, user: { id: string; role?: string | null } | null) {
   return isPublicListing(listing) || Boolean(user && (listing.userId === user.id || user.role === "ADMIN"));
 }

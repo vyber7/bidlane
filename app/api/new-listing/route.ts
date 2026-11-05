@@ -18,7 +18,9 @@ export async function POST(req: Request) {
     if (body.draftId !== undefined) {
       const { draftId, revision } = parseApiInput(publishDraftSchema, body);
       const listing = await publishListingDraft(currentUser.id, draftId, revision);
-      return NextResponse.json(listing, { status: 201 });
+      // Replaying a published draft can return a now-active listing. The
+      // submission UI needs only its ID, never other users' accumulated activity.
+      return NextResponse.json({ id: listing.id }, { status: 201 });
     }
     const listing = parseListing(body.data);
     const newListing = await prisma.listing.create({
@@ -30,7 +32,7 @@ export async function POST(req: Request) {
         coverImage: listing.images[0],
       },
     });
-    return NextResponse.json(newListing, { status: 201 });
+    return NextResponse.json({ id: newListing.id }, { status: 201 });
   } catch (error: unknown) {
     const response = apiErrorResponse(error);
     if (response) return response;

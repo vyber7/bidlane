@@ -1,6 +1,6 @@
 "use client";
 
-import { Listing } from "@prisma/client";
+import type { PublicListing, SellerListing } from "@/app/libs/listing-payload";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
@@ -17,8 +17,8 @@ import { deserializeListing } from "@/app/utils/listing-serialization";
 import AccountListingBox from "./AccountListingBox";
 
 interface ListingsDashboardProps {
-  uploaded: Listing[];
-  initialWatching: Listing[];
+  uploaded: SellerListing[];
+  initialWatching: PublicListing[];
   currentUserId?: string | null;
 }
 
@@ -40,7 +40,7 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
   const watching = watchlist.listings;
 
   usePusherEvent<WatchingUpdateEvent>(
-    currentUserId ? `user-${currentUserId}-watching` : null,
+    currentUserId ? `private-user-${currentUserId}` : null,
     "watching-update",
     ({ listing: payload, watching: isWatching }) => {
       const listing = deserializeListing(payload);

@@ -1,9 +1,9 @@
 "use client";
-import { Listing } from "@prisma/client";
+import type { PublicListing } from "@/app/libs/listing-payload";
 import ListingBox from "./ListingBox";
 
 interface ListingsProps {
-  listings: Listing[];
+  listings: PublicListing[];
   currentUserId?: string | null;
 }
 

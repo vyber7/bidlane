@@ -1,10 +1,9 @@
-import type { Listing } from "@prisma/client";
+import { publicListingSnapshot, type PublicListing } from "@/app/libs/listing-payload";
 import type { ListingEvent } from "@/app/types/auction-events";
 
-export function serializeListing(listing: Listing): ListingEvent {
+export function serializeListing(listing: PublicListing): ListingEvent {
   return {
-    ...listing,
-    reviewNote: null,
+    ...publicListingSnapshot(listing),
     createdAt: listing.createdAt.toISOString(),
     updatedAt: listing.updatedAt?.toISOString() ?? null,
     lastCommentAt: listing.lastCommentAt?.toISOString() ?? null,
@@ -13,13 +12,13 @@ export function serializeListing(listing: Listing): ListingEvent {
   };
 }
 
-export function deserializeListing(listing: ListingEvent): Listing {
-  return {
+export function deserializeListing(listing: ListingEvent): PublicListing {
+  return publicListingSnapshot({
     ...listing,
     createdAt: new Date(listing.createdAt),
     updatedAt: listing.updatedAt === null ? null : new Date(listing.updatedAt),
     lastCommentAt: listing.lastCommentAt === null ? null : new Date(listing.lastCommentAt),
     auctionStartsAt: listing.auctionStartsAt === null ? null : new Date(listing.auctionStartsAt),
     auctionEndsAt: listing.auctionEndsAt === null ? null : new Date(listing.auctionEndsAt),
-  };
+  });
 }

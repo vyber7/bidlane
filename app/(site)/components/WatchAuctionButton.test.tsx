@@ -2,7 +2,7 @@
 
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { makeListing } from "@/app/test/auction-fixtures";
+import { makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 import WatchAuctionButton from "./WatchAuctionButton";
 
 const mocks = vi.hoisted(() => ({ post: vi.fn(), error: vi.fn() }));

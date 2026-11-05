@@ -1,6 +1,6 @@
 "use client";
 
-import type { Listing } from "@prisma/client";
+import type { PublicListing } from "@/app/libs/listing-payload";
 import { createContext, useContext } from "react";
 import useAuction from "@/app/hooks/useAuction";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
@@ -8,7 +8,7 @@ import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 const AuctionContext = createContext<ReturnType<typeof useAuction> | null>(null);
 
 export function AuctionProvider({ listing, bids, comments, children }: {
-  listing: Listing;
+  listing: PublicListing;
   bids: BidWithAuthor[];
   comments: CommentWithAuthor[];
   children?: React.ReactNode;

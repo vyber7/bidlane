@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }
 vi.mock("next-cloudinary", () => ({ CldImage: () => <span>Photo</span>, CldUploadWidget: () => null }));
 vi.mock("@/app/submit-listing/components/RecordUploads", () => ({ default: () => <span>Records</span> }));
 import ListingEditor from "./ListingEditor";
-import { makeListing } from "@/app/test/auction-fixtures";
+import { makeSellerListing as makeListing } from "@/app/test/auction-fixtures";
 const listing = makeListing({ status: "UPCOMING", reviewStatus: "CHANGES_REQUESTED", reviewRevision: 3, images: ["https://res.cloudinary.com/demo/image/upload/car.jpg"], transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: "History unknown", modifications: "None known", knownFlaws: "Rust on fenders" });
 afterEach(cleanup);
 beforeEach(() => { vi.clearAllMocks(); mocks.patch.mockResolvedValue({ data: {} }); });

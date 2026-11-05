@@ -15,7 +15,9 @@ describe("listing submission", () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
   it("saves selected photos and cover with zero miles and no reserve", async () => {
-    expect((await POST(request(data))).status).toBe(201);
+    const response = await POST(request(data));
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({ id: "listing" });
     expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ make: "Porsche", miles: 0, reservePrice: null, images: [photo], coverImage: photo, user: { connect: { id: "seller" } } }) });
   });
 

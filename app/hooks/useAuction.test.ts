@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
-import { auctionNow, makeBid, makeComment, makeListing } from "@/app/test/auction-fixtures";
+import { auctionNow, makeBid, makeComment, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -48,6 +48,16 @@ afterEach(() => {
 });
 
 describe("auction state reconciliation", () => {
+  it("updates aggregate watcher counts without receiving watcher identities", () => {
+    const listing = makeListing();
+    const { result } = renderHook(() => useAuction(listing));
+    emit("watcher-count-update", { listingId: makeListing().id, watcherCount: 7 });
+    expect(result.current.listing.watcherCount).toBe(7);
+    expect(result.current.listing).not.toHaveProperty("watchersIds");
+    emit("watcher-count-update", { listingId: "other-listing", watcherCount: 99 });
+    expect(result.current.listing.watcherCount).toBe(7);
+  });
+
   it("recovers bids, activity, and an extension from refreshed props after missed events", () => {
     const { result, rerender } = renderHook((props) => useAuction(props.listing, props.bids, props.comments), {
       initialProps: { listing: makeListing(), bids: [] as BidWithAuthor[], comments: [] as CommentWithAuthor[] },

@@ -1,5 +1,6 @@
 import prisma from "@/app/libs/prismadb";
 import { logger } from "@/app/libs/logger";
+import { toPublicListing } from "@/app/libs/listing-payload";
 
 async function getLiveAuctions() {
   try {
@@ -8,7 +9,7 @@ async function getLiveAuctions() {
         status: "LIVE",
       },
     });
-    return liveAuctions;
+    return liveAuctions.map((listing) => toPublicListing(listing));
   } catch (error) {
     logger.error("auctions.live_fetch_failed", error);
     return [];

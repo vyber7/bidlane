@@ -19,7 +19,8 @@ import Link from "next/link";
 import { FiArrowLeft, FiMapPin } from "react-icons/fi";
 import VehicleRecords from "@/app/components/VehicleRecords";
 import ListingEditor from "./components/ListingEditor";
-import { canViewListing, isPublicListing, reviewLabels, withoutReviewFeedback } from "@/app/libs/listing-review";
+import { canViewListing, isPublicListing, reviewLabels } from "@/app/libs/listing-review";
+import { toPublicListing, toSellerListing } from "@/app/libs/listing-payload";
 import VehicleHistory from "@/app/components/VehicleHistory";
 import { vehicleSpecificationFields } from "@/app/libs/vehicle-details";
 
@@ -56,7 +57,7 @@ const Listing = async (props: Params) => {
   const owner = listing.userId === currentUser?.id;
 
   return (
-    <AuctionProvider key={id} listing={owner || currentUser?.role === "ADMIN" ? listing : withoutReviewFeedback(listing)} bids={bids} comments={comments}>
+    <AuctionProvider key={id} listing={toPublicListing(listing, currentUser?.id)} bids={bids} comments={comments}>
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-24 sm:px-6 lg:px-8">
         <Link
           href="/"
@@ -169,7 +170,7 @@ const Listing = async (props: Params) => {
               {owner && listing.status === "UPCOMING" && listing.reviewStatus === "APPROVED" && (
                 <AuctionStartForm listingId={id} />
               )}
-              {owner && listing.status === "UPCOMING" && <ListingEditor key={listing.reviewRevision ?? 0} listing={listing} />}
+              {owner && listing.status === "UPCOMING" && <ListingEditor key={listing.reviewRevision ?? 0} listing={toSellerListing(listing, currentUser)} />}
               <Description description={listing.description} />
               <VehicleHistory details={listing} id="condition" />
               <VehicleRecords records={listing.vehicleRecords} />

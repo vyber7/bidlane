@@ -1,4 +1,4 @@
-import type { Listing } from "@prisma/client";
+import type { PublicListing } from "@/app/libs/listing-payload";
 
 export type AuctionStatus = "ALL" | "NO_RESERVE" | "LIVE" | "UPCOMING" | "ENDED";
 
@@ -48,15 +48,15 @@ function compareOptionalNumbers(a: number | null, b: number | null, descending =
   return descending ? b - a : a - b;
 }
 
-function bidAmount(listing: Listing) {
+function bidAmount(listing: PublicListing) {
   return listing.status === "ENDED" ? listing.currentBid : listing.currentBid ?? listing.startingBid;
 }
 
-export function filterAndSortAuctions(listings: Listing[], filters: AuctionFilters) {
+export function filterAndSortAuctions(listings: PublicListing[], filters: AuctionFilters) {
   const query = filters.q.trim().toLowerCase();
   const visible = listings.filter((listing) => {
     if (filters.status === "NO_RESERVE") {
-      if (listing.reservePrice !== null) return false;
+      if (!listing.isNoReserve) return false;
     } else if (filters.status !== "ALL" && listing.status !== filters.status) return false;
     return !query || [listing.year, listing.make, listing.model, listing.location, listing.description]
       .join(" ").toLowerCase().includes(query);

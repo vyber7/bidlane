@@ -3,7 +3,7 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuctionProvider } from "@/app/context/AuctionContext";
-import { auctionNow, makeListing } from "@/app/test/auction-fixtures";
+import { auctionNow, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 import MobileAuctionBar from "./MobileAuctionBar";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));

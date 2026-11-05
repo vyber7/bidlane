@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { canViewListing, isPublicListing, pendingReviewUpdate, publicListingWhere, reviewVersionWhere, withoutReviewFeedback } from "./listing-review";
+import { canViewListing, isPublicListing, pendingReviewUpdate, publicListingWhere, reviewVersionWhere } from "./listing-review";
+import { toPublicListing } from "./listing-payload";
 import { makeListing } from "@/app/test/auction-fixtures";
 
 describe("listing review visibility and legacy data", () => {
   it("does not include seller feedback in public listing payloads", () => {
     const listing = makeListing({ reviewNote: "Please redact the address from this receipt." });
-    expect(withoutReviewFeedback(listing).reviewNote).toBeNull();
+    expect(toPublicListing(listing)).not.toHaveProperty("reviewNote");
     expect(listing.reviewNote).not.toBeNull();
   });
 

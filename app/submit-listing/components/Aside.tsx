@@ -1,11 +1,11 @@
-import { Listing } from "@prisma/client";
+import type { PublicListing } from "@/app/libs/listing-payload";
 import Link from "next/link";
 import { FiArrowRight } from "react-icons/fi";
 
 import SideListingBox from "@/app/components/SideListingBox";
 
 interface AsideProps {
-  auctions: Listing[];
+  auctions: PublicListing[];
   variant?: "sold" | "live";
 }
 

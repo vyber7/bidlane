@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { auctionNow, makeListing } from "@/app/test/auction-fixtures";
+import { auctionNow, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 import { getHomeSpotlight, selectFeaturedAuction } from "./featured-auction";
 
 describe("homepage featured vehicle", () => {

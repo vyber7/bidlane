@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { makeListing } from "@/app/test/auction-fixtures";
+import { toPublicListing } from "@/app/libs/listing-payload";
 
 const mocks = vi.hoisted(() => ({
   findMany: vi.fn(),
@@ -16,9 +18,10 @@ describe("getSoldAuctions", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns only the four most recently ended sold auctions", async () => {
-    mocks.findMany.mockResolvedValue([{ id: "sold-listing" }]);
+    const listing = makeListing({ id: "sold-listing", reservePrice: 25000, watchersIds: ["private-watcher"] });
+    mocks.findMany.mockResolvedValue([listing]);
 
-    await expect(getSoldAuctions()).resolves.toEqual([{ id: "sold-listing" }]);
+    await expect(getSoldAuctions()).resolves.toEqual([toPublicListing(listing)]);
     expect(mocks.findMany).toHaveBeenCalledWith({
       where: {
         status: "ENDED",
