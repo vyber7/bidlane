@@ -29,7 +29,7 @@ describe("request password reset", () => {
     expect(saved.id).toBe(resetHash(email.toLowerCase())); expect(saved.expiresAt).toEqual(new Date(now.getTime() + 1800000));
     const derived = resetToken(saved.id, saved.nonce);
     expect(saved.tokenHash).toBe(resetHash(derived)); expect(JSON.stringify(saved)).not.toContain(derived);
-    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ email, resetId: saved.id, nonce: saved.nonce, kind: "RESET" }) });
+    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ email: email.toLowerCase(), resetId: saved.id, nonce: saved.nonce, kind: "RESET" }) });
     expect(saved.userId).toBeNull(); expect(saved.usedAt).toBeNull();
   });
   it("rotates the token and queues a new generation on resend", async () => {

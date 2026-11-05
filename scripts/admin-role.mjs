@@ -2,8 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import { pathToFileURL } from "node:url";
 
 // Keep this entry point outside the application: only a trusted operator with
-// database access can grant or revoke roles. Email matching is exact, just as
-// it is for sign-in; never accidentally target a differently cased account.
+// database access can grant or revoke roles. Email matching stays exact so an
+// operator never accidentally targets a differently cased legacy account.
 export async function changeAdminRole(args, prisma) {
   const [action, rawEmail, ...extra] = args;
   const email = rawEmail?.trim();

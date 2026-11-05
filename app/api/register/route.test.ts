@@ -4,12 +4,13 @@ import { Prisma } from "@prisma/client";
 const mocks = vi.hoisted(() => ({ limit: vi.fn(),
   hash: vi.fn(),
   create: vi.fn(),
+  findEmail: vi.fn(),
 }));
 
 vi.mock("@/app/libs/abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
 vi.mock("bcrypt", () => ({ default: { hash: mocks.hash } }));
 vi.mock("../../libs/prismadb", () => ({
-  default: { user: { create: mocks.create } },
+  default: { user: { create: mocks.create, findFirst: mocks.findEmail } },
 }));
 vi.mock("@/app/libs/logger", () => ({
   logger: { error: vi.fn() },
@@ -39,6 +40,7 @@ describe("POST /api/register", () => {
   });
   beforeEach(() => {
     vi.clearAllMocks(); mocks.limit.mockResolvedValue(undefined);
+    mocks.findEmail.mockResolvedValue(null);
     mocks.hash.mockResolvedValue("bcrypt-secret");
     mocks.create.mockResolvedValue({
       id: "user-1",
@@ -59,6 +61,25 @@ describe("POST /api/register", () => {
         email: "driver@example.com",
         hashedPassword: "bcrypt-secret",
       },
+      select: { id: true },
+    });
+  });
+
+  it.each(["driver@EXAMPLE.COM", "DRIVER@example.com", " Driver@Example.Com "])("rejects case-variant signup against a legacy account: %s", async (email) => {
+    mocks.findEmail.mockResolvedValue({ id: "existing-user" });
+    const response = await POST(request({ name: "Driver", email, password: "a long password" }));
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({ error: "An account with this email already exists" });
+    expect(mocks.hash).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("stores a new email in canonical form without changing its password", async () => {
+    const response = await POST(request({ name: " Driver ", email: " New.Driver@Example.COM ", password: " long secret " }));
+    expect(response.status).toBe(201);
+    expect(mocks.hash).toHaveBeenCalledWith(" long secret ", 12);
+    expect(mocks.create).toHaveBeenCalledWith({
+      data: { name: "Driver", email: "new.driver@example.com", hashedPassword: "bcrypt-secret" },
       select: { id: true },
     });
   });

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { requiredTextSchema } from "./common";
 import { newPasswordSchema, passwordInputSchema } from "./password";
+import { normalizeEmail } from "@/app/utils/email";
 
 const registrationRequired = "Name, email, and password are required";
 
@@ -14,7 +15,7 @@ export const registrationSchema = z.object({
   name: requiredTextSchema(registrationRequired).max(60, "Name must be 60 characters or fewer"),
   email: requiredTextSchema(registrationRequired).max(254, "Email must be 254 characters or fewer").pipe(
     z.email({ pattern: z.regexes.html5Email, error: "Please enter a valid email address" }),
-  ),
+  ).transform(normalizeEmail),
   // Passwords are deliberately not trimmed or otherwise transformed.
   password: z.string({ error: registrationRequired }).min(1, registrationRequired).pipe(newPasswordSchema),
 });

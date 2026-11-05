@@ -7,10 +7,10 @@ import type { Adapter, AdapterAccount, AdapterUser } from "next-auth/adapters";
 import type { OAuthConfig } from "next-auth/providers/oauth";
 
 const mocks = vi.hoisted(() => ({
-  findUser: vi.fn(), createUser: vi.fn(), findAccount: vi.fn(), createAccount: vi.fn(),
+  findUser: vi.fn(), findUsers: vi.fn(), findEmail: vi.fn(), createUser: vi.fn(), updateUser: vi.fn(), findAccount: vi.fn(), createAccount: vi.fn(),
 }));
 vi.mock("./prismadb", () => ({ default: {
-  user: { findUnique: mocks.findUser, create: mocks.createUser },
+  user: { findUnique: mocks.findUser, findMany: mocks.findUsers, findFirst: mocks.findEmail, create: mocks.createUser, update: mocks.updateUser },
   account: { findUnique: mocks.findAccount, create: mocks.createAccount },
 } }));
 import { authOptions } from "./auth-config";
@@ -69,6 +69,17 @@ beforeEach(() => {
   mocks.findUser.mockImplementation(async ({ where }: { where: { id?: string; email?: string } }) =>
     where.id ? users.get(where.id) ?? null : [...users.values()].find((user) => user.email === where.email) ?? null,
   );
+  mocks.findUsers.mockImplementation(async ({ where, take }) =>
+    [...users.values()].filter((user) => user.email.toLowerCase() === where.email.equals).slice(0, take),
+  );
+  mocks.findEmail.mockImplementation(async ({ where }) =>
+    [...users.values()].find((user) => user.email.toLowerCase() === where.email.equals) ?? null,
+  );
+  mocks.updateUser.mockImplementation(async ({ where, data }) => {
+    const user = users.get(where.id)!;
+    users.set(where.id, { ...user, ...data });
+    return users.get(where.id);
+  });
   mocks.createUser.mockImplementation(async ({ data }: { data: Omit<AdapterUser, "id"> }) =>
     existingUser({ ...data, id: "bbbbbbbbbbbbbbbbbbbbbbbb", hashedPassword: null, sessionVersion: "" }),
   );
@@ -129,6 +140,54 @@ describe.each(["github", "google"])("%s account-linking boundary", (provider) =>
     accounts.push({ provider, providerAccountId: "original-subject", userId: user.id, type: "oauth" });
     await expect(login(provider)).rejects.toMatchObject({ name: "AccountNotLinkedError" });
     expect(accounts).toHaveLength(1);
+  });
+
+  it.each(["owner@EXAMPLE.COM", "OWNER@example.com"])("rejects an unlinked case-variant identity without merging: %s", async (email) => {
+    existingUser({ email: "Owner@Example.com" });
+    await expect(login(provider, email)).rejects.toMatchObject({ name: "AccountNotLinkedError" });
+    expect(mocks.createUser).not.toHaveBeenCalled();
+    expect(mocks.createAccount).not.toHaveBeenCalled();
+  });
+
+  it("refuses ambiguous historical email identities before signup or linking", async () => {
+    existingUser();
+    existingUser({ id: "cccccccccccccccccccccccc", email: "Owner@example.com" });
+    await expect(login(provider, "owner@EXAMPLE.COM")).rejects.toThrow();
+    expect(mocks.createUser).not.toHaveBeenCalled();
+    expect(mocks.createAccount).not.toHaveBeenCalled();
+  });
+});
+
+describe("adapter email write boundary", () => {
+  it("canonicalizes a new OAuth account before the unique insert", async () => {
+    const user = await authOptions.adapter!.createUser!({ email: " New.Driver@Example.COM ", name: "New driver", emailVerified: null });
+    expect(user.email).toBe("new.driver@example.com");
+    expect(mocks.createUser).toHaveBeenCalledWith({ data: { email: "new.driver@example.com", name: "New driver", emailVerified: null } });
+  });
+
+  it("rejects a direct adapter create that collides with a legacy user", async () => {
+    existingUser({ email: "Owner@Example.com" });
+    await expect(authOptions.adapter!.createUser!({ email: "owner@EXAMPLE.COM", emailVerified: null })).rejects.toMatchObject({ status: 409 });
+    expect(mocks.createUser).not.toHaveBeenCalled();
+  });
+
+  it.each(["other@example.com", "owner@EXAMPLE.COM"])("rejects an adapter identity change: %s", async (email) => {
+    const user = existingUser({ email: "original@example.com" });
+    await expect(authOptions.adapter!.updateUser!({ id: user.id, email })).rejects.toThrow("email changes are not supported");
+    expect(mocks.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("preserves legacy spelling on a canonical no-op update", async () => {
+    const user = existingUser({ email: "Owner@Example.COM" });
+    const updated = await authOptions.adapter!.updateUser!({ id: user.id, email: "owner@example.com", name: "Updated name" });
+    expect(updated.email).toBe("Owner@Example.COM");
+    expect(mocks.updateUser).toHaveBeenCalledWith({ where: { id: user.id }, data: { name: "Updated name" } });
+  });
+
+  it("keeps updates without an email working", async () => {
+    const user = existingUser();
+    const updated = await authOptions.adapter!.updateUser!({ id: user.id, name: "Updated name" });
+    expect(updated.name).toBe("Updated name");
   });
 });
 

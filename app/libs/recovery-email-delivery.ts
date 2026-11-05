@@ -4,6 +4,7 @@ import prisma from "./prismadb";
 import { EmailProviderError, getEmailConfiguration, sendEmail } from "./outbid-email";
 import { resetHash, resetToken } from "./password-reset";
 import { logger } from "./logger";
+import { emailIdentityFilter } from "./email-identity";
 
 const eligible = (now: Date): Prisma.RecoveryEmailWhereInput => ({ OR: [
   { status: "PENDING", nextAttemptAt: { lte: now } },
@@ -51,7 +52,7 @@ export async function sendRecoveryEmails(batchSize = 20) {
         // Match case-insensitively, but never choose between two legacy accounts
         // with case-colliding addresses. Connected-only accounts get no reset.
         const users = await prisma.user.findMany({
-          where: { email: { equals: job.email, mode: "insensitive" } }, take: 2,
+          where: { email: emailIdentityFilter(job.email) }, take: 2,
           select: { id: true, email: true, hashedPassword: true, sessionVersion: true },
         });
         const user = users.length === 1 ? users[0] : null;

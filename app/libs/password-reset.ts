@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "./prismadb";
 import { ApiRequestError } from "./api-request";
 import { getEmailConfiguration } from "./outbid-email";
+import { normalizeEmail } from "@/app/utils/email";
 
 export const RESET_REQUEST_MESSAGE = "If an eligible account exists, you’ll receive a password reset email shortly. If you use Google or GitHub, continue with that sign-in method.";
 export const resetHash = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -32,11 +33,12 @@ async function takeQuota(key: string, limit: number, windowMs: number, now: numb
 }
 
 export async function requestPasswordReset(email: string) {
+  email = normalizeEmail(email);
   if (!getEmailConfiguration() || !process.env.NEXTAUTH_SECRET) {
     throw new ApiRequestError(503, "Password recovery is temporarily unavailable. Please try again later.");
   }
   const now = new Date();
-  const id = resetHash(email.toLowerCase());
+  const id = resetHash(email);
   await prisma.passwordResetQuota.deleteMany({ where: { expiresAt: { lte: now } } });
   if (!await takeQuota("global", 30, 60_000, now.getTime())) return;
   if (!await takeQuota(`email:${id}`, 3, 15 * 60_000, now.getTime())) return;
@@ -69,7 +71,7 @@ export async function resetPassword(token: string, password: string) {
     });
     if (claimed.count !== 1) throw invalidLink();
     const user = await tx.user.findUnique({ where: { id: record.userId! }, select: { id: true, email: true, hashedPassword: true, sessionVersion: true } });
-    if (!user?.hashedPassword || !user.email || user.email.toLowerCase() !== record.email.toLowerCase() || (user.sessionVersion ?? "") !== (record.sessionVersion ?? "")) throw invalidLink();
+    if (!user?.hashedPassword || !user.email || normalizeEmail(user.email) !== normalizeEmail(record.email) || (user.sessionVersion ?? "") !== (record.sessionVersion ?? "")) throw invalidLink();
     const updated = await tx.user.updateMany({
       where: { id: user.id, email: user.email, hashedPassword: user.hashedPassword },
       data: { hashedPassword, sessionVersion: randomBytes(32).toString("hex") },

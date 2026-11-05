@@ -321,6 +321,17 @@ Password reset rotates nullable `User.sessionVersion`. Both NextAuth session dec
 
 Before deploying, run `npx prisma generate` and `npx prisma db push` against the target database to create `PasswordReset` (including the unique token hash), `PasswordResetQuota`, and `RecoveryEmail` collections/indexes, then deploy the client and app together. No user backfill is required. MongoDB transactions and a working recovery-email scheduler are required. Automated tests mock MongoDB and Resend; verify real delivery, reset, and old-session rejection after service setup. The design follows [OWASP’s password recovery guidance](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html).
 
+### Account email identity
+
+New password and OAuth accounts store trimmed, lowercase email addresses. Signup
+rejects existing addresses case-insensitively, including legacy mixed-case
+accounts; the existing unique email index prevents concurrent canonical signups.
+Password sign-in preserves exact legacy access and otherwise accepts only an
+unambiguous case-insensitive match. Existing stored addresses and their sessions
+are not rewritten. Historical case-colliding accounts still require support
+review and are never automatically merged. See the [email identity guide](docs/email-identity.md)
+for compatibility, rollout, and recovery checks.
+
 ## Trust and verification
 
 Account → Profile lets a signed-in user request a verification email using the same `RESEND_API_KEY`, `EMAIL_FROM`, and `NEXTAUTH_URL` as auction emails. `POST /api/account/verify-email` sends only to the authenticated account’s address, with a one-minute resend cooldown stored in MongoDB. The link expires after 30 minutes; requesting another invalidates the previous link. Only SHA-256 token hashes are stored. The `/verify-email` page reads the secret from a URL fragment, clears it from browser history, and requires an explicit confirmation POST so ordinary email link scanners do not consume it. Confirmation claims the single-use token and updates the matching user/email in one database transaction. Failed sends still observe the one-minute cooldown. Existing users are not marked verified automatically. Verified email is required before placing a new bid or submitting a new listing; sign-in, private draft saving, and managing existing listings remain available.

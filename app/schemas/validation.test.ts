@@ -116,7 +116,7 @@ describe("shared validation boundaries", () => {
   });
 
   it("trims registration details while preserving password whitespace", () => {
-    expect(registrationSchema.parse({ name: " Driver ", email: " Driver@example.com ", password: " long secret " })).toEqual({ name: "Driver", email: "Driver@example.com", password: " long secret " });
+    expect(registrationSchema.parse({ name: " Driver ", email: " Driver@example.com ", password: " long secret " })).toEqual({ name: "Driver", email: "driver@example.com", password: " long secret " });
   });
 
   it("keeps existing JavaScript length limits for profile names", () => {

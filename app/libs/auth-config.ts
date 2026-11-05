@@ -1,7 +1,7 @@
 import { decodeSessionToken } from "./session-token";
 import bcrypt from "bcrypt";
 import { AuthOptions } from "next-auth";
-import type { AdapterAccount } from "next-auth/adapters";
+import type { AdapterAccount, AdapterUser } from "next-auth/adapters";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
@@ -12,12 +12,36 @@ import { githubUserinfo } from "./github-userinfo";
 import { enforceAbuseLimit } from "./abuse-limits";
 import { loginCredentialsSchema } from "@/app/schemas/account";
 import { ApiRequestError } from "./api-request";
+import { assertEmailAvailable, findUsersByEmailIdentity } from "./email-identity";
+import { normalizeEmail } from "@/app/utils/email";
 
 const prismaAdapter = PrismaAdapter(prisma);
 
 export const authOptions: AuthOptions = {
   adapter: {
     ...prismaAdapter,
+    async createUser(data: Omit<AdapterUser, "id">) {
+      const email = await assertEmailAvailable(data.email);
+      return prismaAdapter.createUser!({ ...data, email });
+    },
+    async getUserByEmail(email: string) {
+      const users = await findUsersByEmailIdentity(email);
+      // Never let an ambiguous lookup choose an account or proceed to signup.
+      if (users.length > 1) throw new Error("This email needs account support.");
+      const user = users[0];
+      return user?.email ? { ...user, email: user.email } : null;
+    },
+    async updateUser({ id, email, ...data }) {
+      if (email !== undefined) {
+        const current = await prisma.user.findUnique({ where: { id }, select: { email: true } });
+        // Email changes are not a supported account flow. A canonical no-op
+        // keeps the original spelling, preserving sessions and pending proofs.
+        if (!current?.email || normalizeEmail(email) !== normalizeEmail(current.email)) {
+          throw new Error("Account email changes are not supported.");
+        }
+      }
+      return prismaAdapter.updateUser!({ id, ...data });
+    },
     async linkAccount(account: AdapterAccount) {
       // NextAuth also links new providers to a signed-in user, regardless of
       // allowDangerousEmailAccountLinking. An unverified password signup must
@@ -63,11 +87,16 @@ export const authOptions: AuthOptions = {
           throw new Error("AuthUnavailable");
         }
 
-        const user = await prisma.user.findUnique({
+        let user = await prisma.user.findUnique({
           where: {
             email,
           },
         });
+        if (!user) {
+          const matches = await findUsersByEmailIdentity(email);
+          // Keep exact legacy logins above, but never guess among collisions.
+          user = matches.length === 1 ? matches[0] : null;
+        }
 
         if (!user || !user?.hashedPassword) {
           throw new Error("Invalid Credentials");

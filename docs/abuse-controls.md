@@ -4,8 +4,11 @@ Authentication and mutation budgets use atomic counters in MongoDB `AbuseQuota`,
 shared across application instances. Counters expire at fixed UTC window
 boundaries and expired buckets are removed during requests. Subject keys are
 HMACs made with `NEXTAUTH_SECRET`; email addresses and IP addresses are not
-stored. Email quota identities trim whitespace and ignore case; account lookup
-still uses the exact trimmed email, preserving existing sign-in semantics.
+stored. Email quota identities trim whitespace and ignore case. Password login
+tries the exact trimmed address first for legacy compatibility, then accepts a
+case-insensitive match only when it identifies one account. New password and
+OAuth accounts store lowercase emails and reject case-insensitive matches against
+existing accounts. See [email identity and legacy accounts](email-identity.md).
 
 | Action | Per account/address | Across the application |
 | --- | --- | --- |
@@ -35,9 +38,9 @@ parsing; Pusher authorization forms accept 4 KiB. `Content-Length` is not truste
 for enforcement. Cloudinary uploads keep their separate strict 4 MB file policy.
 
 Comments accept up to 4,000 characters and optional attachment URLs up to 2,048.
-Registration names accept 60 characters, emails 254, and credential input 1,024
-UTF-8 bytes. This input bound preserves existing password login behavior; the
-password strength policy is a separate rule. Published listing text now uses the
+Registration names accept 60 characters and emails 254. New passwords require
+at least 12 characters; all password inputs are limited to bcrypt's 72 UTF-8
+bytes. Existing short passwords remain usable at sign-in. Published listing text uses the
 same make/model (100), location (200), and description (10,000) limits as drafts.
 Existing saved content is not rewritten.
 
