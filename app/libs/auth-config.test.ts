@@ -8,9 +8,9 @@ vi.mock("bcrypt", () => ({ default: { compare: mocks.compare } }));
 import { authOptions } from "./auth-config";
 beforeEach(() => { vi.clearAllMocks(); mocks.compare.mockResolvedValue(true); });
 describe("OAuth account linking", () => {
-  it("enables GitHub email linking together with the verified-email userinfo check", () => {
+  it("disables email-only account linking while keeping GitHub email verification", () => {
     const github = authOptions.providers.find((provider) => provider.id === "github") as OAuthConfig<unknown>;
-    expect(github.options?.allowDangerousEmailAccountLinking).toBe(true);
+    expect(github.options?.allowDangerousEmailAccountLinking).not.toBe(true);
     expect(github.options?.userinfo).toBe(githubUserinfo);
     const google = authOptions.providers.find((provider) => provider.id === "google") as OAuthConfig<unknown>;
     expect(google.options?.allowDangerousEmailAccountLinking).not.toBe(true);

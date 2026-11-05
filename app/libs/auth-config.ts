@@ -1,6 +1,7 @@
 import { decodeSessionToken } from "./session-token";
 import bcrypt from "bcrypt";
 import { AuthOptions } from "next-auth";
+import type { AdapterAccount } from "next-auth/adapters";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
@@ -9,15 +10,33 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import prisma from "./prismadb";
 import { githubUserinfo } from "./github-userinfo";
 
+const prismaAdapter = PrismaAdapter(prisma);
+
 export const authOptions: AuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: {
+    ...prismaAdapter,
+    async linkAccount(account: AdapterAccount) {
+      // NextAuth also links new providers to a signed-in user, regardless of
+      // allowDangerousEmailAccountLinking. An unverified password signup must
+      // never plant another login method that survives password recovery.
+      const user = await prisma.user.findUnique({
+        where: { id: account.userId },
+        select: { hashedPassword: true },
+      });
+      if (!user || user.hashedPassword) {
+        throw new Error("New OAuth connections to password accounts are not supported.");
+      }
+      // Initial OAuth signup creates a user without a password. Existing
+      // provider-subject sign-ins use getUserByAccount and do not link again.
+      return prismaAdapter.linkAccount!(account);
+    },
+  },
   providers: [
     GithubProvider({
       clientId: process.env.GITHUB_ID as string,
       clientSecret: process.env.GITHUB_SECRET as string,
-      // The custom userinfo handler verifies email ownership before linking.
+      // Verified provider email does not authorize merging existing accounts.
       userinfo: githubUserinfo,
-      allowDangerousEmailAccountLinking: true,
     }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,

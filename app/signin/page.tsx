@@ -33,7 +33,10 @@ const features = [
   },
 ];
 
-export default function SignIn() {
+export default async function SignIn({ searchParams }: {
+  searchParams: Promise<{ error?: string | string[] }>;
+}) {
+  const { error } = await searchParams;
   return (
     <div className="flex min-h-screen flex-col bg-stone-50">
       <header className="border-b border-slate-200 bg-white">
@@ -114,6 +117,15 @@ export default function SignIn() {
           aria-label="Your Bidlane account"
           className="mx-auto w-full max-w-md py-3 lg:py-6"
         >
+          {error === "OAuthAccountNotLinked" && (
+            <p role="alert" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-slate-700">
+              This email is already associated with a different sign-in method.
+              Use the method you originally signed up with. If you created a
+              password account, you can{" "}
+              <Link href="/forgot-password" className="font-bold underline">reset your password</Link>.
+              {" "}Social sign-in does not combine accounts automatically.
+            </p>
+          )}
           <AuthForm />
         </section>
       </div>

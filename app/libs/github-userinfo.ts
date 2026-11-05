@@ -2,7 +2,7 @@ import type { GithubEmail } from "next-auth/providers/github";
 import type { UserinfoEndpointHandler } from "next-auth/providers/oauth";
 
 // The public GitHub profile does not prove email ownership. Only return an
-// address confirmed by GitHub's authenticated email API before enabling linking.
+// address confirmed by GitHub's authenticated email API during sign-in.
 export const githubUserinfo: UserinfoEndpointHandler = {
   url: "https://api.github.com/user",
   async request({ client, tokens }) {
