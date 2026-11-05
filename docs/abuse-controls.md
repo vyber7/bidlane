@@ -31,6 +31,15 @@ forwarding headers. They can also throttle legitimate users during an attack;
 monitor traffic and adjust `app/libs/abuse-limits.ts` to expected volume. These
 application budgets complement hosting-level network/request protection.
 
+Quota admission first checks shared budgets without incrementing them, then
+atomically consumes every subject budget before charging shared budgets.
+Requests already blocked by an account/address limit do not spend other users'
+allowances. The initial shared check avoids creating new subject buckets when
+the application is already at capacity; final atomic increments still enforce
+global caps if concurrent requests pass that check. In-flight requests can
+consume subject attempts before discovering that shared capacity was taken.
+Uploads, contact messages, and password recovery use the same admission order.
+
 All application JSON readers count actual streamed bytes with a 256 KiB default
 cap. Smaller limits apply to registration (8 KiB), bids (4 KiB), and comments
 (32 KiB). NextAuth POSTs accept at most 16 KiB before either JSON or URL-encoded

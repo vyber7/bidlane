@@ -12,9 +12,14 @@ export const abusePolicies = {
 } as const;
 export type AbuseAction = keyof typeof abusePolicies;
 
-async function consume(key: string, limit: number, windowMs: number, now: number) {
+async function enforceQuota(key: string, limit: number, windowMs: number, now: number, mode: "check" | "consume" = "consume") {
   const end = (Math.floor(now / windowMs) + 1) * windowMs;
   const id = `${key}:${end}`;
+  if (mode === "check") {
+    const bucket = await prisma.abuseQuota.findUnique({ where: { id } });
+    if (bucket && bucket.count >= limit) throw new ApiRequestError(429, "Too many requests. Please wait before trying again.", Math.max(1, Math.ceil((end - now) / 1000)));
+    return;
+  }
   let bucket;
   try {
     bucket = await prisma.abuseQuota.upsert({ where: { id }, create: { id, count: 1, expiresAt: new Date(end) }, update: { count: { increment: 1 } } });
@@ -34,8 +39,11 @@ export async function enforceAbuseLimit(action: AbuseAction, subject: string, no
     const identity = createHmac("sha256", secret).update(`bidlane:abuse:${action}:${subject.trim().toLowerCase()}`).digest("hex");
     await prisma.abuseQuota.deleteMany({ where: { expiresAt: { lte: new Date(now) } } });
     const policy = abusePolicies[action];
-    for (const [limit, windowMs] of policy.global) await consume(`${action}:global:${windowMs}`, limit, windowMs, now);
-    for (const [limit, windowMs] of policy.subject) await consume(`${action}:subject:${identity}:${windowMs}`, limit, windowMs, now);
+    // Check without charging first to avoid new subject buckets after global
+    // exhaustion. A passing read never replaces the final atomic increment.
+    for (const [limit, windowMs] of policy.global) await enforceQuota(`${action}:global:${windowMs}`, limit, windowMs, now, "check");
+    for (const [limit, windowMs] of policy.subject) await enforceQuota(`${action}:subject:${identity}:${windowMs}`, limit, windowMs, now);
+    for (const [limit, windowMs] of policy.global) await enforceQuota(`${action}:global:${windowMs}`, limit, windowMs, now);
   } catch (error) {
     if (error instanceof ApiRequestError) throw error;
     // A quota outage must not expose an unlimited expensive-work path.

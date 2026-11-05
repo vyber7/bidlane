@@ -53,6 +53,11 @@ file from a form removes its reference; it does not delete an uploaded asset.
 Failed uploads attempt provider cleanup, but an interrupted process can leave
 unreferenced assets requiring ordinary storage housekeeping.
 
+Account budgets are charged before shared budgets, so attempts already blocked
+by an account limit do not exhaust everyone else's upload allowance. A read-only
+shared-budget check skips new account counters when global capacity is already
+exhausted; final atomic increments enforce the caps even with concurrent uploads.
+
 If deployment must roll back after cutover, retain the secured uploader and
 ownership checks or temporarily pause new uploads. Old code depends on the
 unsigned preset and cannot safely resume uploading with that preset disabled.

@@ -16,9 +16,13 @@ export function resetToken(id: string, nonce: string) {
   return createHmac("sha256", secret).update(`bidlane:password-reset:${id}:${nonce}`).digest("hex");
 }
 
-async function takeQuota(key: string, limit: number, windowMs: number, now: number) {
+async function withinQuota(key: string, limit: number, windowMs: number, now: number, mode: "check" | "consume" = "consume") {
   const window = Math.floor(now / windowMs);
   const id = `${key}:${window}`;
+  if (mode === "check") {
+    const bucket = await prisma.passwordResetQuota.findUnique({ where: { id } });
+    return !bucket || bucket.count < limit;
+  }
   let bucket;
   try {
     bucket = await prisma.passwordResetQuota.upsert({
@@ -40,8 +44,11 @@ export async function requestPasswordReset(email: string) {
   const now = new Date();
   const id = resetHash(email);
   await prisma.passwordResetQuota.deleteMany({ where: { expiresAt: { lte: now } } });
-  if (!await takeQuota("global", 30, 60_000, now.getTime())) return;
-  if (!await takeQuota(`email:${id}`, 3, 15 * 60_000, now.getTime())) return;
+  // Do not allocate new address buckets after global exhaustion. The final
+  // atomic consume below still prevents races from exceeding the shared cap.
+  if (!await withinQuota("global", 30, 60_000, now.getTime(), "check")) return;
+  if (!await withinQuota(`email:${id}`, 3, 15 * 60_000, now.getTime())) return;
+  if (!await withinQuota("global", 30, 60_000, now.getTime())) return;
   const nonce = randomBytes(32).toString("hex");
   const data = {
     email, nonce, tokenHash: resetHash(resetToken(id, nonce)), requestedAt: now,

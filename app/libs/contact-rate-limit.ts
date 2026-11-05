@@ -2,9 +2,13 @@ import { createHash } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import prisma from "./prismadb";
 
-async function takeQuota(key: string, limit: number, windowMs: number, now: number) {
+async function quotaRetryAfter(key: string, limit: number, windowMs: number, now: number, mode: "check" | "consume" = "consume") {
   const window = Math.floor(now / windowMs);
   const id = `${key}:${window}`;
+  if (mode === "check") {
+    const bucket = await prisma.contactRateLimit.findUnique({ where: { id } });
+    return bucket && bucket.count >= limit ? Math.max(1, Math.ceil((bucket.expiresAt.getTime() - now) / 1000)) : 0;
+  }
   let bucket;
   try {
     bucket = await prisma.contactRateLimit.upsert({
@@ -26,8 +30,12 @@ export async function contactRetryAfter(email: string, now = Date.now()) {
   await prisma.contactRateLimit.deleteMany({ where: { expiresAt: { lte: new Date(now) } } });
   // A global budget also limits senders who rotate email addresses. Do not trust
   // arbitrary forwarding headers as a source of client identity.
-  const globalWait = await takeQuota("global", 30, 60_000, now);
+  // Reject an exhausted global budget without allocating sender buckets;
+  // the later atomic increment still arbitrates concurrent admissions.
+  const globalWait = await quotaRetryAfter("global", 30, 60_000, now, "check");
   if (globalWait) return globalWait;
   const emailHash = createHash("sha256").update(email.toLowerCase()).digest("hex");
-  return takeQuota(`email:${emailHash}`, 3, 15 * 60_000, now);
+  const emailWait = await quotaRetryAfter(`email:${emailHash}`, 3, 15 * 60_000, now);
+  if (emailWait) return emailWait;
+  return quotaRetryAfter("global", 30, 60_000, now);
 }

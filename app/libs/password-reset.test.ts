@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Prisma } from "@prisma/client";
-const mocks = vi.hoisted(() => ({ quota: vi.fn(), quotaUpdate: vi.fn(), cleanup: vi.fn(), upsert: vi.fn(), create: vi.fn(), findReset: vi.fn(), claim: vi.fn(), findUser: vi.fn(), updateUser: vi.fn(), hash: vi.fn(), transaction: vi.fn() }));
+const mocks = vi.hoisted(() => ({ quotaRead: vi.fn(), quota: vi.fn(), quotaUpdate: vi.fn(), cleanup: vi.fn(), upsert: vi.fn(), create: vi.fn(), findReset: vi.fn(), claim: vi.fn(), findUser: vi.fn(), updateUser: vi.fn(), hash: vi.fn(), transaction: vi.fn() }));
 vi.mock("./prismadb", () => ({ default: {
-  passwordResetQuota: { upsert: mocks.quota, update: mocks.quotaUpdate, deleteMany: mocks.cleanup },
+  passwordResetQuota: { findUnique: mocks.quotaRead, upsert: mocks.quota, update: mocks.quotaUpdate, deleteMany: mocks.cleanup },
   passwordReset: { findUnique: mocks.findReset },
   $transaction: mocks.transaction,
 } }));
@@ -14,7 +14,7 @@ const record = { id: "reset-id", email: "User@example.com", userId: "user", nonc
 beforeEach(() => {
   vi.clearAllMocks(); vi.useFakeTimers(); vi.setSystemTime(now);
   vi.stubEnv("NEXTAUTH_SECRET", "test-secret"); vi.stubEnv("NEXTAUTH_URL", "https://bidlane.net"); vi.stubEnv("RESEND_API_KEY", "test-key"); vi.stubEnv("EMAIL_FROM", "BidLane <alerts@bidlane.net>");
-  mocks.quota.mockResolvedValue({ count: 1 }); mocks.cleanup.mockResolvedValue({ count: 0 });
+  mocks.quotaRead.mockResolvedValue(null); mocks.quota.mockResolvedValue({ count: 1 }); mocks.cleanup.mockResolvedValue({ count: 0 });
   mocks.transaction.mockImplementation(async (fn) => fn({ passwordReset: { upsert: mocks.upsert, updateMany: mocks.claim }, recoveryEmail: { create: mocks.create }, user: { findUnique: mocks.findUser, updateMany: mocks.updateUser } }));
   mocks.findReset.mockResolvedValue(record); mocks.claim.mockResolvedValue({ count: 1 });
   mocks.findUser.mockResolvedValue({ id: "user", email: "user@example.com", hashedPassword: "old-hash", sessionVersion: null });
@@ -22,6 +22,42 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); });
 describe("request password reset", () => {
+  it("keeps the global queue cap atomic when concurrent prechecks all pass", async () => {
+    const counts = new Map<string, number>();
+    mocks.quota.mockImplementation(async ({ create }) => {
+      const count = (counts.get(create.id) ?? 0) + 1;
+      counts.set(create.id, count);
+      return { ...create, count };
+    });
+    const results = await Promise.all(Array.from({ length: 40 }, (_, index) => requestPasswordReset(`user-${index}@example.com`)));
+    expect(results.every((result) => result === undefined)).toBe(true);
+    expect(mocks.create).toHaveBeenCalledTimes(30);
+  });
+  it("silently rejects known global exhaustion without allocating an email bucket", async () => {
+    mocks.quotaRead.mockResolvedValue({ count: 30 });
+    await expect(requestPasswordReset("fresh@example.com")).resolves.toBeUndefined();
+    expect(mocks.quota).not.toHaveBeenCalled();
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+  it("fails closed when a global precheck cannot be read", async () => {
+    mocks.quotaRead.mockRejectedValueOnce(new Error("down"));
+    await expect(requestPasswordReset("user@example.com")).rejects.toThrow("down");
+    expect(mocks.quota).not.toHaveBeenCalled();
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+  it("keeps blocked address variants from suppressing other accounts' recovery emails", async () => {
+    const counts = new Map<string, number>();
+    mocks.quota.mockImplementation(async ({ create }) => {
+      const count = (counts.get(create.id) ?? 0) + 1;
+      counts.set(create.id, count);
+      return { ...create, count };
+    });
+    await Promise.all(Array.from({ length: 40 }, (_, index) => requestPasswordReset(index % 2 ? " User@EXAMPLE.com " : "user@example.com")));
+    expect(mocks.create).toHaveBeenCalledTimes(3);
+    expect(counts.get(`global:${Math.floor(now.getTime() / 60_000)}`)).toBe(3);
+    await expect(requestPasswordReset("another@example.com")).resolves.toBeUndefined();
+    expect(mocks.create).toHaveBeenCalledTimes(4);
+  });
   it.each(["User@example.com", "unknown@example.com"])("queues identical work for %s without looking up accounts or sending mail", async (email) => {
     await requestPasswordReset(email);
     expect(mocks.findUser).not.toHaveBeenCalled(); expect(mocks.hash).not.toHaveBeenCalled();
