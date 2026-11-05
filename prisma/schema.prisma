@@ -274,6 +274,34 @@ model ContactRateLimit {
   @@index([expiresAt])
 }
 
+enum UploadKind {
+  PHOTO
+  RECORD
+  PROFILE
+}
+
+// Only the authenticated server uploader can register trusted new media.
+model UploadedAsset {
+  id        String     @id @map("_id")
+  userId    String     @db.ObjectId
+  kind      UploadKind
+  listingId String?    @db.ObjectId
+  url       String     @unique
+  bytes     Int
+  format    String
+  createdAt DateTime   @default(now())
+
+  @@index([userId, kind])
+}
+
+model UploadQuota {
+  id        String   @id @map("_id")
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
 model EmailVerification {
   id          String   @id @map("_id") @db.ObjectId
   email       String

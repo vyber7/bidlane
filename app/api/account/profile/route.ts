@@ -1,3 +1,4 @@
+import { assertOwnedAssets } from "@/app/libs/uploaded-assets";
 import { NextResponse } from "next/server";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import prisma from "@/app/libs/prismadb";
@@ -16,6 +17,7 @@ export async function PATCH(request: Request) {
     userId = currentUser.id;
     const { name, image } = parseApiInput(profileSchema, await readJsonObject(request));
 
+    await assertOwnedAssets({ userId: currentUser.id, kind: "PROFILE", urls: image ? [image] : [], existingUrls: currentUser.image ? [currentUser.image] : [] });
     const updatedUser = await prisma.user.update({
       where: { id: currentUser.id },
       data: { name, image: image || null },

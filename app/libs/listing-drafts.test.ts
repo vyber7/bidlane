@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), updateMany: vi.fn(), deleteMany: vi.fn(), createListing: vi.fn(), findListing: vi.fn(), transaction: vi.fn() }));
-vi.mock("./prismadb", () => ({ default: { listingDraft: mocks, $transaction: mocks.transaction } }));
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+const mocks = vi.hoisted(() => ({ assets: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), updateMany: vi.fn(), deleteMany: vi.fn(), createListing: vi.fn(), findListing: vi.fn(), transaction: vi.fn() }));
+vi.mock("./prismadb", () => ({ default: { uploadedAsset: { findMany: mocks.assets }, listingDraft: mocks, $transaction: mocks.transaction } }));
 import { createListingDraft, updateListingDraft, deleteListingDraft, publishListingDraft } from "./listing-drafts";
 import { emptyDraftPayload } from "@/app/schemas/listing-draft";
 const id = "abcdef0123456789abcdef01", key = "78f24991-f096-4e39-9a61-0eb03d28f1b6";
@@ -8,13 +8,32 @@ const payload = { ...emptyDraftPayload, details: { ...emptyDraftPayload.details,
 const saved = { id, userId: "seller", payload, revision: 2, lastSaveKey: key, publishedListingId: null, deletedAt: null, createdAt: new Date(), updatedAt: new Date() };
 const complete = { ...payload, details: { ...payload.details, year: "2020", model: "911", miles: "1000", location: "Miami", description: "One owner", transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: "None known", modifications: "None known", knownFlaws: "None known" }, images: ["https://res.cloudinary.com/demo/image/upload/car.jpg"] };
 beforeEach(() => {
-  vi.clearAllMocks(); mocks.findUnique.mockResolvedValue(null); mocks.findFirst.mockResolvedValue(saved);
+  vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockResolvedValue([]); mocks.findUnique.mockResolvedValue(null); mocks.findFirst.mockResolvedValue(saved);
   mocks.create.mockImplementation(async ({ data }) => ({ ...saved, ...data, revision: 1 }));
   mocks.updateMany.mockResolvedValue({ count: 1 }); mocks.deleteMany.mockResolvedValue({ count: 1 });
   mocks.createListing.mockResolvedValue({ id: "listing", userId: "seller" }); mocks.findListing.mockResolvedValue({ id: "listing", userId: "seller" });
-  mocks.transaction.mockImplementation(async (fn) => fn({ listingDraft: mocks, listing: { create: mocks.createListing, findUnique: mocks.findListing } }));
+  mocks.transaction.mockImplementation(async (fn) => fn({ uploadedAsset: { findMany: mocks.assets }, listingDraft: mocks, listing: { create: mocks.createListing, findUnique: mocks.findListing } }));
 });
 describe("private draft persistence", () => {
+  it("rejects unregistered photos and records in both creates and updates", async () => {
+    for (const media of [{ images: complete.images }, { vehicleRecords: [{ label: "Receipt", url: complete.images[0] }] }]) {
+      const changed = { ...payload, ...media };
+      await expect(createListingDraft("seller", { id, saveKey: key, payload: changed })).rejects.toMatchObject({ status: 400 });
+      await expect(updateListingDraft("seller", id, { revision: 2, saveKey: "new", payload: changed })).rejects.toMatchObject({ status: 400 });
+    }
+    expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+  it("accepts registered uploads for a new draft", async () => {
+    mocks.assets.mockResolvedValue([{ url: complete.images[0] }]);
+    expect((await createListingDraft("seller", { id, saveKey: key, payload: complete })).payload.images).toEqual(complete.images);
+    expect(mocks.assets.mock.calls[0][0].where).toMatchObject({ userId: "seller", kind: "PHOTO", listingId: null });
+  });
+  it("allows edits to legacy drafts without reuploading exact saved media", async () => {
+    const legacy = { ...complete, vehicleRecords: [{ label: "", url: complete.images[0] }] };
+    mocks.findFirst.mockResolvedValue({ ...saved, payload: legacy });
+    await updateListingDraft("seller", id, { revision: 2, saveKey: "new", payload: { ...legacy, vehicleRecords: [{ label: "Renamed receipt", url: complete.images[0] }] } });
+    expect(mocks.assets).not.toHaveBeenCalled(); expect(mocks.updateMany).toHaveBeenCalled();
+  });
   it("saves unfinished fields in a separate owner-bound collection", async () => {
     const result = await createListingDraft("seller", { id, saveKey: key, payload });
     expect(mocks.create).toHaveBeenCalledWith({ data: { id, userId: "seller", payload, lastSaveKey: key, publishedListingId: null, deletedAt: null } });
@@ -85,3 +104,5 @@ describe("draft publication", () => {
     await expect(publishListingDraft("seller", id, 2)).rejects.toMatchObject({ status: 409 });
   });
 });
+
+afterEach(() => vi.unstubAllEnvs());

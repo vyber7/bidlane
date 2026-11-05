@@ -30,15 +30,10 @@ vi.mock("next-cloudinary", () => ({
     // eslint-disable-next-line @next/next/no-img-element -- Exercise image load events without Cloudinary requests.
     <img {...props} alt={props.alt} data-src={props.src} data-crop={crop} />
   ),
-  CldUploadButton: ({ onSuccess, children }: {
-    onSuccess: (result: { info: { secure_url: string } }) => void;
-    children: ReactNode;
-  }) => (
-    <button onClick={() => onSuccess({ info: { secure_url: uploadedUrl } })}>
-      {children}
-    </button>
-  ),
+
 }));
+
+vi.mock("@/app/components/AuthorizedUploadButton", () => ({ default: ({ children, onUpload }: { children: ReactNode; onUpload: (url: string) => void }) => <button type="button" onClick={() => onUpload(uploadedUrl)}>{children}</button> }));
 
 beforeEach(() => {
   vi.clearAllMocks();

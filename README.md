@@ -82,7 +82,7 @@ Service configuration:
 
 - **MongoDB:** Allow the development machine to connect and create a database user with access to the configured database.
 - **Pusher:** Create the app in `us2`. To use another cluster, update both [app/libs/pusher-client.ts](app/libs/pusher-client.ts) and [app/libs/pusher.ts](app/libs/pusher.ts).
-- **Cloudinary:** Create an unsigned upload preset named `auctions`, which the listing and profile upload widgets use.
+- **Cloudinary:** Configure the cloud name, API key, and server API secret. New uploads use signed server requests and need no unsigned preset. For an existing deployment using `auctions`, follow the [coordinated cutover guide](docs/upload-cutover.md) after deploying the secured uploader.
 - **OAuth:** Configure callback URLs as `http://localhost:3000/api/auth/callback/github` and `http://localhost:3000/api/auth/callback/google`. Credentials sign-in does not require OAuth keys, but both social providers are registered and their buttons require valid provider credentials.
 - **OAuth account linking:** GitHub and Google do not merge an unlinked provider identity into an existing account just because the emails match. Use the original sign-in method; password users can use password recovery. The adapter also blocks new OAuth connections to password accounts even when a valid password session is present, preventing an unverified signup from planting a provider login that survives recovery. New OAuth signups and already-linked provider subjects continue to work. GitHub still checks its authenticated email API for a verified address using the `user:email` scope (or read access to email addresses for GitHub Apps); sign-in fails if verification cannot be confirmed. Registering with email/password after OAuth signup still rejects an existing email; it does not add a password. Existing provider connections are preserved: this preventive change does not determine whether historical mixed password/OAuth accounts were linked legitimately. Confirmed affected accounts need a separate review of their provider connections and session revocation.
 - **GitHub account persistence:** Keep `Account.refresh_token_expires_in` in the Prisma schema. NextAuth v4 forwards GitHub's token response to the adapter, and Prisma rejects account creation if this optional field is missing. Regenerate Prisma Client and redeploy after schema changes (`npm run build` includes generation). MongoDB accepts the optional field without backfilling existing accounts.
@@ -275,10 +275,11 @@ vitest.config.ts     # Test configuration
 | `/api/comments`                 | POST      | Add a listing comment                                      |
 | `/api/update-watchlist`         | POST      | Update the current user's watchlist                        |
 | `/api/listing-view`             | POST      | Record a listing view                                      |
+| `/api/uploads`                  | GET, POST | Check upload policy or upload one authorized file         |
 | `/api/cloudinary-images`        | GET, POST | Read saved listing images or attach an uploaded image      |
 | `/api/listing/[id]/cover-image` | POST      | Update a listing's cover image                             |
 
-Image uploads use Cloudinary widgets. New listings include the uploaded photo URLs in `/api/new-listing`; adding photos to an existing listing saves them through `/api/cloudinary-images`. The gallery renders saved images supplied by the listing page without a second image-list request.
+Image uploads use the authenticated `/api/uploads` endpoint with a server-enforced 4 MB cap, format restrictions, shared quotas, and ownership checks. New listings include the uploaded photo URLs in `/api/new-listing`; adding photos to an existing listing saves them through `/api/cloudinary-images`. The gallery renders saved images supplied by the listing page without a second image-list request.
 
 Application-owned API failures return JSON with an `error` string and an appropriate HTTP status. Malformed JSON, non-object bodies, and invalid fields return `400`; unexpected failures return `500` with a public message while details are logged on the server. Partial cron failures retain the batch summary and add an `error` string. NextAuth's authentication endpoints use their own protocol.
 
@@ -326,7 +327,7 @@ Account → Profile lets a signed-in user request a verification email using the
 
 Public seller profiles at `/sellers/[id]` show the public name/photo, membership date, email-verification status, latest current listings, and paginated sold auction results. They do not expose email addresses, password hashes, reserves, or private account activity. An **Email verified** badge means inbox access only. **Sold at auction** reports an auction outcome, not confirmed payment or completed handoff; completed transaction tracking remains separate work. BidLane currently has no independent inspection or curation workflow, and the homepage no longer claims curated inventory.
 
-Listings support an optional seller-reported VIN/chassis identifier and up to ten labeled public records (PDF, JPG, PNG, WebP). Identifiers normalize to uppercase and accept older/imported chassis numbers; this is basic character/length validation, not VIN decoding, checksum verification, title checks, or proof of ownership. Records upload through the existing Cloudinary `auctions` preset. The widget caps files at 10 MB; configure allowed formats and size limits on the unsigned preset too, since client restrictions are not server enforcement. For PDFs, ensure Cloudinary allows PDF delivery in its security settings; see [Cloudinary’s PDF guide](https://cloudinary.com/documentation/ts_how_to_upload_manage_and_deliver_pdf_files). Remove personal details before uploading: files are public. Deleting a record from an unpublished listing removes its reference, not the underlying Cloudinary asset. Contact support for removal of personal information published by mistake.
+Listings support an optional seller-reported VIN/chassis identifier and up to ten labeled public records (PDF, JPG, PNG, WebP). Identifiers normalize to uppercase and accept older/imported chassis numbers; this is basic character/length validation, not VIN decoding, checksum verification, title checks, or proof of ownership. New records upload through BidLane’s authenticated server uploader with a strict 4 MB cap. The server signs Cloudinary requests and registers ownership before a URL can be saved. Existing saved records remain usable. Follow the [coordinated upload cutover guide](docs/upload-cutover.md) to disable the old unsigned preset after deployment. For PDFs, ensure Cloudinary allows PDF delivery in its security settings; see [Cloudinary’s PDF guide](https://cloudinary.com/documentation/ts_how_to_upload_manage_and_deliver_pdf_files). Remove personal details before uploading: files are public. Deleting a record from an unpublished listing removes its reference, not the underlying Cloudinary asset. Contact support for removal of personal information published by mistake.
 
 Sellers can edit VIN and records on upcoming listings via `PATCH /api/listing/[id]/vehicle-details`. Owner checks and a status-guarded write prevent edits once bidding opens. Existing listings show **Not provided** / **No records provided** for missing data. Uploaded records and vehicle details are explicitly labeled seller-provided and unauthenticated.
 
@@ -391,7 +392,7 @@ Local development does not run the Vercel schedule automatically. To exercise th
 
 - **Prisma cannot find `DATABASE_URL`:** Put it in the root `.env`; a value only in `.env.local` is not automatically loaded by the Prisma 6 CLI.
 - **MongoDB transaction errors:** Check that the database runs as a replica set and that the connection string, database user, and network access are correct.
-- **Uploads fail:** Check the Cloudinary cloud name and the unsigned `auctions` preset.
+- **Uploads fail:** Check sign-in, the 4 MB file cap, supported formats, Cloudinary credentials, and upload quota/asset collections. A `429` includes `Retry-After`; see the [cutover guide](docs/upload-cutover.md).
 - **Live updates are missing:** Verify the Pusher app credentials and the `us2` cluster setting in both client and server configuration.
 - **OAuth sign-in fails:** Check provider credentials and the callback URL for the current origin.
 - **Auctions remain live after expiry:** Check the scheduler and its authorization header. The cron endpoint returns `401` when `CRON_SECRET` is absent or the header does not match.
@@ -400,3 +401,5 @@ Local development does not run the Vercel schedule automatically. To exercise th
 ## License
 
 This project is private and proprietary.
+
+Upload security deployment and preset cutover: [deployment guide](docs/upload-cutover.md).

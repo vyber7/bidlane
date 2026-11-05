@@ -6,7 +6,8 @@ import { useForm, useWatch } from "react-hook-form";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { useEffect, useRef, useState } from "react";
-import { CldImage, CldUploadWidget } from "next-cloudinary";
+import { CldImage } from "next-cloudinary";
+import AuthorizedUploadButton from "@/app/components/AuthorizedUploadButton";
 import { useRouter } from "next/navigation";
 import { MAX_LISTING_NUMBER, MAX_LISTING_PHOTOS, validateListing } from "@/app/libs/listing-validation";
 import { listingSchema } from "@/app/schemas/listing";
@@ -182,15 +183,11 @@ export default function SubmitForm({ initialDraft }: { initialDraft?: ListingDra
         <PhotoChecklist checked={photoChecklist} onChange={setPhotoChecklist} />
         <div className="mb-5 rounded-xl border-2 border-dashed border-slate-200 p-6 text-center">
           <p className="mb-3 text-sm text-slate-600">Include exterior, interior, and detail shots.</p>
-          <CldUploadWidget uploadPreset="auctions" options={{ resourceType: "image", clientAllowedFormats: ["jpg", "jpeg", "png", "webp"], maxFiles: MAX_LISTING_PHOTOS - images.length, multiple: true }} onSuccess={(result) => {
-            if (typeof result.info !== "object" || !result.info.secure_url) return;
-            const url = result.info.secure_url;
+          <AuthorizedUploadButton kind="PHOTO" maxFiles={MAX_LISTING_PHOTOS - images.length} className={secondary} onUpload={(url) => {
             setImages((current) => current.includes(url) ? current : [...current, url].slice(0, MAX_LISTING_PHOTOS));
             setError("");
-          }} onError={() => setError("Photo upload failed. Please try again.")}>
-            {({ open }) => <button type="button" disabled={images.length >= MAX_LISTING_PHOTOS} onClick={() => open()} className={secondary}>{images.length ? "Add more photos" : "Add photos"}</button>}
-          </CldUploadWidget>
-          <p aria-live="polite" className="mt-3 text-xs text-slate-500">{images.length} / {MAX_LISTING_PHOTOS} photos · At least one required</p>
+          }}>{images.length ? "Add more photos" : "Add photos"}</AuthorizedUploadButton>
+          <p aria-live="polite" className="mt-3 text-xs text-slate-500">{images.length} / {MAX_LISTING_PHOTOS} photos · At least one required · Up to 4 MB each</p>
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {images.map((url, index) => <div key={url} className="overflow-hidden rounded-xl border border-slate-200">

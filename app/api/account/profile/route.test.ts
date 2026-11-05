@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ user: vi.fn(), update: vi.fn(), logError: vi.fn() }));
+const mocks = vi.hoisted(() => ({ user: vi.fn(), update: vi.fn(), assets: vi.fn(), logError: vi.fn() }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { user: { update: mocks.update } } }));
+vi.mock("@/app/libs/prismadb", () => ({ default: { user: { update: mocks.update }, uploadedAsset: { findMany: mocks.assets } } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: mocks.logError } }));
 import { PATCH } from "./route";
 
@@ -14,9 +14,24 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.user.mockResolvedValue({ id: "user-1" });
   mocks.update.mockResolvedValue({ name: "Driver", email: "driver@example.com", image: null });
+  mocks.assets.mockResolvedValue([]);
 });
 
 describe("profile request validation", () => {
+  it("rejects pasted media that was not uploaded by this account", async () => {
+    vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo");
+    const response = await PATCH(request({ name: "Driver", image: "https://res.cloudinary.com/demo/image/upload/stolen.jpg" }));
+    expect(response.status).toBe(400);
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it("preserves the existing OAuth avatar while changing the name", async () => {
+    const image = "https://avatars.githubusercontent.com/u/123";
+    mocks.user.mockResolvedValue({ id: "user-1", image });
+    expect((await PATCH(request({ name: "Driver", image }))).status).toBe(200);
+    expect(mocks.assets).not.toHaveBeenCalled();
+  });
+
   it("does not allow a profile update to change the role", async () => {
     const response = await PATCH(request({ name: "Driver", image: "", role: "ADMIN", isAdmin: true }));
     expect(response.status).toBe(200);
@@ -55,3 +70,5 @@ describe("profile request validation", () => {
     expect(mocks.logError).toHaveBeenCalledWith("account.profile_update_failed", error, { userId: "user-1" });
   });
 });
+
+afterEach(() => vi.unstubAllEnvs());

@@ -3,11 +3,8 @@
 import { getApiErrorMessage } from "@/app/utils/api-error";
 
 import axios from "axios";
-import {
-  CldImage,
-  CldUploadButton,
-  type CloudinaryUploadWidgetResults,
-} from "next-cloudinary";
+import { CldImage } from "next-cloudinary";
+import AuthorizedUploadButton from "@/app/components/AuthorizedUploadButton";
 import Image from "next/image";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -23,11 +20,8 @@ interface CoverImageProps {
 
 const CoverImage: React.FC<CoverImageProps> = ({ listingId, url, owner, alt = "Vehicle cover photo" }) => {
   const [imageUrl, setImageUrl] = useState<string>(url || "");
-  const handleUpload = async (result: CloudinaryUploadWidgetResults) => {
-    if (typeof result.info !== "object" || !result.info.secure_url) return;
-
+  const handleUpload = async (nextUrl: string) => {
     const previousUrl = imageUrl;
-    const nextUrl = result.info.secure_url;
     setImageUrl(nextUrl);
 
     try {
@@ -68,14 +62,9 @@ const CoverImage: React.FC<CoverImageProps> = ({ listingId, url, owner, alt = "V
         )}
       </div>
       {owner && (
-        <CldUploadButton
-          options={{
-            maxFiles: 1,
-            resourceType: "image",
-            folder: `listing-${listingId}`,
-          }}
-          onSuccess={handleUpload}
-          uploadPreset="auctions"
+        <AuthorizedUploadButton
+          kind="PHOTO" listingId={listingId}
+          onUpload={handleUpload}
           className="mt-3 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
         >
           {imageUrl ? (
@@ -86,7 +75,7 @@ const CoverImage: React.FC<CoverImageProps> = ({ listingId, url, owner, alt = "V
           ) : (
             "Add Cover Image"
           )}
-        </CldUploadButton>
+        </AuthorizedUploadButton>
       )}
     </>
   );

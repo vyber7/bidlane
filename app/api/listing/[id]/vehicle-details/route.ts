@@ -1,3 +1,4 @@
+import { assertOwnedAssets, recordUrls } from "@/app/libs/uploaded-assets";
 import { z } from "zod";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import prisma from "@/app/libs/prismadb";
@@ -12,11 +13,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const user = await getCurrentUser();
     if (!user) return errorResponse("Please sign in.", 401);
     const id = parseApiInput(listingIdSchema, (await params).id);
-    const listing = await prisma.listing.findUnique({ where: { id }, select: { userId: true, year: true, status: true, reviewRevision: true } });
+    const listing = await prisma.listing.findUnique({ where: { id }, select: { userId: true, year: true, status: true, reviewRevision: true, vehicleRecords: true } });
     if (!listing) return errorResponse("Listing not found.", 404);
     if (listing.userId !== user.id) return errorResponse("Only the seller can edit these details.", 403);
     if (listing.status !== "UPCOMING") return errorResponse("VIN and records can only be changed before bidding opens.", 409);
     const data = parseApiInput(schema, await readJsonObject(request));
+    await assertOwnedAssets({ userId: user.id, kind: "RECORD", urls: recordUrls(data.vehicleRecords), existingUrls: recordUrls(listing.vehicleRecords), listingId: id });
     const updated = await prisma.listing.updateMany({
       where: { id, userId: user.id, status: "UPCOMING", ...reviewVersionWhere(listing.reviewRevision ?? 0) },
       data: { vin: data.vin || null, vehicleRecords: data.vehicleRecords, ...pendingReviewUpdate(listing.reviewRevision ?? 0) },

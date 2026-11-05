@@ -4,7 +4,8 @@ import type { SellerListing } from "@/app/libs/listing-payload";
 import axios from "axios";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CldImage, CldUploadWidget } from "next-cloudinary";
+import { CldImage } from "next-cloudinary";
+import AuthorizedUploadButton from "@/app/components/AuthorizedUploadButton";
 import { listingSchema, MAX_LISTING_PHOTOS } from "@/app/schemas/listing";
 import { readVehicleRecords } from "@/app/schemas/vehicle-trust";
 import { vehicleDisclosureFields, vehicleSpecificationFields } from "@/app/libs/vehicle-details";
@@ -54,7 +55,7 @@ export default function ListingEditor({ listing }: { listing: SellerListing }) {
         </div>
         <label className="block text-sm font-bold">Description<textarea name="description" defaultValue={listing.description} rows={5} className={inputClass} /></label>
         {vehicleDisclosureFields.map(({ id, label, hint }) => <label key={id} className="block text-sm font-bold">{label}<span className="mt-1 block text-xs font-normal text-slate-600">{hint}</span><textarea name={id} maxLength={4000} defaultValue={listing[id] || ""} rows={3} className={inputClass} /></label>)}
-        <RecordUploads records={records} onChange={setRecords} />
+        <RecordUploads records={records} onChange={setRecords} listingId={listing.id} />
         <div>
           <h3 className="text-sm font-bold">Photos ({images.length}/{MAX_LISTING_PHOTOS})</h3>
           <p className="mt-1 text-xs text-slate-600">Choose a cover photo or remove photos before saving.</p>
@@ -65,12 +66,10 @@ export default function ListingEditor({ listing }: { listing: SellerListing }) {
               <button type="button" className="mt-2 text-xs font-bold text-rose-700 underline" onClick={() => { const next = images.filter((_, i) => i !== index); setImages(next); if (cover === url) setCover(next[0]); }}>Remove photo {index + 1}</button>
             </div>)}
           </div>
-          <CldUploadWidget uploadPreset="auctions" options={{ resourceType: "image", folder: `listing-${listing.id}`, maxFiles: Math.max(1, MAX_LISTING_PHOTOS - images.length) }} onSuccess={(result) => {
-            if (typeof result.info !== "object" || !result.info.secure_url) return;
-            const url = result.info.secure_url;
+          <AuthorizedUploadButton kind="PHOTO" listingId={listing.id} maxFiles={MAX_LISTING_PHOTOS - images.length} className="mt-3 rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold disabled:opacity-50" onUpload={(url) => {
             setImages((previous) => previous.includes(url) ? previous : [...previous, url].slice(0, MAX_LISTING_PHOTOS));
             setCover((previous) => previous || url);
-          }}>{({ open }) => <button type="button" disabled={images.length >= MAX_LISTING_PHOTOS} onClick={() => open()} className="mt-3 rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold disabled:opacity-50">Add photos</button>}</CldUploadWidget>
+          }}>Add photos</AuthorizedUploadButton>
         </div>
         <button type="submit" className="rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{saving ? "Saving…" : "Save & submit for review"}</button>
       </fieldset>

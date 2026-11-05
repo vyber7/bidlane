@@ -1,3 +1,4 @@
+import { assertListingAssets } from "./uploaded-assets";
 import type { ListingDraft } from "@prisma/client";
 import type { z } from "zod";
 import prisma from "./prismadb";
@@ -22,6 +23,7 @@ export async function createListingDraft(userId: string, input: z.output<typeof 
       if (existing.publishedListingId || !sameSave(existing, input)) throw conflict();
       return serializeDraft(existing);
     }
+    await assertListingAssets(userId, input.payload, undefined, tx);
     const draft = await tx.listingDraft.create({ data: { id: input.id, userId, payload: input.payload, lastSaveKey: input.saveKey, publishedListingId: null, deletedAt: null } });
     return serializeDraft(draft);
   });
@@ -36,6 +38,7 @@ export async function updateListingDraft(userId: string, id: string, input: z.ou
     return serializeDraft(existing);
   }
   if (existing.revision !== input.revision) throw conflict();
+  await assertListingAssets(userId, input.payload, draftPayloadSchema.parse(existing.payload));
   const updatedAt = new Date();
   const updated = await prisma.listingDraft.updateMany({
     where: { id, userId, revision: input.revision, publishedListingId: null, deletedAt: null },

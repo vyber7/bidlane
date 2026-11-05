@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ user: vi.fn(), findUnique: vi.fn(), updateMany: vi.fn() }));
+const mocks = vi.hoisted(() => ({ assets: vi.fn(), user: vi.fn(), findUnique: vi.fn(), updateMany: vi.fn() }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { findUnique: mocks.findUnique, updateMany: mocks.updateMany } } }));
+vi.mock("@/app/libs/prismadb", () => ({ default: { uploadedAsset: { findMany: mocks.assets }, listing: { findUnique: mocks.findUnique, updateMany: mocks.updateMany } } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
 import { PATCH } from "./route";
 
@@ -12,13 +12,22 @@ const data = { year: 2020, make: "Porsche", model: "911", miles: 100, location: 
 const patch = (body: unknown = { revision: 3, data }) => PATCH(new Request("http://localhost/api/listing", { method: "PATCH", body: JSON.stringify(body) }), { params: Promise.resolve({ id }) });
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ where }) => [photo].filter((url) => where.url.in.includes(url)).map((url) => ({ url })));
   mocks.user.mockResolvedValue({ id: "seller" });
   mocks.findUnique.mockResolvedValue({ id, userId: "seller", status: "UPCOMING", reviewRevision: 3, reviewStatus: "APPROVED" });
   mocks.updateMany.mockResolvedValue({ count: 1 });
 });
 
 describe("seller listing corrections", () => {
+  it("rejects an unregistered replacement photo", async () => {
+    mocks.assets.mockResolvedValue([]);
+    expect((await patch()).status).toBe(400); expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+  it("keeps an exact saved legacy photo even when no ledger row exists", async () => {
+    mocks.findUnique.mockResolvedValue({ id, userId: "seller", status: "UPCOMING", reviewRevision: 3, images: [photo] });
+    mocks.assets.mockResolvedValue([]);
+    expect((await patch()).status).toBe(200); expect(mocks.assets).not.toHaveBeenCalled();
+  });
   it("saves all corrections together and resubmits an approved listing for review", async () => {
     const response = await patch({ revision: 3, data: { ...data, reviewStatus: "APPROVED", status: "LIVE", userId: "buyer" } });
     expect(response.status).toBe(200);
@@ -50,3 +59,5 @@ describe("seller listing corrections", () => {
   });
   it("requires a revision", async () => { expect((await patch({ data })).status).toBe(400); expect(mocks.updateMany).not.toHaveBeenCalled(); });
 });
+
+afterEach(() => vi.unstubAllEnvs());

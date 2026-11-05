@@ -1,3 +1,4 @@
+import { assertListingAssets } from "@/app/libs/uploaded-assets";
 import { parseApiInput } from "@/app/libs/api-request";
 import { publishListingDraft } from "@/app/libs/listing-drafts";
 import { publishDraftSchema } from "@/app/schemas/listing-draft";
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ id: listing.id }, { status: 201 });
     }
     const listing = parseListing(body.data);
+    await assertListingAssets(currentUser.id, listing);
     const newListing = await prisma.listing.create({
       data: {
         ...listing,

@@ -1,3 +1,4 @@
+import { assertListingAssets } from "@/app/libs/uploaded-assets";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import prisma from "@/app/libs/prismadb";
 import { apiErrorResponse, errorResponse, parseApiInput, readJsonObject, requireListingId } from "@/app/libs/api-request";
@@ -19,6 +20,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const revision = parseApiInput(reviewRevisionSchema, body.revision);
     if (revision !== (listing.reviewRevision ?? 0)) return errorResponse("This listing changed. Reload before editing again.", 409);
     const data = parseListing(body.data);
+    await assertListingAssets(user.id, data, { images: listing.images, vehicleRecords: listing.vehicleRecords, listingId: id });
     const coverImage = typeof body.coverImage === "string" && data.images.includes(body.coverImage) ? body.coverImage : data.images[0];
     const updated = await prisma.listing.updateMany({
       where: { id, userId: user.id, status: "UPCOMING", ...reviewVersionWhere(revision) },

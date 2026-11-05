@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   findUnique: vi.fn(),
   updateMany: vi.fn(),
+  assets: vi.fn(),
 }));
 
 vi.mock("@/app/actions/getCurrentUser", () => ({
@@ -11,6 +12,7 @@ vi.mock("@/app/actions/getCurrentUser", () => ({
 }));
 vi.mock("../../libs/prismadb", () => ({
   default: {
+    uploadedAsset: { findMany: mocks.assets },
     listing: {
       findUnique: mocks.findUnique,
       updateMany: mocks.updateMany,
@@ -37,7 +39,7 @@ function post(body: unknown) {
 
 describe("/api/cloudinary-images", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ where }) => [imageUrl].filter((url) => where.url.in.includes(url)).map((url) => ({ url })));
     mocks.getCurrentUser.mockResolvedValue({ id: "seller" });
     mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", reviewRevision: 2, images: [] });
     mocks.updateMany.mockResolvedValue({ count: 1 });
@@ -77,7 +79,7 @@ describe("/api/cloudinary-images", () => {
     expect(mocks.updateMany).not.toHaveBeenCalled();
   });
 
-  it("rejects non-Cloudinary and wrong-folder images", async () => {
+  it("rejects non-Cloudinary and unregistered images", async () => {
     for (const invalidUrl of [
       "https://example.com/image.jpg",
       "https://res.cloudinary.com/demo/image/upload/another-folder/image.jpg",
@@ -86,6 +88,11 @@ describe("/api/cloudinary-images", () => {
         (await POST(post({ listingId, imageUrl: invalidUrl }))).status
       ).toBe(400);
     }
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+  it("rejects a same-cloud photo not registered to this account", async () => {
+    mocks.assets.mockResolvedValue([]);
+    expect((await POST(post({ listingId, imageUrl }))).status).toBe(400);
     expect(mocks.updateMany).not.toHaveBeenCalled();
   });
 
@@ -126,3 +133,5 @@ describe("/api/cloudinary-images", () => {
     });
   });
 });
+
+afterEach(() => vi.unstubAllEnvs());

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   trigger: vi.fn(),
   findUnique: vi.fn(),
   upsert: vi.fn(),
+  assets: vi.fn(),
 }));
 
 vi.mock("@/app/actions/getCurrentUser", () => ({
@@ -14,7 +15,7 @@ vi.mock("@/app/actions/getCurrentUser", () => ({
 }));
 vi.mock("@/app/libs/prismadb", () => ({
   default: {
-    $transaction: async (callback: (tx: unknown) => unknown) => callback({ comment: { create: mocks.create }, listing: { findUnique: mocks.findUnique, update: mocks.update }, notification: { upsert: mocks.upsert } }),
+    $transaction: async (callback: (tx: unknown) => unknown) => callback({ uploadedAsset: { findMany: mocks.assets }, comment: { create: mocks.create }, listing: { findUnique: mocks.findUnique, update: mocks.update }, notification: { upsert: mocks.upsert } }),
     comment: { create: mocks.create },
     listing: { update: mocks.update },
   },
@@ -39,6 +40,10 @@ function request(body: unknown) {
 }
 
 describe("POST /api/comments", () => {
+  it("rejects unregistered attachment URLs without creating or broadcasting a comment", async () => {
+    expect((await POST(request({ listingId, comment: "Hello", image: "https://res.cloudinary.com/demo/image/upload/borrowed.jpg" }))).status).toBe(400);
+    expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.trigger).not.toHaveBeenCalled();
+  });
   it("does not post or broadcast comments on an unapproved listing", async () => {
     mocks.findUnique.mockResolvedValue({ id: listingId, userId: "seller", status: "UPCOMING", reviewStatus: "PENDING" });
     expect((await POST(request({ listingId, comment: "Hello" }))).status).toBe(409);
@@ -47,7 +52,7 @@ describe("POST /api/comments", () => {
   });
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockResolvedValue([]);
     mocks.getCurrentUser.mockResolvedValue({
       id: "user-1",
       email: "driver@example.com",
@@ -107,3 +112,5 @@ describe("POST /api/comments", () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 });
+
+afterEach(() => vi.unstubAllEnvs());

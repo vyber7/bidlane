@@ -1,3 +1,4 @@
+import { assertOwnedAssets } from "@/app/libs/uploaded-assets";
 import { NextResponse } from "next/server";
 import prisma from "../../../../libs/prismadb";
 import { logger } from "@/app/libs/logger";
@@ -28,19 +29,20 @@ export async function POST(
     const body = await readJsonObject(request);
 
     const coverImageUrl = body.url;
-    if (!isCloudinaryImageUrl(coverImageUrl, listingId)) {
+    if (!isCloudinaryImageUrl(coverImageUrl)) {
       throw new ApiRequestError(400, "Invalid cover image URL");
     }
 
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
-      select: { userId: true, status: true, images: true, reviewRevision: true },
+      select: { userId: true, status: true, images: true, reviewRevision: true, coverImage: true },
     });
     if (!listing) throw new ApiRequestError(404, "Listing not found");
     if (listing.userId !== currentUser.id) {
       throw new ApiRequestError(403, "Only the seller can update this listing");
     }
     if (listing.status !== "UPCOMING") throw new ApiRequestError(409, "Photos cannot be changed after bidding opens.");
+    await assertOwnedAssets({ userId: currentUser.id, kind: "PHOTO", urls: [coverImageUrl], existingUrls: [...listing.images, ...(listing.coverImage ? [listing.coverImage] : [])], listingId });
     const addPhoto = !listing.images.includes(coverImageUrl);
     if (addPhoto && listing.images.length >= MAX_LISTING_PHOTOS) throw new ApiRequestError(409, "This listing already has the maximum number of images");
 

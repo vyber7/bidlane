@@ -7,7 +7,7 @@ vi.mock("axios", async (importOriginal) => {
   return { ...actual, default: { ...actual.default, patch: mocks.patch } };
 });
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
-vi.mock("next-cloudinary", () => ({ CldImage: () => <span>Photo</span>, CldUploadWidget: () => null }));
+vi.mock("next-cloudinary", () => ({ CldImage: () => <span>Photo</span> }));
 vi.mock("@/app/submit-listing/components/RecordUploads", () => ({ default: () => <span>Records</span> }));
 import ListingEditor from "./ListingEditor";
 import { makeSellerListing as makeListing } from "@/app/test/auction-fixtures";

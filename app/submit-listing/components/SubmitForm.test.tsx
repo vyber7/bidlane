@@ -14,11 +14,10 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push, refres
 vi.mock("react-hot-toast", () => ({ default: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("next-cloudinary", () => ({
   CldImage: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} />,
-  CldUploadWidget: ({ children, onSuccess }: {
-    children: (props: { open: () => void }) => ReactNode;
-    onSuccess: (result: { info: { secure_url: string } }) => void;
-  }) => children({ open: () => onSuccess({ info: { secure_url: "https://res.cloudinary.com/demo/image/upload/car.jpg" } }) }),
+
 }));
+
+vi.mock("@/app/components/AuthorizedUploadButton", () => ({ default: ({ children, onUpload }: { children: ReactNode; onUpload: (url: string) => void }) => <button type="button" onClick={() => onUpload("https://res.cloudinary.com/demo/image/upload/car.jpg")}>{children}</button> }));
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -1,3 +1,4 @@
+import { assertOwnedAssets } from "@/app/libs/uploaded-assets";
 import { NextResponse } from "next/server";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import prisma from "../../libs/prismadb";
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
 
     const listingId = requireListingId(body.listingId);
     const imageUrl = body.imageUrl;
-    if (!isCloudinaryImageUrl(imageUrl, listingId)) {
+    if (!isCloudinaryImageUrl(imageUrl)) {
       throw new ApiRequestError(400, "Invalid listing image URL");
     }
 
@@ -76,6 +77,7 @@ export async function POST(req: Request) {
       );
     }
 
+    await assertOwnedAssets({ userId: currentUser.id, kind: "PHOTO", urls: [imageUrl], listingId });
     const updated = await prisma.listing.updateMany({
       where: {
         id: listingId,

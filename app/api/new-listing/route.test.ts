@@ -1,14 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { validateListing } from "@/app/libs/listing-validation";
-const mocks = vi.hoisted(() => ({ user: vi.fn(), create: vi.fn() }));
+const mocks = vi.hoisted(() => ({ assets: vi.fn(), user: vi.fn(), create: vi.fn() }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { create: mocks.create } } }));
+vi.mock("@/app/libs/prismadb", () => ({ default: { uploadedAsset: { findMany: mocks.assets }, listing: { create: mocks.create } } }));
 import { POST } from "./route";
 const photo = "https://res.cloudinary.com/demo/image/upload/car.jpg";
 const data = { make: " Porsche ", model: "911", year: "2020", miles: "0", reservePrice: "", location: "Miami, FL", description: "Serviced regularly", images: [photo], transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: " Oil service at 42,000 miles. Records available. ", modifications: "None known", knownFlaws: "Stone chips on the hood" };
 const request = (data: unknown) => new Request("http://localhost/api/new-listing", { method: "POST", body: JSON.stringify({ data }) });
 describe("listing submission", () => {
-  beforeEach(() => { vi.clearAllMocks(); mocks.user.mockResolvedValue({ id: "seller" }); mocks.create.mockResolvedValue({ id: "listing" }); });
+  beforeEach(() => { vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ where }) => [photo, photo.replace("car.jpg", "interior.jpg"), "https://res.cloudinary.com/demo/image/upload/receipt.pdf"].filter((url) => where.url.in.includes(url)).map((url) => ({ url }))); mocks.user.mockResolvedValue({ id: "seller" }); mocks.create.mockResolvedValue({ id: "listing" }); });
   it("requires sign-in before saving", async () => {
     mocks.user.mockResolvedValue(null);
     expect((await POST(request(data))).status).toBe(401);
@@ -19,6 +19,10 @@ describe("listing submission", () => {
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toEqual({ id: "listing" });
     expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ make: "Porsche", miles: 0, reservePrice: null, images: [photo], coverImage: photo, user: { connect: { id: "seller" } } }) });
+  });
+  it.each([{ images: [photo.replace("car.jpg", "borrowed.jpg")] }, { vehicleRecords: [{ label: "Borrowed", url: photo.replace("car.jpg", "borrowed.pdf") }] }])("rejects media absent from the authenticated owner's ledger", async (media) => {
+    expect((await POST(request({ ...data, ...media }))).status).toBe(400);
+    expect(mocks.create).not.toHaveBeenCalled();
   });
 
   it("ignores seller-supplied approval and submits to review", async () => {
@@ -69,3 +73,5 @@ describe("listing submission", () => {
     expect((await POST(request(data))).status).toBe(500);
   });
 });
+
+afterEach(() => vi.unstubAllEnvs());

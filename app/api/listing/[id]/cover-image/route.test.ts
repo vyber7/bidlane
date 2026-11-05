@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   findUnique: vi.fn(),
   updateMany: vi.fn(),
+  assets: vi.fn(),
 }));
 
 vi.mock("@/app/actions/getCurrentUser", () => ({
@@ -11,6 +12,7 @@ vi.mock("@/app/actions/getCurrentUser", () => ({
 }));
 vi.mock("../../../../libs/prismadb", () => ({
   default: {
+    uploadedAsset: { findMany: mocks.assets },
     listing: {
       findUnique: mocks.findUnique,
       updateMany: mocks.updateMany,
@@ -37,8 +39,13 @@ function context(id = listingId) {
 }
 
 describe("POST /api/listing/[id]/cover-image", () => {
+  it("rejects an unregistered replacement cover", async () => {
+    mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", reviewRevision: 2, images: [] });
+    mocks.assets.mockResolvedValue([]);
+    expect((await POST(request(), context())).status).toBe(400); expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ where }) => [imageUrl].filter((url) => where.url.in.includes(url)).map((url) => ({ url })));
     mocks.getCurrentUser.mockResolvedValue({ id: "seller" });
     mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", reviewRevision: 2, images: [imageUrl] });
     mocks.updateMany.mockResolvedValue({ count: 1 });
@@ -102,3 +109,5 @@ describe("POST /api/listing/[id]/cover-image", () => {
     expect(mocks.updateMany).not.toHaveBeenCalled();
   });
 });
+
+afterEach(() => vi.unstubAllEnvs());

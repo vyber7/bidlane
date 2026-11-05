@@ -2,9 +2,9 @@
 
 import { getApiErrorMessage } from "@/app/utils/api-error";
 
-import { CldImage, type CloudinaryUploadWidgetResults } from "next-cloudinary";
+import { CldImage } from "next-cloudinary";
 import { useRef, useState } from "react";
-import { CldUploadButton } from "next-cloudinary";
+import AuthorizedUploadButton from "@/app/components/AuthorizedUploadButton";
 import Image from "next/image";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -45,11 +45,8 @@ const Gallery: React.FC<GalleryProps> = ({
     ? images.slice(Math.max(0, selectedImage - 1), selectedImage + 2)
     : images.filter((image) => image === preparedImage);
 
-  const handleUpload = (result: CloudinaryUploadWidgetResults) => {
-    if (typeof result.info !== "object" || !result.info.secure_url) return;
-    const imageUrl = result.info.secure_url;
-
-    axios
+  const handleUpload = (imageUrl: string) => {
+    return axios
       .post("/api/cloudinary-images", {
         imageUrl,
         listingId,
@@ -121,21 +118,17 @@ const Gallery: React.FC<GalleryProps> = ({
         ))}
       </div>
       {owner && images.length < MAX_LISTING_PHOTOS && (
-        <CldUploadButton
-          options={{
-            maxFiles: MAX_LISTING_PHOTOS - images.length,
-            resourceType: "image",
-            folder: `listing-${listingId}`,
-          }}
-          onSuccess={handleUpload}
-          uploadPreset="auctions"
+        <AuthorizedUploadButton
+          kind="PHOTO" listingId={listingId}
+          maxFiles={MAX_LISTING_PHOTOS - images.length}
+          onUpload={handleUpload}
           className={clsx(
             images.length ? "mt-4" : "",
             "rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50",
           )}
         >
           Add Images
-        </CldUploadButton>
+        </AuthorizedUploadButton>
       )}
       <dialog
         ref={dialogRef}

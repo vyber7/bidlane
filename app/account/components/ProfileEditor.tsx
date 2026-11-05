@@ -7,10 +7,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import toast from "react-hot-toast";
-import {
-  CldUploadButton,
-  type CloudinaryUploadWidgetResults,
-} from "next-cloudinary";
+import AuthorizedUploadButton from "@/app/components/AuthorizedUploadButton";
 import {
   FiCalendar,
   FiCamera,
@@ -58,12 +55,6 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
     setName(saved.name);
     setImage(saved.image);
     setEditing(false);
-  };
-
-  const handleUpload = (result: CloudinaryUploadWidgetResults) => {
-    if (typeof result.info === "object" && result.info.secure_url) {
-      setImage(result.info.secure_url);
-    }
   };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -138,14 +129,13 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
             </div>
             {editing && (
               <div className="mt-4 flex flex-col items-start gap-2">
-                <CldUploadButton
-                  options={{ maxFiles: 1, resourceType: "image", folder: "profile-images" }}
-                  onSuccess={handleUpload}
-                  uploadPreset="auctions"
+                <AuthorizedUploadButton
+                  kind="PROFILE"
+                  onUpload={setImage}
                   className="inline-flex items-center gap-2 text-sm font-bold text-gray-900 hover:underline"
                 >
                   <FiCamera /> {image ? "Change photo" : "Add photo"}
-                </CldUploadButton>
+                </AuthorizedUploadButton>
                 {image && (
                   <button
                     type="button"
