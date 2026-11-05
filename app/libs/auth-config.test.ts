@@ -27,8 +27,22 @@ describe("session version issuance", () => {
     await expect(authorize({ email: "user@example.com", password: "password" }, request)).rejects.toThrow("RateLimited:10");
     expect(mocks.user).not.toHaveBeenCalled(); expect(mocks.compare).not.toHaveBeenCalled();
     mocks.limit.mockClear();
-    await expect(authorize({ email: "user@example.com", password: "é".repeat(513) }, request)).rejects.toThrow("Invalid Credentials");
+    await expect(authorize({ email: "user@example.com", password: "é".repeat(36) + "a" }, request)).rejects.toThrow("Invalid Credentials");
     expect(mocks.limit).not.toHaveBeenCalled();
+  });
+  it.each(["a".repeat(73), "😀".repeat(18) + "a"])("rejects more than 72 bytes before password comparison", async (password) => {
+    const provider = authOptions.providers.find((provider) => provider.id === "credentials") as CredentialsConfig;
+    await expect(provider.options!.authorize!({ email: "user@example.com", password }, { body: {}, query: {}, headers: {}, method: "POST" })).rejects.toThrow("Invalid Credentials");
+    expect(mocks.limit).not.toHaveBeenCalled();
+    expect(mocks.user).not.toHaveBeenCalled();
+    expect(mocks.compare).not.toHaveBeenCalled();
+  });
+  it.each(["a", "a".repeat(72), "é".repeat(36), "😀".repeat(18)])("compares legacy short passwords and exact byte boundaries unchanged: %s", async (password) => {
+    mocks.user.mockResolvedValue({ id: "user", email: "user@example.com", hashedPassword: "hash" });
+    const provider = authOptions.providers.find((provider) => provider.id === "credentials") as CredentialsConfig;
+    const user = await provider.options!.authorize!({ email: "user@example.com", password }, { body: {}, query: {}, headers: {}, method: "POST" });
+    expect(user).toMatchObject({ id: "user" });
+    expect(mocks.compare).toHaveBeenCalledWith(password, "hash");
   });
   it("captures the version before password comparison so a racing reset cannot bless an old login", async () => {
     mocks.user.mockResolvedValue({ id: "user", email: "user@example.com", hashedPassword: "old-hash", sessionVersion: "old-version" });

@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { apiErrorResponse, parseApiInput } from "@/app/libs/api-request";
-import { registrationSchema, profileSchema } from "./account";
+import { loginCredentialsSchema, registrationSchema, profileSchema } from "./account";
+import { passwordResetSchema } from "./password-reset";
 import { bidRequestSchema, commentRequestSchema } from "./auction";
 import { listingSchema } from "./listing";
 
@@ -22,12 +23,42 @@ describe("shared validation boundaries", () => {
     expect(listingSchema.safeParse({ ...listing, [field]: "x".repeat(limit + 1) }).success).toBe(false);
   });
   it("bounds registration and comment fields before expensive work", () => {
-    const account = { name: "Driver", email: "driver@example.com", password: "password" };
+    const account = { name: "Driver", email: "driver@example.com", password: "a long password" };
     expect(registrationSchema.safeParse({ ...account, name: "x".repeat(61) }).success).toBe(false);
-    expect(registrationSchema.safeParse({ ...account, password: "é".repeat(513) }).success).toBe(false);
-    expect(registrationSchema.safeParse({ ...account, password: "é".repeat(512) }).success).toBe(true);
+    expect(registrationSchema.safeParse({ ...account, password: "é".repeat(37) }).success).toBe(false);
+    expect(registrationSchema.safeParse({ ...account, password: "é".repeat(36) }).success).toBe(true);
     expect(commentRequestSchema.safeParse({ listingId, comment: "x".repeat(4000) }).success).toBe(true);
     expect(commentRequestSchema.safeParse({ listingId, comment: "x".repeat(4001) }).success).toBe(false);
+  });
+  it.each([
+    ["one character", "a", false],
+    ["11 characters", "a".repeat(11), false],
+    ["12 characters", "a".repeat(12), true],
+    ["72 ASCII bytes", "a".repeat(72), true],
+    ["73 ASCII bytes", "a".repeat(73), false],
+    ["72 accented bytes", "é".repeat(36), true],
+    ["73 accented bytes", "é".repeat(36) + "a", false],
+    ["72 emoji bytes", "😀".repeat(18), true],
+    ["73 emoji bytes", "😀".repeat(18) + "a", false],
+    ["leading and trailing spaces", " long secret ", true],
+  ])("uses the same new-password policy for registration and reset: %s", (_, password, success) => {
+    const registration = registrationSchema.safeParse({ name: "Driver", email: "driver@example.com", password });
+    const reset = passwordResetSchema.safeParse({ token: "a".repeat(64), password, confirmPassword: password });
+    expect(registration.success).toBe(success);
+    expect(reset.success).toBe(success);
+    if (registration.success && reset.success) {
+      expect(registration.data.password).toBe(password);
+      expect(reset.data.password).toBe(password);
+    } else if (!registration.success && !reset.success) {
+      expect(registration.error.issues[0].message).toBe(reset.error.issues[0].message);
+    }
+  });
+  it("keeps legacy short logins working while enforcing bcrypt's byte limit", () => {
+    const credentials = { email: "driver@example.com", password: "a" };
+    expect(loginCredentialsSchema.parse(credentials)).toEqual(credentials);
+    expect(loginCredentialsSchema.safeParse({ ...credentials, password: "" }).success).toBe(false);
+    expect(loginCredentialsSchema.safeParse({ ...credentials, password: "😀".repeat(18) }).success).toBe(true);
+    expect(loginCredentialsSchema.safeParse({ ...credentials, password: "😀".repeat(18) + "a" }).success).toBe(false);
   });
   it("accepts a 20-photo listing and rejects a 21st photo", () => {
     const images = Array.from({ length: 20 }, (_, i) => `https://res.cloudinary.com/demo/image/upload/photo-${i}.jpg`);
@@ -85,7 +116,7 @@ describe("shared validation boundaries", () => {
   });
 
   it("trims registration details while preserving password whitespace", () => {
-    expect(registrationSchema.parse({ name: " Driver ", email: " Driver@example.com ", password: " secret " })).toEqual({ name: "Driver", email: "Driver@example.com", password: " secret " });
+    expect(registrationSchema.parse({ name: " Driver ", email: " Driver@example.com ", password: " long secret " })).toEqual({ name: "Driver", email: "Driver@example.com", password: " long secret " });
   });
 
   it("keeps existing JavaScript length limits for profile names", () => {

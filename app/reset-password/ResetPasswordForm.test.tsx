@@ -30,7 +30,7 @@ describe("password reset form", () => {
     expect(mocks.signOut).toHaveBeenCalledWith({ redirect: false });
     expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/signin");
   });
-  it.each([["short", "short", "at least 12"], ["a long password", "different password", "do not match"]])("validates password and confirmation before submitting", async (password, confirm, message) => {
+  it.each([["short", "short", "at least 12"], ["é".repeat(36) + "a", "é".repeat(36) + "a", "no more than 72 bytes"], ["a long password", "different password", "do not match"]])("validates password and confirmation before submitting", async (password, confirm, message) => {
     const { container } = render(<ResetPasswordForm />); fill(password, confirm);
     await act(async () => { fireEvent.submit(container.querySelector("form")!); });
     expect(screen.getByRole("alert").textContent).toContain(message); expect(mocks.post).not.toHaveBeenCalled();

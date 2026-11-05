@@ -13,7 +13,8 @@ import { toast } from "react-hot-toast";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import type { AuthFormValues } from "@/app/types/forms";
-import { registrationSchema } from "@/app/schemas/account";
+import { loginCredentialsSchema, registrationSchema } from "@/app/schemas/account";
+import { MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH, PASSWORD_REQUIREMENTS } from "@/app/schemas/password";
 import { validationMessage } from "@/app/schemas/common";
 
 type Variant = "LOGIN" | "REGISTER";
@@ -131,12 +132,13 @@ const AuthForm = () => {
                 autoComplete={autoComplete}
                 placeholder={placeholder}
                 disabled={isLoading}
-                maxLength={id === "name" ? 60 : id === "email" ? 254 : 1024}
+                minLength={id === "password" && variant === "REGISTER" ? MIN_PASSWORD_LENGTH : undefined}
+                maxLength={id === "name" ? 60 : id === "email" ? 254 : MAX_PASSWORD_BYTES}
                 aria-invalid={Boolean(errors[id])}
-                aria-describedby={errors[id] ? `${id}-error` : undefined}
+                aria-describedby={[id === "password" && variant === "REGISTER" ? "password-requirements" : "", errors[id] ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined}
                 {...register(id, {
                   required: `${label} is required.`,
-                  validate: (value) => variant === "REGISTER" ? validationMessage(registrationSchema.shape[id], value) : true,
+                  validate: (value) => variant === "REGISTER" ? validationMessage(registrationSchema.shape[id], value) : id === "password" ? validationMessage(loginCredentialsSchema.shape.password, value) : true,
                 })}
                 className={`block w-full rounded-xl border bg-white px-4 py-3.5 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-400/20 disabled:cursor-wait disabled:opacity-60 sm:text-sm ${id === "password" ? "pr-14" : ""} ${errors[id] ? "border-rose-400" : "border-slate-200 hover:border-slate-300"}`}
               />
@@ -153,6 +155,7 @@ const AuthForm = () => {
                 </button>
               )}
             </div>
+            {id === "password" && variant === "REGISTER" && <p id="password-requirements" className="mt-2 text-xs text-slate-500">{PASSWORD_REQUIREMENTS}</p>}
             {errors[id] && <p id={`${id}-error`} role="alert" className="mt-2 text-xs text-rose-600">{errors[id]?.message}</p>}
           </div>
         ))}

@@ -29,7 +29,7 @@ function request(body: unknown) {
 describe("POST /api/register", () => {
   it("enforces the shared quota before hashing or creating an account", async () => {
     mocks.limit.mockRejectedValueOnce(new ApiRequestError(429, "Wait", 60));
-    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "secret" }));
+    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "a long password" }));
     expect(response.status).toBe(429); expect(response.headers.get("retry-after")).toBe("60");
     expect(mocks.hash).not.toHaveBeenCalled(); expect(mocks.create).not.toHaveBeenCalled();
   });
@@ -48,7 +48,7 @@ describe("POST /api/register", () => {
 
   it("never returns the stored password hash", async () => {
     const response = await POST(
-      request({ name: "Driver", email: "driver@example.com", password: "secret" })
+      request({ name: "Driver", email: "driver@example.com", password: "a long password" })
     );
 
     expect(response.status).toBe(201);
@@ -65,7 +65,7 @@ describe("POST /api/register", () => {
 
   it("keeps required registration fields", async () => {
     const response = await POST(
-      request({ name: "", email: "driver@example.com", password: "secret" })
+      request({ name: "", email: "driver@example.com", password: "a long password" })
     );
 
     expect(response.status).toBe(400);
@@ -73,8 +73,29 @@ describe("POST /api/register", () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["a", "Use at least 12 characters."],
+    ["a".repeat(11), "Use at least 12 characters."],
+    ["a".repeat(73), "Use no more than 72 bytes. Some characters use more than one byte."],
+    ["é".repeat(36) + "a", "Use no more than 72 bytes. Some characters use more than one byte."],
+    ["😀".repeat(18) + "a", "Use no more than 72 bytes. Some characters use more than one byte."],
+  ])("rejects a password outside the shared policy before hashing: %s", async (password, error) => {
+    const response = await POST(request({ name: "Driver", email: "driver@example.com", password }));
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error });
+    expect(mocks.limit).not.toHaveBeenCalled();
+    expect(mocks.hash).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it.each(["a".repeat(12), "a".repeat(72), "é".repeat(36), "😀".repeat(18)])("hashes the exact password at policy boundaries: %s", async (password) => {
+    const response = await POST(request({ name: "Driver", email: "driver@example.com", password }));
+    expect(response.status).toBe(201);
+    expect(mocks.hash).toHaveBeenCalledWith(password, 12);
+  });
+
   it("does not allow public registration to grant an admin role", async () => {
-    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "secret", role: "ADMIN", isAdmin: true, emailVerified: "2026-01-01" }));
+    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "a long password", role: "ADMIN", isAdmin: true, emailVerified: "2026-01-01" }));
     expect(response.status).toBe(201);
     expect(mocks.create.mock.calls[0][0].data).toEqual({ name: "Driver", email: "driver@example.com", hashedPassword: "bcrypt-secret" });
   });
@@ -82,7 +103,7 @@ describe("POST /api/register", () => {
   it.each([
     { name: {} }, { email: [] }, { password: 123 }, { name: "   " },
   ])("rejects invalid registration fields %j before hashing", async (change) => {
-    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "secret", ...change }));
+    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "a long password", ...change }));
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "Name, email, and password are required" });
     expect(mocks.hash).not.toHaveBeenCalled();
@@ -93,13 +114,13 @@ describe("POST /api/register", () => {
     mocks.create.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError("Unique constraint", {
       code: "P2002", clientVersion: "test",
     }));
-    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "secret" }));
+    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "a long password" }));
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toEqual({ error: "An account with this email already exists" });
   });
 
   it("rejects malformed email addresses before hashing or writing", async () => {
-    const response = await POST(request({ name: "Driver", email: "not-an-email", password: "secret" }));
+    const response = await POST(request({ name: "Driver", email: "not-an-email", password: "a long password" }));
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "Please enter a valid email address" });
     expect(mocks.hash).not.toHaveBeenCalled();
@@ -107,9 +128,9 @@ describe("POST /api/register", () => {
   });
 
   it("normalizes registration details without changing the password", async () => {
-    const response = await POST(request({ name: " Driver ", email: " driver@example.com ", password: " secret " }));
+    const response = await POST(request({ name: " Driver ", email: " driver@example.com ", password: " long secret " }));
     expect(response.status).toBe(201);
-    expect(mocks.hash).toHaveBeenCalledWith(" secret ", 12);
+    expect(mocks.hash).toHaveBeenCalledWith(" long secret ", 12);
     expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
       data: { name: "Driver", email: "driver@example.com", hashedPassword: "bcrypt-secret" },
     }));

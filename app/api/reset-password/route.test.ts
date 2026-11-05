@@ -22,6 +22,11 @@ describe("password recovery API", () => {
     const response = await reset(request(input)); expect(response.status).toBe(200);
     expect(mocks.reset).toHaveBeenCalledWith(input.token, input.password);
   });
+  it.each(["a".repeat(12), "a".repeat(72), "é".repeat(36), "😀".repeat(18)])("accepts exact password policy boundaries: %s", async (password) => {
+    const response = await reset(request({ ...input, password, confirmPassword: password }));
+    expect(response.status).toBe(200);
+    expect(mocks.reset).toHaveBeenCalledWith(input.token, password);
+  });
   it.each([{ token: "short" }, { password: "short", confirmPassword: "short" }, { confirmPassword: "not the same" }, { password: "x".repeat(73), confirmPassword: "x".repeat(73) }, { password: "é".repeat(37), confirmPassword: "é".repeat(37) }])("rejects invalid reset fields", async (change) => {
     expect((await reset(request({ ...input, ...change }))).status).toBe(400); expect(mocks.reset).not.toHaveBeenCalled();
   });
