@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({
+const mocks = vi.hoisted(() => ({ limit: vi.fn(),
   getCurrentUser: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   assets: vi.fn(),
 }));
 
+vi.mock("@/app/libs/abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
 vi.mock("@/app/actions/getCurrentUser", () => ({
   default: mocks.getCurrentUser,
 }));
@@ -28,6 +29,7 @@ vi.mock("@/app/libs/logger", () => ({
 }));
 
 import { POST } from "./route";
+import { ApiRequestError } from "@/app/libs/api-request";
 
 const listingId = "abcdef0123456789abcdef01";
 
@@ -40,6 +42,16 @@ function request(body: unknown) {
 }
 
 describe("POST /api/comments", () => {
+  it("blocks comment spam before transaction writes or notifications", async () => {
+    mocks.limit.mockRejectedValueOnce(new ApiRequestError(429, "Wait", 23));
+    const response = await POST(request({ listingId, comment: "Hello" }));
+    expect(response.status).toBe(429); expect(response.headers.get("retry-after")).toBe("23");
+    expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.trigger).not.toHaveBeenCalled();
+  });
+  it("rejects oversized comments before transaction work", async () => {
+    expect((await POST(request({ listingId, comment: "x".repeat(4001) }))).status).toBe(400);
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
   it("rejects unregistered attachment URLs without creating or broadcasting a comment", async () => {
     expect((await POST(request({ listingId, comment: "Hello", image: "https://res.cloudinary.com/demo/image/upload/borrowed.jpg" }))).status).toBe(400);
     expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.trigger).not.toHaveBeenCalled();
@@ -52,7 +64,7 @@ describe("POST /api/comments", () => {
   });
 
   beforeEach(() => {
-    vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockResolvedValue([]);
+    vi.clearAllMocks(); mocks.limit.mockResolvedValue(undefined); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockResolvedValue([]);
     mocks.getCurrentUser.mockResolvedValue({
       id: "user-1",
       email: "driver@example.com",

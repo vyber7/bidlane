@@ -37,6 +37,7 @@ export default async function SignIn({ searchParams }: {
   searchParams: Promise<{ error?: string | string[] }>;
 }) {
   const { error } = await searchParams;
+  const rateLimited = typeof error === "string" && /^RateLimited(?::\d+)?$/.test(error);
   return (
     <div className="flex min-h-screen flex-col bg-stone-50">
       <header className="border-b border-slate-200 bg-white">
@@ -126,6 +127,7 @@ export default async function SignIn({ searchParams }: {
               {" "}Social sign-in does not combine accounts automatically.
             </p>
           )}
+          {(rateLimited || error === "AuthUnavailable" || error === "RequestTooLarge") && <p role="alert" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">{rateLimited ? "Too many sign-in attempts. Please wait before trying again." : error === "RequestTooLarge" ? "The sign-in request is too large." : "Sign-in is temporarily unavailable. Please try again later."}</p>}
           <AuthForm />
         </section>
       </div>

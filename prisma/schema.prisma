@@ -302,6 +302,15 @@ model UploadQuota {
   @@index([expiresAt])
 }
 
+// Atomic, shared abuse budgets. Subject identities are HMACs, not email/IP data.
+model AbuseQuota {
+  id        String   @id @map("_id")
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
 model EmailVerification {
   id          String   @id @map("_id") @db.ObjectId
   email       String

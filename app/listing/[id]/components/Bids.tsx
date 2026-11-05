@@ -8,11 +8,13 @@ import BidForm from "./BidForm";
 interface BidsProps {
   sellerName?: string | null;
   currentUserId?: string | null;
+  emailVerified?: boolean;
 }
 
 const Bids: React.FC<BidsProps> = ({
   sellerName,
   currentUserId,
+  emailVerified = false,
 }) => {
   const { data: session } = useSession();
   const { listing, bids, expired } = useAuctionContext();
@@ -95,7 +97,7 @@ const Bids: React.FC<BidsProps> = ({
       )}
       {session &&
         listing.userId !== currentUserId ? (
-        <BidForm key={`${listing.id}:${currentUserId ?? ""}`} minimumBid={minimumBid} canBid={canBid} currentUserId={currentUserId} />
+        <BidForm key={`${listing.id}:${currentUserId ?? ""}`} minimumBid={minimumBid} canBid={canBid} currentUserId={currentUserId} emailVerified={emailVerified} />
       ) : !session && listing.status === "LIVE" ? (
         <>
           <hr />

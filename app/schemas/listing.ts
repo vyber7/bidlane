@@ -45,10 +45,10 @@ const uploadedPhotoRequired = "Please use uploaded images for your listing.";
 export const listingSchema = z.object({
   vin: vinSchema.optional(),
   vehicleRecords: vehicleRecordsSchema.optional(),
-  make: requiredTextSchema("Please enter a make."),
-  model: requiredTextSchema("Please enter a model."),
-  location: requiredTextSchema("Please enter a location."),
-  description: requiredTextSchema("Please enter a description."),
+  make: requiredTextSchema("Please enter a make.").max(100),
+  model: requiredTextSchema("Please enter a model.").max(100),
+  location: requiredTextSchema("Please enter a location.").max(200),
+  description: requiredTextSchema("Please enter a description.").max(10000),
   year: listingNumberSchema("year"),
   miles: listingNumberSchema("miles"),
   reservePrice: z.preprocess(

@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { useEffect, useRef, useState } from "react";
 import { CldImage } from "next-cloudinary";
 import AuthorizedUploadButton from "@/app/components/AuthorizedUploadButton";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MAX_LISTING_NUMBER, MAX_LISTING_PHOTOS, validateListing } from "@/app/libs/listing-validation";
 import { listingSchema } from "@/app/schemas/listing";
@@ -37,7 +38,7 @@ const steps = [
 const primary = "rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50";
 const secondary = "rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50";
 
-export default function SubmitForm({ initialDraft }: { initialDraft?: ListingDraftDTO }) {
+export default function SubmitForm({ initialDraft, emailVerified = false }: { initialDraft?: ListingDraftDTO; emailVerified?: boolean }) {
   const [records, setRecords] = useState<VehicleRecord[]>(initialDraft?.payload.vehicleRecords ?? []);
   const [step, setStep] = useState(initialDraft?.payload.step === 3 && !initialDraft.payload.images.length ? 2 : initialDraft?.payload.step ?? 0);
   const [images, setImages] = useState<string[]>(initialDraft?.payload.images ?? []);
@@ -68,7 +69,7 @@ export default function SubmitForm({ initialDraft }: { initialDraft?: ListingDra
   const changeStep = (next: number) => { setError(""); setStep(next); };
 
   async function submitListing() {
-    if (submitting.current) return;
+    if (submitting.current || !emailVerified) return;
     const data = { ...details, images, vehicleRecords: records };
     const validationError = validateListing(data);
     if (validationError) { setError(validationError); return; }
@@ -219,7 +220,8 @@ export default function SubmitForm({ initialDraft }: { initialDraft?: ListingDra
             <div className="grid grid-cols-2 gap-3">{images.map((url, index) => <CldImage key={url} src={url} width={600} height={450} crop="fit" alt={`${title}, photo ${index + 1}`} className="aspect-[4/3] w-full rounded-lg bg-slate-100 object-contain" />)}</div>
           </div>
         </article>
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">Ready? Submit to create your listing.</p><button type="button" disabled={isLoading || draft.status === "conflict"} onClick={submitListing} className={primary}>{isLoading ? "Submitting…" : "Submit listing"}</button></div>
+        {!emailVerified && <p className="mt-5 text-sm text-amber-900">Your draft can be saved now. <Link href="/account/profile" className="font-bold underline">Verify your email</Link> before submitting.</p>}
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">Ready? Submit to create your listing.</p><button type="button" disabled={isLoading || !emailVerified || draft.status === "conflict"} onClick={submitListing} className={primary}>{isLoading ? "Submitting…" : "Submit listing"}</button></div>
       </>}
       </fieldset>
     </div>

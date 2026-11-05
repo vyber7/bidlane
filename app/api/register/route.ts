@@ -6,10 +6,12 @@ import { logger } from "@/app/libs/logger";
 import { Prisma } from "@prisma/client";
 import { apiErrorResponse, errorResponse, parseApiInput, readJsonObject } from "@/app/libs/api-request";
 import { registrationSchema } from "@/app/schemas/account";
+import { enforceAbuseLimit } from "@/app/libs/abuse-limits";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = parseApiInput(registrationSchema, await readJsonObject(request));
+    const { name, email, password } = parseApiInput(registrationSchema, await readJsonObject(request, 8192));
+    await enforceAbuseLimit("registration", email);
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({

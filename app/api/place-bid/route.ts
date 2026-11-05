@@ -14,6 +14,8 @@ import { logger } from "@/app/libs/logger";
 import { outbidNotifications, publishNotificationChanges, saveNotifications } from "@/app/libs/notifications";
 import type { AcceptedBidResponse, AuctionEndTimeEvent } from "@/app/types/auction-events";
 import { bidIdempotencyKeySchema, bidRequestSchema } from "@/app/schemas/auction";
+import { enforceAbuseLimit } from "@/app/libs/abuse-limits";
+import { requireVerifiedEmail } from "@/app/libs/verified-email";
 
 export async function POST(req: Request) {
   try {
@@ -21,8 +23,16 @@ export async function POST(req: Request) {
     if (!currentUser?.id || !currentUser?.email)
       return errorResponse("Unauthorized", 401);
 
-    const { listingId, bidAmount } = parseApiInput(bidRequestSchema, await readJsonObject(req));
+    const { listingId, bidAmount } = parseApiInput(bidRequestSchema, await readJsonObject(req, 4096));
     const key = parseApiInput(bidIdempotencyKeySchema, req.headers.get("Idempotency-Key"));
+
+    // Keep quota writes outside the bid transaction so rejected bids count.
+    // Cache only this request's check across transaction retries.
+    let permission: Promise<void> | undefined;
+    const authorizeNewBid = () => permission ??= (async () => {
+      requireVerifiedEmail(currentUser, "bid");
+      await enforceAbuseLimit("bid", currentUser.id);
+    })();
 
     const placeBid = () => prisma.$transaction(async (tx) => {
       const previous = await tx.bidSubmission.findUnique({
@@ -34,6 +44,8 @@ export async function POST(req: Request) {
         }
         return { replayed: true as const, response: previous.response as unknown as AcceptedBidResponse };
       }
+      // Accepted replays acknowledge history without placing another bid.
+      await authorizeNewBid();
       const bidTime = new Date();
       const listing = await tx.listing.findUnique({ where: { id: listingId } });
 

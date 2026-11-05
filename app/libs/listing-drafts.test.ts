@@ -82,26 +82,38 @@ describe("private draft persistence", () => {
   });
 });
 describe("draft publication", () => {
+  it("requires verified email to publish a new listing while preserving saved drafts", async () => {
+    mocks.findFirst.mockResolvedValue({ ...saved, payload: complete });
+    await expect(publishListingDraft({ id: "seller", emailVerified: null }, id, 2)).rejects.toMatchObject({ status: 403 });
+    expect(mocks.createListing).not.toHaveBeenCalled();
+    await updateListingDraft("seller", id, { revision: 2, saveKey: "new-key", payload: complete });
+    expect(mocks.updateMany).toHaveBeenCalled();
+  });
+  it("acknowledges a previously published draft without a new verification requirement", async () => {
+    mocks.findFirst.mockResolvedValue({ ...saved, publishedListingId: "listing" });
+    await expect(publishListingDraft({ id: "seller", emailVerified: null }, id, 2)).resolves.toMatchObject({ id: "listing" });
+    expect(mocks.createListing).not.toHaveBeenCalled();
+  });
   it("validates saved content and creates the listing and retry link in one transaction", async () => {
     mocks.findFirst.mockResolvedValue({ ...saved, payload: complete });
-    expect(await publishListingDraft("seller", id, 2)).toMatchObject({ id: "listing" });
+    expect(await publishListingDraft({ id: "seller", emailVerified: new Date() }, id, 2)).toMatchObject({ id: "listing" });
     expect(mocks.createListing).toHaveBeenCalledWith({ data: expect.objectContaining({ year: 2020, make: "Porsche", miles: 1000, reviewStatus: "PENDING", reviewRevision: 0, coverImage: complete.images[0], user: { connect: { id: "seller" } } }) });
     expect(mocks.updateMany).toHaveBeenCalledWith({ where: { id, userId: "seller", revision: 2, publishedListingId: null, deletedAt: null }, data: { publishedListingId: "listing" } });
     expect(mocks.createListing.mock.calls[0][0].data).not.toHaveProperty("photoChecklist");
   });
   it("never publishes an incomplete draft or creates a listing for a stale revision", async () => {
-    await expect(publishListingDraft("seller", id, 2)).rejects.toMatchObject({ status: 400 });
-    await expect(publishListingDraft("seller", id, 1)).rejects.toMatchObject({ status: 409 });
+    await expect(publishListingDraft({ id: "seller", emailVerified: new Date() }, id, 2)).rejects.toMatchObject({ status: 400 });
+    await expect(publishListingDraft({ id: "seller", emailVerified: new Date() }, id, 1)).rejects.toMatchObject({ status: 409 });
     expect(mocks.createListing).not.toHaveBeenCalled();
   });
   it("replays publication with the same listing instead of creating a second one", async () => {
     mocks.findFirst.mockResolvedValue({ ...saved, publishedListingId: "listing" });
-    expect(await publishListingDraft("seller", id, 2)).toMatchObject({ id: "listing" }); expect(mocks.createListing).not.toHaveBeenCalled();
+    expect(await publishListingDraft({ id: "seller", emailVerified: new Date() }, id, 2)).toMatchObject({ id: "listing" }); expect(mocks.createListing).not.toHaveBeenCalled();
     await expect(updateListingDraft("seller", id, { revision: 2, saveKey: key, payload })).rejects.toMatchObject({ status: 409 });
   });
   it("rolls back via the transaction if publication loses the revision guard", async () => {
     mocks.findFirst.mockResolvedValue({ ...saved, payload: complete }); mocks.updateMany.mockResolvedValue({ count: 0 });
-    await expect(publishListingDraft("seller", id, 2)).rejects.toMatchObject({ status: 409 });
+    await expect(publishListingDraft({ id: "seller", emailVerified: new Date() }, id, 2)).rejects.toMatchObject({ status: 409 });
   });
 });
 

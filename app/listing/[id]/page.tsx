@@ -178,6 +178,7 @@ const Listing = async (props: Params) => {
                 <Bids
                   sellerName={seller?.name}
                   currentUserId={currentUser?.id}
+                  emailVerified={Boolean(currentUser?.emailVerified)}
                 />
               )}
               {isPublicListing(listing) && <Comments />}

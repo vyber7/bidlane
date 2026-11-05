@@ -28,7 +28,7 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 function view(listing = makeListing()) {
-  return <AuctionProvider listing={listing} bids={[]} comments={[]}><Bids currentUserId="buyer" /></AuctionProvider>;
+  return <AuctionProvider listing={listing} bids={[]} comments={[]}><Bids currentUserId="buyer" emailVerified /></AuctionProvider>;
 }
 
 async function reviewBid(amount = "12000") {
@@ -39,6 +39,11 @@ async function reviewBid(amount = "12000") {
 }
 
 describe("bid review", () => {
+  it("guides an unverified bidder to verification and disables new bids", () => {
+    render(<AuctionProvider listing={makeListing()} bids={[]} comments={[]}><Bids currentUserId="buyer" emailVerified={false} /></AuctionProvider>);
+    expect(screen.getByRole("link", { name: "Verify email in your profile" }).getAttribute("href")).toBe("/account/profile");
+    expect(screen.getByRole("button", { name: "Review bid" })).toHaveProperty("disabled", true);
+  });
 
   it.each([
     new Error("Network response lost"),

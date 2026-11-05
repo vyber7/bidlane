@@ -9,6 +9,9 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 
 import prisma from "./prismadb";
 import { githubUserinfo } from "./github-userinfo";
+import { enforceAbuseLimit } from "./abuse-limits";
+import { loginCredentialsSchema } from "@/app/schemas/account";
+import { ApiRequestError } from "./api-request";
 
 const prismaAdapter = PrismaAdapter(prisma);
 
@@ -49,13 +52,20 @@ export const authOptions: AuthOptions = {
         password: { label: "password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid Credentials");
+        const parsed = loginCredentialsSchema.safeParse(credentials);
+        if (!parsed.success) throw new Error("Invalid Credentials");
+        const { email, password } = parsed.data;
+        try {
+          await enforceAbuseLimit("login", email);
+        } catch (error) {
+          // NextAuth transports only error.message for credentials failures.
+          if (error instanceof ApiRequestError && error.status === 429) throw new Error(`RateLimited:${error.retryAfter}`);
+          throw new Error("AuthUnavailable");
         }
 
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email,
+            email,
           },
         });
 
@@ -64,7 +74,7 @@ export const authOptions: AuthOptions = {
         }
 
         const isCorrectPassword = await bcrypt.compare(
-          credentials.password,
+          password,
           user.hashedPassword,
         );
 

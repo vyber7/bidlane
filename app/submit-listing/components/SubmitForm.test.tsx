@@ -42,7 +42,7 @@ function fillDetails() {
 
 describe("guided vehicle submission", () => {
   it("blocks fractional mileage before leaving the details step", async () => {
-    render(<SubmitForm />);
+    render(<SubmitForm emailVerified />);
     fillDetails();
     fireEvent.change(screen.getByLabelText("Mileage"), { target: { value: "1.5" } });
     await next("Continue to condition →");
@@ -52,7 +52,7 @@ describe("guided vehicle submission", () => {
   });
 
   it("validates only the active step and requires explicit disclosures before photos", async () => {
-    render(<SubmitForm />);
+    render(<SubmitForm emailVerified />);
     await next("Continue to condition →");
     expect(screen.getByText("Please select a valid transmission.")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Vehicle details" })).toBeDefined();
@@ -78,7 +78,7 @@ describe("guided vehicle submission", () => {
   });
 
   it("preserves edits, previews every disclosure, and submits the complete listing", async () => {
-    render(<SubmitForm />);
+    render(<SubmitForm emailVerified />);
     fillDetails();
     fireEvent.change(screen.getByLabelText("VIN or chassis number (optional)"), { target: { value: "WP0AB2997YS123456" } });
     await next("Continue to condition →");
@@ -117,8 +117,15 @@ describe("guided vehicle submission", () => {
 });
 
 describe("draft resume and exit", () => {
+  it("keeps draft saving available before email verification", async () => {
+    render(<SubmitForm emailVerified={false} />);
+    fireEvent.change(screen.getByLabelText("Make", { exact: true }), { target: { value: "Porsche" } });
+    await next("Save & exit");
+    expect(mocks.post).toHaveBeenCalledWith("/api/listing-drafts", expect.anything());
+    expect(mocks.post.mock.calls.some(([url]) => url === "/api/new-listing")).toBe(false);
+  });
   it("saves incomplete details and exits without publishing", async () => {
-    render(<SubmitForm />);
+    render(<SubmitForm emailVerified />);
     fireEvent.change(screen.getByLabelText("Make", { exact: true }), { target: { value: "Porsche" } });
     await next("Save & exit");
     expect(mocks.post).toHaveBeenCalledWith("/api/listing-drafts", expect.objectContaining({ payload: expect.objectContaining({ details: expect.objectContaining({ make: "Porsche", model: "" }), step: 0 }) }));
@@ -131,7 +138,7 @@ describe("draft resume and exit", () => {
       id: "abcdef0123456789abcdef01", revision: 4, updatedAt: new Date().toISOString(), publishedListingId: null,
       payload: { ...emptyDraftPayload, details: { ...emptyDraftPayload.details, make: "Porsche", year: "2020", knownFlaws: "Still writing this" }, images: ["https://res.cloudinary.com/demo/image/upload/car.jpg"], vehicleRecords: [{ label: "Receipt", url: "https://res.cloudinary.com/demo/image/upload/receipt.pdf" }], photoChecklist: ["exterior" as const], step: 2 },
     };
-    render(<SubmitForm initialDraft={initialDraft} />);
+    render(<SubmitForm initialDraft={initialDraft} emailVerified />);
     expect(screen.getByRole("heading", { name: "Photos" })).toBeDefined();
     expect(screen.getByRole("checkbox", { name: /Exterior/ })).toHaveProperty("checked", true);
     expect(screen.getByLabelText("Record 1 name")).toHaveProperty("value", "Receipt");

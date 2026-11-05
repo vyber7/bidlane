@@ -1,4 +1,5 @@
 import { assertListingAssets } from "./uploaded-assets";
+import { requireVerifiedEmail } from "./verified-email";
 import type { ListingDraft } from "@prisma/client";
 import type { z } from "zod";
 import prisma from "./prismadb";
@@ -65,7 +66,8 @@ export async function deleteListingDraft(userId: string, id: string, revision: n
   }
 }
 
-export async function publishListingDraft(userId: string, id: string, revision: number) {
+export async function publishListingDraft(user: { id: string; emailVerified?: Date | null }, id: string, revision: number) {
+  const userId = user.id;
   return prisma.$transaction(async (tx) => {
     const draft = await tx.listingDraft.findFirst({ where: { id, userId, deletedAt: null } });
     if (!draft) throw notFound();
@@ -76,6 +78,7 @@ export async function publishListingDraft(userId: string, id: string, revision: 
       return listing;
     }
     if (draft.revision !== revision) throw conflict();
+    requireVerifiedEmail(user, "submit a listing");
     const payload = draftPayloadSchema.parse(draft.payload);
     const data = parseListing({ ...payload.details, images: payload.images, vehicleRecords: payload.vehicleRecords });
     const listing = await tx.listing.create({ data: { ...data, reviewStatus: "PENDING", reviewRevision: 0, user: { connect: { id: userId } }, coverImage: data.images[0] } });

@@ -1,4 +1,5 @@
 import { assertListingAssets } from "@/app/libs/uploaded-assets";
+import { requireVerifiedEmail } from "@/app/libs/verified-email";
 import { parseApiInput } from "@/app/libs/api-request";
 import { publishListingDraft } from "@/app/libs/listing-drafts";
 import { publishDraftSchema } from "@/app/schemas/listing-draft";
@@ -18,11 +19,12 @@ export async function POST(req: Request) {
     const body = await readJsonObject(req);
     if (body.draftId !== undefined) {
       const { draftId, revision } = parseApiInput(publishDraftSchema, body);
-      const listing = await publishListingDraft(currentUser.id, draftId, revision);
+      const listing = await publishListingDraft(currentUser, draftId, revision);
       // Replaying a published draft can return a now-active listing. The
       // submission UI needs only its ID, never other users' accumulated activity.
       return NextResponse.json({ id: listing.id }, { status: 201 });
     }
+    requireVerifiedEmail(currentUser, "submit a listing");
     const listing = parseListing(body.data);
     await assertListingAssets(currentUser.id, listing);
     const newListing = await prisma.listing.create({

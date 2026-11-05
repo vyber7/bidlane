@@ -27,6 +27,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
     <input
       id={id}
       autoComplete={id}
+      maxLength={id === "comment" ? 4000 : 2048}
       {...register(id, { required, validate: (value) => validationMessage(commentRequestSchema.shape[id], value) })}
       aria-invalid={!!errors[id]}
       type={type}

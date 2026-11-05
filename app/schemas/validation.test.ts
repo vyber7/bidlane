@@ -17,6 +17,18 @@ const listing = {
 afterEach(() => vi.useRealTimers());
 
 describe("shared validation boundaries", () => {
+  it.each([["make", 100], ["model", 100], ["location", 200], ["description", 10000]] as const)("bounds listing %s consistently with drafts", (field, limit) => {
+    expect(listingSchema.safeParse({ ...listing, [field]: "x".repeat(limit) }).success).toBe(true);
+    expect(listingSchema.safeParse({ ...listing, [field]: "x".repeat(limit + 1) }).success).toBe(false);
+  });
+  it("bounds registration and comment fields before expensive work", () => {
+    const account = { name: "Driver", email: "driver@example.com", password: "password" };
+    expect(registrationSchema.safeParse({ ...account, name: "x".repeat(61) }).success).toBe(false);
+    expect(registrationSchema.safeParse({ ...account, password: "é".repeat(513) }).success).toBe(false);
+    expect(registrationSchema.safeParse({ ...account, password: "é".repeat(512) }).success).toBe(true);
+    expect(commentRequestSchema.safeParse({ listingId, comment: "x".repeat(4000) }).success).toBe(true);
+    expect(commentRequestSchema.safeParse({ listingId, comment: "x".repeat(4001) }).success).toBe(false);
+  });
   it("accepts a 20-photo listing and rejects a 21st photo", () => {
     const images = Array.from({ length: 20 }, (_, i) => `https://res.cloudinary.com/demo/image/upload/photo-${i}.jpg`);
     expect(listingSchema.parse({ ...listing, images }).images).toHaveLength(20);

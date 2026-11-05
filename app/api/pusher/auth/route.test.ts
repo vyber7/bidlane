@@ -7,6 +7,10 @@ import { POST } from "./route";
 const authorize = (channel = "private-user-buyer", socket = "123.456") => POST(new Request("http://localhost/api/pusher/auth", { method: "POST", body: new URLSearchParams({ socket_id: socket, channel_name: channel }) }));
 beforeEach(() => { vi.clearAllMocks(); mocks.user.mockResolvedValue({ id: "buyer" }); mocks.authorize.mockReturnValue({ auth: "signed" }); });
 describe("private notification channels", () => {
+  it("rejects oversized authorization forms before signing", async () => {
+    const response = await POST(new Request("http://localhost/api/pusher/auth", { method: "POST", body: new URLSearchParams({ socket_id: "123.456", channel_name: "x".repeat(4096) }) }));
+    expect(response.status).toBe(413); expect(mocks.authorize).not.toHaveBeenCalled();
+  });
   it("signs only the current account's channel", async () => {
     await expect((await authorize()).json()).resolves.toEqual({ auth: "signed" });
     expect(mocks.authorize).toHaveBeenCalledExactlyOnceWith("123.456", "private-user-buyer");

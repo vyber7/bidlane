@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 
-const mocks = vi.hoisted(() => ({
+const mocks = vi.hoisted(() => ({ limit: vi.fn(),
   hash: vi.fn(),
   create: vi.fn(),
 }));
 
+vi.mock("@/app/libs/abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
 vi.mock("bcrypt", () => ({ default: { hash: mocks.hash } }));
 vi.mock("../../libs/prismadb", () => ({
   default: { user: { create: mocks.create } },
@@ -15,6 +16,7 @@ vi.mock("@/app/libs/logger", () => ({
 }));
 
 import { POST } from "./route";
+import { ApiRequestError } from "@/app/libs/api-request";
 
 function request(body: unknown) {
   return new Request("http://localhost/api/register", {
@@ -25,8 +27,18 @@ function request(body: unknown) {
 }
 
 describe("POST /api/register", () => {
+  it("enforces the shared quota before hashing or creating an account", async () => {
+    mocks.limit.mockRejectedValueOnce(new ApiRequestError(429, "Wait", 60));
+    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "secret" }));
+    expect(response.status).toBe(429); expect(response.headers.get("retry-after")).toBe("60");
+    expect(mocks.hash).not.toHaveBeenCalled(); expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it("bounds the registration body before hashing", async () => {
+    expect((await POST(request({ name: "x".repeat(8192) }))).status).toBe(413);
+    expect(mocks.hash).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.clearAllMocks(); mocks.limit.mockResolvedValue(undefined);
     mocks.hash.mockResolvedValue("bcrypt-secret");
     mocks.create.mockResolvedValue({
       id: "user-1",
@@ -62,7 +74,7 @@ describe("POST /api/register", () => {
   });
 
   it("does not allow public registration to grant an admin role", async () => {
-    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "secret", role: "ADMIN", isAdmin: true }));
+    const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "secret", role: "ADMIN", isAdmin: true, emailVerified: "2026-01-01" }));
     expect(response.status).toBe(201);
     expect(mocks.create.mock.calls[0][0].data).toEqual({ name: "Driver", email: "driver@example.com", hashedPassword: "bcrypt-secret" });
   });

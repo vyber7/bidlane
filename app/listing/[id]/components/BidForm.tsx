@@ -16,10 +16,11 @@ import Link from "next/link";
 
 const primaryButton = "rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:cursor-not-allowed disabled:opacity-50";
 
-export default function BidForm({ minimumBid, canBid, currentUserId }: {
+export default function BidForm({ minimumBid, canBid, currentUserId, emailVerified = false }: {
   minimumBid: number | null;
   canBid: boolean;
   currentUserId?: string | null;
+  emailVerified?: boolean;
 }) {
   const { listing, acceptBid } = useAuctionContext();
   const router = useRouter();
@@ -52,7 +53,7 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
     // Check again at the moment of confirmation; live events can change the
     // minimum while the bidder is reviewing. Never silently raise their bid.
     if (!review || submitting.current) return;
-    if (!pendingKey && (!canBid || minimumChanged || review.amount < (minimumBid ?? Infinity))) return;
+    if (!pendingKey && (!canBid || !emailVerified || minimumChanged || review.amount < (minimumBid ?? Infinity))) return;
     const key = pendingKey ?? crypto.randomUUID();
     setPendingKey(key);
     submitting.current = true;
@@ -103,9 +104,10 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
           <p>{leading ? "Keep an eye on the auction until it closes." : "Review the current price before bidding again."}</p>
         </div>
       )}
+      {!emailVerified && <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm">Verify your email before placing a new bid. <Link href="/account/profile" className="font-bold underline">Verify email in your profile</Link>.</p>}
       <form noValidate onSubmit={(event) => {
         void handleSubmit(({ bidAmount }) => {
-          if (!canBid || minimumBid === null || review || submitting.current) return;
+          if (!canBid || !emailVerified || minimumBid === null || review || submitting.current) return;
           setRequestError(null);
           setReview({ amount: bidAmount, minimumBid });
         })(event);
@@ -125,10 +127,10 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
               validate: (value) => validationMessage(bidRequestSchema.shape.bidAmount, value),
               min: { value: minimumBid ?? 0, message: `Your bid must be at least $${formatAmount(minimumBid ?? 0)}.` },
             })}
-            disabled={!canBid || review !== null || isLoading}
+            disabled={!canBid || !emailVerified || review !== null || isLoading}
             className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-3 font-semibold text-slate-950 focus:border-amber-500 focus:ring-amber-500 disabled:bg-slate-100 disabled:text-slate-500"
           />
-          <button type="submit" disabled={!canBid || review !== null || isLoading} className={primaryButton}>Review bid</button>
+          <button type="submit" disabled={!canBid || !emailVerified || review !== null || isLoading} className={primaryButton}>Review bid</button>
         </div>
         {errors.bidAmount && <p id="bid-error" role="alert" className="mt-2 text-sm text-rose-700">{errors.bidAmount.message}</p>}
       </form>

@@ -1,4 +1,5 @@
 import { assertOwnedAssets } from "@/app/libs/uploaded-assets";
+import { enforceAbuseLimit } from "@/app/libs/abuse-limits";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
 import prisma from "@/app/libs/prismadb";
@@ -31,7 +32,8 @@ export async function POST(req: Request) {
     if (!currentUser?.id || !currentUser?.email)
       return errorResponse("Unauthorized", 401);
 
-    const { listingId, comment, image } = parseApiInput(commentRequestSchema, await readJsonObject(req));
+    const { listingId, comment, image } = parseApiInput(commentRequestSchema, await readJsonObject(req, 32768));
+    await enforceAbuseLimit("comment", currentUser.id);
 
     const { newComment, notificationUsers } = await prisma.$transaction(
       async (tx) => {

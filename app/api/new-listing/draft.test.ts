@@ -19,7 +19,7 @@ describe("publish saved draft endpoint", () => {
   });
   it("publishes only the authenticated owner’s saved snapshot, ignoring conflicting client listing data", async () => {
     const response = await POST(request({ draftId, revision: 3, data: { make: "Unsaved data", userId: "other" } }));
-    expect(response.status).toBe(201); expect(mocks.publish).toHaveBeenCalledWith("seller", draftId, 3); expect(mocks.create).not.toHaveBeenCalled();
+    expect(response.status).toBe(201); expect(mocks.publish).toHaveBeenCalledWith({ id: "seller" }, draftId, 3); expect(mocks.create).not.toHaveBeenCalled();
   });
   it("requires a valid draft ID and revision", async () => {
     expect((await POST(request({ draftId, revision: 0 }))).status).toBe(400); expect(mocks.publish).not.toHaveBeenCalled();

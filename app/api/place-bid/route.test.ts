@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({
+const mocks = vi.hoisted(() => ({ limit: vi.fn(),
   getCurrentUser: vi.fn(),
   transaction: vi.fn(),
   listingFindUnique: vi.fn(),
@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   notificationUpsert: vi.fn(),
 }));
 
+vi.mock("@/app/libs/abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
 vi.mock("@/app/actions/getCurrentUser", () => ({
   default: mocks.getCurrentUser,
 }));
@@ -26,6 +27,7 @@ vi.mock("@/app/libs/pusher", () => ({
 }));
 
 import { POST } from "./route";
+import { ApiRequestError } from "@/app/libs/api-request";
 
 const listingId = "abcdef0123456789abcdef01";
 const now = new Date("2026-09-04T12:00:00.000Z");
@@ -67,11 +69,37 @@ function liveListing(overrides: Record<string, unknown> = {}) {
 }
 
 describe("POST /api/place-bid", () => {
+  it("requires verified email before creating a new bid", async () => {
+    mocks.getCurrentUser.mockResolvedValue({ id: "bidder", email: "bidder@test.dev", emailVerified: null });
+    expect((await POST(request({ listingId, bidAmount: 1000 }))).status).toBe(403);
+    expect(mocks.limit).not.toHaveBeenCalled(); expect(mocks.bidCreate).not.toHaveBeenCalled();
+  });
+  it("blocks a throttled new bid before auction writes", async () => {
+    mocks.limit.mockRejectedValueOnce(new ApiRequestError(429, "Wait", 15));
+    const response = await POST(request({ listingId, bidAmount: 1000 }));
+    expect(response.status).toBe(429); expect(response.headers.get("retry-after")).toBe("15");
+    expect(mocks.bidCreate).not.toHaveBeenCalled(); expect(mocks.listingUpdateMany).not.toHaveBeenCalled();
+  });
+  it("replays accepted bids even if verification was revoked or the new-bid quota is exhausted", async () => {
+    mocks.getCurrentUser.mockResolvedValue({ id: "bidder", email: "bidder@test.dev", emailVerified: null });
+    const accepted = { bid: { id: "accepted" }, currentBid: 1000 };
+    mocks.submissionFindUnique.mockResolvedValue({ listingId, amount: 1000, response: accepted });
+    mocks.limit.mockRejectedValue(new ApiRequestError(429, "Wait", 60));
+    const response = await POST(request({ listingId, bidAmount: 1000 }));
+    expect(response.status).toBe(201); await expect(response.json()).resolves.toEqual(accepted);
+    expect(mocks.limit).not.toHaveBeenCalled(); expect(mocks.bidCreate).not.toHaveBeenCalled();
+  });
+  it("charges one quota attempt across transaction contention retries", async () => {
+    mocks.listingFindUnique.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError("retry", { code: "P2034", clientVersion: "6" }));
+    expect((await POST(request({ listingId, bidAmount: 1000 }))).status).toBe(201);
+    expect(mocks.transaction).toHaveBeenCalledTimes(2);
+    expect(mocks.limit).toHaveBeenCalledTimes(1);
+  });
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.clearAllMocks(); mocks.limit.mockResolvedValue(undefined);
     vi.useFakeTimers();
     vi.setSystemTime(now);
-    mocks.getCurrentUser.mockResolvedValue({ id: "bidder", email: "bidder@test.dev" });
+    mocks.getCurrentUser.mockResolvedValue({ id: "bidder", email: "bidder@test.dev", emailVerified: now });
     mocks.transaction.mockImplementation(
       (callback: (client: typeof tx) => unknown) => callback(tx)
     );

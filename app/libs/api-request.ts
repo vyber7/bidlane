@@ -5,7 +5,8 @@ import { listingIdSchema, safeIntegerSchema } from "@/app/schemas/common";
 export class ApiRequestError extends Error {
   constructor(
     public readonly status: number,
-    message: string
+    message: string,
+    public readonly retryAfter?: number,
   ) {
     super(message);
     this.name = "ApiRequestError";
@@ -16,10 +17,37 @@ export function isJsonObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export async function readJsonObject(request: Request): Promise<Record<string, unknown>> {
+export const MAX_JSON_BODY_BYTES = 256 * 1024;
+
+/** Count actual streamed bytes; Content-Length can be absent or dishonest. */
+export async function readBoundedBody(request: Request, maxBytes = MAX_JSON_BODY_BYTES): Promise<Uint8Array<ArrayBuffer>> {
+  if (!request.body) return new Uint8Array();
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxBytes) {
+        await reader.cancel();
+        throw new ApiRequestError(413, "Request body is too large.");
+      }
+      chunks.push(value);
+    }
+  } finally { reader.releaseLock(); }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return bytes;
+}
+
+export async function readJsonObject(request: Request, maxBytes = MAX_JSON_BODY_BYTES): Promise<Record<string, unknown>> {
+  const bytes = await readBoundedBody(request, maxBytes);
   let body: unknown;
   try {
-    body = await request.json();
+    body = JSON.parse(new TextDecoder().decode(bytes));
   } catch (error) {
     if (error instanceof SyntaxError) {
       throw new ApiRequestError(400, "Invalid JSON body");
@@ -60,7 +88,9 @@ export function parseApiInput<T extends z.ZodType>(schema: T, value: unknown): z
 
 export function apiErrorResponse(error: unknown): Response | null {
   if (error instanceof ApiRequestError) {
-    return errorResponse(error.message, error.status);
+    const response = errorResponse(error.message, error.status);
+    if (error.retryAfter) response.headers.set("Retry-After", String(error.retryAfter));
+    return response;
   }
 
   return null;

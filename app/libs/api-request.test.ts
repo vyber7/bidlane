@@ -5,12 +5,35 @@ import {
   apiErrorResponse,
   isJsonObject,
   readJsonObject,
+  readBoundedBody,
   errorResponse,
   requireListingId,
   requireSafeInteger,
 } from "./api-request";
 
 describe("API request validation", () => {
+  it("rejects an oversized JSON body before parsing it", async () => {
+    const request = new Request("http://localhost/api", { method: "POST", body: JSON.stringify({ text: "x".repeat(262144) }) });
+    await expect(readJsonObject(request)).rejects.toMatchObject({ status: 413 });
+  });
+  it("counts UTF-8 bytes and stops dishonest streamed bodies without Content-Length trust", async () => {
+    const bytes = new TextEncoder().encode('{"text":"éé"}');
+    const request = new Request("http://localhost", { method: "POST", body: bytes, headers: { "content-length": "1" } });
+    await expect(readJsonObject(request, bytes.length - 1)).rejects.toMatchObject({ status: 413 });
+    const valid = new Request("http://localhost", { method: "POST", body: bytes });
+    await expect(readJsonObject(valid, bytes.length)).resolves.toEqual({ text: "éé" });
+  });
+  it("cancels the stream as soon as it exceeds its budget", async () => {
+    let cancelled = false;
+    const stream = new ReadableStream({ start(controller) { controller.enqueue(new Uint8Array(11)); }, cancel() { cancelled = true; } });
+    const request = new Request("http://localhost", { method: "POST", body: stream, duplex: "half" } as RequestInit);
+    await expect(readBoundedBody(request, 10)).rejects.toMatchObject({ status: 413 });
+    expect(cancelled).toBe(true);
+  });
+  it("returns a Retry-After header for a quota rejection", async () => {
+    const response = apiErrorResponse(new ApiRequestError(429, "Wait", 42));
+    expect(response?.status).toBe(429); expect(response?.headers.get("retry-after")).toBe("42");
+  });
   it.each([
     [{}, true],
     [{ listingId: "abc" }, true],

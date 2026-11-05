@@ -45,7 +45,7 @@ describe("shared auction views", () => {
     });
     render(
       <AuctionProvider listing={makeListing()} bids={[]} comments={[]}>
-        <Bids currentUserId="buyer" />
+        <Bids currentUserId="buyer" emailVerified />
       </AuctionProvider>
     );
     const input = screen.getByRole("spinbutton", { name: "Your bid amount in dollars" });
@@ -67,7 +67,7 @@ describe("shared auction views", () => {
     render(
       <AuctionProvider listing={listing} bids={[]} comments={[]}>
         <AuctionStatusBar currentUser="buyer" />
-        <Bids sellerName="Seller" currentUserId="buyer" />
+        <Bids sellerName="Seller" currentUserId="buyer" emailVerified />
         <Comments />
       </AuctionProvider>
     );
@@ -88,7 +88,7 @@ describe("shared auction views", () => {
     const view = (updated = listing, bids = [] as ReturnType<typeof makeBid>[], comments = [] as ReturnType<typeof makeComment>[]) => (
       <AuctionProvider listing={updated} bids={bids} comments={comments}>
         <AuctionStatusBar currentUser="buyer" />
-        <Bids sellerName="Seller" currentUserId="buyer" />
+        <Bids sellerName="Seller" currentUserId="buyer" emailVerified />
         <Comments />
       </AuctionProvider>
     );
@@ -134,7 +134,7 @@ describe("shared auction views", () => {
     const listing = makeListing({ currentBid: bid.amount, highestBidderId: bid.userId });
     render(
       <AuctionProvider listing={listing} bids={[bid]} comments={[]}>
-        <Bids sellerName={name} currentUserId="buyer" />
+        <Bids sellerName={name} currentUserId="buyer" emailVerified />
       </AuctionProvider>
     );
     expect(screen.getAllByText("Seller")).toHaveLength(2);
@@ -174,7 +174,7 @@ describe("shared auction views", () => {
   it.each(["startingBid", "bidIncrement", "auctionStartsAt", "auctionEndsAt"] as const)("disables bidding when %s is absent", async (field) => {
     render(
       <AuctionProvider listing={makeListing({ [field]: null })} bids={[]} comments={[]}>
-        <Bids currentUserId="buyer" />
+        <Bids currentUserId="buyer" emailVerified />
       </AuctionProvider>
     );
     const input = screen.getByRole("spinbutton", { name: "Your bid amount in dollars" });
@@ -199,7 +199,7 @@ describe("shared auction views", () => {
   it("preserves a valid zero-dollar starting bid", () => {
     render(
       <AuctionProvider listing={makeListing({ startingBid: 0 })} bids={[]} comments={[]}>
-        <Bids currentUserId="buyer" />
+        <Bids currentUserId="buyer" emailVerified />
       </AuctionProvider>
     );
     expect(screen.getByText("$0")).toBeDefined();

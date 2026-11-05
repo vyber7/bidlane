@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CredentialsConfig } from "next-auth/providers/credentials";
 import type { OAuthConfig } from "next-auth/providers/oauth";
 import { githubUserinfo } from "./github-userinfo";
-const mocks = vi.hoisted(() => ({ user: vi.fn(), compare: vi.fn() }));
+const mocks = vi.hoisted(() => ({ limit: vi.fn(), user: vi.fn(), compare: vi.fn() }));
+vi.mock("@/app/libs/abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
 vi.mock("./prismadb", () => ({ default: { user: { findUnique: mocks.user } } }));
 vi.mock("bcrypt", () => ({ default: { compare: mocks.compare } }));
 import { authOptions } from "./auth-config";
-beforeEach(() => { vi.clearAllMocks(); mocks.compare.mockResolvedValue(true); });
+import { ApiRequestError } from "./api-request";
+beforeEach(() => { vi.clearAllMocks(); mocks.limit.mockResolvedValue(undefined); mocks.compare.mockResolvedValue(true); });
 describe("OAuth account linking", () => {
   it("disables email-only account linking while keeping GitHub email verification", () => {
     const github = authOptions.providers.find((provider) => provider.id === "github") as OAuthConfig<unknown>;
@@ -17,6 +19,17 @@ describe("OAuth account linking", () => {
   });
 });
 describe("session version issuance", () => {
+  it("enforces login quotas before lookup/bcrypt and bounds credential fields", async () => {
+    const provider = authOptions.providers.find((provider) => provider.id === "credentials") as CredentialsConfig;
+    const authorize = provider.options!.authorize!;
+    const request = { body: {}, query: {}, headers: {}, method: "POST" };
+    mocks.limit.mockRejectedValueOnce(new ApiRequestError(429, "Wait", 10));
+    await expect(authorize({ email: "user@example.com", password: "password" }, request)).rejects.toThrow("RateLimited:10");
+    expect(mocks.user).not.toHaveBeenCalled(); expect(mocks.compare).not.toHaveBeenCalled();
+    mocks.limit.mockClear();
+    await expect(authorize({ email: "user@example.com", password: "é".repeat(513) }, request)).rejects.toThrow("Invalid Credentials");
+    expect(mocks.limit).not.toHaveBeenCalled();
+  });
   it("captures the version before password comparison so a racing reset cannot bless an old login", async () => {
     mocks.user.mockResolvedValue({ id: "user", email: "user@example.com", hashedPassword: "old-hash", sessionVersion: "old-version" });
     const provider = authOptions.providers.find((provider) => provider.id === "credentials") as CredentialsConfig;

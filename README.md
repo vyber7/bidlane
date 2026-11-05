@@ -323,7 +323,7 @@ Before deploying, run `npx prisma generate` and `npx prisma db push` against the
 
 ## Trust and verification
 
-Account → Profile lets a signed-in user request a verification email using the same `RESEND_API_KEY`, `EMAIL_FROM`, and `NEXTAUTH_URL` as auction emails. `POST /api/account/verify-email` sends only to the authenticated account’s address, with a one-minute resend cooldown stored in MongoDB. The link expires after 30 minutes; requesting another invalidates the previous link. Only SHA-256 token hashes are stored. The `/verify-email` page reads the secret from a URL fragment, clears it from browser history, and requires an explicit confirmation POST so ordinary email link scanners do not consume it. Confirmation claims the single-use token and updates the matching user/email in one database transaction. Failed sends still observe the one-minute cooldown. Existing users are not marked verified automatically, and verification is optional for existing auction flows.
+Account → Profile lets a signed-in user request a verification email using the same `RESEND_API_KEY`, `EMAIL_FROM`, and `NEXTAUTH_URL` as auction emails. `POST /api/account/verify-email` sends only to the authenticated account’s address, with a one-minute resend cooldown stored in MongoDB. The link expires after 30 minutes; requesting another invalidates the previous link. Only SHA-256 token hashes are stored. The `/verify-email` page reads the secret from a URL fragment, clears it from browser history, and requires an explicit confirmation POST so ordinary email link scanners do not consume it. Confirmation claims the single-use token and updates the matching user/email in one database transaction. Failed sends still observe the one-minute cooldown. Existing users are not marked verified automatically. Verified email is required before placing a new bid or submitting a new listing; sign-in, private draft saving, and managing existing listings remain available.
 
 Public seller profiles at `/sellers/[id]` show the public name/photo, membership date, email-verification status, latest current listings, and paginated sold auction results. They do not expose email addresses, password hashes, reserves, or private account activity. An **Email verified** badge means inbox access only. **Sold at auction** reports an auction outcome, not confirmed payment or completed handoff; completed transaction tracking remains separate work. BidLane currently has no independent inspection or curation workflow, and the homepage no longer claims curated inventory.
 
@@ -403,3 +403,5 @@ Local development does not run the Vercel schedule automatically. To exercise th
 This project is private and proprietary.
 
 Upload security deployment and preset cutover: [deployment guide](docs/upload-cutover.md).
+
+Abuse prevention, request limits, and verification rollout: [deployment guide](docs/abuse-controls.md).

@@ -77,7 +77,7 @@ const AuthForm = () => {
       })
         .then((response) => {
           if (response?.error) {
-            toast.error("Invalid Credentials");
+            toast.error(response.error === "RateLimited" ? "Too many sign-in attempts. Please wait before trying again." : response.error === "AuthUnavailable" ? "Sign-in is temporarily unavailable. Please try again later." : "Invalid Credentials");
           } else {
             toast.success("Logged in successfully!");
 
@@ -131,6 +131,7 @@ const AuthForm = () => {
                 autoComplete={autoComplete}
                 placeholder={placeholder}
                 disabled={isLoading}
+                maxLength={id === "name" ? 60 : id === "email" ? 254 : 1024}
                 aria-invalid={Boolean(errors[id])}
                 aria-describedby={errors[id] ? `${id}-error` : undefined}
                 {...register(id, {

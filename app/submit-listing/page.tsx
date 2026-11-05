@@ -35,8 +35,8 @@ async function SubmitVehicle({ searchParams }: { searchParams: Promise<{ draft?:
       <main className="w-full rounded-md lg:p-0">
         <h1 className="pb-2 text-3xl font-bold">Submit your vehicle</h1>
         <p className="mb-6 text-sm text-slate-500">Add your details and photos, then preview your listing before submitting. Your draft saves as you work. Submitted listings need admin approval before they appear publicly or bidding can open.</p>
-        {currentUser && !currentUser.emailVerified && <p className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-slate-700">Help buyers recognize your account. <Link href="/account/profile" className="font-bold underline">Verify your email in your profile</Link> to display an email verified badge.</p>}
-        <SubmitForm key={initialDraft?.id ?? "new"} initialDraft={initialDraft} />
+        {currentUser && !currentUser.emailVerified && <p className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-slate-700">You can save and edit your draft now. <Link href="/account/profile" className="font-bold underline">Verify your email in your profile</Link> before submitting your listing.</p>}
+        <SubmitForm key={initialDraft?.id ?? "new"} initialDraft={initialDraft} emailVerified={Boolean(currentUser.emailVerified)} />
       </main>
       <Aside auctions={soldAuctions} />
     </div>
