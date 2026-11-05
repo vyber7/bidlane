@@ -103,11 +103,13 @@ export default function BidForm({ minimumBid, canBid, currentUserId }: {
           <p>{leading ? "Keep an eye on the auction until it closes." : "Review the current price before bidding again."}</p>
         </div>
       )}
-      <form noValidate onSubmit={handleSubmit(({ bidAmount }) => {
-        if (!canBid || minimumBid === null || review || submitting.current) return;
-        setRequestError(null);
-        setReview({ amount: bidAmount, minimumBid });
-      })}>
+      <form noValidate onSubmit={(event) => {
+        void handleSubmit(({ bidAmount }) => {
+          if (!canBid || minimumBid === null || review || submitting.current) return;
+          setRequestError(null);
+          setReview({ amount: bidAmount, minimumBid });
+        })(event);
+      }}>
         <label htmlFor="bidAmount" className="block text-sm font-semibold text-slate-950">Your bid amount in dollars</label>
         <p id="bid-minimum" className="mb-2 mt-1 text-sm text-slate-600">
           {minimumBid !== null ? `Minimum next bid: $${formatAmount(minimumBid)}` : "The minimum bid has not been set."}

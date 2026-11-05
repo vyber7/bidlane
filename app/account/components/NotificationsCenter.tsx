@@ -55,6 +55,8 @@ const NotificationsCenter = ({ initialFeed, userId }: { initialFeed: Notificatio
 
   useEffect(() => {
     if (accountId && accountId !== userId) return;
+    // Server-driven refreshes must block concurrent pagination while loading.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadFirst();
     return () => { requestNumber.current += 1; };
   }, [loadFirst, version, accountId, userId]);
