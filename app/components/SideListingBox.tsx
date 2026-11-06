@@ -15,7 +15,7 @@ interface SideListingBoxProps {
 const SideListingBox: React.FC<SideListingBoxProps> = ({ auction, variant = "sold" }) => {
   const amount = variant === "live" ? auction.currentBid ?? auction.startingBid : auction.currentBid;
   return (
-    <div className="group overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+    <div className="group overflow-hidden rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md">
       <Link href={`/listing/${auction.id}`} className="grid grid-cols-[6.5rem_1fr]">
         {auction.coverImage ? (
           <CldImage

@@ -12,7 +12,7 @@ interface AsideProps {
 const Aside: React.FC<AsideProps> = ({ auctions, variant = "sold" }) => {
   const live = variant === "live";
   return (
-    <aside className="h-fit rounded-2xl border border-slate-200 bg-slate-50 p-5 lg:sticky lg:top-20">
+    <aside className={`h-fit rounded-2xl border border-slate-200 bg-slate-50 p-5${live ? "" : " lg:sticky lg:top-20"}`}>
       <h2 className="mt-2 text-xl font-bold text-slate-950">
         {live ? "Live auctions" : "Recently sold"}
       </h2>

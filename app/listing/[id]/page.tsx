@@ -23,6 +23,7 @@ import { canViewListing, isPublicListing, reviewLabels } from "@/app/libs/listin
 import { toPublicListing, toSellerListing } from "@/app/libs/listing-payload";
 import VehicleHistory from "@/app/components/VehicleHistory";
 import { vehicleSpecificationFields } from "@/app/libs/vehicle-details";
+import LiveAuctionsSidebar from "./components/LiveAuctionsSidebar";
 
 export const metadata: Metadata = {
   title: "BidLane | Vehicle Auction",
@@ -142,20 +143,14 @@ const Listing = async (props: Params) => {
                 </dl>
               </section>
             </div>
-            <div className="order-3 space-y-5">
+            <LiveAuctionsSidebar>
               <Aside
                 auctions={liveAuctions
                   .filter((auction) => auction.id !== id)
                   .slice(0, 4)}
                 variant="live"
               />
-              <Link
-                href="/faq"
-                className="block px-2 text-sm text-slate-500 hover:text-slate-950"
-              >
-                New to BidLane? Learn how bidding works →
-              </Link>
-            </div>
+            </LiveAuctionsSidebar>
           </div>
           <div className="min-w-0 lg:col-start-1 lg:row-start-2">
             <Gallery
