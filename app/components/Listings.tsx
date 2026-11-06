@@ -24,7 +24,7 @@ const Listings: React.FC<ListingsProps> = ({ listings, currentUserId }) => {
       {listings.map((listing) => (
         <li
           key={listing.id}
-          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-900/10"
+          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:border-slate-300 hover:shadow-xl hover:shadow-slate-900/10"
         >
           <ListingBox listing={listing} currentUserId={currentUserId} />
         </li>
