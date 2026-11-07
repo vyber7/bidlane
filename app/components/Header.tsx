@@ -107,10 +107,6 @@ function Header({ auctionStatus = "LIVE" }: { auctionStatus?: AuctionStatus }) {
         </Link>
 
         <div className="hidden items-center gap-1 lg:flex">
-          <Link href="/" className={linkClass(pathname === "/")}>
-            Discover
-          </Link>
-
           <div className="relative">
             <button
               type="button"
@@ -251,7 +247,6 @@ function Header({ auctionStatus = "LIVE" }: { auctionStatus?: AuctionStatus }) {
           )}
 
           <div className="grid gap-1">
-            <Link href="/" className={linkClass(pathname === "/")}>Discover</Link>
             <p className="px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Auctions</p>
             {auctionLinks.map(({ name, href, icon: Icon }) => (
               <Link href={href} key={href} onClick={() => setMobileOpen(false)} className={`${linkClass(auctionLinkActive(href))} flex items-center gap-3`}>
