@@ -96,6 +96,8 @@ npx prisma db push
 
 This repository uses Prisma 6 with MongoDB, which uses `db push` to synchronize the schema instead of Prisma Migrate. See the [Prisma 6 schema prototyping guide](https://docs.prisma.io/docs/orm/v6/prisma-migrate/workflows/prototyping-your-schema).
 
+Prisma CLI and Client are aligned on 6.19.3. A scoped npm override makes `@prisma/config@6.19.3` use `deepmerge-ts` 8.0.2 or newer within v8 to address [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx). Recheck this override when upgrading Prisma; it is specific to the current config package.
+
 There is no seed script. Register an account and submit a vehicle through the app to create your first listing.
 
 ### 4. Start the app

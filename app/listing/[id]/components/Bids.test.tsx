@@ -112,6 +112,8 @@ describe("bid review", () => {
     render(view());
     const input = await reviewBid();
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Edit bid" })); });
+    // React Hook Form defers setFocus to the next timer tick.
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     expect(screen.queryByRole("region", { name: "Review your bid" })).toBeNull();
     expect(input).toHaveProperty("value", "12000");
     expect(document.activeElement).toBe(input);
@@ -182,6 +184,8 @@ describe("bid review", () => {
     render(view());
     const input = await reviewBid();
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm bid of $12,000" })); });
+    // React Hook Form defers setFocus to the next timer tick.
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     expect(screen.getByRole("alert").textContent).toBe("The auction changed; please try again");
     expect(screen.queryByRole("region", { name: "Review your bid" })).toBeNull();
     expect(input).toHaveProperty("value", "12000");
