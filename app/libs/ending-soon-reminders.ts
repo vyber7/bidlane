@@ -1,27 +1,14 @@
-import type { Prisma } from "@prisma/client";
-import prisma from "./prismadb";
+import { getNativeRepositories, withNativeTransaction } from "./native-repositories";
+import { auctionTransactionOptions } from "@/prisma/native/transaction-errors";
 import { logger } from "./logger";
 import { endingSoonNotifications, publishNotificationChanges, saveNotifications } from "./notifications";
 
 export const ENDING_SOON_WINDOW_MS = 60 * 60 * 1000;
-const unreminded: Prisma.ListingWhereInput = {
-  OR: [{ endingSoonReminderAt: null }, { endingSoonReminderAt: { isSet: false } }],
-};
-
 export async function queueEndingSoonReminders(now = new Date(), batchSize = 100) {
   const startedAt = Date.now();
   const limit = Math.min(Math.max(Math.trunc(batchSize), 1), 100);
-  const due: Prisma.ListingWhereInput = {
-    ...unreminded,
-    status: "LIVE",
-    auctionEndsAt: { gt: now, lte: new Date(now.getTime() + ENDING_SOON_WINDOW_MS) },
-  };
-  const candidates = await prisma.listing.findMany({
-    where: due,
-    orderBy: { auctionEndsAt: "asc" },
-    take: limit,
-    select: { id: true },
-  });
+  const windowEnd = new Date(now.getTime() + ENDING_SOON_WINDOW_MS);
+  const candidates = await getNativeRepositories().auctions.reminderCandidates(now, windowEnd, limit);
   const summary = { checked: 0, queued: 0, skipped: 0, failed: 0, hasMore: candidates.length === limit };
   for (const { id } of candidates) {
     if (Date.now() - startedAt >= 40000) {
@@ -30,16 +17,12 @@ export async function queueEndingSoonReminders(now = new Date(), batchSize = 100
     }
     summary.checked += 1;
     try {
-      const users = await prisma.$transaction(async (tx) => {
+      const users = await withNativeTransaction(async (tx) => {
         // Claim and persist together: a crash cannot lose or duplicate reminders.
-        const claimed = await tx.listing.updateMany({
-          where: { id, ...due },
-          data: { endingSoonReminderAt: now },
-        });
-        if (claimed.count !== 1) return null;
-        const listing = await tx.listing.findUniqueOrThrow({ where: { id } });
+        const listing = await tx.auctions.claimReminder(id, now, windowEnd);
+        if (!listing) return null;
         return saveNotifications(tx, endingSoonNotifications(listing, now));
-      });
+      }, auctionTransactionOptions);
       if (users === null) summary.skipped += 1;
       else {
         summary.queued += 1;

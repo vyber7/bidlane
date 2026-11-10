@@ -55,9 +55,12 @@ describe.skipIf(!url)("native authentication on a local MongoDB replica set", ()
     connection = createDatabaseV8(localUrl);
     state.connection = connection;
     await connection.mongoClient.connect();
+    // The guarded local database is disposable, including stale indexes or
+    // validators left by a previously interrupted integration run.
+    await connection.database.dropDatabase();
     await ensureNativeIndexes(connection.database);
     repositories = createNativeRepositories(connection.database);
-  });
+  }, 30_000);
   beforeEach(async () => {
     for (const collection of await connection.database.listCollections().toArray()) await connection.database.collection(collection.name).deleteMany({});
     state.session = null;
@@ -69,7 +72,7 @@ describe.skipIf(!url)("native authentication on a local MongoDB replica set", ()
   afterEach(() => vi.unstubAllEnvs());
   afterAll(async () => {
     if (connection) { await connection.database.dropDatabase(); await connection.close(); state.connection = undefined; }
-  });
+  }, 30_000);
 
   function oauth(providerId: string, email: string, sessionToken?: string, subject = "provider-subject") {
     const provider = authOptions.providers.find((item) => item.id === providerId) as OAuthConfig<unknown>;

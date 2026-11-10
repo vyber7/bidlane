@@ -2,6 +2,7 @@ import type { Listing, Prisma } from "@prisma/client";
 import type { AccountNotification } from "@/app/types/account";
 import { pusherServer } from "./pusher";
 import { logger } from "./logger";
+import type { NativeRepositories } from "@/prisma/native/repositories";
 
 type Vehicle = Pick<Listing, "id" | "year" | "make" | "model" | "userId">;
 export type NotificationDraft = Omit<
@@ -154,10 +155,14 @@ export function commentNotifications(
 // Call within the transaction that changes auction state. Stable event keys
 // and an empty update preserve both the original event and its read timestamp.
 export async function saveNotifications(
-  tx: Pick<Prisma.TransactionClient, "notification">,
+  tx: Pick<Prisma.TransactionClient, "notification"> | Pick<NativeRepositories, "notifications">,
   notifications: NotificationDraft[],
 ) {
   for (const item of notifications) {
+    if ("notifications" in tx) {
+      await tx.notifications.insertOnce(item);
+      continue;
+    }
     await tx.notification.upsert({
       where: {
         userId_eventKey: { userId: item.userId, eventKey: item.eventKey },

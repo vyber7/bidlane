@@ -7,8 +7,11 @@ so reset-token consumption, session invalidation, and queued notices stay atomic
 Authentication and account access now use native `User`/`Account` repositories:
 NextAuth v4, registration, credentials, session checks, current-user DTOs,
 profile edits, notification preferences, recovery-worker identity lookups, and
-the administrator role command. Auction/domain queries and their transactions
-still use Prisma 6.19.3. The typed v8 ORM has not been switched on for application queries.
+the administrator role command. Bidding, auction start/end/finalization, and
+ending-soon reminders also use native sessions. Listing reads, drafts,
+moderation, comments, watchlists, views, notification/email delivery, and email
+verification still have Prisma 6.19.3 callers. The typed v8 ORM has not been
+switched on for application queries.
 
 ## Working commands
 
@@ -114,11 +117,55 @@ version. Current-user and adapter DTOs use explicit field allowlists. Admin
 access still reads the current database role; the trusted operator command uses
 an exact email match and updates `updatedAt` without creating users.
 
+## Auction transactions
+
+`prisma/native/auctions.ts` implements the lifecycle persistence used by
+`/api/place-bid`, `/api/auction-start`, `/api/auction-end`, the shared finalizer,
+and ending-soon reminders. Scheduled and public finalization share the same
+conditional native claim and notification transaction.
+
+A bid transaction reads its user-scoped request key, checks the current auction,
+claims the previous price/deadline, writes the bid, updates both
+`Listing.biddersIds` and `User.BidOnListIds` with `$addToSet`, saves outbid
+notifications, and stores the accepted response snapshot. Native writes keep
+ObjectId references, BSON long integer fields, timestamps, and public DTO
+allowlists compatible with v6. A successful replay returns the original snapshot
+before verification/quota checks and never repeats a bid or broadcast. Missing
+and null first-bid prices remain equivalent. A last-minute bid still extends
+the deadline to two minutes after its acceptance time.
+
+Auction starts require seller ownership, approval, and the current review
+revision, including legacy missing/null revision zero. Finalization compares
+both the previous price and deadline, then re-reads after a lost claim so a
+committed last-minute extension wins. Reminder claims include the live state,
+current final-hour deadline, and missing/null reminder marker. Every claim
+commits together with its notifications; failed notification writes roll back
+state changes and failed bid snapshots also roll back both relation arrays.
+
+Auction transactions use a five-second driver timeout and at most three
+application-callback attempts per transaction. The driver owns transient and
+commit retries. Bid duplicate-key races can open at most three transactions to
+read a concurrent winner's snapshot; exhausted contention returns a retryable
+`503` using the same request key. An unknown commit result is never treated as
+a duplicate-key replay trigger. Quota charges intentionally use the independent
+pool and are cached once per request across retries. Pusher publication happens
+only after the transaction resolves; external delivery remains best effort.
+
+`prisma/native/notifications.ts` inserts immutable events with `$setOnInsert`,
+explicit null fields, email-attempt defaults and queue timestamps. Event replay
+preserves read timestamps and email delivery state. `saveNotifications` supports
+either native repositories or the remaining v6 comment transaction; a native
+transaction never invokes the v6 writer, and v6 transactions never invoke the
+native writer.
+
 ## Native indexes
 
-`prisma/native/indexes.mjs` defines the existing thirteen named secondary indexes
-on nine collections, including unique user emails, provider subjects, asset URLs,
-and reset-token hashes. The `_id` index continues
+`prisma/native/indexes.mjs` defines the existing twenty-one named secondary indexes
+on twelve collections, including user emails, provider subjects, bid request
+keys, notification event keys, asset URLs, reset-token hashes, and lifecycle
+query indexes. The notification pagination index preserves its existing
+`Notification_userId_createdAt__id_idx` name, including the stored `_id` field.
+The `_id` index continues
 to enforce string-key uniqueness. Expiry indexes are regular indexes rather
 than TTL indexes; cleanup retains the existing application-driven windows.
 
@@ -166,7 +213,9 @@ Integration tests additionally exercise actual BSON encodings, concurrent
 counters, ownership filters, unique indexes, native/v6 read compatibility,
 reset single-use semantics, persisted transaction rollback, email lease
 fencing, NextAuth OAuth signup/linking, credential login, JWT revocation,
-profile/preference permissions, and admin-role revocation on a local replica set. Start a disposable MongoDB 8+ replica set, then run:
+profile/preference permissions, admin-role revocation, auction/bid contention,
+exact bid replays, stale deadlines/approval revisions, and persisted auction
+rollback on a local replica set. Start a disposable MongoDB 8+ replica set, then run:
 
 ```bash
 NATIVE_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_native_strings?replicaSet=bidlane-test' npm test -- prisma/native/
@@ -174,24 +223,28 @@ NATIVE_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_native_strings?
 
 Use the port and replica-set name of your local server. These tests only accept
 one `127.0.0.1` host and a database named `bidlane_test_native_*`. They reset and
-drop that test database. The authentication suite appends `_auth` to isolate its
-database from the string-ID suite when run in parallel. They never fall back to
-`DATABASE_URL`, send mail, or contact Cloudinary. Without the explicit test URL they are skipped. The
+drop that test database. The authentication and auction suites append `_auth`
+and `_auctions` to isolate their databases when run in parallel. Auction rollback
+tests temporarily reject writes using validators only in their disposable local
+database and restore those validators afterward. Tests never fall back to
+`DATABASE_URL`, send mail, or contact Cloudinary. Without the explicit test URL
+they are skipped. The
 migration was verified against a local MongoDB 8.0.37 replica set; the configured
 shared database was only queried for server metadata and existing index definitions.
 
 ## Remaining migration work
 
-1. Migrate the remaining auction writes, draft publication, moderation,
-   notifications, and email verification transaction by transaction. Preserve bid
-   request idempotency, conditional auction updates, race retries, ownership
-   checks, and notification persistence in the same native session.
+1. Migrate draft publication, moderation, comments, listing views, watchlists,
+   notification reads/email delivery, and email verification. Preserve ownership
+   checks, conditional updates, race retries, and related writes in the same
+   native session.
 2. Replace nested `connect`/`disconnect` updates with explicit foreign-key and
-   array operations, updating both sides atomically. Many-to-many key arrays
+   array operations, updating both sides atomically as bidding now does.
+   Many-to-many key arrays
    remain persisted fields; they are not v8 ORM relations.
 3. Supply remaining literal/default array values explicitly on creation. Preserve
-   listing state/views/revisions, notification attempts, and draft revision.
-   Native user, queue, and asset defaults are already explicit.
+   listing state/views/revisions and draft revision. Native user, bid,
+   notification, queue, and asset defaults are already explicit.
    `Listing.lastCommentAt` and `updatedAt` stay
    nullable; migrated writes must supply their timestamps. Implement any
    required cascading cleanup explicitly before retiring v6's emulation.

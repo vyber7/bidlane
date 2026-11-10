@@ -3,10 +3,14 @@ import { assetRepository } from "./assets";
 import { quotaRepository, type QuotaDocument } from "./quotas";
 import { recoveryRepositories } from "./recovery";
 import { authRepositories } from "./auth";
+import { auctionRepositories } from "./auctions";
+import { notificationRepository } from "./notifications";
 
 export function createNativeRepositories(database: Db, session?: ClientSession) {
   return {
     ...authRepositories(database, session),
+    ...auctionRepositories(database, session),
+    notifications: notificationRepository(database, session),
     quotas: {
       contact: quotaRepository(database.collection<QuotaDocument>("ContactRateLimit"), session),
       upload: quotaRepository(database.collection<QuotaDocument>("UploadQuota"), session),

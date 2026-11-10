@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import type { ClientSession } from "mongodb";
+import { MongoServerError, type ClientSession } from "mongodb";
+import { TransactionRetryLimitError } from "../native/transaction-errors";
 import { createDatabaseV8, type DatabaseV8 } from "./client";
 
 let connection: DatabaseV8 | undefined;
@@ -46,6 +47,19 @@ describe("Prisma 8 connection lifecycle", () => {
       sessionUsed = session;
       throw failure;
     })).rejects.toBe(failure);
+    expect(sessionUsed?.hasEnded).toBe(true);
+  });
+
+  it("bounds transient callback retries and ends the exhausted session", async () => {
+    connection = createDatabaseV8("mongodb://127.0.0.1:1/bidlane");
+    let attempts = 0;
+    let sessionUsed: ClientSession | undefined;
+    await expect(connection.withTransaction(async (_, session) => {
+      sessionUsed = session;
+      attempts++;
+      throw new MongoServerError({ message: "write conflict", code: 112, errorLabels: ["TransientTransactionError"] });
+    }, { maxAttempts: 3, timeoutMS: 5000 })).rejects.toBeInstanceOf(TransactionRetryLimitError);
+    expect(attempts).toBe(3);
     expect(sessionUsed?.hasEnded).toBe(true);
   });
 });

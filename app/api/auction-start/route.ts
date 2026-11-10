@@ -1,6 +1,7 @@
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
-import prisma from "@/app/libs/prismadb";
+import { withNativeTransaction } from "@/app/libs/native-repositories";
+import { auctionTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
 import {
   ApiRequestError,
   apiErrorResponse,
@@ -13,7 +14,6 @@ import { logger } from "@/app/libs/logger";
 import { pusherServer } from "@/app/libs/pusher";
 import { auctionLiveNotifications, publishNotificationChanges, saveNotifications } from "@/app/libs/notifications";
 import type { AuctionStartedEvent } from "@/app/types/auction-events";
-import { reviewVersionWhere } from "@/app/libs/listing-review";
 
 export async function POST(req: Request) {
   try {
@@ -41,8 +41,8 @@ export async function POST(req: Request) {
       throw new ApiRequestError(400, "End time must be in the future");
     }
 
-    const notificationUsers = await prisma.$transaction(async (tx) => {
-      const listing = await tx.listing.findUnique({ where: { id: listingId } });
+    const notificationUsers = await withNativeTransaction(async (tx) => {
+      const listing = await tx.auctions.find(listingId);
       if (!listing) throw new ApiRequestError(404, "Listing not found");
       if (listing.userId !== currentUser.id) {
         throw new ApiRequestError(403, "Only the seller can start this auction");
@@ -54,23 +54,14 @@ export async function POST(req: Request) {
         throw new ApiRequestError(409, "This listing must be approved by an admin before the auction can start.");
       }
 
-      const updated = await tx.listing.updateMany({
-        where: { id: listingId, userId: currentUser.id, status: "UPCOMING", reviewStatus: "APPROVED", ...reviewVersionWhere(listing.reviewRevision ?? 0) },
-        data: {
-          auctionStartsAt: startTime,
-          auctionEndsAt: endTime,
-          startingBid,
-          bidIncrement,
-          status: "LIVE",
-        },
-      });
+      const updated = await tx.auctions.start(listing, { auctionStartsAt: startTime, auctionEndsAt: endTime, startingBid, bidIncrement });
 
       if (updated.count !== 1) {
         throw new ApiRequestError(409, "Auction has already been started");
       }
 
       return saveNotifications(tx, auctionLiveNotifications(listing, startTime));
-    });
+    }, auctionTransactionOptions);
 
     const notification = await Promise.allSettled([
       publishNotificationChanges(notificationUsers),
@@ -92,7 +83,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const response = apiErrorResponse(error);
     if (response) return response;
-    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2034") return errorResponse("The listing changed. Refresh before starting the auction.", 409);
+    if (isTransactionContention(error)) return errorResponse("The listing changed. Refresh before starting the auction.", 409);
     logger.error("auction.start_failed", error);
     return errorResponse("Failed to create auction", 500);
   }

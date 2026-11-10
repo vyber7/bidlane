@@ -11,15 +11,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/app/actions/getCurrentUser", () => ({
   default: mocks.getCurrentUser,
 }));
-vi.mock("@/app/libs/prismadb", () => ({
-  default: {
-    $transaction: async (callback: (tx: unknown) => unknown) => callback({ listing: { findUnique: mocks.findUnique, updateMany: mocks.updateMany }, notification: { upsert: mocks.upsert } }),
-    listing: {
-      findUnique: mocks.findUnique,
-      updateMany: mocks.updateMany,
-    },
-  },
-}));
+vi.mock("@/app/libs/native-repositories", () => ({ withNativeTransaction: async (callback: (tx: unknown) => unknown) => callback({ auctions: { find: mocks.findUnique, start: mocks.updateMany }, notifications: { insertOnce: mocks.upsert } }) }));
 vi.mock("@/app/libs/pusher", () => ({
   pusherServer: { trigger: mocks.trigger },
 }));
@@ -106,17 +98,11 @@ describe("POST /api/auction-start", () => {
     );
 
     expect(response.status).toBe(201);
-    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ userId: "watcher", title: "A watched auction is live" }) }));
-    expect(mocks.updateMany).toHaveBeenCalledWith({
-      where: { id: listingId, userId: "seller", status: "UPCOMING", reviewStatus: "APPROVED", reviewRevision: 2 },
-      data: {
-        auctionStartsAt: now,
-        auctionEndsAt: new Date(endTime),
-        startingBid: 0,
-        bidIncrement: 25,
-        status: "LIVE",
-      },
-    });
+    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ userId: "watcher", title: "A watched auction is live" }));
+    expect(mocks.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ id: listingId, userId: "seller", reviewRevision: 2 }),
+      { auctionStartsAt: now, auctionEndsAt: new Date(endTime), startingBid: 0, bidIncrement: 25 },
+    );
     await expect(response.json()).resolves.toMatchObject({
       message: "Auction started",
       auctionStartsAt: now.toISOString(),

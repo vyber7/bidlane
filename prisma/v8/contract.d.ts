@@ -22,7 +22,7 @@ import type {
 } from '@prisma/orm-mongo/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'166d404f66b64e30d386105e8678b93a2582b462c8bc82366a0bfd75aa8c7ee8'>;
+  StorageHashBase<'94f250df609b88d2e3a7d1179b8b89b07cf11d080203c7cb323b1caa92f2be9c'>;
 export type ExecutionHash =
   ExecutionHashBase<'cae9bf47fa46800937a10e07ab2b7ad0c63254bebba7fc85b4557c02a75d1df4'>;
 export type ProfileHash =
@@ -724,7 +724,7 @@ type ContractBase = Omit<
                     { readonly direction: 1; readonly field: '_id' },
                   ];
                   readonly kind: 'mongo-index';
-                  readonly name: 'Notification_userId_createdAt_id_idx';
+                  readonly name: 'Notification_userId_createdAt__id_idx';
                 },
                 {
                   readonly keys: readonly [

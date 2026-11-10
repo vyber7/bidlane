@@ -68,5 +68,10 @@ describe("Prisma 8 storage compatibility", () => {
       kind: "mongo-index", name: "Notification_userId_eventKey_key", unique: true,
       keys: [{ field: "userId", direction: 1 }, { field: "eventKey", direction: 1 }],
     });
+    // Prisma 6 names indexes using the stored field name (_id), not id.
+    expect(collections.Notification.indexes).toContainEqual({
+      kind: "mongo-index", name: "Notification_userId_createdAt__id_idx",
+      keys: [{ field: "userId", direction: 1 }, { field: "createdAt", direction: 1 }, { field: "_id", direction: 1 }],
+    });
   });
 });

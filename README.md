@@ -98,7 +98,7 @@ This repository uses Prisma 6 with MongoDB, which uses `db push` to synchronize 
 
 The active Prisma 6 CLI and Client are aligned on 6.19.3. A scoped npm override makes `@prisma/config@6.19.3` use `deepmerge-ts` 8.0.2 or newer within v8 to address [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx). Recheck this override when upgrading Prisma; it is specific to the current config package.
 
-String-ID collections, authentication, and account access use native MongoDB repositories through the shared v8 pool; auction/domain queries still use the active v6 client. Use the explicit `db:*` scripts below: the v6 and v8 packages both expose a `prisma` executable, so bare `npx prisma` is ambiguous during this transition. See [the migration status and cutover requirements](docs/prisma-8-migration.md).
+String-ID collections, authentication, account access, and auction lifecycle transactions use native MongoDB repositories through the shared v8 pool; listing reads and other remaining paths still use the active v6 client. Use the explicit `db:*` scripts below: the v6 and v8 packages both expose a `prisma` executable, so bare `npx prisma` is ambiguous during this transition. See [the migration status and cutover requirements](docs/prisma-8-migration.md).
 
 There is no seed script. Register an account and submit a vehicle through the app to create your first listing.
 

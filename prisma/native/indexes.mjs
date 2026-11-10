@@ -3,6 +3,18 @@ import { MongoServerError } from "mongodb";
 // Preserve v6 names and semantics. Expiry indexes are not TTL indexes: the
 // application deliberately retains reset and delivery records for its retries.
 export const nativeIndexes = {
+  Listing: [
+    { key: { status: 1, auctionEndsAt: 1 }, name: "Listing_status_auctionEndsAt_idx" },
+    { key: { status: 1, reviewStatus: 1, createdAt: 1 }, name: "Listing_status_reviewStatus_createdAt_idx" },
+  ],
+  BidSubmission: [{ key: { userId: 1, key: 1 }, name: "BidSubmission_userId_key_key", unique: true }],
+  Notification: [
+    { key: { userId: 1, eventKey: 1 }, name: "Notification_userId_eventKey_key", unique: true },
+    { key: { userId: 1, createdAt: 1, _id: 1 }, name: "Notification_userId_createdAt__id_idx" },
+    { key: { userId: 1, readAt: 1 }, name: "Notification_userId_readAt_idx" },
+    { key: { emailStatus: 1, emailNextAttemptAt: 1 }, name: "Notification_emailStatus_emailNextAttemptAt_idx" },
+    { key: { emailStatus: 1, emailLockedUntil: 1 }, name: "Notification_emailStatus_emailLockedUntil_idx" },
+  ],
   User: [{ key: { email: 1 }, name: "User_email_key", unique: true }],
   Account: [{ key: { provider: 1, providerAccountId: 1 }, name: "Account_provider_providerAccountId_key", unique: true }],
   ContactRateLimit: [{ key: { expiresAt: 1 }, name: "ContactRateLimit_expiresAt_idx" }],

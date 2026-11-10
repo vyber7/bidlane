@@ -113,7 +113,7 @@ model Notification {
   emailLastError String?
 
   @@unique([userId, eventKey], map: "Notification_userId_eventKey_key")
-  @@index([userId, createdAt, id], map: "Notification_userId_createdAt_id_idx")
+  @@index([userId, createdAt, id], map: "Notification_userId_createdAt__id_idx")
   @@index([userId, readAt], map: "Notification_userId_readAt_idx")
   @@index([emailStatus, emailNextAttemptAt], map: "Notification_emailStatus_emailNextAttemptAt_idx")
   @@index([emailStatus, emailLockedUntil], map: "Notification_emailStatus_emailLockedUntil_idx")
