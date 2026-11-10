@@ -14,6 +14,11 @@ const nativeCollections = [
 ];
 
 describe("Prisma 8 storage compatibility", () => {
+  it("manages only the declared ObjectId collections and tolerates native/operational collections", () => {
+    expect(contract.defaultControlPolicy).toBe("tolerated");
+    for (const definition of Object.values(collections)) expect(definition.control).toBe("managed");
+    for (const name of nativeCollections) expect(Object.hasOwn(collections, name)).toBe(false);
+  });
   it("emits the committed contract and types from the TypeScript source", () => {
     const root = fileURLToPath(new URL("../../", import.meta.url));
     // Emitted type imports are resolved relative to the output directory.

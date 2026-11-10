@@ -4,15 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run db:generate && npm run db:v8:emit && next build",
+    "build": "npm run db:generate && next build",
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "db:generate": "node node_modules/prisma/build/index.js generate",
-    "db:validate": "node node_modules/prisma/build/index.js validate",
-    "db:push": "node node_modules/prisma/build/index.js db push",
+    "db:generate": "npm run db:v8:emit",
+    "db:validate": "node scripts/validate-contract.mjs",
+    "db:push": "node --env-file-if-exists=.env scripts/prisma-management.mjs apply",
     "db:studio": "node node_modules/prisma/build/index.js studio",
     "db:v8:emit": "node node_modules/prisma-v8/dist/prisma.js contract emit --config prisma8.config.ts --output-path prisma/v8",
     "db:v8:check": "node --env-file-if-exists=.env scripts/prisma-v8-check.mjs",
@@ -20,14 +20,18 @@
     "admin:grant": "node --env-file-if-exists=.env scripts/admin-role.mjs grant",
     "admin:revoke": "node --env-file-if-exists=.env scripts/admin-role.mjs revoke",
     "uploads:check": "node --env-file-if-exists=.env scripts/secure-uploads.mjs check",
-    "uploads:secure": "node --env-file-if-exists=.env scripts/secure-uploads.mjs apply"
+    "uploads:secure": "node --env-file-if-exists=.env scripts/secure-uploads.mjs apply",
+    "db:legacy:generate": "node node_modules/prisma/build/index.js generate",
+    "db:legacy:validate": "node node_modules/prisma/build/index.js validate",
+    "db:audit": "node --env-file-if-exists=.env scripts/prisma-management.mjs audit",
+    "db:plan": "node --env-file-if-exists=.env scripts/prisma-management.mjs plan",
+    "db:rehearse": "vitest run prisma/v8/management.integration.test.ts --maxWorkers=1"
   },
   "engines": {
     "node": "24.x"
   },
   "dependencies": {
     "@mapbox/node-pre-gyp": "^2.0.3",
-    "@prisma/client": "^6.19.3",
     "@prisma/orm-mongo": "8.0.0-rc.23",
     "@tailwindcss/forms": "^0.5.11",
     "axios": "^1.21.1",
@@ -51,6 +55,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@prisma/client": "^6.19.3",
     "@testing-library/react": "^16.3.3",
     "@types/bcrypt": "^5.0.2",
     "@types/lodash": "^4.17.27",

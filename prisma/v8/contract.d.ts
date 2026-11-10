@@ -22,7 +22,7 @@ import type {
 } from '@prisma/orm-mongo/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'94f250df609b88d2e3a7d1179b8b89b07cf11d080203c7cb323b1caa92f2be9c'>;
+  StorageHashBase<'06862e19d26294690bdaddd47a215879f8da8892480db9ce666271563deafca6'>;
 export type ExecutionHash =
   ExecutionHashBase<'cae9bf47fa46800937a10e07ab2b7ad0c63254bebba7fc85b4557c02a75d1df4'>;
 export type ProfileHash =
@@ -306,6 +306,7 @@ type ContractBase = Omit<
         readonly entries: {
           readonly collection: {
             readonly Account: {
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [
@@ -353,6 +354,7 @@ type ContractBase = Omit<
               };
             };
             readonly Bid: {
+              readonly control: 'managed';
               readonly kind: 'mongo-collection';
               readonly validator: {
                 readonly jsonSchema: {
@@ -373,6 +375,7 @@ type ContractBase = Omit<
               };
             };
             readonly BidSubmission: {
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [
@@ -425,6 +428,7 @@ type ContractBase = Omit<
               };
             };
             readonly Comment: {
+              readonly control: 'managed';
               readonly kind: 'mongo-collection';
               readonly validator: {
                 readonly jsonSchema: {
@@ -446,6 +450,7 @@ type ContractBase = Omit<
               };
             };
             readonly EmailVerification: {
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [{ readonly direction: 1; readonly field: 'tokenHash' }];
@@ -480,6 +485,7 @@ type ContractBase = Omit<
               };
             };
             readonly Listing: {
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [
@@ -606,6 +612,7 @@ type ContractBase = Omit<
               };
             };
             readonly ListingDraft: {
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [
@@ -663,6 +670,7 @@ type ContractBase = Omit<
               };
             };
             readonly ListingReview: {
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [
@@ -707,6 +715,7 @@ type ContractBase = Omit<
               };
             };
             readonly Notification: {
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [
@@ -827,6 +836,7 @@ type ContractBase = Omit<
               };
             };
             readonly User: {
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [{ readonly direction: 1; readonly field: 'email' }];

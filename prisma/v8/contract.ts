@@ -39,6 +39,7 @@ const ListingReviewStatus = enumType("ListingReviewStatus", mongoString,
 
 const Account = model("Account", {
   collection: "Account",
+  controlPolicy: "managed",
   fields: {
     id: field.objectId().mongo({ field: "_id" }),
     type: field.string(),
@@ -64,6 +65,7 @@ const Account = model("Account", {
 
 const User = model("User", {
   collection: "User",
+  controlPolicy: "managed",
   fields: {
     id: field.objectId().mongo({ field: "_id" }),
     name: field.string().optional(),
@@ -100,6 +102,7 @@ const User = model("User", {
 
 const Notification = model("Notification", {
   collection: "Notification",
+  controlPolicy: "managed",
   fields: {
     id: field.objectId().mongo({ field: "_id" }),
     userId: field.objectId(),
@@ -138,6 +141,7 @@ const Notification = model("Notification", {
 
 const Listing = model("Listing", {
   collection: "Listing",
+  controlPolicy: "managed",
   fields: {
     id: field.objectId().mongo({ field: "_id" }),
     year: field.int64Number(),
@@ -196,6 +200,7 @@ const Listing = model("Listing", {
 
 const ListingReview = model("ListingReview", {
   collection: "ListingReview",
+  controlPolicy: "managed",
   fields: {
     id: field.objectId().mongo({ field: "_id" }),
     listingId: field.objectId(),
@@ -216,6 +221,7 @@ const ListingReview = model("ListingReview", {
 
 const Comment = model("Comment", {
   collection: "Comment",
+  controlPolicy: "managed",
   fields: {
     id: field.objectId().mongo({ field: "_id" }),
     body: field.string().optional(),
@@ -232,6 +238,7 @@ const Comment = model("Comment", {
 
 const Bid = model("Bid", {
   collection: "Bid",
+  controlPolicy: "managed",
   fields: {
     id: field.objectId().mongo({ field: "_id" }),
     amount: field.int64Number(),
@@ -247,6 +254,7 @@ const Bid = model("Bid", {
 
 const BidSubmission = model("BidSubmission", {
   collection: "BidSubmission",
+  controlPolicy: "managed",
   fields: {
     id: field.objectId().mongo({ field: "_id" }),
     userId: field.objectId(),
@@ -266,6 +274,7 @@ const BidSubmission = model("BidSubmission", {
 
 const EmailVerification = model("EmailVerification", {
   collection: "EmailVerification",
+  controlPolicy: "managed",
   fields: {
     id: field.objectId().mongo({ field: "_id" }),
     email: field.string(),
@@ -280,6 +289,7 @@ const EmailVerification = model("EmailVerification", {
 
 const ListingDraft = model("ListingDraft", {
   collection: "ListingDraft",
+  controlPolicy: "managed",
   fields: {
     id: field.objectId().mongo({ field: "_id" }),
     userId: field.objectId(),
@@ -300,6 +310,9 @@ const ListingDraft = model("ListingDraft", {
 });
 
 export const contract = defineContract({
+  // Unlisted native collections are owned by our repositories/index inventory.
+  // Only the ten explicitly managed ObjectId collections belong to v8 DDL.
+  defaultControlPolicy: "tolerated",
   enums: { UserRole, NotificationKind, NotificationTone, EmailDeliveryStatus, ListingReviewStatus },
   models: { Account, User, Notification, Listing, ListingReview, Comment, Bid, BidSubmission, EmailVerification, ListingDraft },
 });

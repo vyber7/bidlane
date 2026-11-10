@@ -1999,6 +1999,7 @@
         "entries": {
           "collection": {
             "Account": {
+              "control": "managed",
               "indexes": [
                 {
                   "keys": [
@@ -2100,6 +2101,7 @@
               }
             },
             "Bid": {
+              "control": "managed",
               "kind": "mongo-collection",
               "validator": {
                 "jsonSchema": {
@@ -2136,6 +2138,7 @@
               }
             },
             "BidSubmission": {
+              "control": "managed",
               "indexes": [
                 {
                   "keys": [
@@ -2206,6 +2209,7 @@
               }
             },
             "Comment": {
+              "control": "managed",
               "kind": "mongo-collection",
               "validator": {
                 "jsonSchema": {
@@ -2252,6 +2256,7 @@
               }
             },
             "EmailVerification": {
+              "control": "managed",
               "indexes": [
                 {
                   "keys": [
@@ -2301,6 +2306,7 @@
               }
             },
             "Listing": {
+              "control": "managed",
               "indexes": [
                 {
                   "keys": [
@@ -2591,6 +2597,7 @@
               }
             },
             "ListingDraft": {
+              "control": "managed",
               "indexes": [
                 {
                   "keys": [
@@ -2680,6 +2687,7 @@
               }
             },
             "ListingReview": {
+              "control": "managed",
               "indexes": [
                 {
                   "keys": [
@@ -2751,6 +2759,7 @@
               }
             },
             "Notification": {
+              "control": "managed",
               "indexes": [
                 {
                   "keys": [
@@ -2978,6 +2987,7 @@
               }
             },
             "User": {
+              "control": "managed",
               "indexes": [
                 {
                   "keys": [
@@ -3157,7 +3167,7 @@
         "kind": "mongo-database"
       }
     },
-    "storageHash": "94f250df609b88d2e3a7d1179b8b89b07cf11d080203c7cb323b1caa92f2be9c"
+    "storageHash": "06862e19d26294690bdaddd47a215879f8da8892480db9ce666271563deafca6"
   },
   "execution": {
     "executionHash": "cae9bf47fa46800937a10e07ab2b7ad0c63254bebba7fc85b4557c02a75d1df4",
@@ -3286,6 +3296,7 @@
   },
   "capabilities": {},
   "extensions": {},
+  "defaultControlPolicy": "tolerated",
   "meta": {},
   "_generated": {
     "warning": "⚠️  GENERATED FILE - DO NOT EDIT",

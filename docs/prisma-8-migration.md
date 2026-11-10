@@ -14,8 +14,9 @@ updates, and account watchlist reads now use native repositories as well.
 Notification feeds/read updates, notification email delivery, and email
 verification now use native repositories too. Listing, bid, seller, and
 account-summary reads now use the typed v8 ORM. Application code no longer
-queries the Prisma 6 client; its unused provider, CLI, schema, and dependency
-remain for guarded compatibility tests and the pending database-management cutover.
+queries the Prisma 6 client. Builds, generation, and validation use only v8.
+The unused v6 provider/schema, CLI, and dev-only client remain for compatibility
+comparisons and legacy inspection until those checks are replaced.
 
 ## Working commands
 
@@ -32,17 +33,22 @@ npx tsc --noEmit
 npm run build
 ```
 
-`db:generate`, `db:validate`, `db:push`, and `db:studio` call the v6 CLI by its
-explicit path. The separately installed `prisma-v8` alias is the v8 CLI; both
-packages expose the same `prisma` executable, so do not use bare `npx prisma`
-during this transition. This also keeps the build independent of npm's binary
-link order.
+`db:generate` emits the v8 contract/types offline; `db:validate` emits into a
+temporary directory and compares both artifacts without opening a database.
+The build runs only v8 emission and Next.js. `@prisma/client` is a development
+dependency. `db:legacy:generate`, `db:legacy:validate`, and the existing
+`db:studio` use v6 explicitly for comparison tests/inspection. Both CLI packages
+expose a `prisma` binary, so continue using npm scripts rather than bare
+`npx prisma` until the legacy tooling is removed.
 
-`prisma8.config.ts` is deliberately an emit-only config without database
-credentials or inherited configuration. `db:v8:emit` runs offline and writes
-`prisma/v8/contract.json` and `contract.d.ts`; commit both generated files and
-regenerate them when the contract changes. The build emits them automatically.
-The existing `prisma/schema.prisma` remains the source for v6 generation.
+`prisma8.config.ts` is deliberately offline, without database credentials or
+inherited configuration. `db:v8:emit` writes `prisma/v8/contract.json` and
+`contract.d.ts`; commit both artifacts after changing the TypeScript source.
+`prisma.management.config.ts` is used only by guarded adoption commands. It
+receives the explicit connection through the environment, and CLI ref/snapshot
+files are isolated in command-specific temporary directories. The database's
+marker is persisted; rehearsal-local refs are not written into the repository.
+The existing `prisma/schema.prisma` remains the source for v6 comparisons.
 
 ## Editor support during the migration
 
@@ -374,11 +380,69 @@ For a new database, `npm run db:native:indexes -- apply` creates missing indexes
 additively and checks them. Conflicting definitions fail; the tool does not
 drop or recreate an index or collection. Verify the check before deploying.
 
-**This is not a complete database-management contract.** Do not run v8
-`db update`, `db sign`, or migrations against a shared database using it yet.
-The native indexes above cover those collections. Before baselining, rehearse
-how v8 migration diffs exclude them and validate existing documents against
-the typed collections' stricter validators.
+The contract's default control policy is now `tolerated`; the ten declared
+ObjectId collections explicitly use `managed`. The initial rehearsal found that
+the previous default would drop all seven undeclared native collections and
+their indexes. This governance change prevents those operations. Native indexes
+remain owned by the additive inventory. Raw CLI commands bypass the reviewed
+operation guard; use the flow below for adoption.
+
+## Database-management rehearsal
+
+The guarded tools separate inspection from application:
+
+```bash
+npm run db:audit       # reads data/schema; reports counts/types/field names only
+npm run db:plan        # audit plus dry-run operation inventory; no DDL or signing
+# After backup, copy rehearsal, cleanup, and stopping old writers:
+npm run db:push        # guarded v8 apply, schema verification, signing, verification
+```
+
+Scripts load root `.env`; they do not load `.env.local`. A fresh database first
+needs `npm run db:native:indexes -- apply`. Existing databases should run the
+read-only index check and resolve conflicts deliberately.
+
+`prisma-management.mjs` checks every managed collection against the exact
+`$jsonSchema` in the emitted contract. It counts incompatible documents and
+reports BSON type distributions, missing required fields, and unexpected field
+names without returning document values, IDs, emails, hashes, or tokens. Native
+collection ID types and the complete native index inventory are checked too.
+Missing arrays, null required scalars, wrong BSON types, and extra fields can
+all prevent strict-validator adoption even when application read defaults work.
+The tool never backfills or deletes records.
+
+`db:push` first checks source/artifact consistency and requires the plan's
+destination hash to match the audited contract. It proceeds only when both the
+audit and operation guard pass. The guard
+accepts only additive validator/collection creation on declared managed
+collections. Drops, conversions, existing-validator/index changes, unknown
+operations, and DDL on native collections are refused. After applying, it verifies
+the managed schema, signs without advancing a repository ref, and verifies the
+marker and schema. CLI `--strict` verification is intentionally not used: that
+flag rejects unclaimed native collections even when their policy is tolerated.
+MongoDB validators themselves still use strict/error enforcement; the native
+index check and guarded plan cover the deliberately external collections.
+
+The rehearsal uses independent representative fixtures, **not a production data
+copy**. Run it against a disposable local MongoDB 8+ replica set:
+
+```bash
+MIGRATION_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_migration_local?replicaSet=bidlane-test' npm run db:rehearse
+```
+
+The guard accepts one literal `127.0.0.1` host and a `bidlane_test_migration_*`
+database name, then creates a uniquely suffixed database. It never resets the
+supplied base or falls back to `DATABASE_URL`. Tests cover fresh bootstrap,
+collection/index preservation, audit refusal without mutation, unreviewed index
+drops, idempotent adoption/signing, enforced validators, and application writes
+after adoption. The generated database is dropped afterward.
+
+Before a shared-database adoption, rehearse on a backup/restored copy and review
+its audit. Deploy the migrated writers, stop old writers, resolve legacy-data
+issues deliberately, then repeat audit/plan immediately before applying.
+DDL/signing is not one MongoDB transaction: a command failure can leave partial
+metadata changes, so stop and inspect before retrying. No shared database's
+records, validators, indexes, or marker were changed during this rehearsal.
 
 ## Client and transaction boundary
 
@@ -436,9 +500,10 @@ shared database was only queried for server metadata and existing index definiti
 
 ## Remaining migration work
 
-1. Rehearse database management on a disposable copy: inspect BSON types,
-   missing/null/default fields, extra fields, validators, and index names.
-   Review the complete migration delta and how native collections are excluded.
+1. Repeat the tested adoption flow on a restored copy of the actual database.
+   Review its audit, resolve incompatible data, and coordinate old-writer shutdown
+   before applying the guarded changes to the target. Representative local
+   rehearsal does not establish that existing shared data is compatible.
 2. Retain explicit foreign-key/array operations, creation defaults, and native
    transaction boundaries. Many-to-many arrays remain persisted fields, not
    v8 ORM relations. Confirm required cascading cleanup before retiring v6's
@@ -446,8 +511,8 @@ shared database was only queried for server metadata and existing index definiti
 3. Replace compatibility checks that depend on the generated v6 model metadata
    with independent contract assertions. Complete the operator/config/editor
    cutover together, then remove the unused v6 provider, schema/toolchain, client,
-   dependency override, and remaining test-only imports/mocks. Replace the
-   emit-only config with the reviewed migration config at that point.
+   dependency override, and remaining test-only imports/mocks. Retain the split
+   between offline emission and explicit guarded database management.
 
 ## References
 

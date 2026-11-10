@@ -19,7 +19,7 @@ BidLane is a vehicle auction app built with Next.js, React, TypeScript, and Mong
 | ----------------- | --------------------------------------------------- |
 | Application       | Next.js 16 App Router, React 19, TypeScript         |
 | Styling and forms | Tailwind CSS 3, React Hook Form, React Icons        |
-| Database          | MongoDB with Prisma 6 and native repositories (v8 migration) |
+| Database          | MongoDB with Prisma 8 and native repositories |
 | Authentication    | NextAuth.js 4, native MongoDB adapter, bcrypt, JWT sessions |
 | Live updates      | Pusher Channels                                     |
 | Images            | Cloudinary and next-cloudinary                      |
@@ -85,22 +85,37 @@ Service configuration:
 - **Cloudinary:** Configure the cloud name, API key, and server API secret. New uploads use signed server requests and need no unsigned preset. For an existing deployment using `auctions`, follow the [coordinated cutover guide](docs/upload-cutover.md) after deploying the secured uploader.
 - **OAuth:** Configure callback URLs as `http://localhost:3000/api/auth/callback/github` and `http://localhost:3000/api/auth/callback/google`. Credentials sign-in does not require OAuth keys, but both social providers are registered and their buttons require valid provider credentials.
 - **OAuth account linking:** GitHub and Google do not merge an unlinked provider identity into an existing account just because the emails match. Use the original sign-in method; password users can use password recovery. The adapter also blocks new OAuth connections to password accounts even when a valid password session is present, preventing an unverified signup from planting a provider login that survives recovery. New OAuth signups and already-linked provider subjects continue to work. GitHub still checks its authenticated email API for a verified address using the `user:email` scope (or read access to email addresses for GitHub Apps); sign-in fails if verification cannot be confirmed. Registering with email/password after OAuth signup still rejects an existing email; it does not add a password. Existing provider connections are preserved: this preventive change does not determine whether historical mixed password/OAuth accounts were linked legitimately. Confirmed affected accounts need a separate review of their provider connections and session revocation.
-- **GitHub account persistence:** Keep `Account.refresh_token_expires_in` in the Prisma schema. NextAuth v4 forwards GitHub's token response to the adapter, and Prisma rejects account creation if this optional field is missing. Regenerate Prisma Client and redeploy after schema changes (`npm run build` includes generation). MongoDB accepts the optional field without backfilling existing accounts.
+- **GitHub account persistence:** Keep `Account.refresh_token_expires_in` in the v8 contract and native account allowlist. NextAuth v4 forwards GitHub's token response to the adapter. Regenerate the contract/types and redeploy after schema changes (`npm run build` includes emission). MongoDB accepts the optional field without backfilling existing accounts.
 
-### 3. Initialize Prisma and the database
+### 3. Generate and review database adoption
 
 ```bash
 npm run db:generate
-npm run db:push
+npm run db:validate
+npm run db:native:indexes
+npm run db:audit
+npm run db:plan
 ```
 
-This repository uses Prisma 6 with MongoDB, which uses `db push` to synchronize the schema instead of Prisma Migrate. See the [Prisma 6 schema prototyping guide](https://docs.prisma.io/docs/orm/v6/prisma-migrate/workflows/prototyping-your-schema).
+Application queries and builds use Prisma 8. Generation/validation are offline;
+`db:audit` reads document counts, BSON types and field names without reporting
+values. `db:plan` previews DDL without applying it. For a fresh database,
+`npm run db:native:indexes -- apply` initializes the additive index inventory
+before audit/plan.
 
-The active Prisma 6 CLI and Client are aligned on 6.19.3. A scoped npm override makes `@prisma/config@6.19.3` use `deepmerge-ts` 8.0.2 or newer within v8 to address [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx). Recheck this override when upgrading Prisma; it is specific to the current config package.
+Back up the target and rehearse on a disposable copy before adoption. Once
+migrated writers are deployed and old writers are stopped, resolve audit issues
+and review the plan, then run `npm run db:push`. This command now uses the v8
+**guarded adoption flow**: it refuses incompatible documents and unreviewed
+schema operations before applying validators and verifying the database. It
+never backfills, deletes, or converts application data. Raw v8 commands and
+legacy v6 `db push` bypass these guards. See the [migration guide](docs/prisma-8-migration.md#database-management-rehearsal).
 
-String-ID collections, authentication, account access, auction lifecycle transactions, drafts, publication, moderation, and seller media edits use native MongoDB repositories through the shared v8 pool; general listing reads and other remaining paths still use the active v6 client. Use the explicit `db:*` scripts below: the v6 and v8 packages both expose a `prisma` executable, so bare `npx prisma` is ambiguous during this transition. See [the migration status and cutover requirements](docs/prisma-8-migration.md).
-
-There is no seed script. Register an account and submit a vehicle through the app to create your first listing.
+The v6 CLI/client remain development-only for comparison tests and legacy
+inspection while existing-data adoption is completed. `db:legacy:generate`
+regenerates that comparison client; `db:studio` currently remains its legacy
+inspection tool. The v6-specific dependency override remains until this tooling
+is removed.
 
 ### 4. Start the app
 
@@ -124,11 +139,14 @@ Auction views use `q` for search, `status=live|upcoming|ended` for the home page
 | `npm run lint`        | Run ESLint                                                  |
 | `npm run lint:fix`    | Apply automatic lint fixes                                  |
 | `npx tsc --noEmit`    | Check TypeScript types                                      |
-| `npm run db:generate` | Regenerate the Prisma client after schema changes           |
-| `npm run db:push`  | Synchronize the schema with the configured MongoDB database |
-| `npm run db:studio`   | Open the database browser                                   |
-| `npm run db:validate` | Validate the active Prisma 6 schema                          |
+| `npm run db:generate` | Emit the v8 contract and types offline           |
+| `npm run db:push`  | Audit, apply additive v8 adoption DDL, sign and verify |
+| `npm run db:studio`   | Open the legacy inspection browser (development only)                                   |
+| `npm run db:validate` | Validate v8 source/artifact consistency offline                          |
 | `npm run db:v8:emit` | Emit the Prisma 8 contract offline                           |
+| `npm run db:audit` | Read-only data compatibility and index audit                 |
+| `npm run db:plan` | Audit and preview additive adoption operations without writes |
+| `npm run db:rehearse` | Run the guarded local-only management rehearsal              |
 | `npm run db:v8:check` | Read MongoDB version and transaction-support metadata        |
 | `npm run db:native:indexes` | Verify the string-ID collections’ existing indexes     |
 
@@ -212,9 +230,9 @@ edits return `409`. `PATCH /api/listing/[id]` accepts `{ revision, data,
 coverImage }` from the owner to save and resubmit a complete corrected listing.
 Legacy VIN/record and photo mutation endpoints also invalidate approval.
 
-Before deploying, run `npm run db:generate` and `npm run db:push` against the
+Before deploying, follow the [audited adoption flow](docs/prisma-8-migration.md#database-management-rehearsal) against the
 intended database to add the `ListingReview` collection/history index and the
-listing review queue index, then deploy the generated client and app together.
+listing review queue index, then deploy the updated contract and app together.
 No listing backfill runs: **existing upcoming listings require review and are
 hidden until approved**. Existing live auctions and completed results remain
 public and cannot be moderated through this workflow. This feature reviews
@@ -226,7 +244,7 @@ feedback update on a page refresh; moderation does not send email alerts.
 
 New listings require transmission, drivetrain, title status, service history, modifications, and known flaws alongside the existing listing fields, plus 1–20 uploaded photos. Specifications use the choices in `app/libs/vehicle-details.ts`, including an explicit `Unknown` option. Each disclosure is trimmed and limited to 4,000 characters; sellers must describe unknown history or state “None known” where appropriate. The preview and public listing show these disclosures, and the vehicle summary includes the three specifications. These are seller-reported details, not independent verification.
 
-The six new `Listing` fields are nullable so existing MongoDB documents remain readable and display **Not provided** for missing information. Regenerate the Prisma client with `npm run db:generate` when updating an existing checkout. This change adds no indexes and requires no data backfill; deploying the regenerated client enables reads and writes of the optional MongoDB fields.
+The six new `Listing` fields are nullable so existing MongoDB documents remain readable and display **Not provided** for missing information. Regenerate the contract/types with `npm run db:generate` when updating an existing checkout. This change adds no indexes and requires no data backfill; deploying the updated application enables reads and writes of the optional MongoDB fields.
 
 1. A submitted listing starts as `UPCOMING` with review status `PENDING`, visible only to its seller and admins.
 2. An admin approves the listing or requests changes with feedback. After approval, the listing is public and its seller starts the auction, setting a starting bid, bid increment, and future end time. The listing becomes `LIVE`.
@@ -259,7 +277,7 @@ app/
 ├── past/            # Past auctions
 ├── submit-listing/  # Vehicle submission
 └── utils/           # Formatting helpers
-prisma/schema.prisma # User, Account, Listing, Bid, Comment, and Notification models
+prisma/v8/contract.ts # Active typed models; schema.prisma remains a legacy comparison source
 proxy.ts             # Authentication for account, submission, and user routes
 public/              # Static assets
 vercel.json          # Auction finalization and notification email schedules
@@ -298,7 +316,7 @@ The bid, auction updates, notifications, and `BidSubmission` response snapshot c
 
 The bid form preserves its request key and exact amount while retrying network failures or server errors, and allows that retry after auction end. This pending state lasts while the form remains mounted; reloading or leaving the page clears it. Successful request records have no automatic expiration.
 
-Before deploying, run `npm run db:push` against the target database to create the `BidSubmission` collection and its unique `(userId, key)` index, then deploy the generated Prisma client and application together. Existing bids need no backfill. MongoDB must support transactions (a replica set).
+Before deploying, follow the [audited adoption flow](docs/prisma-8-migration.md#database-management-rehearsal) to create the `BidSubmission` collection and its unique `(userId, key)` index, then deploy the updated contract and application together. Existing bids need no backfill. MongoDB must support transactions (a replica set).
 
 ## Saved listing drafts and photo guidance
 
@@ -312,7 +330,7 @@ Draft endpoints are `POST /api/listing-drafts` and `GET`, `PATCH`, `DELETE /api/
 
 The photo step provides an optional private checklist for exterior, interior, engine bay, underside, wheels/tires, and known damage/flaws, plus safe capture guidance. It is a seller planning tool, not automatic photo or condition verification. The existing **20-photo** limit applies to drafts, listing creation, and later gallery uploads. Sellers can choose the cover, move photos earlier, or remove them; order and cover persist through resume and publication.
 
-Before deploying, run `npm run db:generate` and `npm run db:push` against the target database to create `ListingDraft` and its owner/status/update index, then deploy the generated client and app together. MongoDB transactions are required for draft creation/publication. Existing listings need no backfill. Tests mock database and uploads; verify a real save, cross-device resume, and publication after setup.
+Before deploying, follow the [audited adoption flow](docs/prisma-8-migration.md#database-management-rehearsal) against the target database to create `ListingDraft` and its owner/status/update index, then deploy the updated contract and app together. MongoDB transactions are required for draft creation/publication. Existing listings need no backfill. Tests mock database and uploads; verify a real save, cross-device resume, and publication after setup.
 
 ## Password recovery
 
@@ -326,7 +344,7 @@ Each request replaces prior links for that address. Tokens expire 30 minutes aft
 
 Password reset rotates nullable `User.sessionVersion`. Both NextAuth session decoding and the authenticated-page proxy check it against the signed JWT, so existing cookies lose access on their next authenticated request. Legacy sessions without a version remain valid until the account’s first reset. Credentials logins capture the version before password comparison to reject a login racing a reset; client session updates cannot upgrade a revoked token. Fresh Google/GitHub sign-ins still work. The current browser clears its session cache on successful reset, then offers normal sign-in rather than signing in automatically.
 
-Before deploying, run `npm run db:generate` and `npm run db:push` against the target database to create `PasswordReset` (including the unique token hash), `PasswordResetQuota`, and `RecoveryEmail` collections/indexes, then deploy the client and app together. No user backfill is required. MongoDB transactions and a working recovery-email scheduler are required. Unit tests mock repositories and Resend; local MongoDB integration tests are described in the [migration guide](docs/prisma-8-migration.md). Verify real delivery, reset, and old-session rejection after service setup. The design follows [OWASP’s password recovery guidance](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html).
+Before deploying, follow the [audited adoption flow](docs/prisma-8-migration.md#database-management-rehearsal) against the target database to create `PasswordReset` (including the unique token hash), `PasswordResetQuota`, and `RecoveryEmail` collections/indexes, then deploy the updated application. No user backfill is required. MongoDB transactions and a working recovery-email scheduler are required. Unit tests mock repositories and Resend; local MongoDB integration tests are described in the [migration guide](docs/prisma-8-migration.md). Verify real delivery, reset, and old-session rejection after service setup. The design follows [OWASP’s password recovery guidance](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html).
 
 ### Account email identity
 
@@ -349,7 +367,7 @@ Listings support an optional seller-reported VIN/chassis identifier and up to te
 
 Sellers can edit VIN and records on upcoming listings via `PATCH /api/listing/[id]/vehicle-details`. Owner checks and a status-guarded write prevent edits once bidding opens. Existing listings show **Not provided** / **No records provided** for missing data. Uploaded records and vehicle details are explicitly labeled seller-provided and unauthenticated.
 
-Before deploying, run `npm run db:generate` and `npm run db:push` against the target database to create the `EmailVerification` collection and unique token-hash index, then deploy the generated client and app together. The nullable `Listing.vin` and `Listing.vehicleRecords` fields need no backfill. MongoDB must support transactions. Verify a real email and a PDF/image upload after configuring the services; automated tests mock service delivery.
+Before deploying, follow the [audited adoption flow](docs/prisma-8-migration.md#database-management-rehearsal) against the target database to create the `EmailVerification` collection and unique token-hash index, then deploy the updated contract and app together. The nullable `Listing.vin` and `Listing.vehicleRecords` fields need no backfill. MongoDB must support transactions. Verify a real email and a PDF/image upload after configuring the services; automated tests mock service delivery.
 
 ## Contact form
 
@@ -357,7 +375,7 @@ Before deploying, run `npm run db:generate` and `npm run db:push` against the ta
 
 Spam protection includes a hidden honeypot, bounded/validated fields, and atomic MongoDB quotas shared across instances: three attempts per email per fixed 15-minute window and 30 total per fixed minute. A `429` response includes `Retry-After`. Rotating addresses can exhaust the global budget; these are basic abuse controls, not a replacement for a CAPTCHA if targeted spam develops. Expired quota records are removed on subsequent requests; email addresses are hashed in quota keys and message bodies are not stored in MongoDB or application logs.
 
-Before deploying, run `npm run db:generate` and `npm run db:push` against the target database to create the `ContactRateLimit` collection/index, then deploy the generated client and application together. Missing mail configuration or database failures return a retryable error with the direct support address. Verify a real submission in the support inbox after configuring Resend.
+Before deploying, follow the [audited adoption flow](docs/prisma-8-migration.md#database-management-rehearsal) against the target database to create the `ContactRateLimit` collection/index, then deploy the updated application. Missing mail configuration or database failures return a retryable error with the direct support address. Verify a real submission in the support inbox after configuring Resend.
 
 ## Notifications
 
@@ -365,7 +383,7 @@ Outbid alerts, auction results for sellers and bidders, watched-auction starts, 
 
 The inbox loads 50 records at a time and stores read timestamps on the server. “Mark all as read” applies through the newest event currently shown, leaving newer arrivals unread. The header and inbox refresh on private Pusher events, reconnect, window focus, and every 30 seconds while the page is visible. Live delivery failures do not discard saved notifications or fail a committed bid or result.
 
-Apply the schema with `npm run db:push` before deploying this feature; this creates the `Notification` collection and its unique and query indexes. Notifications are recorded for new events after deployment. Previously generated activity cards and browser-local read receipts are not imported.
+Follow the [audited adoption flow](docs/prisma-8-migration.md#database-management-rehearsal) before deploying this feature; this creates the `Notification` collection and its unique and query indexes. Notifications are recorded for new events after deployment. Previously generated activity cards and browser-local read receipts are not imported.
 
 ### Outbid email delivery
 
@@ -394,13 +412,13 @@ Auctions in their final hour generate one in-app reminder per watcher or bidder 
 
 `GET /api/cron/ending-soon-reminders` requires `Authorization: Bearer <CRON_SECRET>` and runs every minute via `vercel.json`. It processes up to 100 auctions within a 40-second work budget and returns `checked`, `queued` (auctions processed), `skipped`, `failed`, and `hasMore`. Missing reminder fields on existing MongoDB listings are treated as unreminded. On other hosts, schedule this endpoint every minute alongside the existing jobs.
 
-Before deploying, run `npm run db:generate` and `npm run db:push` to apply the updated MongoDB schema/index. Reminder emails use the existing Resend configuration and `/api/cron/send-notification-emails` worker; in-app reminders work without email configuration. Accounts can independently disable reminder emails under `/account/notifications`, using `PATCH /api/account/notification-preferences` with `{ "endingSoonEmailsEnabled": false }`. This also suppresses queued emails. Before every reminder email attempt, the worker checks that the auction is still live and unexpired, the reminder is unread, and the recipient still watches or has bid. Retries preserve the original payload and provider idempotency key. Delivery timing depends on scheduler and email queue capacity.
+Before deploying, follow the [audited adoption flow](docs/prisma-8-migration.md#database-management-rehearsal) to apply the updated MongoDB schema/index. Reminder emails use the existing Resend configuration and `/api/cron/send-notification-emails` worker; in-app reminders work without email configuration. Accounts can independently disable reminder emails under `/account/notifications`, using `PATCH /api/account/notification-preferences` with `{ "endingSoonEmailsEnabled": false }`. This also suppresses queued emails. Before every reminder email attempt, the worker checks that the auction is still live and unexpired, the reminder is unread, and the recipient still watches or has bid. Retries preserve the original payload and provider idempotency key. Delivery timing depends on scheduler and email queue capacity.
 
 ## Deployment
 
 1. Configure the environment variables on the deployment platform. Set `NEXTAUTH_URL` and OAuth callbacks to the production origin. Bidlane redirects the apex domain to `www`, so set `NEXTAUTH_URL=https://www.bidlane.net`, the GitHub callback to `https://www.bidlane.net/api/auth/callback/github`, and the Google callback to `https://www.bidlane.net/api/auth/callback/google`. Start sign-in on that same host so OAuth cookies survive the round trip. Redeploy after updating server environment variables. Set `NEXT_PUBLIC_` values before building; changes to those values require a rebuild.
 2. Ensure the deployment can reach MongoDB, Cloudinary, and Pusher.
-3. Build the app with `npm run build`, which generates the v6 client and emits the v8 contract offline before running the Next.js production build. On Vercel, use `npm run build` as the Build Command. Synchronize reviewed schema changes with the target database using `npm run db:push`.
+3. Build the app with `npm run build`, which emits only the v8 contract offline before running the Next.js production build. On Vercel, use `npm run build` as the Build Command. Rehearse and audit database adoption before using the guarded `npm run db:push`; do not run raw CLI updates against a shared database.
 4. On a Node.js host, run `npm start` to serve the build.
 5. Configure scheduled auction finalization. For Vercel, the included configuration declares the jobs at one-minute intervals; use a plan that supports that frequency. On another host, schedule authenticated GET requests to `/api/cron/finalize-auctions` and `/api/cron/ending-soon-reminders` every minute. To enable optional outbid emails, configure Resend, apply the updated Prisma schema, and also schedule `/api/cron/send-notification-emails` every minute. If email delivery is disabled, remove its entry from `vercel.json` to avoid scheduled `503` responses.
 
@@ -408,7 +426,7 @@ Local development does not run the Vercel schedule automatically. To exercise th
 
 ## Troubleshooting
 
-- **Prisma cannot find `DATABASE_URL`:** Put it in the root `.env`; a value only in `.env.local` is not automatically loaded by the Prisma 6 CLI.
+- **Database scripts cannot find `DATABASE_URL`:** Put it in the root `.env`; these scripts load `.env`, while `.env.local` is loaded by Next.js only.
 - **MongoDB transaction errors:** Check that the database runs as a replica set and that the connection string, database user, and network access are correct.
 - **Uploads fail:** Check sign-in, the 4 MB file cap, supported formats, Cloudinary credentials, and upload quota/asset collections. A `429` includes `Retry-After`; see the [cutover guide](docs/upload-cutover.md).
 - **Live updates are missing:** Verify the Pusher app credentials and the `us2` cluster setting in both client and server configuration.
