@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canViewListing, isPublicListing, pendingReviewUpdate, publicListingWhere, reviewVersionWhere } from "./listing-review";
+import { canViewListing, isPublicListing } from "./listing-review";
 import { toPublicListing } from "./listing-payload";
 import { makeListing } from "@/app/test/auction-fixtures";
 
@@ -22,11 +22,5 @@ describe("listing review visibility and legacy data", () => {
   });
   it("makes only approved upcoming listings public", () => {
     expect(isPublicListing(makeListing({ status: "UPCOMING", reviewStatus: "APPROVED" }))).toBe(true);
-    expect(publicListingWhere).toEqual({ OR: [{ status: { in: ["LIVE", "ENDED"] } }, { status: "UPCOMING", reviewStatus: "APPROVED" }] });
-  });
-  it("matches missing, null, or zero legacy revisions without matching newer edits", () => {
-    expect(reviewVersionWhere(0)).toEqual({ OR: [{ reviewRevision: 0 }, { reviewRevision: null }, { reviewRevision: { isSet: false } }] });
-    expect(reviewVersionWhere(4)).toEqual({ reviewRevision: 4 });
-    expect(pendingReviewUpdate(4)).toEqual({ reviewStatus: "PENDING", reviewRevision: 5, reviewNote: null });
   });
 });

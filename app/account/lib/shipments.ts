@@ -1,12 +1,10 @@
-import type { Prisma } from "@prisma/client";
+import type { Listing } from "@/app/types/database";
 import type { ShipmentTransaction } from "@/app/types/account";
 
-type SoldListing = Prisma.ListingGetPayload<{
-  include: {
-    user: { select: { name: true; email: true } };
-    highestBidder: { select: { name: true; email: true } };
-  };
-}>;
+export type SoldListing = Pick<Listing, "id" | "userId" | "year" | "make" | "model" | "location" | "coverImage" | "currentBid" | "startingBid" | "auctionEndsAt" | "updatedAt" | "createdAt"> & {
+  user: { name: string | null; email: string | null };
+  highestBidder: { name: string | null; email: string | null } | null;
+};
 
 export function buildShipments(
   soldListings: readonly SoldListing[],

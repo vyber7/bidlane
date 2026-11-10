@@ -8,7 +8,7 @@ vi.mock("@/app/libs/native-repositories", () => ({
   getNativeRepositories: () => ({ drafts: { list: mocks.drafts }, engagement: { watchlist: mocks.watchlist } }),
   withNativeTransaction: () => { throw new Error("Unexpected native transaction in this test"); },
 }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { findMany: mocks.find }, listingDraft: { findMany: mocks.drafts } } }));
+vi.mock("@/app/libs/read-repositories", () => ({ getReadRepositories: () => ({ listings: { public: mocks.find, live: mocks.find, sold: mocks.find, owned: mocks.find } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
 vi.mock("@/app/account/lib/current-user", () => ({ getAccountUser: mocks.user }));
 vi.mock("@/app/(site)/components/AuctionBrowser", () => ({ default: ({ listings }: { listings: PublicListing[] }) => { mocks.browser(listings); return null; } }));

@@ -1,4 +1,4 @@
-import type { Listing } from "@prisma/client";
+import type { Listing } from "@/app/types/database";
 import { readVehicleRecords } from "@/app/schemas/vehicle-trust";
 
 // Runtime allowlist: adding a database field must never publish it implicitly.
@@ -20,11 +20,13 @@ export type SellerListing = PublicListing & Pick<Listing,
   "reservePrice" | "reviewStatus" | "reviewRevision" | "reviewNote"
 >;
 
-function pickPublicFields(listing: PublicFields): PublicFields {
+type ListingSource = Omit<Listing, "vehicleRecords"> & { vehicleRecords: unknown };
+
+function pickPublicFields(listing: Omit<PublicFields, "vehicleRecords"> & { vehicleRecords: unknown }): PublicFields {
   return Object.fromEntries(publicListingFields.map((field) => [field, listing[field]])) as PublicFields;
 }
 
-export function toPublicListing(listing: Listing, viewerId?: string | null): PublicListing {
+export function toPublicListing(listing: ListingSource, viewerId?: string | null): PublicListing {
   return {
     ...pickPublicFields(listing),
     vehicleRecords: readVehicleRecords(listing.vehicleRecords),
@@ -46,7 +48,7 @@ export function publicListingSnapshot(listing: PublicListing): PublicListing {
   };
 }
 
-export function toSellerListing(listing: Listing, viewer: { id: string; role?: string | null } | null): SellerListing {
+export function toSellerListing(listing: ListingSource, viewer: { id: string; role?: string | null } | null): SellerListing {
   if (!viewer || (viewer.id !== listing.userId && viewer.role !== "ADMIN")) {
     throw new Error("Only the seller or an admin can access listing management data.");
   }

@@ -3,7 +3,7 @@ import { TransactionRetryLimitError } from "@/prisma/native/transaction-errors";
 
 const mocks = vi.hoisted(() => ({ user: vi.fn(), findUnique: vi.fn(), updateMany: vi.fn(), create: vi.fn(), transaction: vi.fn() }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { $transaction: mocks.transaction } }));
+vi.mock("@/app/libs/read-repositories", () => ({ getReadRepositories: () => { throw new Error("Unexpected overview query"); } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
 vi.mock("@/app/libs/native-repositories", () => ({ withNativeTransaction: mocks.transaction }));
 import { POST } from "./route";

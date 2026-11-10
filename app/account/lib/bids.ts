@@ -1,7 +1,7 @@
-import type { Prisma } from "@prisma/client";
+import type { Bid, Listing } from "@/app/types/database";
 import type { AuctionBid } from "@/app/types/account";
 
-export type BidWithListing = Prisma.BidGetPayload<{ include: { listing: true } }>;
+export type BidWithListing = Bid & { listing: Listing };
 
 // The account query returns bids newest first, which also determines row order.
 export function buildBidSummaries(

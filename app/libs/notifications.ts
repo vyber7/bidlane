@@ -1,4 +1,4 @@
-import type { Listing } from "@prisma/client";
+import type { Listing } from "@/app/types/database";
 import type { AccountNotification } from "@/app/types/account";
 import { pusherServer } from "./pusher";
 import { logger } from "./logger";

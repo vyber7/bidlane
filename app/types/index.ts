@@ -1,4 +1,4 @@
-import type { Bid } from "@prisma/client";
+import type { Bid } from "@/app/types/database";
 
 export type CurrentUser = {
   id: string;

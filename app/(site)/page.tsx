@@ -1,4 +1,4 @@
-import prisma from "../libs/prismadb";
+import { getReadRepositories } from "../libs/read-repositories";
 import getCurrentUser from "../actions/getCurrentUser";
 import Link from "next/link";
 import { FiArrowRight } from "react-icons/fi";
@@ -6,14 +6,13 @@ import AuctionBrowser from "./components/AuctionBrowser";
 import FeaturedAuction from "./components/FeaturedAuction";
 import { getHomeSpotlight } from "../libs/featured-auction";
 import WatchAuctionButton from "./components/WatchAuctionButton";
-import { publicListingWhere } from "../libs/listing-review";
 import { toPublicListing } from "../libs/listing-payload";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const [publicListings, currentUser] = await Promise.all([
-    prisma.listing.findMany({ where: publicListingWhere, orderBy: { createdAt: "desc" } }),
+    getReadRepositories().listings.public(),
     getCurrentUser(),
   ]);
   const listings = publicListings.map((listing) => toPublicListing(listing, currentUser?.id));

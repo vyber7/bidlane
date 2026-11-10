@@ -7,8 +7,8 @@ declare global {
 
 let productionDatabase: DatabaseV8 | undefined;
 
-// String-ID repositories use this shared native pool. Other routes keep the
-// v6 client until their typed queries and transaction boundaries are migrated.
+// Application reads use the typed v8 client; native repositories share its
+// pool for transactions, legacy string-ID collections, and indexed counts.
 export function getDatabaseV8() {
   if (process.env.NODE_ENV === "production") {
     return productionDatabase ??= createDatabaseV8(process.env.DATABASE_URL ?? "");

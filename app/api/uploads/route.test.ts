@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ user: vi.fn(), listing: vi.fn(), quota: vi.fn(), save: vi.fn() }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { findUnique: mocks.listing } } }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ listingAuthoring: { find: mocks.listing } }) }));
 vi.mock("@/app/libs/upload-rate-limit", () => ({ uploadRetryAfter: mocks.quota }));
 vi.mock("@/app/libs/server-upload", () => ({ saveUploadedFile: mocks.save }));
 vi.mock("@/app/libs/logger", () => ({ logger: { warn: vi.fn() } }));

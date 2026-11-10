@@ -1,9 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ assets: vi.fn(), user: vi.fn(), findUnique: vi.fn(), updateMany: vi.fn() }));
-vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets } }) }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets }, listingAuthoring: { find: mocks.findUnique, edit: mocks.updateMany } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { findUnique: mocks.findUnique, updateMany: mocks.updateMany } } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
 import { PATCH } from "./route";
 
@@ -32,12 +31,9 @@ describe("seller listing corrections", () => {
   it("saves all corrections together and resubmits an approved listing for review", async () => {
     const response = await patch({ revision: 3, data: { ...data, reviewStatus: "APPROVED", status: "LIVE", userId: "buyer" } });
     expect(response.status).toBe(200);
-    expect(mocks.updateMany).toHaveBeenCalledWith({
-      where: { id, userId: "seller", status: "UPCOMING", reviewRevision: 3 },
-      data: { ...data, vin: null, coverImage: photo, reviewStatus: "PENDING", reviewRevision: 4, reviewNote: null },
-    });
-    expect(mocks.updateMany.mock.calls[0][0].data).not.toHaveProperty("userId");
-    expect(mocks.updateMany.mock.calls[0][0].data).not.toHaveProperty("status");
+    expect(mocks.updateMany).toHaveBeenCalledWith(id, "seller", 3, data, photo, expect.any(Date));
+    expect(mocks.updateMany.mock.calls[0][3]).not.toHaveProperty("userId");
+    expect(mocks.updateMany.mock.calls[0][3]).not.toHaveProperty("status");
   });
   it("requires authentication", async () => { mocks.user.mockResolvedValue(null); expect((await patch()).status).toBe(401); expect(mocks.findUnique).not.toHaveBeenCalled(); });
   it("allows only the listing owner, even when the caller is an admin", async () => {

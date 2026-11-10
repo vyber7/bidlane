@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ user: vi.fn(), findMany: vi.fn(), findUnique: vi.fn() }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("./prismadb", () => ({ default: { listing: { findMany: mocks.findMany, findUnique: mocks.findUnique } } }));
+vi.mock("./read-repositories", () => ({ getReadRepositories: () => { throw new Error("Unexpected overview query"); } }));
 vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ listingAuthoring: { reviewQueue: mocks.findMany, reviewDetail: mocks.findUnique } }) }));
 import { getListingReview, getReviewQueue } from "./listing-moderation";
 

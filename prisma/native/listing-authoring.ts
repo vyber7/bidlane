@@ -115,6 +115,18 @@ export function listingAuthoringRepository(database: Db, session?: ClientSession
       const updated = await collection.updateOne(editFilter(id, userId, revision), { $set: { vin: data.vin, vehicleRecords: data.vehicleRecords, ...revisionUpdate(revision), updatedAt: now } }, options);
       return { count: updated.modifiedCount };
     },
+    async edit(id: string, userId: string, revision: number, data: ValidatedListing, coverImage: string, now: Date) {
+      const updated = await collection.updateOne(editFilter(id, userId, revision), { $set: {
+        year: Long.fromNumber(data.year), make: data.make, model: data.model, miles: Long.fromNumber(data.miles),
+        location: data.location, description: data.description, images: [...data.images], coverImage,
+        transmission: data.transmission, drivetrain: data.drivetrain, titleStatus: data.titleStatus,
+        serviceHistory: data.serviceHistory, modifications: data.modifications, knownFlaws: data.knownFlaws,
+        reservePrice: data.reservePrice == null ? null : Long.fromNumber(data.reservePrice), vin: data.vin || null,
+        ...(data.vehicleRecords !== undefined && { vehicleRecords: data.vehicleRecords }),
+        ...revisionUpdate(revision), updatedAt: now,
+      } }, options);
+      return { count: updated.modifiedCount };
+    },
     async editCover(id: string, userId: string, revision: number, url: string, images: string[], now: Date) {
       const addPhoto = !images.includes(url);
       const updated = await collection.updateOne(editFilter(id, userId, revision), {

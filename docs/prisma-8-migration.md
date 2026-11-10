@@ -12,9 +12,10 @@ ending-soon reminders also use native sessions. Drafts, listing publication,
 moderation, seller media/VIN/record edits, comments, listing views, watchlist
 updates, and account watchlist reads now use native repositories as well.
 Notification feeds/read updates, notification email delivery, and email
-verification now use native repositories too. General listing, bid, seller,
-and account-summary reads still have Prisma 6.19.3 callers. The typed v8 ORM has not been
-switched on for application queries.
+verification now use native repositories too. Listing, bid, seller, and
+account-summary reads now use the typed v8 ORM. Application code no longer
+queries the Prisma 6 client; its unused provider, CLI, schema, and dependency
+remain for guarded compatibility tests and the pending database-management cutover.
 
 ## Working commands
 
@@ -314,6 +315,48 @@ provider requests, crash recovery, preferences/relevance, backoff and retry
 limits, legacy BSON compatibility, resend/claim races, and persisted rollback.
 Mail calls are mocked; no test sends email.
 
+## Typed application reads
+
+`prisma/reads/repositories.ts` uses the installed v8 chained API through the
+same `getDatabaseV8` pool. `app/libs/read-repositories.ts` provides these readers
+to home/detail pages, live/sold sidebars, seller profiles, account listings,
+bid summaries, shipments, and admin counts. Queries use `.where()`, `.select()`,
+`.orderBy()`, `.limit()`, `.offset()`, `.include()`, and `.all()`/`.first()`.
+Operator predicates use the v8 filter AST from `@prisma/orm-mongo/query-ast`;
+plain `.where()` objects express equality, not Prisma 6 or MongoDB operators.
+The current ORM has no count terminal, so indexed counts remain native reads
+on the same pool rather than fetching whole result sets.
+
+The read adapter supplies Prisma 6's legacy defaults after decoding: missing or
+null arrays become empty, views default to one, feature flags to false, and
+status to `UPCOMING`. Optional dates/review fields retain null. Defaults never
+widen stored-field filters or rewrite documents. Public inventory still includes
+only live/ended listings and approved upcoming listings. Sold sidebars retain
+four newest sales with a present, non-null current bid, including zero. Seller
+history retains its timestamp/ObjectId order, page size, and public projections.
+
+Bid authors are fetched in batches with only ID/name selected. Account bid
+history uses the `listing` include and preserves highest-bid/latest-activity
+summaries. Shipment reads select only completed sales belonging to the account,
+then batch only the seller/winner contact fields required for handoff. Public
+seller profiles expose verification as a boolean. Public and seller listing
+payloads retain their explicit field allowlists and owner/admin checks.
+Application model types now derive from the emitted v8 contract through
+`app/types/database.ts`; Prisma 6 filter/payload types are no longer used by
+application callers.
+
+The remaining complete-listing PATCH now uses the native authoring repository,
+with BSON longs, an owner/status/revision guard, explicit timestamp, and approval
+reset in one atomic update. Upload ownership checks also use native authoring
+reads; admin counts still authorize against the current account role first.
+
+`prisma/reads/repositories.integration.test.ts` compares actual v8 and v6 results
+on a disposable database. It covers BSON/default compatibility, raw visibility,
+public payloads, seller pagination, bid grouping, authorized sale contacts,
+role revocation, upload ownership, and atomic seller corrections racing with
+another correction or an auction start. The application-side v6 client is
+mocked to throw if any migrated path accidentally calls it.
+
 ## Native indexes
 
 `prisma/native/indexes.mjs` defines the existing twenty-four named secondary indexes
@@ -375,15 +418,15 @@ races, moderation/seller-edit races, comment/view/watchlist contention, notifica
 pagination/delivery leases, verification resend/claim races, and persisted rollback on a local replica set. Start a disposable MongoDB 8+ replica set, then run:
 
 ```bash
-NATIVE_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_native_strings?replicaSet=bidlane-test' npm test -- prisma/native/ --maxWorkers=2
+NATIVE_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_native_strings?replicaSet=bidlane-test' npm test -- prisma/ --maxWorkers=2
 ```
 
 Use the port and replica-set name of your local server. Limit workers to avoid
 saturating local storage with concurrent index builds during setup. These tests only accept
 one `127.0.0.1` host and a database named `bidlane_test_native_*`. They reset and
 drop that test database. Authentication, auction, authoring, engagement,
-notification, and verification suites append `_auth`, `_auctions`, `_authoring`,
-`_engagement`, `_notifications`, and `_verification` to isolate their databases
+notification, verification, and read suites append `_auth`, `_auctions`,
+`_authoring`, `_engagement`, `_notifications`, `_verification`, and `_reads` to isolate their databases
 when run in parallel. Rollback tests temporarily reject writes using validators only in
 their disposable local database and restore those validators afterward. Tests never fall back to
 `DATABASE_URL`, send mail, or contact Cloudinary. Without the explicit test URL
@@ -393,20 +436,18 @@ shared database was only queried for server metadata and existing index definiti
 
 ## Remaining migration work
 
-1. Port remaining listing, bid, seller, and account-summary reads and generated
-   model/filter/payload types to the chained v8 API. Preserve public-field
-   allowlists, moderation visibility, pagination, `null` versus missing fields,
-   and optional legacy fields/defaults on reads.
-2. Retain explicit foreign-key/array operations and creation defaults for migrated
-   writers. Many-to-many arrays remain persisted fields, not v8 ORM relations.
-   Implement any required cascading cleanup before retiring v6's emulation.
-3. On a disposable copy of the database, inspect existing BSON types, missing
-   fields, extra fields, and index names before introducing strict validators.
-   Finalize management of native collections, inspect the full migration delta,
-   and validate compatibility of the remaining read paths.
-4. Cut over the remaining application and operator commands together, then remove v6,
-   its generated client and dependency override. Replace the emit-only
-   config with the reviewed migration config at that point.
+1. Rehearse database management on a disposable copy: inspect BSON types,
+   missing/null/default fields, extra fields, validators, and index names.
+   Review the complete migration delta and how native collections are excluded.
+2. Retain explicit foreign-key/array operations, creation defaults, and native
+   transaction boundaries. Many-to-many arrays remain persisted fields, not
+   v8 ORM relations. Confirm required cascading cleanup before retiring v6's
+   emulation; account deletion is not currently an application operation.
+3. Replace compatibility checks that depend on the generated v6 model metadata
+   with independent contract assertions. Complete the operator/config/editor
+   cutover together, then remove the unused v6 provider, schema/toolchain, client,
+   dependency override, and remaining test-only imports/mocks. Replace the
+   emit-only config with the reviewed migration config at that point.
 
 ## References
 

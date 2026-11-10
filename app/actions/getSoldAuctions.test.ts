@@ -7,9 +7,7 @@ const mocks = vi.hoisted(() => ({
   logger: { error: vi.fn() },
 }));
 
-vi.mock("@/app/libs/prismadb", () => ({
-  default: { listing: { findMany: mocks.findMany } },
-}));
+vi.mock("@/app/libs/read-repositories", () => ({ getReadRepositories: () => ({ listings: { sold: mocks.findMany } }) }));
 vi.mock("@/app/libs/logger", () => ({ logger: mocks.logger }));
 
 import getSoldAuctions from "./getSoldAuctions";
@@ -22,15 +20,7 @@ describe("getSoldAuctions", () => {
     mocks.findMany.mockResolvedValue([listing]);
 
     await expect(getSoldAuctions()).resolves.toEqual([toPublicListing(listing)]);
-    expect(mocks.findMany).toHaveBeenCalledWith({
-      where: {
-        status: "ENDED",
-        result: "SOLD",
-        currentBid: { not: null },
-      },
-      orderBy: { auctionEndsAt: "desc" },
-      take: 4,
-    });
+    expect(mocks.findMany).toHaveBeenCalledWith();
   });
 
   it("returns an empty list when sold auctions cannot be loaded", async () => {

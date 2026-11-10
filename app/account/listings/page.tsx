@@ -3,7 +3,7 @@ import { serializeDraft } from "@/app/libs/listing-drafts";
 import ListingsDashboard from "@/app/account/components/ListingsDashboard";
 import { getAccountUser } from "@/app/account/lib/current-user";
 import { getNativeRepositories } from "@/app/libs/native-repositories";
-import prisma from "@/app/libs/prismadb";
+import { getReadRepositories } from "@/app/libs/read-repositories";
 import { toSellerListing } from "@/app/libs/listing-payload";
 
 const MyListings = async () => {
@@ -11,10 +11,7 @@ const MyListings = async () => {
   if (!currentUser) return null;
 
   const [uploaded, watching, drafts] = await Promise.all([
-    prisma.listing.findMany({
-      where: { userId: currentUser.id },
-      orderBy: { createdAt: "desc" },
-    }),
+    getReadRepositories().listings.owned(currentUser.id),
     getNativeRepositories().engagement.watchlist(currentUser.id),
     getNativeRepositories().drafts.list(currentUser.id),
   ]);
