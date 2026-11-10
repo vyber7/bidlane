@@ -1,0 +1,3295 @@
+{
+  "schemaVersion": "1",
+  "targetFamily": "mongo",
+  "target": "mongo",
+  "profileHash": "251b3ce23f6c9f561892e7c1af9d2cc941a13d64ba1aa7226b90036b09568cc3",
+  "roots": {
+    "Account": {
+      "model": "Account",
+      "namespace": "__unbound__"
+    },
+    "Bid": {
+      "model": "Bid",
+      "namespace": "__unbound__"
+    },
+    "BidSubmission": {
+      "model": "BidSubmission",
+      "namespace": "__unbound__"
+    },
+    "Comment": {
+      "model": "Comment",
+      "namespace": "__unbound__"
+    },
+    "EmailVerification": {
+      "model": "EmailVerification",
+      "namespace": "__unbound__"
+    },
+    "Listing": {
+      "model": "Listing",
+      "namespace": "__unbound__"
+    },
+    "ListingDraft": {
+      "model": "ListingDraft",
+      "namespace": "__unbound__"
+    },
+    "ListingReview": {
+      "model": "ListingReview",
+      "namespace": "__unbound__"
+    },
+    "Notification": {
+      "model": "Notification",
+      "namespace": "__unbound__"
+    },
+    "User": {
+      "model": "User",
+      "namespace": "__unbound__"
+    }
+  },
+  "domain": {
+    "namespaces": {
+      "__unbound__": {
+        "enum": {
+          "EmailDeliveryStatus": {
+            "codecId": "mongo/string@1",
+            "members": [
+              {
+                "name": "PENDING",
+                "value": "PENDING"
+              },
+              {
+                "name": "SENDING",
+                "value": "SENDING"
+              },
+              {
+                "name": "SENT",
+                "value": "SENT"
+              },
+              {
+                "name": "SKIPPED",
+                "value": "SKIPPED"
+              },
+              {
+                "name": "FAILED",
+                "value": "FAILED"
+              }
+            ]
+          },
+          "ListingReviewStatus": {
+            "codecId": "mongo/string@1",
+            "members": [
+              {
+                "name": "PENDING",
+                "value": "PENDING"
+              },
+              {
+                "name": "APPROVED",
+                "value": "APPROVED"
+              },
+              {
+                "name": "CHANGES_REQUESTED",
+                "value": "CHANGES_REQUESTED"
+              }
+            ]
+          },
+          "NotificationKind": {
+            "codecId": "mongo/string@1",
+            "members": [
+              {
+                "name": "bid",
+                "value": "bid"
+              },
+              {
+                "name": "auction",
+                "value": "auction"
+              },
+              {
+                "name": "comment",
+                "value": "comment"
+              }
+            ]
+          },
+          "NotificationTone": {
+            "codecId": "mongo/string@1",
+            "members": [
+              {
+                "name": "success",
+                "value": "success"
+              },
+              {
+                "name": "warning",
+                "value": "warning"
+              },
+              {
+                "name": "neutral",
+                "value": "neutral"
+              }
+            ]
+          },
+          "UserRole": {
+            "codecId": "mongo/string@1",
+            "members": [
+              {
+                "name": "USER",
+                "value": "USER"
+              },
+              {
+                "name": "ADMIN",
+                "value": "ADMIN"
+              }
+            ]
+          }
+        },
+        "models": {
+          "Account": {
+            "fields": {
+              "access_token": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "expires_at": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "id_token": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "provider": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "providerAccountId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "refresh_token": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "refresh_token_expires_in": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              },
+              "scope": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "session_state": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "token_type": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "type": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "collection": "Account",
+              "fields": {
+                "access_token": {
+                  "field": "access_token"
+                },
+                "expires_at": {
+                  "field": "expires_at"
+                },
+                "id": {
+                  "field": "_id"
+                },
+                "id_token": {
+                  "field": "id_token"
+                },
+                "provider": {
+                  "field": "provider"
+                },
+                "providerAccountId": {
+                  "field": "providerAccountId"
+                },
+                "refresh_token": {
+                  "field": "refresh_token"
+                },
+                "refresh_token_expires_in": {
+                  "field": "refresh_token_expires_in"
+                },
+                "scope": {
+                  "field": "scope"
+                },
+                "session_state": {
+                  "field": "session_state"
+                },
+                "token_type": {
+                  "field": "token_type"
+                },
+                "type": {
+                  "field": "type"
+                },
+                "userId": {
+                  "field": "userId"
+                }
+              }
+            }
+          },
+          "Bid": {
+            "fields": {
+              "amount": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "listingId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "listing": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "listingId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Listing",
+                  "namespace": "__unbound__"
+                }
+              },
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "collection": "Bid",
+              "fields": {
+                "amount": {
+                  "field": "amount"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "id": {
+                  "field": "_id"
+                },
+                "listingId": {
+                  "field": "listingId"
+                },
+                "userId": {
+                  "field": "userId"
+                }
+              }
+            }
+          },
+          "BidSubmission": {
+            "fields": {
+              "amount": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "key": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "listingId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "response": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "collection": "BidSubmission",
+              "fields": {
+                "amount": {
+                  "field": "amount"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "id": {
+                  "field": "_id"
+                },
+                "key": {
+                  "field": "key"
+                },
+                "listingId": {
+                  "field": "listingId"
+                },
+                "response": {
+                  "field": "response"
+                },
+                "userId": {
+                  "field": "userId"
+                }
+              }
+            }
+          },
+          "Comment": {
+            "fields": {
+              "body": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "image": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "listingId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "listing": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "listingId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Listing",
+                  "namespace": "__unbound__"
+                }
+              },
+              "user": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "collection": "Comment",
+              "fields": {
+                "body": {
+                  "field": "body"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "id": {
+                  "field": "_id"
+                },
+                "image": {
+                  "field": "image"
+                },
+                "listingId": {
+                  "field": "listingId"
+                },
+                "userId": {
+                  "field": "userId"
+                }
+              }
+            }
+          },
+          "EmailVerification": {
+            "fields": {
+              "email": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "expiresAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "requestedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "tokenHash": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "collection": "EmailVerification",
+              "fields": {
+                "email": {
+                  "field": "email"
+                },
+                "expiresAt": {
+                  "field": "expiresAt"
+                },
+                "id": {
+                  "field": "_id"
+                },
+                "requestedAt": {
+                  "field": "requestedAt"
+                },
+                "tokenHash": {
+                  "field": "tokenHash"
+                }
+              }
+            }
+          },
+          "Listing": {
+            "fields": {
+              "auctionEndsAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "auctionStartsAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "bidIncrement": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              },
+              "biddersIds": {
+                "many": {
+                  "elementNullable": false
+                },
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "commenterIds": {
+                "many": {
+                  "elementNullable": false
+                },
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "commentsIds": {
+                "many": {
+                  "elementNullable": false
+                },
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "coverImage": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "currentBid": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              },
+              "description": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "drivetrain": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "endingSoonReminderAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "highestBidderId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "images": {
+                "many": {
+                  "elementNullable": false
+                },
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "isFeatured": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "knownFlaws": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "lastCommentAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "location": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "make": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "miles": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              },
+              "model": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "modifications": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "reservePrice": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              },
+              "result": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "reviewNote": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "reviewRevision": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              },
+              "reviewStatus": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "ListingReviewStatus",
+                  "namespaceId": "__unbound__",
+                  "plane": "domain"
+                }
+              },
+              "seenIds": {
+                "many": {
+                  "elementNullable": false
+                },
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "serviceHistory": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "startingBid": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "titleStatus": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "transmission": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "vehicleRecords": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "views": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              },
+              "vin": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "watchersIds": {
+                "many": {
+                  "elementNullable": false
+                },
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "year": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "bids": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "listingId"
+                  ]
+                },
+                "to": {
+                  "model": "Bid",
+                  "namespace": "__unbound__"
+                }
+              },
+              "comments": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "listingId"
+                  ]
+                },
+                "to": {
+                  "model": "Comment",
+                  "namespace": "__unbound__"
+                }
+              },
+              "highestBidder": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "highestBidderId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "__unbound__"
+                }
+              },
+              "reviews": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "listingId"
+                  ]
+                },
+                "to": {
+                  "model": "ListingReview",
+                  "namespace": "__unbound__"
+                }
+              },
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "collection": "Listing",
+              "fields": {
+                "auctionEndsAt": {
+                  "field": "auctionEndsAt"
+                },
+                "auctionStartsAt": {
+                  "field": "auctionStartsAt"
+                },
+                "bidIncrement": {
+                  "field": "bidIncrement"
+                },
+                "biddersIds": {
+                  "field": "biddersIds"
+                },
+                "commenterIds": {
+                  "field": "commenterIds"
+                },
+                "commentsIds": {
+                  "field": "commentsIds"
+                },
+                "coverImage": {
+                  "field": "coverImage"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "currentBid": {
+                  "field": "currentBid"
+                },
+                "description": {
+                  "field": "description"
+                },
+                "drivetrain": {
+                  "field": "drivetrain"
+                },
+                "endingSoonReminderAt": {
+                  "field": "endingSoonReminderAt"
+                },
+                "highestBidderId": {
+                  "field": "highestBidderId"
+                },
+                "id": {
+                  "field": "_id"
+                },
+                "images": {
+                  "field": "images"
+                },
+                "isFeatured": {
+                  "field": "isFeatured"
+                },
+                "knownFlaws": {
+                  "field": "knownFlaws"
+                },
+                "lastCommentAt": {
+                  "field": "lastCommentAt"
+                },
+                "location": {
+                  "field": "location"
+                },
+                "make": {
+                  "field": "make"
+                },
+                "miles": {
+                  "field": "miles"
+                },
+                "model": {
+                  "field": "model"
+                },
+                "modifications": {
+                  "field": "modifications"
+                },
+                "reservePrice": {
+                  "field": "reservePrice"
+                },
+                "result": {
+                  "field": "result"
+                },
+                "reviewNote": {
+                  "field": "reviewNote"
+                },
+                "reviewRevision": {
+                  "field": "reviewRevision"
+                },
+                "reviewStatus": {
+                  "field": "reviewStatus"
+                },
+                "seenIds": {
+                  "field": "seenIds"
+                },
+                "serviceHistory": {
+                  "field": "serviceHistory"
+                },
+                "startingBid": {
+                  "field": "startingBid"
+                },
+                "status": {
+                  "field": "status"
+                },
+                "titleStatus": {
+                  "field": "titleStatus"
+                },
+                "transmission": {
+                  "field": "transmission"
+                },
+                "updatedAt": {
+                  "field": "updatedAt"
+                },
+                "userId": {
+                  "field": "userId"
+                },
+                "vehicleRecords": {
+                  "field": "vehicleRecords"
+                },
+                "views": {
+                  "field": "views"
+                },
+                "vin": {
+                  "field": "vin"
+                },
+                "watchersIds": {
+                  "field": "watchersIds"
+                },
+                "year": {
+                  "field": "year"
+                }
+              }
+            }
+          },
+          "ListingDraft": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "deletedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "lastSaveKey": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "payload": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "publishedListingId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "revision": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "collection": "ListingDraft",
+              "fields": {
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "deletedAt": {
+                  "field": "deletedAt"
+                },
+                "id": {
+                  "field": "_id"
+                },
+                "lastSaveKey": {
+                  "field": "lastSaveKey"
+                },
+                "payload": {
+                  "field": "payload"
+                },
+                "publishedListingId": {
+                  "field": "publishedListingId"
+                },
+                "revision": {
+                  "field": "revision"
+                },
+                "updatedAt": {
+                  "field": "updatedAt"
+                },
+                "userId": {
+                  "field": "userId"
+                }
+              }
+            }
+          },
+          "ListingReview": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "decision": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "ListingReviewStatus",
+                  "namespaceId": "__unbound__",
+                  "plane": "domain"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "listingId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "reason": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "reviewerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "reviewerName": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "revision": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "listing": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "listingId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Listing",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "collection": "ListingReview",
+              "fields": {
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "decision": {
+                  "field": "decision"
+                },
+                "id": {
+                  "field": "_id"
+                },
+                "listingId": {
+                  "field": "listingId"
+                },
+                "reason": {
+                  "field": "reason"
+                },
+                "reviewerId": {
+                  "field": "reviewerId"
+                },
+                "reviewerName": {
+                  "field": "reviewerName"
+                },
+                "revision": {
+                  "field": "revision"
+                }
+              }
+            }
+          },
+          "Notification": {
+            "fields": {
+              "actionLabel": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "emailAttempts": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/int64Number@1",
+                  "kind": "scalar"
+                }
+              },
+              "emailFirstAttemptAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "emailLastError": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "emailListingId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "emailLockToken": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "emailLockedUntil": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "emailNextAttemptAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "emailPayload": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "emailProviderId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "emailSentAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "emailStatus": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "EmailDeliveryStatus",
+                  "namespaceId": "__unbound__",
+                  "plane": "domain"
+                }
+              },
+              "eventKey": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "href": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "kind": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "NotificationKind",
+                  "namespaceId": "__unbound__",
+                  "plane": "domain"
+                }
+              },
+              "message": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "readAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "title": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "tone": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "NotificationTone",
+                  "namespaceId": "__unbound__",
+                  "plane": "domain"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "collection": "Notification",
+              "fields": {
+                "actionLabel": {
+                  "field": "actionLabel"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "emailAttempts": {
+                  "field": "emailAttempts"
+                },
+                "emailFirstAttemptAt": {
+                  "field": "emailFirstAttemptAt"
+                },
+                "emailLastError": {
+                  "field": "emailLastError"
+                },
+                "emailListingId": {
+                  "field": "emailListingId"
+                },
+                "emailLockToken": {
+                  "field": "emailLockToken"
+                },
+                "emailLockedUntil": {
+                  "field": "emailLockedUntil"
+                },
+                "emailNextAttemptAt": {
+                  "field": "emailNextAttemptAt"
+                },
+                "emailPayload": {
+                  "field": "emailPayload"
+                },
+                "emailProviderId": {
+                  "field": "emailProviderId"
+                },
+                "emailSentAt": {
+                  "field": "emailSentAt"
+                },
+                "emailStatus": {
+                  "field": "emailStatus"
+                },
+                "eventKey": {
+                  "field": "eventKey"
+                },
+                "href": {
+                  "field": "href"
+                },
+                "id": {
+                  "field": "_id"
+                },
+                "kind": {
+                  "field": "kind"
+                },
+                "message": {
+                  "field": "message"
+                },
+                "readAt": {
+                  "field": "readAt"
+                },
+                "title": {
+                  "field": "title"
+                },
+                "tone": {
+                  "field": "tone"
+                },
+                "userId": {
+                  "field": "userId"
+                }
+              }
+            }
+          },
+          "User": {
+            "fields": {
+              "BidOnListIds": {
+                "many": {
+                  "elementNullable": false
+                },
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "email": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "emailVerified": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "endingSoonEmailsEnabled": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "hashedPassword": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "highestBidsIds": {
+                "many": {
+                  "elementNullable": false
+                },
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "image": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "listingsCommentedOnIds": {
+                "many": {
+                  "elementNullable": false
+                },
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "name": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "outbidEmailsEnabled": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "role": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "UserRole",
+                  "namespaceId": "__unbound__",
+                  "plane": "domain"
+                }
+              },
+              "seenListIds": {
+                "many": {
+                  "elementNullable": false
+                },
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "sessionVersion": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "watchListIds": {
+                "many": {
+                  "elementNullable": false
+                },
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "accounts": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Account",
+                  "namespace": "__unbound__"
+                }
+              },
+              "bidSubmissions": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "BidSubmission",
+                  "namespace": "__unbound__"
+                }
+              },
+              "bids": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Bid",
+                  "namespace": "__unbound__"
+                }
+              },
+              "comments": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Comment",
+                  "namespace": "__unbound__"
+                }
+              },
+              "highestBids": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "highestBidderId"
+                  ]
+                },
+                "to": {
+                  "model": "Listing",
+                  "namespace": "__unbound__"
+                }
+              },
+              "listingDrafts": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "ListingDraft",
+                  "namespace": "__unbound__"
+                }
+              },
+              "notifications": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Notification",
+                  "namespace": "__unbound__"
+                }
+              },
+              "uploadList": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Listing",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "collection": "User",
+              "fields": {
+                "BidOnListIds": {
+                  "field": "BidOnListIds"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "email": {
+                  "field": "email"
+                },
+                "emailVerified": {
+                  "field": "emailVerified"
+                },
+                "endingSoonEmailsEnabled": {
+                  "field": "endingSoonEmailsEnabled"
+                },
+                "hashedPassword": {
+                  "field": "hashedPassword"
+                },
+                "highestBidsIds": {
+                  "field": "highestBidsIds"
+                },
+                "id": {
+                  "field": "_id"
+                },
+                "image": {
+                  "field": "image"
+                },
+                "listingsCommentedOnIds": {
+                  "field": "listingsCommentedOnIds"
+                },
+                "name": {
+                  "field": "name"
+                },
+                "outbidEmailsEnabled": {
+                  "field": "outbidEmailsEnabled"
+                },
+                "role": {
+                  "field": "role"
+                },
+                "seenListIds": {
+                  "field": "seenListIds"
+                },
+                "sessionVersion": {
+                  "field": "sessionVersion"
+                },
+                "updatedAt": {
+                  "field": "updatedAt"
+                },
+                "watchListIds": {
+                  "field": "watchListIds"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "storage": {
+    "namespaces": {
+      "__unbound__": {
+        "entries": {
+          "collection": {
+            "Account": {
+              "indexes": [
+                {
+                  "keys": [
+                    {
+                      "direction": 1,
+                      "field": "provider"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "providerAccountId"
+                    }
+                  ],
+                  "kind": "mongo-index",
+                  "name": "Account_provider_providerAccountId_key",
+                  "unique": true
+                }
+              ],
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "access_token": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "expires_at": {
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
+                    },
+                    "id_token": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "provider": {
+                      "bsonType": "string"
+                    },
+                    "providerAccountId": {
+                      "bsonType": "string"
+                    },
+                    "refresh_token": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "refresh_token_expires_in": {
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
+                    },
+                    "scope": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "session_state": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "token_type": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "type": {
+                      "bsonType": "string"
+                    },
+                    "userId": {
+                      "bsonType": "objectId"
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "provider",
+                    "providerAccountId",
+                    "type",
+                    "userId"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "Bid": {
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "amount": {
+                      "bsonType": "long"
+                    },
+                    "createdAt": {
+                      "bsonType": "date"
+                    },
+                    "listingId": {
+                      "bsonType": "objectId"
+                    },
+                    "userId": {
+                      "bsonType": "objectId"
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "amount",
+                    "createdAt",
+                    "listingId",
+                    "userId"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "BidSubmission": {
+              "indexes": [
+                {
+                  "keys": [
+                    {
+                      "direction": 1,
+                      "field": "userId"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "key"
+                    }
+                  ],
+                  "kind": "mongo-index",
+                  "name": "BidSubmission_userId_key_key",
+                  "unique": true
+                }
+              ],
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "amount": {
+                      "bsonType": "long"
+                    },
+                    "createdAt": {
+                      "bsonType": "date"
+                    },
+                    "key": {
+                      "bsonType": "string"
+                    },
+                    "listingId": {
+                      "bsonType": "objectId"
+                    },
+                    "response": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "userId": {
+                      "bsonType": "objectId"
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "amount",
+                    "createdAt",
+                    "key",
+                    "listingId",
+                    "response",
+                    "userId"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "Comment": {
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "body": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "createdAt": {
+                      "bsonType": "date"
+                    },
+                    "image": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "listingId": {
+                      "bsonType": "objectId"
+                    },
+                    "userId": {
+                      "bsonType": [
+                        "null",
+                        "objectId"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "createdAt",
+                    "listingId"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "EmailVerification": {
+              "indexes": [
+                {
+                  "keys": [
+                    {
+                      "direction": 1,
+                      "field": "tokenHash"
+                    }
+                  ],
+                  "kind": "mongo-index",
+                  "name": "EmailVerification_tokenHash_key",
+                  "unique": true
+                }
+              ],
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "email": {
+                      "bsonType": "string"
+                    },
+                    "expiresAt": {
+                      "bsonType": "date"
+                    },
+                    "requestedAt": {
+                      "bsonType": "date"
+                    },
+                    "tokenHash": {
+                      "bsonType": "string"
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "email",
+                    "expiresAt",
+                    "requestedAt",
+                    "tokenHash"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "Listing": {
+              "indexes": [
+                {
+                  "keys": [
+                    {
+                      "direction": 1,
+                      "field": "status"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "auctionEndsAt"
+                    }
+                  ],
+                  "kind": "mongo-index",
+                  "name": "Listing_status_auctionEndsAt_idx"
+                },
+                {
+                  "keys": [
+                    {
+                      "direction": 1,
+                      "field": "status"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "reviewStatus"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "createdAt"
+                    }
+                  ],
+                  "kind": "mongo-index",
+                  "name": "Listing_status_reviewStatus_createdAt_idx"
+                }
+              ],
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "auctionEndsAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "auctionStartsAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "bidIncrement": {
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
+                    },
+                    "biddersIds": {
+                      "bsonType": "array",
+                      "items": {
+                        "bsonType": "objectId"
+                      }
+                    },
+                    "commenterIds": {
+                      "bsonType": "array",
+                      "items": {
+                        "bsonType": "objectId"
+                      }
+                    },
+                    "commentsIds": {
+                      "bsonType": "array",
+                      "items": {
+                        "bsonType": "objectId"
+                      }
+                    },
+                    "coverImage": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "createdAt": {
+                      "bsonType": "date"
+                    },
+                    "currentBid": {
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
+                    },
+                    "description": {
+                      "bsonType": "string"
+                    },
+                    "drivetrain": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "endingSoonReminderAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "highestBidderId": {
+                      "bsonType": [
+                        "null",
+                        "objectId"
+                      ]
+                    },
+                    "images": {
+                      "bsonType": "array",
+                      "items": {
+                        "bsonType": "string"
+                      }
+                    },
+                    "isFeatured": {
+                      "bsonType": "bool"
+                    },
+                    "knownFlaws": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "lastCommentAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "location": {
+                      "bsonType": "string"
+                    },
+                    "make": {
+                      "bsonType": "string"
+                    },
+                    "miles": {
+                      "bsonType": "long"
+                    },
+                    "model": {
+                      "bsonType": "string"
+                    },
+                    "modifications": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "reservePrice": {
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
+                    },
+                    "result": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "reviewNote": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "reviewRevision": {
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
+                    },
+                    "reviewStatus": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ],
+                      "enum": [
+                        "PENDING",
+                        "APPROVED",
+                        "CHANGES_REQUESTED",
+                        null
+                      ]
+                    },
+                    "seenIds": {
+                      "bsonType": "array",
+                      "items": {
+                        "bsonType": "objectId"
+                      }
+                    },
+                    "serviceHistory": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "startingBid": {
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
+                    },
+                    "status": {
+                      "bsonType": "string"
+                    },
+                    "titleStatus": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "transmission": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "updatedAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "userId": {
+                      "bsonType": "objectId"
+                    },
+                    "vehicleRecords": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "views": {
+                      "bsonType": "long"
+                    },
+                    "vin": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "watchersIds": {
+                      "bsonType": "array",
+                      "items": {
+                        "bsonType": "objectId"
+                      }
+                    },
+                    "year": {
+                      "bsonType": "long"
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "biddersIds",
+                    "commenterIds",
+                    "commentsIds",
+                    "createdAt",
+                    "description",
+                    "images",
+                    "isFeatured",
+                    "location",
+                    "make",
+                    "miles",
+                    "model",
+                    "seenIds",
+                    "status",
+                    "userId",
+                    "views",
+                    "watchersIds",
+                    "year"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "ListingDraft": {
+              "indexes": [
+                {
+                  "keys": [
+                    {
+                      "direction": 1,
+                      "field": "userId"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "deletedAt"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "publishedListingId"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "updatedAt"
+                    }
+                  ],
+                  "kind": "mongo-index",
+                  "name": "ListingDraft_userId_deletedAt_publishedListingId_updatedAt_idx"
+                }
+              ],
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "createdAt": {
+                      "bsonType": "date"
+                    },
+                    "deletedAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "lastSaveKey": {
+                      "bsonType": "string"
+                    },
+                    "payload": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "publishedListingId": {
+                      "bsonType": [
+                        "null",
+                        "objectId"
+                      ]
+                    },
+                    "revision": {
+                      "bsonType": "long"
+                    },
+                    "updatedAt": {
+                      "bsonType": "date"
+                    },
+                    "userId": {
+                      "bsonType": "objectId"
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "createdAt",
+                    "lastSaveKey",
+                    "payload",
+                    "revision",
+                    "updatedAt",
+                    "userId"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "ListingReview": {
+              "indexes": [
+                {
+                  "keys": [
+                    {
+                      "direction": 1,
+                      "field": "listingId"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "createdAt"
+                    }
+                  ],
+                  "kind": "mongo-index",
+                  "name": "ListingReview_listingId_createdAt_idx"
+                }
+              ],
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "createdAt": {
+                      "bsonType": "date"
+                    },
+                    "decision": {
+                      "bsonType": "string",
+                      "enum": [
+                        "PENDING",
+                        "APPROVED",
+                        "CHANGES_REQUESTED"
+                      ]
+                    },
+                    "listingId": {
+                      "bsonType": "objectId"
+                    },
+                    "reason": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "reviewerId": {
+                      "bsonType": "objectId"
+                    },
+                    "reviewerName": {
+                      "bsonType": "string"
+                    },
+                    "revision": {
+                      "bsonType": "long"
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "createdAt",
+                    "decision",
+                    "listingId",
+                    "reviewerId",
+                    "reviewerName",
+                    "revision"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "Notification": {
+              "indexes": [
+                {
+                  "keys": [
+                    {
+                      "direction": 1,
+                      "field": "userId"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "eventKey"
+                    }
+                  ],
+                  "kind": "mongo-index",
+                  "name": "Notification_userId_eventKey_key",
+                  "unique": true
+                },
+                {
+                  "keys": [
+                    {
+                      "direction": 1,
+                      "field": "userId"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "createdAt"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "_id"
+                    }
+                  ],
+                  "kind": "mongo-index",
+                  "name": "Notification_userId_createdAt_id_idx"
+                },
+                {
+                  "keys": [
+                    {
+                      "direction": 1,
+                      "field": "userId"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "readAt"
+                    }
+                  ],
+                  "kind": "mongo-index",
+                  "name": "Notification_userId_readAt_idx"
+                },
+                {
+                  "keys": [
+                    {
+                      "direction": 1,
+                      "field": "emailStatus"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "emailNextAttemptAt"
+                    }
+                  ],
+                  "kind": "mongo-index",
+                  "name": "Notification_emailStatus_emailNextAttemptAt_idx"
+                },
+                {
+                  "keys": [
+                    {
+                      "direction": 1,
+                      "field": "emailStatus"
+                    },
+                    {
+                      "direction": 1,
+                      "field": "emailLockedUntil"
+                    }
+                  ],
+                  "kind": "mongo-index",
+                  "name": "Notification_emailStatus_emailLockedUntil_idx"
+                }
+              ],
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "actionLabel": {
+                      "bsonType": "string"
+                    },
+                    "createdAt": {
+                      "bsonType": "date"
+                    },
+                    "emailAttempts": {
+                      "bsonType": "long"
+                    },
+                    "emailFirstAttemptAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "emailLastError": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "emailListingId": {
+                      "bsonType": [
+                        "null",
+                        "objectId"
+                      ]
+                    },
+                    "emailLockToken": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "emailLockedUntil": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "emailNextAttemptAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "emailPayload": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "emailProviderId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "emailSentAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "emailStatus": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ],
+                      "enum": [
+                        "PENDING",
+                        "SENDING",
+                        "SENT",
+                        "SKIPPED",
+                        "FAILED",
+                        null
+                      ]
+                    },
+                    "eventKey": {
+                      "bsonType": "string"
+                    },
+                    "href": {
+                      "bsonType": "string"
+                    },
+                    "kind": {
+                      "bsonType": "string",
+                      "enum": [
+                        "bid",
+                        "auction",
+                        "comment"
+                      ]
+                    },
+                    "message": {
+                      "bsonType": "string"
+                    },
+                    "readAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "title": {
+                      "bsonType": "string"
+                    },
+                    "tone": {
+                      "bsonType": "string",
+                      "enum": [
+                        "success",
+                        "warning",
+                        "neutral"
+                      ]
+                    },
+                    "userId": {
+                      "bsonType": "objectId"
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "actionLabel",
+                    "createdAt",
+                    "emailAttempts",
+                    "eventKey",
+                    "href",
+                    "kind",
+                    "message",
+                    "title",
+                    "tone",
+                    "userId"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "User": {
+              "indexes": [
+                {
+                  "keys": [
+                    {
+                      "direction": 1,
+                      "field": "email"
+                    }
+                  ],
+                  "kind": "mongo-index",
+                  "name": "User_email_key",
+                  "unique": true
+                }
+              ],
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "BidOnListIds": {
+                      "bsonType": "array",
+                      "items": {
+                        "bsonType": "objectId"
+                      }
+                    },
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "createdAt": {
+                      "bsonType": "date"
+                    },
+                    "email": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "emailVerified": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "endingSoonEmailsEnabled": {
+                      "bsonType": "bool"
+                    },
+                    "hashedPassword": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "highestBidsIds": {
+                      "bsonType": "array",
+                      "items": {
+                        "bsonType": "objectId"
+                      }
+                    },
+                    "image": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "listingsCommentedOnIds": {
+                      "bsonType": "array",
+                      "items": {
+                        "bsonType": "objectId"
+                      }
+                    },
+                    "name": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "outbidEmailsEnabled": {
+                      "bsonType": "bool"
+                    },
+                    "role": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ],
+                      "enum": [
+                        "USER",
+                        "ADMIN",
+                        null
+                      ]
+                    },
+                    "seenListIds": {
+                      "bsonType": "array",
+                      "items": {
+                        "bsonType": "objectId"
+                      }
+                    },
+                    "sessionVersion": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "updatedAt": {
+                      "bsonType": "date"
+                    },
+                    "watchListIds": {
+                      "bsonType": "array",
+                      "items": {
+                        "bsonType": "objectId"
+                      }
+                    }
+                  },
+                  "required": [
+                    "BidOnListIds",
+                    "_id",
+                    "createdAt",
+                    "endingSoonEmailsEnabled",
+                    "highestBidsIds",
+                    "listingsCommentedOnIds",
+                    "outbidEmailsEnabled",
+                    "seenListIds",
+                    "updatedAt",
+                    "watchListIds"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            }
+          },
+          "valueSet": {
+            "EmailDeliveryStatus": {
+              "kind": "valueSet",
+              "values": [
+                "PENDING",
+                "SENDING",
+                "SENT",
+                "SKIPPED",
+                "FAILED"
+              ]
+            },
+            "ListingReviewStatus": {
+              "kind": "valueSet",
+              "values": [
+                "PENDING",
+                "APPROVED",
+                "CHANGES_REQUESTED"
+              ]
+            },
+            "NotificationKind": {
+              "kind": "valueSet",
+              "values": [
+                "bid",
+                "auction",
+                "comment"
+              ]
+            },
+            "NotificationTone": {
+              "kind": "valueSet",
+              "values": [
+                "success",
+                "warning",
+                "neutral"
+              ]
+            },
+            "UserRole": {
+              "kind": "valueSet",
+              "values": [
+                "USER",
+                "ADMIN"
+              ]
+            }
+          }
+        },
+        "id": "__unbound__",
+        "kind": "mongo-database"
+      }
+    },
+    "storageHash": "166d404f66b64e30d386105e8678b93a2582b462c8bc82366a0bfd75aa8c7ee8"
+  },
+  "execution": {
+    "executionHash": "cae9bf47fa46800937a10e07ab2b7ad0c63254bebba7fc85b4557c02a75d1df4",
+    "mutations": {
+      "defaults": [
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "Bid",
+            "field": "createdAt",
+            "namespace": "__unbound__"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "BidSubmission",
+            "field": "createdAt",
+            "namespace": "__unbound__"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "Comment",
+            "field": "createdAt",
+            "namespace": "__unbound__"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "Listing",
+            "field": "createdAt",
+            "namespace": "__unbound__"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "ListingDraft",
+            "field": "createdAt",
+            "namespace": "__unbound__"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "ListingDraft",
+            "field": "updatedAt",
+            "namespace": "__unbound__"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "ListingReview",
+            "field": "createdAt",
+            "namespace": "__unbound__"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "Notification",
+            "field": "createdAt",
+            "namespace": "__unbound__"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "User",
+            "field": "createdAt",
+            "namespace": "__unbound__"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "User",
+            "field": "updatedAt",
+            "namespace": "__unbound__"
+          }
+        }
+      ]
+    }
+  },
+  "capabilities": {},
+  "extensions": {},
+  "meta": {},
+  "_generated": {
+    "warning": "⚠️  GENERATED FILE - DO NOT EDIT",
+    "message": "This file is automatically generated by \"prisma contract emit\".",
+    "regenerate": "To regenerate, run: prisma contract emit"
+  }
+}

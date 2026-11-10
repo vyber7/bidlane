@@ -1,0 +1,243 @@
+// use prisma-8
+
+// ObjectId-backed collections only. See docs/prisma-8-migration.md before
+// using this contract to manage a database. Application writes still use v6.
+// Keep v6 BSON long storage and existing collection/index names unchanged.
+
+enum UserRole {
+  @@type("mongo/string@1")
+  USER = "USER"
+  ADMIN = "ADMIN"
+}
+
+enum NotificationKind {
+  @@type("mongo/string@1")
+  bid = "bid"
+  auction = "auction"
+  comment = "comment"
+}
+
+enum NotificationTone {
+  @@type("mongo/string@1")
+  success = "success"
+  warning = "warning"
+  neutral = "neutral"
+}
+
+enum EmailDeliveryStatus {
+  @@type("mongo/string@1")
+  PENDING = "PENDING"
+  SENDING = "SENDING"
+  SENT = "SENT"
+  SKIPPED = "SKIPPED"
+  FAILED = "FAILED"
+}
+
+enum ListingReviewStatus {
+  @@type("mongo/string@1")
+  PENDING = "PENDING"
+  APPROVED = "APPROVED"
+  CHANGES_REQUESTED = "CHANGES_REQUESTED"
+}
+
+model Account {
+  id ObjectId @id @map("_id")
+  type String
+  provider String
+  providerAccountId String
+  refresh_token String?
+  refresh_token_expires_in Int64Number?
+  access_token String?
+  expires_at Int64Number?
+  token_type String?
+  scope String?
+  id_token String?
+  session_state String?
+  userId ObjectId
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId], map: "Account_provider_providerAccountId_key")
+}
+
+model User {
+  id ObjectId @id @map("_id")
+  name String?
+  email String? @unique(map: "User_email_key")
+  emailVerified Date?
+  role UserRole?
+  image String?
+  sessionVersion String?
+  hashedPassword String?
+  createdAt temporal.CreatedAt
+  updatedAt temporal.UpdatedAt
+  outbidEmailsEnabled Bool
+  endingSoonEmailsEnabled Bool
+  listingsCommentedOnIds ObjectId[]
+  watchListIds ObjectId[]
+  BidOnListIds ObjectId[]
+  seenListIds ObjectId[]
+  highestBidsIds ObjectId[]
+  accounts Account[]
+  comments Comment[]
+  uploadList Listing[] @relation(name: "uploaded")
+  listingDrafts ListingDraft[]
+  highestBids Listing[] @relation(name: "highestBidder")
+  bidSubmissions BidSubmission[]
+  bids Bid[]
+  notifications Notification[]
+}
+
+model Notification {
+  id ObjectId @id @map("_id")
+  userId ObjectId
+  user User @relation(fields: [userId], references: [id])
+  eventKey String
+  kind NotificationKind
+  title String
+  message String
+  href String
+  actionLabel String
+  tone NotificationTone
+  createdAt temporal.CreatedAt
+  readAt Date?
+  emailListingId ObjectId?
+  emailStatus EmailDeliveryStatus?
+  emailAttempts Int64Number
+  emailNextAttemptAt Date?
+  emailLockedUntil Date?
+  emailLockToken String?
+  emailFirstAttemptAt Date?
+  emailPayload Json?
+  emailSentAt Date?
+  emailProviderId String?
+  emailLastError String?
+
+  @@unique([userId, eventKey], map: "Notification_userId_eventKey_key")
+  @@index([userId, createdAt, id], map: "Notification_userId_createdAt_id_idx")
+  @@index([userId, readAt], map: "Notification_userId_readAt_idx")
+  @@index([emailStatus, emailNextAttemptAt], map: "Notification_emailStatus_emailNextAttemptAt_idx")
+  @@index([emailStatus, emailLockedUntil], map: "Notification_emailStatus_emailLockedUntil_idx")
+}
+
+model Listing {
+  id ObjectId @id @map("_id")
+  year Int64Number
+  make String
+  model String
+  miles Int64Number
+  images String[]
+  location String
+  description String
+  transmission String?
+  drivetrain String?
+  titleStatus String?
+  serviceHistory String?
+  modifications String?
+  vin String?
+  vehicleRecords Json?
+  knownFlaws String?
+  reservePrice Int64Number?
+  createdAt temporal.CreatedAt
+  lastCommentAt Date?
+  updatedAt Date?
+  views Int64Number
+  coverImage String?
+  auctionStartsAt Date?
+  auctionEndsAt Date?
+  endingSoonReminderAt Date?
+  status String
+  result String?
+  reviewStatus ListingReviewStatus?
+  reviewRevision Int64Number?
+  reviewNote String?
+  isFeatured Bool
+  startingBid Int64Number?
+  currentBid Int64Number?
+  bidIncrement Int64Number?
+  biddersIds ObjectId[]
+  highestBidderId ObjectId?
+  highestBidder User? @relation(name: "highestBidder", fields: [highestBidderId], references: [id])
+  seenIds ObjectId[]
+  userId ObjectId
+  user User @relation(name: "uploaded", fields: [userId], references: [id])
+  watchersIds ObjectId[]
+  commentsIds ObjectId[]
+  commenterIds ObjectId[]
+  reviews ListingReview[]
+  comments Comment[]
+  bids Bid[]
+
+  @@index([status, auctionEndsAt], map: "Listing_status_auctionEndsAt_idx")
+  @@index([status, reviewStatus, createdAt], map: "Listing_status_reviewStatus_createdAt_idx")
+}
+
+model ListingReview {
+  id ObjectId @id @map("_id")
+  listingId ObjectId
+  listing Listing @relation(fields: [listingId], references: [id])
+  reviewerId ObjectId
+  reviewerName String
+  decision ListingReviewStatus
+  reason String?
+  revision Int64Number
+  createdAt temporal.CreatedAt
+
+  @@index([listingId, createdAt], map: "ListingReview_listingId_createdAt_idx")
+}
+
+model Comment {
+  id ObjectId @id @map("_id")
+  body String?
+  image String?
+  createdAt temporal.CreatedAt
+  listingId ObjectId
+  listing Listing @relation(fields: [listingId], references: [id])
+  userId ObjectId?
+  user User? @relation(fields: [userId], references: [id])
+}
+
+model Bid {
+  id ObjectId @id @map("_id")
+  amount Int64Number
+  createdAt temporal.CreatedAt
+  listingId ObjectId
+  listing Listing @relation(fields: [listingId], references: [id])
+  userId ObjectId
+  user User @relation(fields: [userId], references: [id])
+}
+
+model BidSubmission {
+  id ObjectId @id @map("_id")
+  userId ObjectId
+  user User @relation(fields: [userId], references: [id])
+  key String
+  listingId ObjectId
+  amount Int64Number
+  response Json
+  createdAt temporal.CreatedAt
+
+  @@unique([userId, key], map: "BidSubmission_userId_key_key")
+}
+
+model EmailVerification {
+  id ObjectId @id @map("_id")
+  email String
+  tokenHash String @unique(map: "EmailVerification_tokenHash_key")
+  requestedAt Date
+  expiresAt Date
+}
+
+model ListingDraft {
+  id ObjectId @id @map("_id")
+  userId ObjectId
+  user User @relation(fields: [userId], references: [id])
+  payload Json
+  revision Int64Number
+  lastSaveKey String
+  publishedListingId ObjectId?
+  deletedAt Date?
+  createdAt temporal.CreatedAt
+  updatedAt temporal.UpdatedAt
+
+  @@index([userId, deletedAt, publishedListingId, updatedAt], map: "ListingDraft_userId_deletedAt_publishedListingId_updatedAt_idx")
+}
