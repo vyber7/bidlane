@@ -1,11 +1,11 @@
-import prisma from "../../libs/prismadb";
+import { getNativeRepositories, withNativeTransaction } from "@/app/libs/native-repositories";
+import { engagementTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
 import getCurrentUser from "../../../app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
 import { pusherServer } from "@/app/libs/pusher";
 import { logger } from "@/app/libs/logger";
 import type { WatchingUpdateEvent, WatchlistUpdateEvent, WatchlistResponse, WatcherCountEvent } from "@/app/types/auction-events";
 import { serializeListing } from "@/app/utils/listing-serialization";
-import { toPublicListing } from "@/app/libs/listing-payload";
 import { isPublicListing } from "@/app/libs/listing-review";
 import { ApiRequestError, apiErrorResponse, errorResponse, readJsonObject, requireListingId } from "@/app/libs/api-request";
 
@@ -25,35 +25,25 @@ export async function POST(request: Request) {
       throw new ApiRequestError(400, "Watchlist state must be a boolean");
     }
 
-    const listing = await prisma.listing.findUnique({
-      where: { id: listingId },
-    });
-
-    if (!listing || !isPublicListing(listing)) {
-      throw new ApiRequestError(404, "Listing not found");
-    }
-
-    await prisma.user.update({
-      where: { id: currentUser.id },
-      data: {
-        watchList: watching
-          ? { connect: { id: listingId } }
-          : { disconnect: { id: listingId } },
-      },
-    });
+    await withNativeTransaction(async (tx) => {
+      const listing = await tx.engagement.find(listingId);
+      if (!listing || !isPublicListing(listing)) throw new ApiRequestError(404, "Listing not found");
+      const updated = await tx.engagement.setWatch(listingId, currentUser.id, watching);
+      if (updated.count !== 1) throw new ApiRequestError(404, "Listing not found");
+    }, engagementTransactionOptions);
 
     // Read after the relation update so aggregates and the viewer's state
     // reflect persisted data. Never broadcast a listing removed from public view.
-    const updatedListing = await prisma.listing.findUnique({ where: { id: listingId } }).catch(() => {
+    const updatedListing = await getNativeRepositories().engagement.watchSnapshot(listingId, currentUser.id).catch(() => {
       // The watch change is committed; a failed notification snapshot must
       // not make the client roll back a successful write.
       logger.warn("watchlist.notification_failed", { listingId, userId: currentUser.id });
       return null;
     });
-    if (!updatedListing || !isPublicListing(updatedListing)) {
+    if (!updatedListing || !isPublicListing({ status: updatedListing.listing.status, reviewStatus: updatedListing.reviewStatus })) {
       return NextResponse.json({ listingId, watching } satisfies WatchlistResponse);
     }
-    const publicListing = toPublicListing(updatedListing, currentUser.id);
+    const publicListing = updatedListing.listing;
     const update = { listingId, userId: currentUser.id, watching } satisfies WatchlistUpdateEvent;
     const notificationResults = await Promise.allSettled([
       pusherServer.trigger(
@@ -84,6 +74,7 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     const response = apiErrorResponse(error);
     if (response) return response;
+    if (isTransactionContention(error)) return errorResponse("The listing is busy. Please try again.", 503);
     logger.error("watchlist.update_failed", error, { userId });
     return errorResponse("Unable to update watchlist", 500);
   }

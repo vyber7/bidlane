@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { makeListing } from "@/app/test/auction-fixtures";
-import type { PublicListing, SellerListing } from "./listing-payload";
+import { toPublicListing, type PublicListing, type SellerListing } from "./listing-payload";
 
-const mocks = vi.hoisted(() => ({ find: vi.fn(), user: vi.fn(), drafts: vi.fn(), browser: vi.fn(), featured: vi.fn(), dashboard: vi.fn() }));
+const mocks = vi.hoisted(() => ({ find: vi.fn(), watchlist: vi.fn(), user: vi.fn(), drafts: vi.fn(), browser: vi.fn(), featured: vi.fn(), dashboard: vi.fn() }));
 vi.mock("@/app/libs/native-repositories", () => ({
-  getNativeRepositories: () => ({ drafts: { list: mocks.drafts } }),
+  getNativeRepositories: () => ({ drafts: { list: mocks.drafts }, engagement: { watchlist: mocks.watchlist } }),
   withNativeTransaction: () => { throw new Error("Unexpected native transaction in this test"); },
 }));
 vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { findMany: mocks.find }, listingDraft: { findMany: mocks.drafts } } }));
@@ -27,7 +27,7 @@ const expectPublic = (listing: PublicListing) => {
   expect(listing).toMatchObject({ isNoReserve: false, watcherCount: 2 });
 };
 
-beforeEach(() => { vi.clearAllMocks(); mocks.find.mockResolvedValue([record()]); mocks.user.mockResolvedValue({ id: "buyer" }); mocks.drafts.mockResolvedValue([]); });
+beforeEach(() => { vi.clearAllMocks(); mocks.find.mockResolvedValue([record()]); mocks.watchlist.mockResolvedValue([toPublicListing(record(), "buyer")]); mocks.user.mockResolvedValue({ id: "buyer" }); mocks.drafts.mockResolvedValue([]); });
 
 describe("server-to-client listing boundaries", () => {
   it.each([null, { id: "buyer" }])("projects every homepage client payload for viewer %j", async (viewer) => {
@@ -47,11 +47,12 @@ describe("server-to-client listing boundaries", () => {
   });
 
   it("limits watched listings to public fields and uploaded listings to authorized management fields", async () => {
-    mocks.find.mockResolvedValueOnce([record("buyer")]).mockResolvedValueOnce([record()]);
+    mocks.find.mockResolvedValueOnce([record("buyer")]);
     renderToStaticMarkup(await AccountListings());
     const { uploaded, initialWatching } = mocks.dashboard.mock.calls[0][0];
     expectPublic(initialWatching[0]);
     expect(initialWatching[0].isWatching).toBe(true);
+    expect(mocks.watchlist).toHaveBeenCalledWith("buyer");
     expect(uploaded[0]).toMatchObject({ reservePrice: 98765, reviewNote: "Private feedback" });
     for (const field of ["watchersIds", "seenIds", "biddersIds", "commenterIds", "commentsIds", "futureSecret"]) expect(uploaded[0]).not.toHaveProperty(field);
   });

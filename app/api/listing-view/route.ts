@@ -1,4 +1,5 @@
-import prisma from "@/app/libs/prismadb";
+import { getNativeRepositories, withNativeTransaction } from "@/app/libs/native-repositories";
+import { engagementTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
 import { NextResponse } from "next/server";
 import { logger } from "@/app/libs/logger";
 import getCurrentUser from "@/app/actions/getCurrentUser";
@@ -11,8 +12,6 @@ import {
   requireListingId,
 } from "@/app/libs/api-request";
 
-const MAX_VIEW_COUNT = 2_147_483_647;
-
 export async function POST(req: Request) {
   try {
     const body = await readJsonObject(req);
@@ -21,53 +20,29 @@ export async function POST(req: Request) {
     const currentUser = await getCurrentUser();
 
     if (!currentUser?.id) {
-      const listing = await prisma.listing.findUnique({
-        where: { id: listingId },
-        select: { views: true, userId: true, status: true, reviewStatus: true },
-      });
+      const listing = await getNativeRepositories().engagement.find(listingId);
       if (!listing) throw new ApiRequestError(404, "Listing not found");
       if (!canViewListing(listing, currentUser)) throw new ApiRequestError(404, "Listing not found");
       return NextResponse.json({ views: listing.views });
     }
 
-    const views = await prisma.$transaction(async (tx) => {
-      const listing = await tx.listing.findUnique({
-        where: { id: listingId },
-        select: { views: true, userId: true, status: true, reviewStatus: true },
-      });
+    const views = await withNativeTransaction(async (tx) => {
+      const listing = await tx.engagement.find(listingId);
       if (!listing) throw new ApiRequestError(404, "Listing not found");
       if (!canViewListing(listing, currentUser)) throw new ApiRequestError(404, "Listing not found");
 
-      const counted = await tx.listing.updateMany({
-        where: {
-          id: listingId,
-          views: { lt: MAX_VIEW_COUNT },
-          NOT: { seenIds: { has: currentUser.id } },
-        },
-        data: {
-          views: { increment: 1 },
-          seenIds: { push: currentUser.id },
-        },
-      });
-
-      if (counted.count === 1) {
-        await tx.user.updateMany({
-          where: {
-            id: currentUser.id,
-            NOT: { seenListIds: { has: listingId } },
-          },
-          data: { seenListIds: { push: listingId } },
-        });
-      }
-
-      if (counted.count === 0) return listing.views;
-      return Math.min(listing.views + 1, MAX_VIEW_COUNT);
-    });
+      const now = new Date();
+      const counted = await tx.engagement.claimView(listingId, currentUser.id, now);
+      if (counted === null) return listing.views;
+      await tx.engagement.recordSeen(currentUser.id, listingId, now);
+      return counted;
+    }, engagementTransactionOptions);
 
     return NextResponse.json({ views });
   } catch (error: unknown) {
     const response = apiErrorResponse(error);
     if (response) return response;
+    if (isTransactionContention(error)) return errorResponse("The listing is busy. Please try again.", 503);
     logger.error("listing.view_failed", error);
     return errorResponse("Unable to record view", 500);
   }

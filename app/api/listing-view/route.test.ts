@@ -3,19 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   findUnique: vi.fn(),
-  listingUpdateMany: vi.fn(),
-  userUpdateMany: vi.fn(),
+  claimView: vi.fn(),
+  recordSeen: vi.fn(),
   transaction: vi.fn(),
 }));
 
 vi.mock("@/app/actions/getCurrentUser", () => ({
   default: mocks.getCurrentUser,
 }));
-vi.mock("@/app/libs/prismadb", () => ({
-  default: {
-    listing: { findUnique: mocks.findUnique },
-    $transaction: mocks.transaction,
-  },
+vi.mock("@/app/libs/native-repositories", () => ({
+  getNativeRepositories: () => ({ engagement: { find: mocks.findUnique } }),
+  withNativeTransaction: mocks.transaction,
 }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
 
@@ -35,23 +33,17 @@ describe("POST /api/listing-view", () => {
   it("does not expose views or count visits for a private listing", async () => {
     mocks.findUnique.mockResolvedValue({ views: 7, status: "UPCOMING", reviewStatus: "PENDING", userId: "seller" });
     expect((await POST(request({ listingId }))).status).toBe(404);
-    expect(mocks.listingUpdateMany).not.toHaveBeenCalled();
+    expect(mocks.claimView).not.toHaveBeenCalled();
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentUser.mockResolvedValue({ id: "viewer-1" });
     mocks.findUnique.mockResolvedValue({ views: 7, status: "LIVE", userId: "seller" });
-    mocks.listingUpdateMany.mockResolvedValue({ count: 1 });
-    mocks.userUpdateMany.mockResolvedValue({ count: 1 });
+    mocks.claimView.mockResolvedValue(8);
+    mocks.recordSeen.mockResolvedValue({ count: 1 });
     mocks.transaction.mockImplementation((callback) =>
-      callback({
-        listing: {
-          findUnique: mocks.findUnique,
-          updateMany: mocks.listingUpdateMany,
-        },
-        user: { updateMany: mocks.userUpdateMany },
-      })
+      callback({ engagement: { find: mocks.findUnique, claimView: mocks.claimView, recordSeen: mocks.recordSeen } })
     );
   });
 
@@ -71,7 +63,7 @@ describe("POST /api/listing-view", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ views: 7 });
     expect(mocks.transaction).not.toHaveBeenCalled();
-    expect(mocks.listingUpdateMany).not.toHaveBeenCalled();
+    expect(mocks.claimView).not.toHaveBeenCalled();
   });
 
   it("uses the authenticated viewer and ignores an injected user ID", async () => {
@@ -81,33 +73,17 @@ describe("POST /api/listing-view", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ views: 8 });
-    expect(mocks.listingUpdateMany).toHaveBeenCalledWith({
-      where: {
-        id: listingId,
-        views: { lt: 2_147_483_647 },
-        NOT: { seenIds: { has: "viewer-1" } },
-      },
-      data: {
-        views: { increment: 1 },
-        seenIds: { push: "viewer-1" },
-      },
-    });
-    expect(mocks.userUpdateMany).toHaveBeenCalledWith({
-      where: {
-        id: "viewer-1",
-        NOT: { seenListIds: { has: listingId } },
-      },
-      data: { seenListIds: { push: listingId } },
-    });
+    expect(mocks.claimView).toHaveBeenCalledWith(listingId, "viewer-1", expect.any(Date));
+    expect(mocks.recordSeen).toHaveBeenCalledWith("viewer-1", listingId, expect.any(Date));
   });
 
   it("does not increment a repeated authenticated view", async () => {
-    mocks.listingUpdateMany.mockResolvedValue({ count: 0 });
+    mocks.claimView.mockResolvedValue(null);
 
     const response = await POST(request({ listingId }));
 
     await expect(response.json()).resolves.toEqual({ views: 7 });
-    expect(mocks.userUpdateMany).not.toHaveBeenCalled();
+    expect(mocks.recordSeen).not.toHaveBeenCalled();
   });
 
   it("returns not found without attempting a write", async () => {
@@ -116,6 +92,6 @@ describe("POST /api/listing-view", () => {
     const response = await POST(request({ listingId }));
 
     expect(response.status).toBe(404);
-    expect(mocks.listingUpdateMany).not.toHaveBeenCalled();
+    expect(mocks.claimView).not.toHaveBeenCalled();
   });
 });

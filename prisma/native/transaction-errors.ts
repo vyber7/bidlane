@@ -6,6 +6,7 @@ export class TransactionRetryLimitError extends Error {
 
 export const auctionTransactionOptions = { maxAttempts: 3, timeoutMS: 5_000 } as const;
 export const authoringTransactionOptions = { maxAttempts: 3, timeoutMS: 5_000 } as const;
+export const engagementTransactionOptions = { maxAttempts: 3, timeoutMS: 5_000 } as const;
 
 export function isTransactionContention(error: unknown): boolean {
   return error instanceof TransactionRetryLimitError ||

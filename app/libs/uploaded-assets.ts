@@ -27,8 +27,8 @@ export async function assertOwnedAssets(input: {
   if (urls.some((url) => !isOwnCloudUrl(url))) {
     throw new ApiRequestError(400, "Use files uploaded through your BidLane account.");
   }
-  // Registrations are immutable. This read deliberately uses the native pool,
-  // including when a caller is still inside a v6 listing/comment transaction.
+  // Registrations are immutable. This ownership read uses the independent
+  // native pool even when the caller's listing/comment writes use a session.
   const owned = await getNativeRepositories().assets.findOwned({ userId: input.userId, kind: input.kind, urls, listingId: input.listingId });
   const allowed = new Set(owned.map((asset) => asset.url));
   if (urls.some((url) => !allowed.has(url))) {

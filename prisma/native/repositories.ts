@@ -7,11 +7,13 @@ import { auctionRepositories } from "./auctions";
 import { notificationRepository } from "./notifications";
 import { draftRepository } from "./drafts";
 import { listingAuthoringRepository } from "./listing-authoring";
+import { engagementRepositories } from "./engagement";
 
 export function createNativeRepositories(database: Db, session?: ClientSession) {
   return {
     ...authRepositories(database, session),
     ...auctionRepositories(database, session),
+    ...engagementRepositories(database, session),
     notifications: notificationRepository(database, session),
     drafts: draftRepository(database, session),
     listingAuthoring: listingAuthoringRepository(database, session),

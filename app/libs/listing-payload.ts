@@ -2,7 +2,7 @@ import type { Listing } from "@prisma/client";
 import { readVehicleRecords } from "@/app/schemas/vehicle-trust";
 
 // Runtime allowlist: adding a database field must never publish it implicitly.
-const publicFields = [
+export const publicListingFields = [
   "id", "userId", "year", "make", "model", "miles", "images", "location", "description",
   "transmission", "drivetrain", "titleStatus", "serviceHistory", "modifications", "knownFlaws",
   "vin", "vehicleRecords", "createdAt", "updatedAt", "lastCommentAt", "views", "coverImage",
@@ -10,7 +10,7 @@ const publicFields = [
   "bidIncrement", "highestBidderId",
 ] as const satisfies readonly (keyof Listing)[];
 
-type PublicFields = Pick<Listing, (typeof publicFields)[number]>;
+type PublicFields = Pick<Listing, (typeof publicListingFields)[number]>;
 export type PublicListing = PublicFields & {
   isNoReserve: boolean;
   watcherCount: number;
@@ -21,7 +21,7 @@ export type SellerListing = PublicListing & Pick<Listing,
 >;
 
 function pickPublicFields(listing: PublicFields): PublicFields {
-  return Object.fromEntries(publicFields.map((field) => [field, listing[field]])) as PublicFields;
+  return Object.fromEntries(publicListingFields.map((field) => [field, listing[field]])) as PublicFields;
 }
 
 export function toPublicListing(listing: Listing, viewerId?: string | null): PublicListing {

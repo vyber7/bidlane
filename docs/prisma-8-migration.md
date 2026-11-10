@@ -9,8 +9,9 @@ NextAuth v4, registration, credentials, session checks, current-user DTOs,
 profile edits, notification preferences, recovery-worker identity lookups, and
 the administrator role command. Bidding, auction start/end/finalization, and
 ending-soon reminders also use native sessions. Drafts, listing publication,
-moderation, and seller media/VIN/record edits now use native repositories as well.
-General listing reads, comments, watchlists, views, notification/email delivery,
+moderation, seller media/VIN/record edits, comments, listing views, watchlist
+updates, and account watchlist reads now use native repositories as well.
+General listing reads, notification reads/email delivery,
 and email verification still have Prisma 6.19.3 callers. The typed v8 ORM has not been
 switched on for application queries.
 
@@ -177,10 +178,9 @@ only after the transaction resolves; external delivery remains best effort.
 
 `prisma/native/notifications.ts` inserts immutable events with `$setOnInsert`,
 explicit null fields, email-attempt defaults and queue timestamps. Event replay
-preserves read timestamps and email delivery state. `saveNotifications` supports
-either native repositories or the remaining v6 comment transaction; a native
-transaction never invokes the v6 writer, and v6 transactions never invoke the
-native writer.
+preserves read timestamps and email delivery state. All `saveNotifications`
+callers now use native sessions, including comments; the temporary Prisma 6
+notification-writer bridge has been removed.
 
 ## Listing drafts, publication, and moderation
 
@@ -231,6 +231,46 @@ side effects are absent from these transaction callbacks. The local integration
 suite forces failed publication-link and audit writes to verify persisted
 rollback, and exercises concurrent saves/deletes/publications/reviews/starts.
 
+## Comments, listing views, and watchlists
+
+`prisma/native/engagement.ts` implements comment creation/reads, listing view
+claims, watchlist updates, and public watchlist snapshots. All three mutation
+routes use bounded native transactions (three attempts, five seconds). Exhausted
+contention returns retryable JSON with status 503. Visibility is checked inside
+each callback, so a transaction retry observes a concurrent moderation change.
+
+Comment creation, the listing's `lastCommentAt`/`updatedAt`, and seller alerts
+commit together. Author and listing foreign keys remain BSON ObjectIds. The
+unrelated `commentsIds`, `commenterIds`, and `listingsCommentedOnIds` arrays stay
+untouched, matching the former one-to-many relation update. Comment readers and
+realtime payloads expose only the author name. Attachment ownership is checked
+before creation, quotas are charged once outside retries, and Pusher events run
+only after commit.
+
+Views remain unique per authenticated viewer, anonymous requests only read the
+count, and the counter is capped at 2,147,483,647. A successful claim updates
+`Listing.seenIds` and `User.seenListIds` in the same session with explicit
+timestamps. The native filters preserve Prisma's legacy distinctions: missing
+view arrays/counters do not match; null arrays coalesce to empty during push.
+An explicit null counter matches but remains null on increment; the first visit
+returns the read default plus one, as before. This stage preserves these older
+documents rather than silently normalizing them.
+
+Watchlist updates persist the requested boolean using `$addToSet`/`$pull` on
+both `Listing.watchersIds` and `User.watchListIds`. Retries preserve intent,
+missing arrays initialize on connect, and malformed null arrays fail atomically.
+Relation-only updates preserve existing timestamps. Post-commit snapshots and
+the account watchlist reader compute watcher counts and viewer membership in
+MongoDB, project only public listing fields, and preserve legacy read defaults.
+Private watch events stay on the authenticated user's channel; the public
+listing channel receives only a count. A failed post-commit snapshot or realtime
+notification still returns the successful write response.
+
+The engagement integration suite covers BSON/v6 compatibility, concurrent view
+and watch requests, opposite watch intents, rollback of related writes and
+notifications, moderation races, single-charge retries, public field allowlists,
+legacy missing/null data, and watchlist visibility/order.
+
 ## Native indexes
 
 `prisma/native/indexes.mjs` defines the existing twenty-three named secondary indexes
@@ -274,10 +314,9 @@ request queuing and redemption both use this boundary, including the native
 `User` credential update and its `updatedAt` timestamp.
 
 Upload registrations are immutable. Their ownership checks use the native
-read pool even from a remaining v6 listing/comment transaction. These reads
-are not participants in the v6 session; listing/comment writes and their
-notifications remain together in the original v6 transaction. No native writes
-are mixed into that transaction.
+read pool even from a native listing/comment transaction. These immutable
+reads do not participate in its snapshot; all related mutable writes and their
+notifications remain in the same native session.
 
 ## Native integration tests
 
@@ -288,7 +327,8 @@ reset single-use semantics, persisted transaction rollback, email lease
 fencing, NextAuth OAuth signup/linking, credential login, JWT revocation,
 profile/preference permissions, admin-role revocation, auction/bid contention,
 exact bid replays, stale deadlines/approval revisions, draft save/publication
-races, moderation/seller-edit races, and persisted rollback on a local replica set. Start a disposable MongoDB 8+ replica set, then run:
+races, moderation/seller-edit races, comment/view/watchlist contention, and
+persisted rollback on a local replica set. Start a disposable MongoDB 8+ replica set, then run:
 
 ```bash
 NATIVE_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_native_strings?replicaSet=bidlane-test' npm test -- prisma/native/
@@ -296,28 +336,26 @@ NATIVE_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_native_strings?
 
 Use the port and replica-set name of your local server. These tests only accept
 one `127.0.0.1` host and a database named `bidlane_test_native_*`. They reset and
-drop that test database. Authentication, auction, and authoring suites append
-`_auth`, `_auctions`, and `_authoring` to isolate their databases when run in
+drop that test database. Authentication, auction, authoring, and engagement suites
+append `_auth`, `_auctions`, `_authoring`, and `_engagement` to isolate their databases when run in
 parallel. Rollback tests temporarily reject writes using validators only in
 their disposable local database and restore those validators afterward. Tests never fall back to
 `DATABASE_URL`, send mail, or contact Cloudinary. Without the explicit test URL
 they are skipped. The
-migration was verified against a local MongoDB 8.0.37 replica set; the configured
+migration has been verified against local MongoDB 8.0.17 and 8.0.37 replica sets; the configured
 shared database was only queried for server metadata and existing index definitions.
 
 ## Remaining migration work
 
-1. Migrate comments, listing views, watchlists, notification reads/email
-   delivery, and email verification. Preserve ownership
+1. Migrate notification reads/email delivery and email verification. Preserve ownership
    checks, conditional updates, race retries, and related writes in the same
    native session.
-2. Replace nested `connect`/`disconnect` updates with explicit foreign-key and
-   array operations, updating both sides atomically as bidding now does.
-   Many-to-many key arrays
-   remain persisted fields; they are not v8 ORM relations.
+2. Retain explicit foreign-key and array operations for migrated relations,
+   updating both sides atomically as bidding, views, and watchlists now do.
+   Many-to-many key arrays remain persisted fields; they are not v8 ORM relations.
 3. Supply remaining literal/default array values explicitly on creation. Preserve
    any remaining defaults when those writers migrate. Native listing, draft,
-   review, user, bid, notification, queue, and asset defaults are already explicit.
+   review, user, bid, comment, notification, queue, and asset defaults are already explicit.
    `Listing.lastCommentAt` and `updatedAt` stay
    nullable; migrated writes must supply their timestamps. Implement any
    required cascading cleanup explicitly before retiring v6's emulation.

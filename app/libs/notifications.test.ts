@@ -119,9 +119,9 @@ describe("notification events", () => {
     });
   });
 
-  it("uses a stable uniqueness key and never resets an existing read timestamp on replay", async () => {
-    const upsert = vi.fn().mockResolvedValue({ readAt: auctionNow });
-    const tx = { notification: { upsert } } as unknown as Parameters<
+  it("passes stable event keys to the insert-only writer on replay", async () => {
+    const insertOnce = vi.fn().mockResolvedValue({ readAt: auctionNow });
+    const tx = { notifications: { insertOnce } } as unknown as Parameters<
       typeof saveNotifications
     >[0];
     const events = auctionResultNotifications(
@@ -131,18 +131,9 @@ describe("notification events", () => {
     );
     await saveNotifications(tx, events);
     await saveNotifications(tx, events);
-    expect(upsert).toHaveBeenCalledTimes(4);
-    expect(upsert.mock.calls[0][0]).toEqual(upsert.mock.calls[2][0]);
-    expect(upsert).toHaveBeenCalledWith({
-      where: {
-        userId_eventKey: {
-          userId: "buyer",
-          eventKey: `auction-ended:${makeListing().id}`,
-        },
-      },
-      create: expect.objectContaining({ userId: "buyer", readAt: null }),
-      update: {},
-    });
+    expect(insertOnce).toHaveBeenCalledTimes(4);
+    expect(insertOnce.mock.calls[0][0]).toEqual(insertOnce.mock.calls[2][0]);
+    expect(insertOnce).toHaveBeenCalledWith(expect.objectContaining({ userId: "buyer", eventKey: `auction-ended:${makeListing().id}` }));
   });
 
   it("keeps persisted events available if live delivery fails", async () => {
@@ -161,9 +152,9 @@ describe("notification events", () => {
     );
   });
 
-  it("queues outbid email atomically without requeuing it on an event replay", async () => {
-    const upsert = vi.fn();
-    const tx = { notification: { upsert } } as unknown as Parameters<
+  it("passes the email listing reference to the insert-only writer on replay", async () => {
+    const insertOnce = vi.fn();
+    const tx = { notifications: { insertOnce } } as unknown as Parameters<
       typeof saveNotifications
     >[0];
     const events = outbidNotifications(
@@ -172,15 +163,8 @@ describe("notification events", () => {
     );
     await saveNotifications(tx, events);
     await saveNotifications(tx, events);
-    expect(upsert).toHaveBeenCalledTimes(2);
-    expect(upsert.mock.calls[0][0]).toMatchObject({
-      create: {
-        emailListingId: makeListing().id,
-        emailStatus: "PENDING",
-        emailNextAttemptAt: expect.any(Date),
-      },
-      update: {},
-    });
-    expect(upsert.mock.calls[1][0].update).toEqual({});
+    expect(insertOnce).toHaveBeenCalledTimes(2);
+    expect(insertOnce.mock.calls[0][0]).toMatchObject({ emailListingId: makeListing().id });
+    expect(insertOnce.mock.calls[1][0]).toEqual(insertOnce.mock.calls[0][0]);
   });
 });

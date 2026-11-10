@@ -1,4 +1,4 @@
-import type { Listing, Prisma } from "@prisma/client";
+import type { Listing } from "@prisma/client";
 import type { AccountNotification } from "@/app/types/account";
 import { pusherServer } from "./pusher";
 import { logger } from "./logger";
@@ -153,30 +153,13 @@ export function commentNotifications(
 }
 
 // Call within the transaction that changes auction state. Stable event keys
-// and an empty update preserve both the original event and its read timestamp.
+// and insert-only writes preserve both the original event and its read timestamp.
 export async function saveNotifications(
-  tx: Pick<Prisma.TransactionClient, "notification"> | Pick<NativeRepositories, "notifications">,
+  tx: Pick<NativeRepositories, "notifications">,
   notifications: NotificationDraft[],
 ) {
   for (const item of notifications) {
-    if ("notifications" in tx) {
-      await tx.notifications.insertOnce(item);
-      continue;
-    }
-    await tx.notification.upsert({
-      where: {
-        userId_eventKey: { userId: item.userId, eventKey: item.eventKey },
-      },
-      create: {
-        ...item,
-        readAt: null,
-        ...(item.emailListingId && {
-          emailStatus: "PENDING",
-          emailNextAttemptAt: new Date(),
-        }),
-      },
-      update: {},
-    });
+    await tx.notifications.insertOnce(item);
   }
   return [...new Set(notifications.map((item) => item.userId))];
 }
