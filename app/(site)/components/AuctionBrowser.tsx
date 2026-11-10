@@ -6,7 +6,10 @@ import { FiCheckCircle, FiClock, FiSearch, FiTag, FiZap } from "react-icons/fi";
 import Listings from "../../components/Listings";
 import AuctionSearchControls from "@/app/components/AuctionSearchControls";
 import useAuctionFilters from "@/app/hooks/useAuctionFilters";
-import { filterAndSortAuctions, type AuctionStatus } from "@/app/libs/auction-filters";
+import {
+  filterAndSortAuctions,
+  type AuctionStatus,
+} from "@/app/libs/auction-filters";
 
 interface AuctionBrowserProps {
   listings: PublicListing[];
@@ -28,7 +31,14 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
   listings,
   currentUserId,
 }) => {
-  const { status, q: query, sort, setQuery, setStatus, setSort } = useAuctionFilters();
+  const {
+    status,
+    q: query,
+    sort,
+    setQuery,
+    setStatus,
+    setSort,
+  } = useAuctionFilters();
 
   const activeTab = status === "ALL" ? "LIVE" : status;
 
@@ -36,14 +46,16 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
     () => ({
       NO_RESERVE: listings.filter((listing) => listing.isNoReserve).length,
       LIVE: listings.filter((listing) => listing.status === "LIVE").length,
-      UPCOMING: listings.filter((listing) => listing.status === "UPCOMING").length,
+      UPCOMING: listings.filter((listing) => listing.status === "UPCOMING")
+        .length,
       ENDED: listings.filter((listing) => listing.status === "ENDED").length,
     }),
-    [listings]
+    [listings],
   );
 
   const visibleListings = useMemo(
-    () => filterAndSortAuctions(listings, { status: activeTab, q: query, sort }),
+    () =>
+      filterAndSortAuctions(listings, { status: activeTab, q: query, sort }),
     [activeTab, listings, query, sort],
   );
 
@@ -51,7 +63,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
 
   return (
     <>
-      <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <div className="mt-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div
           className="flex min-w-0 max-w-full snap-x snap-proximity gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:thin] xl:shrink-0 [&::-webkit-scrollbar]:h-1"
           role="tablist"
@@ -74,7 +86,9 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
                 }`}
               >
                 <span className="flex items-center gap-1 whitespace-nowrap sm:gap-2">
-                  <Icon className={`shrink-0 ${id === "LIVE" ? "text-amber-500" : ""}`} />
+                  <Icon
+                    className={`shrink-0 ${id === "LIVE" ? "text-amber-500" : ""}`}
+                  />
                   {label}
                 </span>
                 <span
