@@ -5,12 +5,16 @@ import { recoveryRepositories } from "./recovery";
 import { authRepositories } from "./auth";
 import { auctionRepositories } from "./auctions";
 import { notificationRepository } from "./notifications";
+import { draftRepository } from "./drafts";
+import { listingAuthoringRepository } from "./listing-authoring";
 
 export function createNativeRepositories(database: Db, session?: ClientSession) {
   return {
     ...authRepositories(database, session),
     ...auctionRepositories(database, session),
     notifications: notificationRepository(database, session),
+    drafts: draftRepository(database, session),
+    listingAuthoring: listingAuthoringRepository(database, session),
     quotas: {
       contact: quotaRepository(database.collection<QuotaDocument>("ContactRateLimit"), session),
       upload: quotaRepository(database.collection<QuotaDocument>("UploadQuota"), session),

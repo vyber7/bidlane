@@ -3,6 +3,8 @@ import { MongoServerError } from "mongodb";
 // Preserve v6 names and semantics. Expiry indexes are not TTL indexes: the
 // application deliberately retains reset and delivery records for its retries.
 export const nativeIndexes = {
+  ListingDraft: [{ key: { userId: 1, deletedAt: 1, publishedListingId: 1, updatedAt: 1 }, name: "ListingDraft_userId_deletedAt_publishedListingId_updatedAt_idx" }],
+  ListingReview: [{ key: { listingId: 1, createdAt: 1 }, name: "ListingReview_listingId_createdAt_idx" }],
   Listing: [
     { key: { status: 1, auctionEndsAt: 1 }, name: "Listing_status_auctionEndsAt_idx" },
     { key: { status: 1, reviewStatus: 1, createdAt: 1 }, name: "Listing_status_reviewStatus_createdAt_idx" },

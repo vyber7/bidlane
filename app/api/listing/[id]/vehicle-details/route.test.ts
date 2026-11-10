@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ assets: vi.fn(), user: vi.fn(), findUnique: vi.fn(), updateMany: vi.fn() }));
-vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets } }) }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets }, listingAuthoring: { find: mocks.findUnique, editRecords: mocks.updateMany } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
 vi.mock("@/app/libs/prismadb", () => ({ default: { listing: mocks } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { warn: vi.fn() } }));
@@ -21,11 +21,11 @@ describe("VIN and record edits", () => {
   });
   it("normalizes and saves only for the upcoming listing’s owner", async () => {
     expect((await patch()).status).toBe(200);
-    expect(mocks.updateMany).toHaveBeenCalledWith({ where: { id, userId: "seller", status: "UPCOMING", reviewRevision: 2 }, data: { reviewStatus: "PENDING", reviewRevision: 3, reviewNote: null, vin: "WP0AB2997YS123456", vehicleRecords: [{ ...details.vehicleRecords[0], label: "Service receipt" }] } });
+    expect(mocks.updateMany).toHaveBeenCalledWith(id, "seller", 2, { vin: "WP0AB2997YS123456", vehicleRecords: [{ ...details.vehicleRecords[0], label: "Service receipt" }] }, expect.any(Date));
   });
   it("supports removing records and clearing the VIN before auction start", async () => {
     expect((await patch({ vin: "", vehicleRecords: [] })).status).toBe(200);
-    expect(mocks.updateMany.mock.calls[0][0].data).toEqual({ vin: null, vehicleRecords: [], reviewStatus: "PENDING", reviewRevision: 3, reviewNote: null });
+    expect(mocks.updateMany.mock.calls[0][3]).toEqual({ vin: null, vehicleRecords: [] });
   });
   it("requires authentication", async () => { mocks.user.mockResolvedValue(null); expect((await patch()).status).toBe(401); expect(mocks.findUnique).not.toHaveBeenCalled(); });
   it("rejects another user", async () => { mocks.user.mockResolvedValue({ id: "buyer" }); expect((await patch()).status).toBe(403); expect(mocks.updateMany).not.toHaveBeenCalled(); });

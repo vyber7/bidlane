@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { validateListing } from "@/app/libs/listing-validation";
 const mocks = vi.hoisted(() => ({ assets: vi.fn(), user: vi.fn(), create: vi.fn() }));
-vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets } }) }));
+vi.mock("@/app/libs/native-repositories", () => {
+  const repositories = { assets: { findOwned: mocks.assets }, listingAuthoring: { create: mocks.create } };
+  return { getNativeRepositories: () => repositories, withNativeTransaction: async (fn: (tx: unknown) => unknown) => fn(repositories) };
+});
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { create: mocks.create } } }));
 import { POST } from "./route";
 const photo = "https://res.cloudinary.com/demo/image/upload/car.jpg";
 const data = { make: " Porsche ", model: "911", year: "2020", miles: "0", reservePrice: "", location: "Miami, FL", description: "Serviced regularly", images: [photo], transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: " Oil service at 42,000 miles. Records available. ", modifications: "None known", knownFlaws: "Stone chips on the hood" };
@@ -23,7 +25,7 @@ describe("listing submission", () => {
     const response = await POST(request(data));
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toEqual({ id: "listing" });
-    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ make: "Porsche", miles: 0, reservePrice: null, images: [photo], coverImage: photo, user: { connect: { id: "seller" } } }) });
+    expect(mocks.create).toHaveBeenCalledWith("seller", expect.objectContaining({ make: "Porsche", miles: 0, reservePrice: null, images: [photo] }), expect.any(Date));
   });
   it.each([{ images: [photo.replace("car.jpg", "borrowed.jpg")] }, { vehicleRecords: [{ label: "Borrowed", url: photo.replace("car.jpg", "borrowed.pdf") }] }])("rejects media absent from the authenticated owner's ledger", async (media) => {
     expect((await POST(request({ ...data, ...media }))).status).toBe(400);
@@ -32,23 +34,24 @@ describe("listing submission", () => {
 
   it("ignores seller-supplied approval and submits to review", async () => {
     expect((await POST(request({ ...data, reviewStatus: "APPROVED", reviewRevision: 999, status: "LIVE" }))).status).toBe(201);
-    expect(mocks.create.mock.calls[0][0].data).toMatchObject({ reviewStatus: "PENDING", reviewRevision: 0 });
-    expect(mocks.create.mock.calls[0][0].data).not.toHaveProperty("status");
+    expect(mocks.create.mock.calls[0][1]).not.toHaveProperty("reviewStatus");
+    expect(mocks.create.mock.calls[0][1]).not.toHaveProperty("reviewRevision");
+    expect(mocks.create.mock.calls[0][1]).not.toHaveProperty("status");
   });
   it("persists VIN and uploaded records while keeping verification server-owned", async () => {
     const record = { label: " Receipt ", url: "https://res.cloudinary.com/demo/image/upload/receipt.pdf" };
     expect((await POST(request({ ...data, vin: " bcnr33-012345 ", vehicleRecords: [record], emailVerified: true }))).status).toBe(201);
-    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ vin: "BCNR33-012345", vehicleRecords: [{ ...record, label: "Receipt" }] }) });
-    expect(mocks.create.mock.calls[0][0].data).not.toHaveProperty("emailVerified");
+    expect(mocks.create).toHaveBeenCalledWith("seller", expect.objectContaining({ vin: "BCNR33-012345", vehicleRecords: [{ ...record, label: "Receipt" }] }), expect.any(Date));
+    expect(mocks.create.mock.calls[0][1]).not.toHaveProperty("emailVerified");
   });
   it("preserves photo order and selected cover", async () => {
     const second = photo.replace("car.jpg", "interior.jpg");
     await POST(request({ ...data, images: [second, photo], reservePrice: "5000" }));
-    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ images: [second, photo], coverImage: second, reservePrice: 5000 }) });
+    expect(mocks.create).toHaveBeenCalledWith("seller", expect.objectContaining({ images: [second, photo], reservePrice: 5000 }), expect.any(Date));
   });
   it("saves normalized specifications and seller disclosures", async () => {
     expect((await POST(request(data))).status).toBe(201);
-    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: "Oil service at 42,000 miles. Records available.", modifications: "None known", knownFlaws: "Stone chips on the hood" }) });
+    expect(mocks.create).toHaveBeenCalledWith("seller", expect.objectContaining({ transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: "Oil service at 42,000 miles. Records available.", modifications: "None known", knownFlaws: "Stone chips on the hood" }), expect.any(Date));
   });
   it.each([
     { transmission: "Invalid" }, { drivetrain: null }, { titleStatus: "" },
@@ -61,7 +64,7 @@ describe("listing submission", () => {
   });
   it("accepts explicit unknown information without inventing a condition claim", async () => {
     expect((await POST(request({ ...data, transmission: "Unknown", drivetrain: "Unknown", titleStatus: "Unknown", serviceHistory: "History unknown; records unavailable." }))).status).toBe(201);
-    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ transmission: "Unknown", titleStatus: "Unknown", serviceHistory: "History unknown; records unavailable." }) });
+    expect(mocks.create).toHaveBeenCalledWith("seller", expect.objectContaining({ transmission: "Unknown", titleStatus: "Unknown", serviceHistory: "History unknown; records unavailable." }), expect.any(Date));
   });
   it.each([{ images: [] }, { images: Array(21).fill(photo) }, { images: ["javascript:alert(1)"] }, { make: " " }, { year: "" }, { miles: -1 }, { miles: "1.5" }, { reservePrice: -5 }, { miles: 2147483648 }])("rejects invalid listing %j", async (change) => {
     const response = await POST(request({ ...data, ...change }));

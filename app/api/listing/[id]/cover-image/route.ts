@@ -1,6 +1,6 @@
 import { assertOwnedAssets } from "@/app/libs/uploaded-assets";
 import { NextResponse } from "next/server";
-import prisma from "../../../../libs/prismadb";
+import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { logger } from "@/app/libs/logger";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import {
@@ -11,7 +11,6 @@ import {
   requireListingId,
 } from "@/app/libs/api-request";
 import { isCloudinaryImageUrl, MAX_LISTING_PHOTOS } from "@/app/libs/listing-validation";
-import { pendingReviewUpdate, reviewVersionWhere } from "@/app/libs/listing-review";
 
 export async function POST(
   request: Request,
@@ -33,10 +32,7 @@ export async function POST(
       throw new ApiRequestError(400, "Invalid cover image URL");
     }
 
-    const listing = await prisma.listing.findUnique({
-      where: { id: listingId },
-      select: { userId: true, status: true, images: true, reviewRevision: true, coverImage: true },
-    });
+    const listing = await getNativeRepositories().listingAuthoring.find(listingId);
     if (!listing) throw new ApiRequestError(404, "Listing not found");
     if (listing.userId !== currentUser.id) {
       throw new ApiRequestError(403, "Only the seller can update this listing");
@@ -46,10 +42,7 @@ export async function POST(
     const addPhoto = !listing.images.includes(coverImageUrl);
     if (addPhoto && listing.images.length >= MAX_LISTING_PHOTOS) throw new ApiRequestError(409, "This listing already has the maximum number of images");
 
-    const updated = await prisma.listing.updateMany({
-      where: { id: listingId, userId: currentUser.id, status: "UPCOMING", ...reviewVersionWhere(listing.reviewRevision ?? 0) },
-      data: { coverImage: coverImageUrl, ...(addPhoto && { images: { push: coverImageUrl } }), ...pendingReviewUpdate(listing.reviewRevision ?? 0) },
-    });
+    const updated = await getNativeRepositories().listingAuthoring.editCover(listingId, currentUser.id, listing.reviewRevision ?? 0, coverImageUrl, listing.images, new Date());
     if (updated.count !== 1) {
       throw new ApiRequestError(
         409,

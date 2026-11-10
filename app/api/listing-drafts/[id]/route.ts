@@ -1,6 +1,6 @@
 import { z } from "zod";
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import prisma from "@/app/libs/prismadb";
+import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { apiErrorResponse, errorResponse, parseApiInput, readJsonObject } from "@/app/libs/api-request";
 import { deleteListingDraft, serializeDraft, updateListingDraft } from "@/app/libs/listing-drafts";
 import { draftRevisionSchema, updateDraftSchema } from "@/app/schemas/listing-draft";
@@ -12,7 +12,7 @@ export async function GET(_request: Request, { params }: Context) {
     const user = await getCurrentUser();
     if (!user) return errorResponse("Please sign in.", 401);
     const id = parseApiInput(listingIdSchema, (await params).id);
-    const draft = await prisma.listingDraft.findFirst({ where: { id, userId: user.id, deletedAt: null } });
+    const draft = await getNativeRepositories().drafts.owned(id, user.id);
     if (!draft) return errorResponse("Draft not found.", 404);
     return Response.json(serializeDraft(draft), { headers: { "Cache-Control": "no-store" } });
   } catch (error) { return failure(error); }

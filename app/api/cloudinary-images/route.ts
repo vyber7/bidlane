@@ -1,9 +1,9 @@
 import { assertOwnedAssets } from "@/app/libs/uploaded-assets";
 import { NextResponse } from "next/server";
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import prisma from "../../libs/prismadb";
+import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { logger } from "@/app/libs/logger";
-import { canViewListing, pendingReviewUpdate, reviewVersionWhere } from "@/app/libs/listing-review";
+import { canViewListing } from "@/app/libs/listing-review";
 import {
   ApiRequestError,
   apiErrorResponse,
@@ -26,10 +26,7 @@ export async function GET(req: Request) {
     }
 
     const listingId = requireListingId(match[1]);
-    const listing = await prisma.listing.findUnique({
-      where: { id: listingId },
-      select: { images: true, userId: true, status: true, reviewStatus: true },
-    });
+    const listing = await getNativeRepositories().listingAuthoring.find(listingId);
     if (!listing) throw new ApiRequestError(404, "Listing not found");
     if (!canViewListing(listing, await getCurrentUser())) throw new ApiRequestError(404, "Listing not found");
 
@@ -58,10 +55,7 @@ export async function POST(req: Request) {
       throw new ApiRequestError(400, "Invalid listing image URL");
     }
 
-    const listing = await prisma.listing.findUnique({
-      where: { id: listingId },
-      select: { userId: true, images: true, status: true, reviewRevision: true },
-    });
+    const listing = await getNativeRepositories().listingAuthoring.find(listingId);
     if (!listing) throw new ApiRequestError(404, "Listing not found");
     if (listing.userId !== currentUser.id) {
       throw new ApiRequestError(403, "Only the seller can update this listing");
@@ -78,16 +72,7 @@ export async function POST(req: Request) {
     }
 
     await assertOwnedAssets({ userId: currentUser.id, kind: "PHOTO", urls: [imageUrl], listingId });
-    const updated = await prisma.listing.updateMany({
-      where: {
-        id: listingId,
-        userId: currentUser.id,
-        status: "UPCOMING",
-        ...reviewVersionWhere(listing.reviewRevision ?? 0),
-        images: { equals: listing.images },
-      },
-      data: { images: { push: imageUrl }, ...pendingReviewUpdate(listing.reviewRevision ?? 0) },
-    });
+    const updated = await getNativeRepositories().listingAuthoring.addPhoto(listingId, currentUser.id, listing.reviewRevision ?? 0, listing.images, imageUrl, new Date());
     if (updated.count !== 1) {
       throw new ApiRequestError(
         409,

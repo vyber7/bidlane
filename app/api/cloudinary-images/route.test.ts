@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   assets: vi.fn(),
 }));
 
-vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets } }) }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets }, listingAuthoring: { find: mocks.findUnique, addPhoto: mocks.updateMany } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({
   default: mocks.getCurrentUser,
 }));
@@ -54,10 +54,7 @@ describe("/api/cloudinary-images", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(mocks.findUnique).toHaveBeenCalledWith({
-      where: { id: listingId },
-      select: { images: true, userId: true, status: true, reviewStatus: true },
-    });
+    expect(mocks.findUnique).toHaveBeenCalledWith(listingId);
     await expect(response.json()).resolves.toEqual({ images: [{ url: imageUrl }] });
   });
 
@@ -123,14 +120,7 @@ describe("/api/cloudinary-images", () => {
     const response = await POST(post({ listingId, imageUrl }));
 
     expect(response.status).toBe(200);
-    expect(mocks.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: listingId,
-        userId: "seller", status: "UPCOMING", reviewRevision: 2,
-        images: { equals: [] },
-      },
-      data: { images: { push: imageUrl }, reviewStatus: "PENDING", reviewRevision: 3, reviewNote: null },
-    });
+    expect(mocks.updateMany).toHaveBeenCalledWith(listingId, "seller", 2, [], imageUrl, expect.any(Date));
   });
 });
 

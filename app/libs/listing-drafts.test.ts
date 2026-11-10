@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ assets: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), updateMany: vi.fn(), deleteMany: vi.fn(), createListing: vi.fn(), findListing: vi.fn(), transaction: vi.fn() }));
-vi.mock("./native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets } }) }));
-vi.mock("./prismadb", () => ({ default: { listingDraft: mocks, $transaction: mocks.transaction } }));
+vi.mock("./native-repositories", () => ({
+  getNativeRepositories: () => ({ assets: { findOwned: mocks.assets }, drafts: { find: mocks.findUnique, owned: mocks.findFirst, create: mocks.create, save: mocks.updateMany, remove: mocks.updateMany, publish: mocks.updateMany } }),
+  withNativeTransaction: mocks.transaction,
+}));
 import { createListingDraft, updateListingDraft, deleteListingDraft, publishListingDraft } from "./listing-drafts";
 import { emptyDraftPayload } from "@/app/schemas/listing-draft";
 const id = "abcdef0123456789abcdef01", key = "78f24991-f096-4e39-9a61-0eb03d28f1b6";
@@ -10,10 +12,10 @@ const saved = { id, userId: "seller", payload, revision: 2, lastSaveKey: key, pu
 const complete = { ...payload, details: { ...payload.details, year: "2020", model: "911", miles: "1000", location: "Miami", description: "One owner", transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: "None known", modifications: "None known", knownFlaws: "None known" }, images: ["https://res.cloudinary.com/demo/image/upload/car.jpg"] };
 beforeEach(() => {
   vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockResolvedValue([]); mocks.findUnique.mockResolvedValue(null); mocks.findFirst.mockResolvedValue(saved);
-  mocks.create.mockImplementation(async ({ data }) => ({ ...saved, ...data, revision: 1 }));
+  mocks.create.mockImplementation(async (data) => ({ ...saved, ...data, revision: 1 }));
   mocks.updateMany.mockResolvedValue({ count: 1 }); mocks.deleteMany.mockResolvedValue({ count: 1 });
   mocks.createListing.mockResolvedValue({ id: "listing", userId: "seller" }); mocks.findListing.mockResolvedValue({ id: "listing", userId: "seller" });
-  mocks.transaction.mockImplementation(async (fn) => fn({ listingDraft: mocks, listing: { create: mocks.createListing, findUnique: mocks.findListing } }));
+  mocks.transaction.mockImplementation(async (fn) => fn({ drafts: { find: mocks.findUnique, owned: mocks.findFirst, create: mocks.create, save: mocks.updateMany, remove: mocks.updateMany, publish: mocks.updateMany }, listingAuthoring: { create: mocks.createListing, ownedListing: mocks.findListing } }));
 });
 describe("private draft persistence", () => {
   it("rejects unregistered photos and records in both creates and updates", async () => {
@@ -37,7 +39,7 @@ describe("private draft persistence", () => {
   });
   it("saves unfinished fields in a separate owner-bound collection", async () => {
     const result = await createListingDraft("seller", { id, saveKey: key, payload });
-    expect(mocks.create).toHaveBeenCalledWith({ data: { id, userId: "seller", payload, lastSaveKey: key, publishedListingId: null, deletedAt: null } });
+    expect(mocks.create).toHaveBeenCalledWith({ id, userId: "seller", payload, lastSaveKey: key }, expect.any(Date));
     expect(result.payload.details.model).toBe(""); expect(result).not.toHaveProperty("userId"); expect(mocks.createListing).not.toHaveBeenCalled();
   });
   it("replays an uncertain create without duplicating the draft", async () => {
@@ -58,7 +60,7 @@ describe("private draft persistence", () => {
   it("guards updates against stale revisions and strips no incomplete input", async () => {
     const changed = { ...payload, details: { ...payload.details, year: "not finished" } };
     await updateListingDraft("seller", id, { revision: 2, saveKey: "b".repeat(36), payload: changed });
-    expect(mocks.updateMany).toHaveBeenCalledWith({ where: { id, userId: "seller", revision: 2, publishedListingId: null, deletedAt: null }, data: expect.objectContaining({ payload: changed, revision: { increment: 1 } }) });
+    expect(mocks.updateMany).toHaveBeenCalledWith(id, "seller", 2, { payload: changed, lastSaveKey: "b".repeat(36) }, expect.any(Date));
     await expect(updateListingDraft("seller", id, { revision: 1, saveKey: "different", payload })).rejects.toMatchObject({ status: 409 });
   });
   it("returns the recorded revision on a save replay and rejects changed data with the same key", async () => {
@@ -77,7 +79,7 @@ describe("private draft persistence", () => {
   });
   it("deletes only an unpublished draft at the displayed revision", async () => {
     await deleteListingDraft("seller", id, 2);
-    expect(mocks.updateMany).toHaveBeenCalledWith({ where: { id, userId: "seller", revision: 2, publishedListingId: null, deletedAt: null }, data: { deletedAt: expect.any(Date), payload: emptyDraftPayload, revision: { increment: 1 } } });
+    expect(mocks.updateMany).toHaveBeenCalledWith(id, "seller", 2, emptyDraftPayload, expect.any(Date));
     mocks.updateMany.mockResolvedValue({ count: 0 });
     await expect(deleteListingDraft("seller", id, 1)).rejects.toMatchObject({ status: 409 });
   });
@@ -98,9 +100,9 @@ describe("draft publication", () => {
   it("validates saved content and creates the listing and retry link in one transaction", async () => {
     mocks.findFirst.mockResolvedValue({ ...saved, payload: complete });
     expect(await publishListingDraft({ id: "seller", emailVerified: new Date() }, id, 2)).toMatchObject({ id: "listing" });
-    expect(mocks.createListing).toHaveBeenCalledWith({ data: expect.objectContaining({ year: 2020, make: "Porsche", miles: 1000, reviewStatus: "PENDING", reviewRevision: 0, coverImage: complete.images[0], user: { connect: { id: "seller" } } }) });
-    expect(mocks.updateMany).toHaveBeenCalledWith({ where: { id, userId: "seller", revision: 2, publishedListingId: null, deletedAt: null }, data: { publishedListingId: "listing" } });
-    expect(mocks.createListing.mock.calls[0][0].data).not.toHaveProperty("photoChecklist");
+    expect(mocks.createListing).toHaveBeenCalledWith("seller", expect.objectContaining({ year: 2020, make: "Porsche", miles: 1000, images: complete.images }), expect.any(Date));
+    expect(mocks.updateMany).toHaveBeenCalledWith(id, "seller", 2, "listing", expect.any(Date));
+    expect(mocks.createListing.mock.calls[0][1]).not.toHaveProperty("photoChecklist");
   });
   it("never publishes an incomplete draft or creates a listing for a stale revision", async () => {
     await expect(publishListingDraft({ id: "seller", emailVerified: new Date() }, id, 2)).rejects.toMatchObject({ status: 400 });

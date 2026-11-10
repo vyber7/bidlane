@@ -2,6 +2,7 @@ import ListingDrafts from "@/app/account/components/ListingDrafts";
 import { serializeDraft } from "@/app/libs/listing-drafts";
 import ListingsDashboard from "@/app/account/components/ListingsDashboard";
 import { getAccountUser } from "@/app/account/lib/current-user";
+import { getNativeRepositories } from "@/app/libs/native-repositories";
 import prisma from "@/app/libs/prismadb";
 import { publicListingWhere } from "@/app/libs/listing-review";
 import { toPublicListing, toSellerListing } from "@/app/libs/listing-payload";
@@ -19,7 +20,7 @@ const MyListings = async () => {
       where: { watchersIds: { has: currentUser.id }, AND: [publicListingWhere] },
       orderBy: { updatedAt: "desc" },
     }),
-    prisma.listingDraft.findMany({ where: { userId: currentUser.id, publishedListingId: null, deletedAt: null }, orderBy: { updatedAt: "desc" } }),
+    getNativeRepositories().drafts.list(currentUser.id),
   ]);
 
   return (

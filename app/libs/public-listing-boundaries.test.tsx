@@ -5,7 +5,7 @@ import type { PublicListing, SellerListing } from "./listing-payload";
 
 const mocks = vi.hoisted(() => ({ find: vi.fn(), user: vi.fn(), drafts: vi.fn(), browser: vi.fn(), featured: vi.fn(), dashboard: vi.fn() }));
 vi.mock("@/app/libs/native-repositories", () => ({
-  getNativeRepositories: () => { throw new Error("Unexpected native database access in this test"); },
+  getNativeRepositories: () => ({ drafts: { list: mocks.drafts } }),
   withNativeTransaction: () => { throw new Error("Unexpected native transaction in this test"); },
 }));
 vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { findMany: mocks.find }, listingDraft: { findMany: mocks.drafts } } }));

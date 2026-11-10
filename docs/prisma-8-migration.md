@@ -8,9 +8,10 @@ Authentication and account access now use native `User`/`Account` repositories:
 NextAuth v4, registration, credentials, session checks, current-user DTOs,
 profile edits, notification preferences, recovery-worker identity lookups, and
 the administrator role command. Bidding, auction start/end/finalization, and
-ending-soon reminders also use native sessions. Listing reads, drafts,
-moderation, comments, watchlists, views, notification/email delivery, and email
-verification still have Prisma 6.19.3 callers. The typed v8 ORM has not been
+ending-soon reminders also use native sessions. Drafts, listing publication,
+moderation, and seller media/VIN/record edits now use native repositories as well.
+General listing reads, comments, watchlists, views, notification/email delivery,
+and email verification still have Prisma 6.19.3 callers. The typed v8 ORM has not been
 switched on for application queries.
 
 ## Working commands
@@ -158,10 +159,59 @@ either native repositories or the remaining v6 comment transaction; a native
 transaction never invokes the v6 writer, and v6 transactions never invoke the
 native writer.
 
+## Listing drafts, publication, and moderation
+
+`prisma/native/drafts.ts` handles private draft creation, owner reads/lists,
+revision-guarded saves, deletion markers, and publication links. Draft APIs,
+account draft lists, and the submission resume page use these native reads.
+ObjectId ownership, BSON long revisions, JSON payloads, and explicit timestamps
+remain readable by the v6 client. Draft DTOs exclude internal owner/save-key
+fields and normalize saved content through the existing draft schema.
+
+Create retries compare the original save key and normalized payload, including
+a fresh transaction after a concurrent duplicate-ID insert. Saves use atomic
+compare-and-swap updates; a lost race returns the saved result only when its key
+and payload match. Deleted drafts retain an empty tombstone so an uncertain
+create retry cannot restore private content. Explicit-null deletion/publication
+filters retain v6's distinction between null and missing fields. Null or missing
+draft revisions retain v6's read default of one, while write guards still match
+the actually stored revision.
+
+Publication creates the listing and stores the draft link in one native
+transaction. A retry returns only the existing owned listing ID, even after
+its auction starts or email verification is revoked; new publication still
+requires verified email and validates the saved snapshot. Draft checklist and
+step fields never enter a listing. Direct submissions use the same native
+listing writer, with owned-media checks and an explicit field allowlist.
+New listings supply timestamps, BSON long numbers, views, review state, nullable
+fields, and empty relation arrays rather than relying on Prisma defaults.
+
+`prisma/native/listing-authoring.ts` implements listing creation, review queues,
+review detail/history, conditional decisions, and seller media edits. A review
+transaction changes the current upcoming revision and inserts its audit record
+together. Fresh database admin checks protect both API and server reads. Queue
+pagination remains oldest-first with 21-row lookahead; detail reads include
+only the seller's name/email and the latest 50 audit records through explicit
+DTO allowlists.
+
+Gallery, cover, VIN, and record edits require the current owner, upcoming state,
+and review revision. They reset approval and increment that revision in the same
+atomic write. Gallery additions also match the previous image array; competing
+additions cannot lose photos or exceed the existing limit. Auction start shares
+the same revision and state guard, so a stale approval cannot race a seller edit
+or a moderation decision. Existing media is grandfathered only on the owned
+object being edited; immutable upload registrations still validate new media.
+
+Draft create, publication, direct submission, and moderation use bounded native
+sessions (three callback attempts and a five-second driver timeout). External
+side effects are absent from these transaction callbacks. The local integration
+suite forces failed publication-link and audit writes to verify persisted
+rollback, and exercises concurrent saves/deletes/publications/reviews/starts.
+
 ## Native indexes
 
-`prisma/native/indexes.mjs` defines the existing twenty-one named secondary indexes
-on twelve collections, including user emails, provider subjects, bid request
+`prisma/native/indexes.mjs` defines the existing twenty-three named secondary indexes
+on fourteen collections, including user emails, provider subjects, bid request
 keys, notification event keys, asset URLs, reset-token hashes, and lifecycle
 query indexes. The notification pagination index preserves its existing
 `Notification_userId_createdAt__id_idx` name, including the stored `_id` field.
@@ -214,8 +264,8 @@ counters, ownership filters, unique indexes, native/v6 read compatibility,
 reset single-use semantics, persisted transaction rollback, email lease
 fencing, NextAuth OAuth signup/linking, credential login, JWT revocation,
 profile/preference permissions, admin-role revocation, auction/bid contention,
-exact bid replays, stale deadlines/approval revisions, and persisted auction
-rollback on a local replica set. Start a disposable MongoDB 8+ replica set, then run:
+exact bid replays, stale deadlines/approval revisions, draft save/publication
+races, moderation/seller-edit races, and persisted rollback on a local replica set. Start a disposable MongoDB 8+ replica set, then run:
 
 ```bash
 NATIVE_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_native_strings?replicaSet=bidlane-test' npm test -- prisma/native/
@@ -223,10 +273,10 @@ NATIVE_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_native_strings?
 
 Use the port and replica-set name of your local server. These tests only accept
 one `127.0.0.1` host and a database named `bidlane_test_native_*`. They reset and
-drop that test database. The authentication and auction suites append `_auth`
-and `_auctions` to isolate their databases when run in parallel. Auction rollback
-tests temporarily reject writes using validators only in their disposable local
-database and restore those validators afterward. Tests never fall back to
+drop that test database. Authentication, auction, and authoring suites append
+`_auth`, `_auctions`, and `_authoring` to isolate their databases when run in
+parallel. Rollback tests temporarily reject writes using validators only in
+their disposable local database and restore those validators afterward. Tests never fall back to
 `DATABASE_URL`, send mail, or contact Cloudinary. Without the explicit test URL
 they are skipped. The
 migration was verified against a local MongoDB 8.0.37 replica set; the configured
@@ -234,8 +284,8 @@ shared database was only queried for server metadata and existing index definiti
 
 ## Remaining migration work
 
-1. Migrate draft publication, moderation, comments, listing views, watchlists,
-   notification reads/email delivery, and email verification. Preserve ownership
+1. Migrate comments, listing views, watchlists, notification reads/email
+   delivery, and email verification. Preserve ownership
    checks, conditional updates, race retries, and related writes in the same
    native session.
 2. Replace nested `connect`/`disconnect` updates with explicit foreign-key and
@@ -243,8 +293,8 @@ shared database was only queried for server metadata and existing index definiti
    Many-to-many key arrays
    remain persisted fields; they are not v8 ORM relations.
 3. Supply remaining literal/default array values explicitly on creation. Preserve
-   listing state/views/revisions and draft revision. Native user, bid,
-   notification, queue, and asset defaults are already explicit.
+   any remaining defaults when those writers migrate. Native listing, draft,
+   review, user, bid, notification, queue, and asset defaults are already explicit.
    `Listing.lastCommentAt` and `updatedAt` stay
    nullable; migrated writes must supply their timestamps. Implement any
    required cascading cleanup explicitly before retiring v6's emulation.

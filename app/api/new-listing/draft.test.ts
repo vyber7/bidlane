@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeListing } from "@/app/test/auction-fixtures";
+import { TransactionRetryLimitError } from "@/prisma/native/transaction-errors";
 const mocks = vi.hoisted(() => ({ user: vi.fn(), publish: vi.fn(), create: vi.fn() }));
 vi.mock("@/app/libs/native-repositories", () => ({
   getNativeRepositories: () => { throw new Error("Unexpected native database access in this test"); },
@@ -29,6 +30,6 @@ describe("publish saved draft endpoint", () => {
     expect((await POST(request({ draftId, revision: 0 }))).status).toBe(400); expect(mocks.publish).not.toHaveBeenCalled();
   });
   it("returns a retryable result for transactional contention", async () => {
-    mocks.publish.mockRejectedValueOnce({ code: "P2034" }); expect((await POST(request({ draftId, revision: 3 }))).status).toBe(503);
+    mocks.publish.mockRejectedValueOnce(new TransactionRetryLimitError()); expect((await POST(request({ draftId, revision: 3 }))).status).toBe(503);
   });
 });
