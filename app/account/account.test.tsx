@@ -17,6 +17,10 @@ const mocks = vi.hoisted(() => ({
   pathname: "/account/profile",
 }));
 
+vi.mock("@/app/libs/native-repositories", () => ({
+  getNativeRepositories: () => { throw new Error("Unexpected native database access in this test"); },
+  withNativeTransaction: () => { throw new Error("Unexpected native transaction in this test"); },
+}));
 vi.mock("./lib/current-user", () => ({ getAccountUser: mocks.getAccountUser }));
 vi.mock("@/app/libs/prismadb", () => ({
   default: {

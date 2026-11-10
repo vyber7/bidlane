@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeListing } from "@/app/test/auction-fixtures";
 const mocks = vi.hoisted(() => ({ user: vi.fn(), publish: vi.fn(), create: vi.fn() }));
+vi.mock("@/app/libs/native-repositories", () => ({
+  getNativeRepositories: () => { throw new Error("Unexpected native database access in this test"); },
+  withNativeTransaction: () => { throw new Error("Unexpected native transaction in this test"); },
+}));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
 vi.mock("@/app/libs/listing-drafts", () => ({ publishListingDraft: mocks.publish }));
 vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { create: mocks.create } } }));

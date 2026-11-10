@@ -4,12 +4,14 @@ import type { CredentialsConfig } from "next-auth/providers/credentials";
 
 const mocks = vi.hoisted(() => ({
   first: vi.fn(), many: vi.fn(), unique: vi.fn(), create: vi.fn(), send: vi.fn(),
-  jobs: vi.fn(), job: vi.fn(), finish: vi.fn(), reset: vi.fn(), bind: vi.fn(),
+  claim: vi.fn(), jobs: vi.fn(), job: vi.fn(), finish: vi.fn(), reset: vi.fn(), bind: vi.fn(),
 }));
+vi.mock("./native-repositories", () => ({ getNativeRepositories: () => ({
+  recoveryEmails: { candidates: mocks.jobs, find: mocks.job, claim: mocks.claim, finish: mocks.finish, deleteCompletedBefore: vi.fn() },
+  passwordResets: { find: mocks.reset, bind: mocks.bind, deleteBefore: vi.fn() },
+}), withNativeTransaction: vi.fn() }));
 vi.mock("./prismadb", () => ({ default: {
   user: { findFirst: mocks.first, findMany: mocks.many, findUnique: mocks.unique, create: mocks.create },
-  recoveryEmail: { findMany: mocks.jobs, findUnique: mocks.job, updateMany: mocks.finish, deleteMany: vi.fn() },
-  passwordReset: { findUnique: mocks.reset, updateMany: mocks.bind, deleteMany: vi.fn() },
 } }));
 vi.mock("./abuse-limits", () => ({ enforceAbuseLimit: vi.fn() }));
 vi.mock("bcrypt", () => ({ default: { hash: vi.fn(async () => "hash"), compare: vi.fn(async () => true) } }));
@@ -68,7 +70,8 @@ describe("email identity across real account entry points", () => {
     let job = { id: "job", kind: "RESET", email: "OWNER@EXAMPLE.COM", resetId: id, nonce, attempts: 1, createdAt: new Date(), lockToken: "" };
     mocks.jobs.mockResolvedValue([{ id: job.id }]);
     mocks.job.mockImplementation(async () => job);
-    mocks.finish.mockImplementation(async ({ data }) => { job = { ...job, ...data }; return { count: 1 }; });
+    mocks.claim.mockImplementation(async (_id, _now, lockToken) => { job.lockToken = lockToken; return { count: 1 }; });
+    mocks.finish.mockImplementation(async (_id, _lockToken, data) => { job = { ...job, ...data }; return { count: 1 }; });
     mocks.bind.mockResolvedValue({ count: 1 });
     mocks.send.mockResolvedValue("sent");
     expect(await sendRecoveryEmails()).toMatchObject({ sent: 1, skipped: 0 });

@@ -1,7 +1,6 @@
 import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 import bcrypt from "bcrypt";
-import { Prisma } from "@prisma/client";
-import prisma from "./prismadb";
+import { getNativeRepositories, withNativeTransaction } from "./native-repositories";
 import { ApiRequestError } from "./api-request";
 import { getEmailConfiguration } from "./outbid-email";
 import { normalizeEmail } from "@/app/utils/email";
@@ -20,19 +19,10 @@ async function withinQuota(key: string, limit: number, windowMs: number, now: nu
   const window = Math.floor(now / windowMs);
   const id = `${key}:${window}`;
   if (mode === "check") {
-    const bucket = await prisma.passwordResetQuota.findUnique({ where: { id } });
+    const bucket = await getNativeRepositories().quotas.passwordReset.read(id);
     return !bucket || bucket.count < limit;
   }
-  let bucket;
-  try {
-    bucket = await prisma.passwordResetQuota.upsert({
-      where: { id }, create: { id, count: 1, expiresAt: new Date((window + 1) * windowMs) },
-      update: { count: { increment: 1 } },
-    });
-  } catch (error) {
-    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
-    bucket = await prisma.passwordResetQuota.update({ where: { id }, data: { count: { increment: 1 } } });
-  }
+  const bucket = await getNativeRepositories().quotas.passwordReset.consume(id, new Date((window + 1) * windowMs));
   return bucket.count <= limit;
 }
 
@@ -43,7 +33,7 @@ export async function requestPasswordReset(email: string) {
   }
   const now = new Date();
   const id = resetHash(email);
-  await prisma.passwordResetQuota.deleteMany({ where: { expiresAt: { lte: now } } });
+  await getNativeRepositories().quotas.passwordReset.deleteExpired(now);
   // Do not allocate new address buckets after global exhaustion. The final
   // atomic consume below still prevents races from exceeding the shared cap.
   if (!await withinQuota("global", 30, 60_000, now.getTime(), "check")) return;
@@ -56,9 +46,9 @@ export async function requestPasswordReset(email: string) {
   };
   // Identical work for known, unknown, and connected-only accounts. Account
   // lookup and provider latency occur in the scheduled delivery worker.
-  await prisma.$transaction(async (tx) => {
-    await tx.passwordReset.upsert({ where: { id }, create: { id, ...data }, update: data });
-    await tx.recoveryEmail.create({ data: { id: randomUUID(), email, kind: "RESET", resetId: id, nonce, nextAttemptAt: now } });
+  await withNativeTransaction(async (tx) => {
+    await tx.passwordResets.replace({ id, ...data });
+    await tx.recoveryEmails.enqueue({ id: randomUUID(), email, kind: "RESET", resetId: id, nonce, nextAttemptAt: now });
   });
 }
 
@@ -66,24 +56,21 @@ const invalidLink = () => new ApiRequestError(400, "This reset link is invalid, 
 
 export async function resetPassword(token: string, password: string) {
   const tokenHash = resetHash(token);
-  const record = await prisma.passwordReset.findUnique({ where: { tokenHash } });
+  const record = await getNativeRepositories().passwordResets.findByTokenHash(tokenHash);
   if (!record || !record.userId || record.usedAt || record.expiresAt <= new Date()) throw invalidLink();
   // Reject invalid links before performing expensive password hashing.
   const hashedPassword = await bcrypt.hash(password, 12);
-  await prisma.$transaction(async (tx) => {
+  await withNativeTransaction(async (tx) => {
     const now = new Date();
-    const claimed = await tx.passwordReset.updateMany({
-      where: { id: record.id, tokenHash, nonce: record.nonce, usedAt: null, expiresAt: { gt: now } },
-      data: { usedAt: now },
-    });
+    const claimed = await tx.passwordResets.claim({ id: record.id, tokenHash, nonce: record.nonce }, now);
     if (claimed.count !== 1) throw invalidLink();
-    const user = await tx.user.findUnique({ where: { id: record.userId! }, select: { id: true, email: true, hashedPassword: true, sessionVersion: true } });
+    const user = await tx.recoveryUsers.find(record.userId!);
     if (!user?.hashedPassword || !user.email || normalizeEmail(user.email) !== normalizeEmail(record.email) || (user.sessionVersion ?? "") !== (record.sessionVersion ?? "")) throw invalidLink();
-    const updated = await tx.user.updateMany({
-      where: { id: user.id, email: user.email, hashedPassword: user.hashedPassword },
-      data: { hashedPassword, sessionVersion: randomBytes(32).toString("hex") },
-    });
+    const updated = await tx.recoveryUsers.updatePassword(
+      { id: user.id, email: user.email, hashedPassword: user.hashedPassword },
+      { hashedPassword, sessionVersion: randomBytes(32).toString("hex") }, now,
+    );
     if (updated.count !== 1) throw invalidLink();
-    await tx.recoveryEmail.create({ data: { id: randomUUID(), email: user.email, kind: "CHANGED", nextAttemptAt: now } });
+    await tx.recoveryEmails.enqueue({ id: randomUUID(), email: user.email, kind: "CHANGED", nextAttemptAt: now });
   });
 }

@@ -1,6 +1,5 @@
 import { createHmac } from "node:crypto";
-import { Prisma } from "@prisma/client";
-import prisma from "./prismadb";
+import { getNativeRepositories } from "./native-repositories";
 import { ApiRequestError } from "./api-request";
 
 const minute = 60_000, hour = 60 * minute;
@@ -16,17 +15,11 @@ async function enforceQuota(key: string, limit: number, windowMs: number, now: n
   const end = (Math.floor(now / windowMs) + 1) * windowMs;
   const id = `${key}:${end}`;
   if (mode === "check") {
-    const bucket = await prisma.abuseQuota.findUnique({ where: { id } });
+    const bucket = await getNativeRepositories().quotas.abuse.read(id);
     if (bucket && bucket.count >= limit) throw new ApiRequestError(429, "Too many requests. Please wait before trying again.", Math.max(1, Math.ceil((end - now) / 1000)));
     return;
   }
-  let bucket;
-  try {
-    bucket = await prisma.abuseQuota.upsert({ where: { id }, create: { id, count: 1, expiresAt: new Date(end) }, update: { count: { increment: 1 } } });
-  } catch (error) {
-    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
-    bucket = await prisma.abuseQuota.update({ where: { id }, data: { count: { increment: 1 } } });
-  }
+  const bucket = await getNativeRepositories().quotas.abuse.consume(id, new Date(end));
   if (bucket.count > limit) throw new ApiRequestError(429, "Too many requests. Please wait before trying again.", Math.max(1, Math.ceil((end - now) / 1000)));
 }
 
@@ -37,7 +30,7 @@ export async function enforceAbuseLimit(action: AbuseAction, subject: string, no
     // Never persist email addresses or trust caller-supplied forwarding headers.
     // Global budgets also bound rotating accounts/addresses on any deployment.
     const identity = createHmac("sha256", secret).update(`bidlane:abuse:${action}:${subject.trim().toLowerCase()}`).digest("hex");
-    await prisma.abuseQuota.deleteMany({ where: { expiresAt: { lte: new Date(now) } } });
+    await getNativeRepositories().quotas.abuse.deleteExpired(new Date(now));
     const policy = abusePolicies[action];
     // Check without charging first to avoid new subject buckets after global
     // exhaustion. A passing read never replaces the final atomic increment.

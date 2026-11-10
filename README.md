@@ -19,7 +19,7 @@ BidLane is a vehicle auction app built with Next.js, React, TypeScript, and Mong
 | ----------------- | --------------------------------------------------- |
 | Application       | Next.js 16 App Router, React 19, TypeScript         |
 | Styling and forms | Tailwind CSS 3, React Hook Form, React Icons        |
-| Database          | MongoDB with Prisma 6                               |
+| Database          | MongoDB with Prisma 6 and native repositories (v8 migration) |
 | Authentication    | NextAuth.js 4, Prisma adapter, bcrypt, JWT sessions |
 | Live updates      | Pusher Channels                                     |
 | Images            | Cloudinary and next-cloudinary                      |
@@ -98,7 +98,7 @@ This repository uses Prisma 6 with MongoDB, which uses `db push` to synchronize 
 
 The active Prisma 6 CLI and Client are aligned on 6.19.3. A scoped npm override makes `@prisma/config@6.19.3` use `deepmerge-ts` 8.0.2 or newer within v8 to address [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx). Recheck this override when upgrading Prisma; it is specific to the current config package.
 
-Prisma 8 migration work lives alongside the active v6 client. Use the explicit `db:*` scripts below: the v6 and v8 packages both expose a `prisma` executable, so bare `npx prisma` is ambiguous during this transition. See [the migration status and cutover requirements](docs/prisma-8-migration.md).
+String-ID collections use native MongoDB repositories through the shared v8 pool; other queries still use the active v6 client. Use the explicit `db:*` scripts below: the v6 and v8 packages both expose a `prisma` executable, so bare `npx prisma` is ambiguous during this transition. See [the migration status and cutover requirements](docs/prisma-8-migration.md).
 
 There is no seed script. Register an account and submit a vehicle through the app to create your first listing.
 
@@ -130,6 +130,7 @@ Auction views use `q` for search, `status=live|upcoming|ended` for the home page
 | `npm run db:validate` | Validate the active Prisma 6 schema                          |
 | `npm run db:v8:emit` | Emit the Prisma 8 contract offline                           |
 | `npm run db:v8:check` | Read MongoDB version and transaction-support metadata        |
+| `npm run db:native:indexes` | Verify the string-ID collections’ existing indexes     |
 
 Tests live alongside the implementation as `*.test.ts` or `*.test.tsx` files. API and data tests run in Vitest's Node environment; React hook and component tests opt into jsdom. Coverage includes auction transitions, bid validation, finalization, API authorization, data helpers, and live auction state reconciliation after refreshes and missed events.
 
@@ -326,7 +327,7 @@ Each request replaces prior links for that address. Tokens expire 30 minutes aft
 
 Password reset rotates nullable `User.sessionVersion`. Both NextAuth session decoding and the authenticated-page proxy check it against the signed JWT, so existing cookies lose access on their next authenticated request. Legacy sessions without a version remain valid until the account’s first reset. Credentials logins capture the version before password comparison to reject a login racing a reset; client session updates cannot upgrade a revoked token. Fresh Google/GitHub sign-ins still work. The current browser clears its session cache on successful reset, then offers normal sign-in rather than signing in automatically.
 
-Before deploying, run `npm run db:generate` and `npm run db:push` against the target database to create `PasswordReset` (including the unique token hash), `PasswordResetQuota`, and `RecoveryEmail` collections/indexes, then deploy the client and app together. No user backfill is required. MongoDB transactions and a working recovery-email scheduler are required. Automated tests mock MongoDB and Resend; verify real delivery, reset, and old-session rejection after service setup. The design follows [OWASP’s password recovery guidance](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html).
+Before deploying, run `npm run db:generate` and `npm run db:push` against the target database to create `PasswordReset` (including the unique token hash), `PasswordResetQuota`, and `RecoveryEmail` collections/indexes, then deploy the client and app together. No user backfill is required. MongoDB transactions and a working recovery-email scheduler are required. Unit tests mock repositories and Resend; local MongoDB integration tests are described in the [migration guide](docs/prisma-8-migration.md). Verify real delivery, reset, and old-session rejection after service setup. The design follows [OWASP’s password recovery guidance](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html).
 
 ### Account email identity
 

@@ -9,6 +9,10 @@ import type { OAuthConfig } from "next-auth/providers/oauth";
 const mocks = vi.hoisted(() => ({
   findUser: vi.fn(), findUsers: vi.fn(), findEmail: vi.fn(), createUser: vi.fn(), updateUser: vi.fn(), findAccount: vi.fn(), createAccount: vi.fn(),
 }));
+vi.mock("@/app/libs/native-repositories", () => ({
+  getNativeRepositories: () => { throw new Error("Unexpected native database access in this test"); },
+  withNativeTransaction: () => { throw new Error("Unexpected native transaction in this test"); },
+}));
 vi.mock("./prismadb", () => ({ default: {
   user: { findUnique: mocks.findUser, findMany: mocks.findUsers, findFirst: mocks.findEmail, create: mocks.createUser, update: mocks.updateUser },
   account: { findUnique: mocks.findAccount, create: mocks.createAccount },

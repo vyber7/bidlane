@@ -7,12 +7,12 @@ const mocks = vi.hoisted(() => ({
   assets: vi.fn(),
 }));
 
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({
   default: mocks.getCurrentUser,
 }));
 vi.mock("../../libs/prismadb", () => ({
   default: {
-    uploadedAsset: { findMany: mocks.assets },
     listing: {
       findUnique: mocks.findUnique,
       updateMany: mocks.updateMany,
@@ -39,7 +39,7 @@ function post(body: unknown) {
 
 describe("/api/cloudinary-images", () => {
   beforeEach(() => {
-    vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ where }) => [imageUrl].filter((url) => where.url.in.includes(url)).map((url) => ({ url })));
+    vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ urls }) => [imageUrl].filter((url) => urls.includes(url)).map((url) => ({ url })));
     mocks.getCurrentUser.mockResolvedValue({ id: "seller" });
     mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", reviewRevision: 2, images: [] });
     mocks.updateMany.mockResolvedValue({ count: 1 });

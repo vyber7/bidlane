@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ assets: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), updateMany: vi.fn(), deleteMany: vi.fn(), createListing: vi.fn(), findListing: vi.fn(), transaction: vi.fn() }));
-vi.mock("./prismadb", () => ({ default: { uploadedAsset: { findMany: mocks.assets }, listingDraft: mocks, $transaction: mocks.transaction } }));
+vi.mock("./native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets } }) }));
+vi.mock("./prismadb", () => ({ default: { listingDraft: mocks, $transaction: mocks.transaction } }));
 import { createListingDraft, updateListingDraft, deleteListingDraft, publishListingDraft } from "./listing-drafts";
 import { emptyDraftPayload } from "@/app/schemas/listing-draft";
 const id = "abcdef0123456789abcdef01", key = "78f24991-f096-4e39-9a61-0eb03d28f1b6";
@@ -12,7 +13,7 @@ beforeEach(() => {
   mocks.create.mockImplementation(async ({ data }) => ({ ...saved, ...data, revision: 1 }));
   mocks.updateMany.mockResolvedValue({ count: 1 }); mocks.deleteMany.mockResolvedValue({ count: 1 });
   mocks.createListing.mockResolvedValue({ id: "listing", userId: "seller" }); mocks.findListing.mockResolvedValue({ id: "listing", userId: "seller" });
-  mocks.transaction.mockImplementation(async (fn) => fn({ uploadedAsset: { findMany: mocks.assets }, listingDraft: mocks, listing: { create: mocks.createListing, findUnique: mocks.findListing } }));
+  mocks.transaction.mockImplementation(async (fn) => fn({ listingDraft: mocks, listing: { create: mocks.createListing, findUnique: mocks.findListing } }));
 });
 describe("private draft persistence", () => {
   it("rejects unregistered photos and records in both creates and updates", async () => {
@@ -26,7 +27,7 @@ describe("private draft persistence", () => {
   it("accepts registered uploads for a new draft", async () => {
     mocks.assets.mockResolvedValue([{ url: complete.images[0] }]);
     expect((await createListingDraft("seller", { id, saveKey: key, payload: complete })).payload.images).toEqual(complete.images);
-    expect(mocks.assets.mock.calls[0][0].where).toMatchObject({ userId: "seller", kind: "PHOTO", listingId: null });
+    expect(mocks.assets.mock.calls[0][0]).toMatchObject({ userId: "seller", kind: "PHOTO", listingId: undefined });
   });
   it("allows edits to legacy drafts without reuploading exact saved media", async () => {
     const legacy = { ...complete, vehicleRecords: [{ label: "", url: complete.images[0] }] };

@@ -16,6 +16,7 @@
     "db:studio": "node node_modules/prisma/build/index.js studio",
     "db:v8:emit": "node node_modules/prisma-v8/dist/prisma.js contract emit --config prisma8.config.ts --output-path prisma/v8",
     "db:v8:check": "node --env-file-if-exists=.env scripts/prisma-v8-check.mjs",
+    "db:native:indexes": "node --env-file-if-exists=.env scripts/native-indexes.mjs",
     "admin:grant": "node --env-file-if-exists=.env scripts/admin-role.mjs grant",
     "admin:revoke": "node --env-file-if-exists=.env scripts/admin-role.mjs revoke",
     "uploads:check": "node --env-file-if-exists=.env scripts/secure-uploads.mjs check",

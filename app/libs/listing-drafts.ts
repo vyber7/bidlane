@@ -24,7 +24,7 @@ export async function createListingDraft(userId: string, input: z.output<typeof 
       if (existing.publishedListingId || !sameSave(existing, input)) throw conflict();
       return serializeDraft(existing);
     }
-    await assertListingAssets(userId, input.payload, undefined, tx);
+    await assertListingAssets(userId, input.payload);
     const draft = await tx.listingDraft.create({ data: { id: input.id, userId, payload: input.payload, lastSaveKey: input.saveKey, publishedListingId: null, deletedAt: null } });
     return serializeDraft(draft);
   });

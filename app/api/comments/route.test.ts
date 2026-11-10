@@ -10,13 +10,14 @@ const mocks = vi.hoisted(() => ({ limit: vi.fn(),
   assets: vi.fn(),
 }));
 
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets } }) }));
 vi.mock("@/app/libs/abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
 vi.mock("@/app/actions/getCurrentUser", () => ({
   default: mocks.getCurrentUser,
 }));
 vi.mock("@/app/libs/prismadb", () => ({
   default: {
-    $transaction: async (callback: (tx: unknown) => unknown) => callback({ uploadedAsset: { findMany: mocks.assets }, comment: { create: mocks.create }, listing: { findUnique: mocks.findUnique, update: mocks.update }, notification: { upsert: mocks.upsert } }),
+    $transaction: async (callback: (tx: unknown) => unknown) => callback({ comment: { create: mocks.create }, listing: { findUnique: mocks.findUnique, update: mocks.update }, notification: { upsert: mocks.upsert } }),
     comment: { create: mocks.create },
     listing: { update: mocks.update },
   },

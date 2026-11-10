@@ -7,8 +7,8 @@ declare global {
 
 let productionDatabase: DatabaseV8 | undefined;
 
-// Opt-in only: existing routes keep importing ./prismadb until their writes,
-// defaults, error handling, and transaction boundaries have been migrated.
+// String-ID repositories use this shared native pool. Other routes keep the
+// v6 client until their typed queries and transaction boundaries are migrated.
 export function getDatabaseV8() {
   if (process.env.NODE_ENV === "production") {
     return productionDatabase ??= createDatabaseV8(process.env.DATABASE_URL ?? "");

@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ user: vi.fn(), update: vi.fn(), assets: vi.fn(), logError: vi.fn() }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { user: { update: mocks.update }, uploadedAsset: { findMany: mocks.assets } } }));
+vi.mock("@/app/libs/prismadb", () => ({ default: { user: { update: mocks.update }, } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: mocks.logError } }));
 import { PATCH } from "./route";
 

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import cloudinary from "./cloudinary";
-import prisma from "./prismadb";
+import { getNativeRepositories } from "./native-repositories";
 import { ApiRequestError } from "./api-request";
 import { logger } from "./logger";
 import { MAX_UPLOAD_BYTES, uploadFormats, type UploadKind } from "./upload-policy";
@@ -29,10 +29,10 @@ export async function saveUploadedFile(input: { userId: string; kind: UploadKind
       result.bytes <= 0 || result.bytes > MAX_UPLOAD_BYTES || result.secure_url !== expectedUrl) {
       throw new ApiRequestError(400, "Upload a JPG, PNG, or WebP photo, or a PDF vehicle record, up to 4 MB.");
     }
-    await prisma.uploadedAsset.create({ data: {
+    await getNativeRepositories().assets.register({
       id: publicId, userId: input.userId, kind: input.kind, listingId: input.listingId ?? null,
       url: result.secure_url, bytes: result.bytes, format: result.format,
-    } });
+    });
     return result.secure_url;
   } catch (error) {
     if (attempted) {

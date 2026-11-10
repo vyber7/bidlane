@@ -42,7 +42,7 @@ export async function POST(req: Request) {
         });
         if (!listing) throw new ApiRequestError(404, "Listing not found");
         if (!isPublicListing(listing)) throw new ApiRequestError(409, "Comments open after the listing is approved.");
-        if (image) await assertOwnedAssets({ userId: currentUser.id, kind: "PHOTO", urls: [image], listingId }, tx);
+        if (image) await assertOwnedAssets({ userId: currentUser.id, kind: "PHOTO", urls: [image], listingId });
         const newComment = await tx.comment.create({
           data: {
             body: comment,

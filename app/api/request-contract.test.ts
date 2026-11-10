@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ currentUser: vi.fn(), database: vi.fn(), hash: vi.fn(), finalize: vi.fn() }));
+vi.mock("@/app/libs/native-repositories", () => ({
+  getNativeRepositories: () => { throw new Error("Unexpected native database access in this test"); },
+  withNativeTransaction: () => { throw new Error("Unexpected native transaction in this test"); },
+}));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.currentUser }));
 vi.mock("@/app/libs/prismadb", () => ({
   default: {

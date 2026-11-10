@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { validateListing } from "@/app/libs/listing-validation";
 const mocks = vi.hoisted(() => ({ assets: vi.fn(), user: vi.fn(), create: vi.fn() }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { uploadedAsset: { findMany: mocks.assets }, listing: { create: mocks.create } } }));
+vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { create: mocks.create } } }));
 import { POST } from "./route";
 const photo = "https://res.cloudinary.com/demo/image/upload/car.jpg";
 const data = { make: " Porsche ", model: "911", year: "2020", miles: "0", reservePrice: "", location: "Miami, FL", description: "Serviced regularly", images: [photo], transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: " Oil service at 42,000 miles. Records available. ", modifications: "None known", knownFlaws: "Stone chips on the hood" };
@@ -12,7 +13,7 @@ describe("listing submission", () => {
     mocks.user.mockResolvedValue({ id: "seller", emailVerified: null });
     expect((await POST(request(data))).status).toBe(403); expect(mocks.create).not.toHaveBeenCalled();
   });
-  beforeEach(() => { vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ where }) => [photo, photo.replace("car.jpg", "interior.jpg"), "https://res.cloudinary.com/demo/image/upload/receipt.pdf"].filter((url) => where.url.in.includes(url)).map((url) => ({ url }))); mocks.user.mockResolvedValue({ id: "seller", emailVerified: new Date() }); mocks.create.mockResolvedValue({ id: "listing" }); });
+  beforeEach(() => { vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ urls }) => [photo, photo.replace("car.jpg", "interior.jpg"), "https://res.cloudinary.com/demo/image/upload/receipt.pdf"].filter((url) => urls.includes(url)).map((url) => ({ url }))); mocks.user.mockResolvedValue({ id: "seller", emailVerified: new Date() }); mocks.create.mockResolvedValue({ id: "listing" }); });
   it("requires sign-in before saving", async () => {
     mocks.user.mockResolvedValue(null);
     expect((await POST(request(data))).status).toBe(401);

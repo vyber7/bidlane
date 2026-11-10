@@ -1,13 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ assets: vi.fn(), user: vi.fn(), findUnique: vi.fn(), updateMany: vi.fn() }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { uploadedAsset: { findMany: mocks.assets }, listing: mocks } }));
+vi.mock("@/app/libs/prismadb", () => ({ default: { listing: mocks } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { warn: vi.fn() } }));
 import { PATCH } from "./route";
 const id = "abcdef0123456789abcdef01";
 const details = { vin: " wp0ab2997ys123456 ", vehicleRecords: [{ label: " Service receipt ", url: "https://res.cloudinary.com/demo/image/upload/receipt.pdf" }] };
 const patch = (body: unknown = details) => PATCH(new Request("http://localhost/api", { method: "PATCH", body: JSON.stringify(body) }), { params: Promise.resolve({ id }) });
-beforeEach(() => { vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ where }) => [details.vehicleRecords[0].url].filter((url) => where.url.in.includes(url)).map((url) => ({ url }))); mocks.user.mockResolvedValue({ id: "seller" }); mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", year: 2000, reviewRevision: 2 }); mocks.updateMany.mockResolvedValue({ count: 1 }); });
+beforeEach(() => { vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ urls }) => [details.vehicleRecords[0].url].filter((url) => urls.includes(url)).map((url) => ({ url }))); mocks.user.mockResolvedValue({ id: "seller" }); mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", year: 2000, reviewRevision: 2 }); mocks.updateMany.mockResolvedValue({ count: 1 }); });
 describe("VIN and record edits", () => {
   it("rejects an unregistered replacement record", async () => {
     mocks.assets.mockResolvedValue([]);
