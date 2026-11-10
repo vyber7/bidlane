@@ -111,7 +111,7 @@ export default async function Home() {
         id="auctions"
         className="mx-auto max-w-6xl scroll-mt-20 px-4 pt-8 sm:px-6 lg:px-8"
       >
-        <div className="flex flex-col gap-5 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-600">
               The lineup

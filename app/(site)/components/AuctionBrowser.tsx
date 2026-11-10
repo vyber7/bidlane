@@ -51,7 +51,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
 
   return (
     <>
-      <div className="mt-6 flex flex-col gap-4 pb-6 xl:flex-row xl:items-center xl:justify-between">
+      <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div
           className="flex min-w-0 max-w-full snap-x snap-proximity gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:thin] xl:shrink-0 [&::-webkit-scrollbar]:h-1"
           role="tablist"
@@ -103,7 +103,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
       {visibleListings.length > 0 ? (
         <Listings listings={visibleListings} currentUserId={currentUserId} />
       ) : (
-        <div className="mt-8 rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center">
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center">
           <FiSearch className="mx-auto text-2xl text-slate-400" />
           <h3 className="mt-3 font-bold text-slate-950">No auctions found</h3>
           <p className="mt-1 text-sm text-slate-500">
