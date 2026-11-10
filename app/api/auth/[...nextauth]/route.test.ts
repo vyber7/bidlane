@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({ user: vi.fn(), compare: vi.fn(), limit: vi.fn(
 // NextAuth v4 loads next/headers with CommonJS require, which bypasses
 // Vitest ESM module mocks. Spy on that exact export for request-local state.
 const nextHeaders = createRequire(import.meta.url)("next/headers") as { headers: () => unknown; cookies: () => unknown };
-vi.mock("@/app/libs/prismadb", () => ({ default: { user: { findUnique: mocks.user } } }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ users: { byEmail: mocks.user, sessionIdentity: mocks.user } }) }));
 vi.mock("bcrypt", () => ({ default: { compare: mocks.compare } }));
 vi.mock("@/app/libs/abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
 import { GET, POST } from "./route";
@@ -76,7 +76,7 @@ describe("bounded NextAuth credentials protocol", () => {
   it("uses the same last duplicate form field as NextAuth for the login quota and lookup", async () => {
     await POST(request(credentials("first@example.com") + "&email=last%40example.com"), context());
     expect(mocks.limit).toHaveBeenCalledWith("login", "last@example.com");
-    expect(mocks.user.mock.calls[0][0].where.email).toBe("last@example.com");
+    expect(mocks.user.mock.calls[0][0]).toBe("last@example.com");
   });
   it.each(["application/json", "application/x-www-form-urlencoded"])("rejects oversized %s before parsing, quotas or password work", async (type) => {
     const response = await POST(request("x".repeat(16385), type), context());

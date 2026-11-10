@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ user: vi.fn(), userCount: vi.fn(), listingCount: vi.fn() }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { user: { count: mocks.userCount }, listing: { count: mocks.listingCount } } }));
+vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { count: mocks.listingCount } } }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ users: { count: mocks.userCount } }) }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
 
 import { GET } from "./route";

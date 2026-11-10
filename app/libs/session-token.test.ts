@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ decode: vi.fn(), user: vi.fn() }));
 vi.mock("next-auth/jwt", () => ({ decode: mocks.decode }));
-vi.mock("./prismadb", () => ({ default: { user: { findUnique: mocks.user } } }));
+vi.mock("./native-repositories", () => ({ getNativeRepositories: () => ({ users: { sessionIdentity: mocks.user } }) }));
 vi.mock("./logger", () => ({ logger: { warn: vi.fn() } }));
 import { decodeSessionToken } from "./session-token";
 beforeEach(() => { vi.clearAllMocks(); mocks.decode.mockResolvedValue({ sub: "user", email: "user@example.com" }); mocks.user.mockResolvedValue({ email: "user@example.com", sessionVersion: null }); });

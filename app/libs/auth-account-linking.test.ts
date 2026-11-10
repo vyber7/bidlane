@@ -9,14 +9,13 @@ import type { OAuthConfig } from "next-auth/providers/oauth";
 const mocks = vi.hoisted(() => ({
   findUser: vi.fn(), findUsers: vi.fn(), findEmail: vi.fn(), createUser: vi.fn(), updateUser: vi.fn(), findAccount: vi.fn(), createAccount: vi.fn(),
 }));
-vi.mock("@/app/libs/native-repositories", () => ({
-  getNativeRepositories: () => { throw new Error("Unexpected native database access in this test"); },
-  withNativeTransaction: () => { throw new Error("Unexpected native transaction in this test"); },
-}));
-vi.mock("./prismadb", () => ({ default: {
-  user: { findUnique: mocks.findUser, findMany: mocks.findUsers, findFirst: mocks.findEmail, create: mocks.createUser, update: mocks.updateUser },
-  account: { findUnique: mocks.findAccount, create: mocks.createAccount },
-} }));
+vi.mock("@/app/libs/native-repositories", () => {
+  const repositories = {
+    users: { byId: mocks.findUser, sessionIdentity: mocks.findUser, emailMatches: mocks.findUsers, emailExists: mocks.findEmail, create: mocks.createUser, updateAuthProfile: mocks.updateUser },
+    accounts: { userId: mocks.findAccount, link: mocks.createAccount },
+  };
+  return { getNativeRepositories: () => repositories, withNativeTransaction: async (operation: (repositories: unknown) => unknown) => operation(repositories) };
+});
 import { authOptions } from "./auth-config";
 
 // Exercise the installed NextAuth login/linking engine and its production
@@ -70,32 +69,24 @@ function login(providerId: string, email = "owner@example.com", sessionToken?: s
 
 beforeEach(() => {
   vi.clearAllMocks(); users.clear(); accounts.length = 0;
-  mocks.findUser.mockImplementation(async ({ where }: { where: { id?: string; email?: string } }) =>
-    where.id ? users.get(where.id) ?? null : [...users.values()].find((user) => user.email === where.email) ?? null,
+  mocks.findUser.mockImplementation(async (id: string) => users.get(id) ?? null);
+  mocks.findUsers.mockImplementation(async (email: string) =>
+    [...users.values()].filter((user) => user.email.toLowerCase() === email).slice(0, 2),
   );
-  mocks.findUsers.mockImplementation(async ({ where, take }) =>
-    [...users.values()].filter((user) => user.email.toLowerCase() === where.email.equals).slice(0, take),
+  mocks.findEmail.mockImplementation(async (email: string) =>
+    [...users.values()].find((user) => user.email.toLowerCase() === email) ?? null,
   );
-  mocks.findEmail.mockImplementation(async ({ where }) =>
-    [...users.values()].find((user) => user.email.toLowerCase() === where.email.equals) ?? null,
-  );
-  mocks.updateUser.mockImplementation(async ({ where, data }) => {
-    const user = users.get(where.id)!;
-    users.set(where.id, { ...user, ...data });
-    return users.get(where.id);
+  mocks.updateUser.mockImplementation(async (id: string, data: Partial<StoredUser>) => {
+    users.set(id, { ...users.get(id)!, ...data });
+    return users.get(id);
   });
-  mocks.createUser.mockImplementation(async ({ data }: { data: Omit<AdapterUser, "id"> }) =>
+  mocks.createUser.mockImplementation(async (data: Omit<AdapterUser, "id">) =>
     existingUser({ ...data, id: "bbbbbbbbbbbbbbbbbbbbbbbb", hashedPassword: null, sessionVersion: "" }),
   );
-  mocks.findAccount.mockImplementation(async ({ where }: { where: { provider_providerAccountId: { provider: string; providerAccountId: string } } }) => {
-    const identity = where.provider_providerAccountId;
-    const account = accounts.find((item) => item.provider === identity.provider && item.providerAccountId === identity.providerAccountId);
-    return account ? { user: users.get(account.userId) } : null;
-  });
-  mocks.createAccount.mockImplementation(async ({ data }: { data: AdapterAccount }) => {
-    accounts.push(data);
-    return data;
-  });
+  mocks.findAccount.mockImplementation(async (provider: string, providerAccountId: string) =>
+    accounts.find((item) => item.provider === provider && item.providerAccountId === providerAccountId)?.userId ?? null,
+  );
+  mocks.createAccount.mockImplementation(async (data: AdapterAccount) => { accounts.push(data); });
 });
 
 describe.each(["github", "google"])("%s account-linking boundary", (provider) => {
@@ -166,7 +157,7 @@ describe("adapter email write boundary", () => {
   it("canonicalizes a new OAuth account before the unique insert", async () => {
     const user = await authOptions.adapter!.createUser!({ email: " New.Driver@Example.COM ", name: "New driver", emailVerified: null });
     expect(user.email).toBe("new.driver@example.com");
-    expect(mocks.createUser).toHaveBeenCalledWith({ data: { email: "new.driver@example.com", name: "New driver", emailVerified: null } });
+    expect(mocks.createUser).toHaveBeenCalledWith({ email: "new.driver@example.com", name: "New driver", emailVerified: null, image: undefined });
   });
 
   it("rejects a direct adapter create that collides with a legacy user", async () => {
@@ -185,7 +176,7 @@ describe("adapter email write boundary", () => {
     const user = existingUser({ email: "Owner@Example.COM" });
     const updated = await authOptions.adapter!.updateUser!({ id: user.id, email: "owner@example.com", name: "Updated name" });
     expect(updated.email).toBe("Owner@Example.COM");
-    expect(mocks.updateUser).toHaveBeenCalledWith({ where: { id: user.id }, data: { name: "Updated name" } });
+    expect(mocks.updateUser).toHaveBeenCalledWith(user.id, { name: "Updated name" });
   });
 
   it("keeps updates without an email working", async () => {

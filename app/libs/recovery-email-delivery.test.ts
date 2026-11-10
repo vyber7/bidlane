@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ claim: vi.fn(), jobs: vi.fn(), job: vi.fn(), update: vi.fn(), cleanup: vi.fn(), reset: vi.fn(), bind: vi.fn(), users: vi.fn(), send: vi.fn() }));
 vi.mock("./native-repositories", () => ({ getNativeRepositories: () => ({
+  users: { passwordMatches: mocks.users },
   recoveryEmails: { candidates: mocks.jobs, find: mocks.job, claim: mocks.claim, finish: mocks.update, deleteCompletedBefore: mocks.cleanup },
   passwordResets: { find: mocks.reset, bind: mocks.bind, deleteBefore: mocks.cleanup },
 }), withNativeTransaction: vi.fn() }));
-vi.mock("./prismadb", () => ({ default: { user: { findMany: mocks.users } } }));
 vi.mock("./outbid-email", async (importOriginal) => { const actual = await importOriginal<typeof import("./outbid-email")>(); return { ...actual, sendEmail: mocks.send }; });
 vi.mock("./logger", () => ({ logger: { warn: vi.fn() } }));
 import { sendRecoveryEmails } from "./recovery-email-delivery";

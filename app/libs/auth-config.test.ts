@@ -4,7 +4,7 @@ import type { OAuthConfig } from "next-auth/providers/oauth";
 import { githubUserinfo } from "./github-userinfo";
 const mocks = vi.hoisted(() => ({ limit: vi.fn(), user: vi.fn(), users: vi.fn(), compare: vi.fn() }));
 vi.mock("@/app/libs/abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
-vi.mock("./prismadb", () => ({ default: { user: { findUnique: mocks.user, findMany: mocks.users } } }));
+vi.mock("./native-repositories", () => ({ getNativeRepositories: () => ({ users: { byEmail: mocks.user, sessionIdentity: mocks.user, emailMatches: mocks.users } }) }));
 vi.mock("bcrypt", () => ({ default: { compare: mocks.compare } }));
 import { authOptions } from "./auth-config";
 import { ApiRequestError } from "./api-request";

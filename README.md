@@ -20,7 +20,7 @@ BidLane is a vehicle auction app built with Next.js, React, TypeScript, and Mong
 | Application       | Next.js 16 App Router, React 19, TypeScript         |
 | Styling and forms | Tailwind CSS 3, React Hook Form, React Icons        |
 | Database          | MongoDB with Prisma 6 and native repositories (v8 migration) |
-| Authentication    | NextAuth.js 4, Prisma adapter, bcrypt, JWT sessions |
+| Authentication    | NextAuth.js 4, native MongoDB adapter, bcrypt, JWT sessions |
 | Live updates      | Pusher Channels                                     |
 | Images            | Cloudinary and next-cloudinary                      |
 | Checks            | Vitest, ESLint 9, TypeScript                        |
@@ -98,7 +98,7 @@ This repository uses Prisma 6 with MongoDB, which uses `db push` to synchronize 
 
 The active Prisma 6 CLI and Client are aligned on 6.19.3. A scoped npm override makes `@prisma/config@6.19.3` use `deepmerge-ts` 8.0.2 or newer within v8 to address [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx). Recheck this override when upgrading Prisma; it is specific to the current config package.
 
-String-ID collections use native MongoDB repositories through the shared v8 pool; other queries still use the active v6 client. Use the explicit `db:*` scripts below: the v6 and v8 packages both expose a `prisma` executable, so bare `npx prisma` is ambiguous during this transition. See [the migration status and cutover requirements](docs/prisma-8-migration.md).
+String-ID collections, authentication, and account access use native MongoDB repositories through the shared v8 pool; auction/domain queries still use the active v6 client. Use the explicit `db:*` scripts below: the v6 and v8 packages both expose a `prisma` executable, so bare `npx prisma` is ambiguous during this transition. See [the migration status and cutover requirements](docs/prisma-8-migration.md).
 
 There is no seed script. Register an account and submit a vehicle through the app to create your first listing.
 
@@ -145,12 +145,11 @@ and profile updates cannot assign roles. New accounts default to `USER`; existin
 MongoDB users with a missing or null role are treated as regular users.
 Administration includes an overview and listing review tools.
 
-Before deploying role changes, regenerate the Prisma client (`npm run db:generate`;
-also included in `npm run build`). The optional role field requires no backfill
-or new database indexes.
+The trusted role command uses the native MongoDB driver. The optional role
+field requires no backfill or new database indexes.
 
 1. Register normally or sign in with Google/GitHub to create the intended account.
-2. From a trusted checkout with the updated Prisma client and access to the
+2. From a trusted checkout with access to the
    intended database, run:
 
    ```bash

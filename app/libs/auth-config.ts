@@ -1,63 +1,20 @@
 import { decodeSessionToken } from "./session-token";
 import bcrypt from "bcrypt";
 import { AuthOptions } from "next-auth";
-import type { AdapterAccount, AdapterUser } from "next-auth/adapters";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { nativeAuthAdapter } from "./auth-adapter";
 
-import prisma from "./prismadb";
+import { getNativeRepositories } from "./native-repositories";
 import { githubUserinfo } from "./github-userinfo";
 import { enforceAbuseLimit } from "./abuse-limits";
 import { loginCredentialsSchema } from "@/app/schemas/account";
 import { ApiRequestError } from "./api-request";
-import { assertEmailAvailable, findUsersByEmailIdentity } from "./email-identity";
-import { normalizeEmail } from "@/app/utils/email";
-
-const prismaAdapter = PrismaAdapter(prisma);
+import { findUsersByEmailIdentity } from "./email-identity";
 
 export const authOptions: AuthOptions = {
-  adapter: {
-    ...prismaAdapter,
-    async createUser(data: Omit<AdapterUser, "id">) {
-      const email = await assertEmailAvailable(data.email);
-      return prismaAdapter.createUser!({ ...data, email });
-    },
-    async getUserByEmail(email: string) {
-      const users = await findUsersByEmailIdentity(email);
-      // Never let an ambiguous lookup choose an account or proceed to signup.
-      if (users.length > 1) throw new Error("This email needs account support.");
-      const user = users[0];
-      return user?.email ? { ...user, email: user.email } : null;
-    },
-    async updateUser({ id, email, ...data }) {
-      if (email !== undefined) {
-        const current = await prisma.user.findUnique({ where: { id }, select: { email: true } });
-        // Email changes are not a supported account flow. A canonical no-op
-        // keeps the original spelling, preserving sessions and pending proofs.
-        if (!current?.email || normalizeEmail(email) !== normalizeEmail(current.email)) {
-          throw new Error("Account email changes are not supported.");
-        }
-      }
-      return prismaAdapter.updateUser!({ id, ...data });
-    },
-    async linkAccount(account: AdapterAccount) {
-      // NextAuth also links new providers to a signed-in user, regardless of
-      // allowDangerousEmailAccountLinking. An unverified password signup must
-      // never plant another login method that survives password recovery.
-      const user = await prisma.user.findUnique({
-        where: { id: account.userId },
-        select: { hashedPassword: true },
-      });
-      if (!user || user.hashedPassword) {
-        throw new Error("New OAuth connections to password accounts are not supported.");
-      }
-      // Initial OAuth signup creates a user without a password. Existing
-      // provider-subject sign-ins use getUserByAccount and do not link again.
-      return prismaAdapter.linkAccount!(account);
-    },
-  },
+  adapter: nativeAuthAdapter(),
   providers: [
     GithubProvider({
       clientId: process.env.GITHUB_ID as string,
@@ -87,11 +44,7 @@ export const authOptions: AuthOptions = {
           throw new Error("AuthUnavailable");
         }
 
-        let user = await prisma.user.findUnique({
-          where: {
-            email,
-          },
-        });
+        let user = await getNativeRepositories().users.byEmail(email);
         if (!user) {
           const matches = await findUsersByEmailIdentity(email);
           // Keep exact legacy logins above, but never guess among collisions.
@@ -130,12 +83,7 @@ export const authOptions: AuthOptions = {
         token.sessionVersion =
           account?.provider === "credentials" && "sessionVersion" in user
             ? user.sessionVersion
-            : ((
-                await prisma.user.findUnique({
-                  where: { id: user.id },
-                  select: { sessionVersion: true },
-                })
-              )?.sessionVersion ?? "");
+            : (await getNativeRepositories().users.sessionIdentity(user.id))?.sessionVersion ?? "";
       }
       // Never refresh the version from client-supplied session updates.
       return token;

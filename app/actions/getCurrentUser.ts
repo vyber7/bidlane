@@ -1,4 +1,4 @@
-import prisma from "../libs/prismadb";
+import { getNativeRepositories } from "../libs/native-repositories";
 import { getSession } from "./getSession";
 import { logger } from "../libs/logger";
 import type { CurrentUser } from "../types";
@@ -9,26 +9,13 @@ const getCurrentUser = async (): Promise<CurrentUser | null> => {
     if (!session?.user?.email) {
       return null;
     }
-    const currentUser = await prisma.user.findUnique({
-      where: {
-        email: session.user.email,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        emailVerified: true,
-        role: true,
-        image: true,
-        createdAt: true,
-        hashedPassword: true,
-      },
-    });
-
-    if (!currentUser) return null;
-
-    const { hashedPassword, ...safeUser } = currentUser;
-    return { ...safeUser, role: safeUser.role ?? "USER", hasPassword: Boolean(hashedPassword) };
+    const user = await getNativeRepositories().users.byEmail(session.user.email);
+    if (!user) return null;
+    return {
+      id: user.id, name: user.name, email: user.email, image: user.image,
+      emailVerified: user.emailVerified, createdAt: user.createdAt,
+      role: user.role ?? "USER", hasPassword: Boolean(user.hashedPassword),
+    };
   } catch (error: unknown) {
     logger.error("auth.current_user_failed", error);
     return null;

@@ -1,15 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { getNativeRepositories } from "./native-repositories";
-import prisma from "./prismadb";
 import { EmailProviderError, getEmailConfiguration, sendEmail } from "./outbid-email";
 import { resetHash, resetToken } from "./password-reset";
 import { logger } from "./logger";
-import { emailIdentityFilter } from "./email-identity";
 
 export async function sendRecoveryEmails(batchSize = 20) {
   const config = getEmailConfiguration();
   if (!config || !process.env.NEXTAUTH_SECRET) throw new Error("Recovery email delivery is not configured");
-  const { passwordResets, recoveryEmails } = getNativeRepositories();
+  const { passwordResets, recoveryEmails, users: userRepository } = getNativeRepositories();
   const startedAt = Date.now();
   await passwordResets.deleteBefore(new Date(startedAt - 86400_000));
   await recoveryEmails.deleteCompletedBefore(new Date(startedAt - 30 * 86400_000));
@@ -41,10 +39,7 @@ export async function sendRecoveryEmails(batchSize = 20) {
         }
         // Match case-insensitively, but never choose between two legacy accounts
         // with case-colliding addresses. Connected-only accounts get no reset.
-        const users = await prisma.user.findMany({
-          where: { email: emailIdentityFilter(job.email) }, take: 2,
-          select: { id: true, email: true, hashedPassword: true, sessionVersion: true },
-        });
+        const users = await userRepository.passwordMatches(job.email);
         const user = users.length === 1 ? users[0] : null;
         if (!user?.hashedPassword || !user.email || (record.userId && (record.userId !== user.id || (record.sessionVersion ?? "") !== (user.sessionVersion ?? "")))) {
           await finish({ status: "SKIPPED" }); summary.skipped++; continue;

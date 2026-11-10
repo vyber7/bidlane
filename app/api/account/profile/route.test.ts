@@ -1,9 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ user: vi.fn(), update: vi.fn(), assets: vi.fn(), logError: vi.fn() }));
-vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets } }) }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets }, users: { updateProfile: mocks.update } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { user: { update: mocks.update }, } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: mocks.logError } }));
 import { PATCH } from "./route";
 
@@ -36,16 +35,13 @@ describe("profile request validation", () => {
   it("does not allow a profile update to change the role", async () => {
     const response = await PATCH(request({ name: "Driver", image: "", role: "ADMIN", isAdmin: true }));
     expect(response.status).toBe(200);
-    expect(mocks.update.mock.calls[0][0].data).toEqual({ name: "Driver", image: null });
+    expect(mocks.update.mock.calls[0][1]).toEqual({ name: "Driver", image: null });
   });
 
   it("preserves profile updates and the public success response", async () => {
     const response = await PATCH(request({ name: " Driver ", image: "" }));
     expect(response.status).toBe(200);
-    expect(mocks.update).toHaveBeenCalledWith({
-      where: { id: "user-1" }, data: { name: "Driver", image: null },
-      select: { name: true, email: true, image: true },
-    });
+    expect(mocks.update).toHaveBeenCalledWith("user-1", { name: "Driver", image: null });
     await expect(response.json()).resolves.toEqual({ name: "Driver", email: "driver@example.com", image: null });
   });
 

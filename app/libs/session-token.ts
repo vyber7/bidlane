@@ -1,5 +1,5 @@
 import { decode, type JWTDecodeParams } from "next-auth/jwt";
-import prisma from "./prismadb";
+import { getNativeRepositories } from "./native-repositories";
 import { logger } from "./logger";
 
 // Used by both NextAuth and the authenticated-page proxy. Legacy JWTs have
@@ -8,9 +8,7 @@ export async function decodeSessionToken(params: JWTDecodeParams) {
   try {
     const token = await decode(params);
     if (!token?.sub || !token.email) return null;
-    const user = await prisma.user.findUnique({
-      where: { id: token.sub }, select: { email: true, sessionVersion: true },
-    });
+    const user = await getNativeRepositories().users.sessionIdentity(token.sub);
     if (!user || user.email !== token.email || (token.sessionVersion ?? "") !== (user.sessionVersion ?? "")) return null;
     return token;
   } catch {

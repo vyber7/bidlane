@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { MongoServerError } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CredentialsConfig } from "next-auth/providers/credentials";
 
@@ -7,12 +7,10 @@ const mocks = vi.hoisted(() => ({
   claim: vi.fn(), jobs: vi.fn(), job: vi.fn(), finish: vi.fn(), reset: vi.fn(), bind: vi.fn(),
 }));
 vi.mock("./native-repositories", () => ({ getNativeRepositories: () => ({
+  users: { byEmail: mocks.unique, byId: mocks.unique, sessionIdentity: mocks.unique, emailMatches: mocks.many, passwordMatches: mocks.many, emailExists: mocks.first, create: mocks.create },
   recoveryEmails: { candidates: mocks.jobs, find: mocks.job, claim: mocks.claim, finish: mocks.finish, deleteCompletedBefore: vi.fn() },
   passwordResets: { find: mocks.reset, bind: mocks.bind, deleteBefore: vi.fn() },
 }), withNativeTransaction: vi.fn() }));
-vi.mock("./prismadb", () => ({ default: {
-  user: { findFirst: mocks.first, findMany: mocks.many, findUnique: mocks.unique, create: mocks.create },
-} }));
 vi.mock("./abuse-limits", () => ({ enforceAbuseLimit: vi.fn() }));
 vi.mock("bcrypt", () => ({ default: { hash: vi.fn(async () => "hash"), compare: vi.fn(async () => true) } }));
 vi.mock("./outbid-email", async (importOriginal) => ({ ...await importOriginal<typeof import("./outbid-email")>(), sendEmail: mocks.send }));
@@ -35,19 +33,17 @@ beforeEach(() => {
   vi.stubEnv("NEXTAUTH_URL", "https://bidlane.net");
   vi.stubEnv("RESEND_API_KEY", "test-key");
   vi.stubEnv("EMAIL_FROM", "BidLane <alerts@bidlane.net>");
-  mocks.many.mockImplementation(async ({ where, take }) => {
-    expect(where.email.mode).toBe("insensitive");
-    return [...users.values()].filter((user) => user.email.toLowerCase() === where.email.equals).slice(0, take);
+  mocks.many.mockImplementation(async (email) => {
+    return [...users.values()].filter((user) => user.email.toLowerCase() === email.toLowerCase()).slice(0, 2);
   });
-  mocks.first.mockImplementation(async ({ where }) => {
-    expect(where.email.mode).toBe("insensitive");
-    return [...users.values()].find((user) => user.email.toLowerCase() === where.email.equals) ?? null;
+  mocks.first.mockImplementation(async (email) => {
+    return [...users.values()].find((user) => user.email.toLowerCase() === email.toLowerCase()) ?? null;
   });
-  mocks.unique.mockImplementation(async ({ where }) => [...users.values()].find((user) => where.id ? user.id === where.id : user.email === where.email) ?? null);
+  mocks.unique.mockImplementation(async (email) => [...users.values()].find((user) => user.email === email) ?? null);
   // Model MongoDB's existing exact User.email unique index, not an insensitive index.
-  mocks.create.mockImplementation(async ({ data }) => {
+  mocks.create.mockImplementation(async (data) => {
     if ([...users.values()].some((user) => user.email === data.email)) {
-      throw new Prisma.PrismaClientKnownRequestError("Unique email", { code: "P2002", clientVersion: "test" });
+      throw new MongoServerError({ message: "Unique email", code: 11000 });
     }
     const user = { id: `user-${users.size}`, emailVerified: null, hashedPassword: null, sessionVersion: "", ...data };
     users.set(user.id, user);
@@ -102,9 +98,9 @@ describe("email identity across real account entry points", () => {
     const successes = results.filter((result) => result.status === "fulfilled" && (!(result.value instanceof Response) || result.value.status === 201));
     expect(successes).toHaveLength(1);
     expect(users.size).toBe(1);
-    expect(mocks.create.mock.calls.map(([args]) => args.data.email)).toEqual(["driver@example.com", "driver@example.com"]);
+    expect(mocks.create.mock.calls.map(([args]) => args.email)).toEqual(["driver@example.com", "driver@example.com"]);
     for (const result of results) {
-      if (result.status === "rejected") expect(result.reason).toMatchObject({ code: "P2002" });
+      if (result.status === "rejected") expect(result.reason).toMatchObject({ code: 11000 });
       else if (result.value instanceof Response && result.value.status !== 201) expect(result.value.status).toBe(409);
     }
   });

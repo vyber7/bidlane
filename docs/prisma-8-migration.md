@@ -4,8 +4,11 @@ This branch has a parallel Prisma 8 toolchain and typed contract. The seven
 string-ID collections now use native MongoDB repositories through the shared
 v8 connection pool. Password-reset credential changes also use native sessions
 so reset-token consumption, session invalidation, and queued notices stay atomic.
-Other model queries, the NextAuth adapter, and the administrator script still
-use Prisma 6.19.3. The typed v8 ORM has not been switched on for application queries.
+Authentication and account access now use native `User`/`Account` repositories:
+NextAuth v4, registration, credentials, session checks, current-user DTOs,
+profile edits, notification preferences, recovery-worker identity lookups, and
+the administrator role command. Auction/domain queries and their transactions
+still use Prisma 6.19.3. The typed v8 ORM has not been switched on for application queries.
 
 ## Working commands
 
@@ -75,13 +78,47 @@ quota creation races, while other storage failures still fail closed.
 
 The v6 schema retains these model declarations for index management and legacy
 client compatibility during the transition; application access to these seven
-collections no longer goes through that generated client. The remaining
-case-insensitive recovery-worker account lookup still uses v6's `User` query.
+collections no longer goes through that generated client. The recovery worker's
+case-insensitive `User` lookup also uses the native account repository.
+
+## Authentication and account access
+
+`app/libs/auth-adapter.ts` implements the application's NextAuth v4 OAuth
+adapter using native repositories. It supports user/profile lookups, OAuth
+creation, provider-subject lookup, linking and unlinking. It is scoped to the
+existing JWT session strategy; database sessions, passwordless verification
+tokens, and user deletion are unsupported and have no adapter methods. There
+are no new session/token collections or account-deletion cascade assumptions.
+The old `@next-auth/prisma-adapter` dependency is removed.
+
+Credentials still try the exact stored email first, then accept a single
+case-insensitive identity match. OAuth lookups reject ambiguous legacy matches;
+new password and OAuth users share the same ASCII email grammar, canonical
+email writer and existing exact unique email index. Native matching escapes
+regex metacharacters and uses absolute anchors, preserving dot/plus aliases
+and excluding trailing-newline lookalikes. Existing stored email spelling is
+preserved for sessions and recovery proofs; email changes remain unsupported.
+
+New OAuth connections to password accounts remain blocked, including signed-in
+linking attempts. Provider-subject login still works when a provider changes its
+email. Linking checks the owner and inserts the account in a native session.
+User and account IDs remain ObjectIds, OAuth expiry integers remain BSON longs,
+and new users explicitly receive their timestamps, role, email opt-ins, null
+fields, and relation-array defaults. Provider/profile updates use field
+allowlists; they cannot change roles, password hashes, or session versions.
+
+JWT decoding checks the current stored email and session version on every
+request, including the Node.js page proxy. Credentials capture the version
+before bcrypt comparison so racing resets cannot grant an old login a new
+version. Current-user and adapter DTOs use explicit field allowlists. Admin
+access still reads the current database role; the trusted operator command uses
+an exact email match and updates `updatedAt` without creating users.
 
 ## Native indexes
 
-`prisma/native/indexes.mjs` defines the existing eleven named secondary indexes,
-including unique asset URLs and reset-token hashes. The `_id` index continues
+`prisma/native/indexes.mjs` defines the existing thirteen named secondary indexes
+on nine collections, including unique user emails, provider subjects, asset URLs,
+and reset-token hashes. The `_id` index continues
 to enforce string-key uniqueness. Expiry indexes are regular indexes rather
 than TTL indexes; cleanup retains the existing application-driven windows.
 
@@ -127,17 +164,19 @@ are mixed into that transaction.
 The regular test suite covers business policies and duplicate-key fallback.
 Integration tests additionally exercise actual BSON encodings, concurrent
 counters, ownership filters, unique indexes, native/v6 read compatibility,
-reset single-use semantics, persisted transaction rollback, and email lease
-fencing on a local replica set. Start a disposable MongoDB 8+ replica set, then run:
+reset single-use semantics, persisted transaction rollback, email lease
+fencing, NextAuth OAuth signup/linking, credential login, JWT revocation,
+profile/preference permissions, and admin-role revocation on a local replica set. Start a disposable MongoDB 8+ replica set, then run:
 
 ```bash
-NATIVE_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_native_strings?replicaSet=bidlane-test' npm test -- prisma/native/repositories.integration.test.ts
+NATIVE_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_native_strings?replicaSet=bidlane-test' npm test -- prisma/native/
 ```
 
 Use the port and replica-set name of your local server. These tests only accept
 one `127.0.0.1` host and a database named `bidlane_test_native_*`. They reset and
-drop that test database. They never fall back to `DATABASE_URL`, send mail, or
-contact Cloudinary. Without the explicit test URL they are skipped. The
+drop that test database. The authentication suite appends `_auth` to isolate its
+database from the string-ID suite when run in parallel. They never fall back to
+`DATABASE_URL`, send mail, or contact Cloudinary. Without the explicit test URL they are skipped. The
 migration was verified against a local MongoDB 8.0.37 replica set; the configured
 shared database was only queried for server metadata and existing index definitions.
 
@@ -151,24 +190,20 @@ shared database was only queried for server metadata and existing index definiti
    array operations, updating both sides atomically. Many-to-many key arrays
    remain persisted fields; they are not v8 ORM relations.
 3. Supply remaining literal/default array values explicitly on creation. Preserve
-   the current roles, email opt-ins, listing state/views/revisions, notification
-   attempts, and draft revision. Native queue and asset defaults are already
-   explicit. `Listing.lastCommentAt` and `updatedAt` stay
+   listing state/views/revisions, notification attempts, and draft revision.
+   Native user, queue, and asset defaults are already explicit.
+   `Listing.lastCommentAt` and `updatedAt` stay
    nullable; migrated writes must supply their timestamps. Implement any
    required cascading cleanup explicitly before retiring v6's emulation.
-4. Replace the v6 NextAuth adapter with a v8/native adapter. Preserve verified
-   GitHub email handling, ambiguous-email rejection, the password-account
-   linking block, and session-version invalidation. Keep NextAuth v4 unless a
-   separate authentication upgrade is deliberately included.
-5. Port remaining reads and generated model/filter/payload types to the chained v8 API.
+4. Port remaining reads and generated model/filter/payload types to the chained v8 API.
    Preserve public-field allowlists, moderation visibility, pagination,
    `null` versus missing fields, and optional legacy fields/defaults on reads.
-6. On a disposable copy of the database, inspect existing BSON types, missing
+5. On a disposable copy of the database, inspect existing BSON types, missing
    fields, extra fields, and index names before introducing strict validators.
    Finalize management of the native collections, inspect the full migration
    delta, and extend the local transactional integration tests to those flows.
-7. Cut over the remaining application and operator commands together, then remove v6,
-   its adapter, generated client, and dependency override. Replace the emit-only
+6. Cut over the remaining application and operator commands together, then remove v6,
+   its generated client and dependency override. Replace the emit-only
    config with the reviewed migration config at that point.
 
 ## References

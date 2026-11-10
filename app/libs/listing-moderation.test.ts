@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ user: vi.fn(), findMany: vi.fn(), findUnique: vi.fn() }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
 vi.mock("./prismadb", () => ({ default: { listing: { findMany: mocks.findMany, findUnique: mocks.findUnique } } }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => { throw new Error("Unexpected native database access"); } }));
 import { getListingReview, getReviewQueue } from "./listing-moderation";
 
 beforeEach(() => { vi.clearAllMocks(); mocks.user.mockResolvedValue({ id: "admin", role: "ADMIN" }); mocks.findMany.mockResolvedValue([]); mocks.findUnique.mockResolvedValue(null); });

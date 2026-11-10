@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({ user: vi.fn(), findUnique: vi.fn(), updateMany
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
 vi.mock("@/app/libs/prismadb", () => ({ default: { $transaction: mocks.transaction } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => { throw new Error("Unexpected native database access"); } }));
 import { POST } from "./route";
 
 const id = "abcdef0123456789abcdef01";
