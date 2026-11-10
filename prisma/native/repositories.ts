@@ -8,6 +8,8 @@ import { notificationRepository } from "./notifications";
 import { draftRepository } from "./drafts";
 import { listingAuthoringRepository } from "./listing-authoring";
 import { engagementRepositories } from "./engagement";
+import { notificationEmailRepository } from "./notification-emails";
+import { emailVerificationRepository } from "./email-verification";
 
 export function createNativeRepositories(database: Db, session?: ClientSession) {
   return {
@@ -15,6 +17,8 @@ export function createNativeRepositories(database: Db, session?: ClientSession) 
     ...auctionRepositories(database, session),
     ...engagementRepositories(database, session),
     notifications: notificationRepository(database, session),
+    notificationEmails: notificationEmailRepository(database, session),
+    emailVerifications: emailVerificationRepository(database, session),
     drafts: draftRepository(database, session),
     listingAuthoring: listingAuthoringRepository(database, session),
     quotas: {

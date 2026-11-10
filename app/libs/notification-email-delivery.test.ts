@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { auctionNow, makeListing } from "@/app/test/auction-fixtures";
 import type { Notification } from "@prisma/client";
 
-const mocks = vi.hoisted(() => ({ findMany: vi.fn(), findUnique: vi.fn(), updateMany: vi.fn(), listing: vi.fn(), send: vi.fn(), config: vi.fn(), warn: vi.fn() }));
-vi.mock("./prismadb", () => ({ default: { notification: { findMany: mocks.findMany, findUnique: mocks.findUnique, updateMany: mocks.updateMany }, listing: { findUnique: mocks.listing } } }));
+const mocks = vi.hoisted(() => ({ findMany: vi.fn(), findUnique: vi.fn(), claim: vi.fn(), prepare: vi.fn(), finish: vi.fn(), attempts: vi.fn(), listing: vi.fn(), send: vi.fn(), config: vi.fn(), warn: vi.fn() }));
+vi.mock("./native-repositories", () => ({ getNativeRepositories: () => ({ notificationEmails: { candidates: mocks.findMany, find: mocks.findUnique, claim: mocks.claim, prepare: mocks.prepare, finish: mocks.finish, attempts: mocks.attempts, listing: mocks.listing } }) }));
 vi.mock("./logger", () => ({ logger: { warn: mocks.warn } }));
 vi.mock("./outbid-email", async (importOriginal) => ({ ...await importOriginal<typeof import("./outbid-email")>(), sendOutbidEmail: mocks.send, sendEmail: mocks.send, getEmailConfiguration: mocks.config }));
 import { sendNotificationEmails } from "./notification-email-delivery";
@@ -18,10 +18,17 @@ beforeEach(() => {
   mocks.config.mockReturnValue({ apiKey: "test-key", from: "alerts@example.com", origin: "https://bidlane.example" });
   mocks.findMany.mockResolvedValue([{ id: job.id }]);
   mocks.findUnique.mockImplementation(async () => ({ ...job }));
-  mocks.updateMany.mockImplementation(async ({ data }) => {
-    Object.assign(job, { ...data, ...(data.emailAttempts && { emailAttempts: job.emailAttempts + data.emailAttempts.increment }) });
+  mocks.claim.mockImplementation(async (_id, now, token) => {
+    Object.assign(job, { emailStatus: "SENDING", emailLockToken: token, emailLockedUntil: new Date(now.getTime() + 120000), emailAttempts: job.emailAttempts + 1 });
     return { count: 1 };
   });
+  mocks.prepare.mockImplementation(async (_id, _token, payload, now) => {
+    Object.assign(job, { emailPayload: payload, emailFirstAttemptAt: now }); return { count: 1 };
+  });
+  mocks.finish.mockImplementation(async (_id, _token, data) => {
+    Object.assign(job, { ...data, emailLockToken: null, emailLockedUntil: null }); return { count: 1 };
+  });
+  mocks.attempts.mockImplementation(async () => job.emailAttempts);
   mocks.listing.mockResolvedValue(makeListing({ highestBidderId: "other" }));
   mocks.send.mockResolvedValue("provider-id");
 });
@@ -30,14 +37,14 @@ afterEach(() => vi.useRealTimers());
 describe("durable outbid email delivery", () => {
   it("claims a job, freezes its payload before HTTP, and records provider acceptance", async () => {
     await expect(sendNotificationEmails()).resolves.toMatchObject({ checked: 1, sent: 1, failed: 0 });
-    expect(mocks.updateMany.mock.calls[0][0]).toMatchObject({ where: { id: job.id, OR: expect.any(Array) }, data: { emailStatus: "SENDING", emailLockToken: expect.any(String), emailAttempts: { increment: 1 } } });
-    expect(mocks.updateMany.mock.invocationCallOrder[1]).toBeLessThan(mocks.send.mock.invocationCallOrder[0]);
+    expect(mocks.claim).toHaveBeenCalledWith(job.id, auctionNow, expect.any(String));
+    expect(mocks.prepare.mock.invocationCallOrder[0]).toBeLessThan(mocks.send.mock.invocationCallOrder[0]);
     expect(mocks.send).toHaveBeenCalledWith("test-key", expect.objectContaining({ to: ["buyer@example.com"] }), job.id);
     expect(job).toMatchObject({ emailStatus: "SENT", emailAttempts: 1, emailProviderId: "provider-id", emailLockToken: null, emailSentAt: auctionNow });
   });
 
   it("does not send a job claimed by another worker", async () => {
-    mocks.updateMany.mockResolvedValueOnce({ count: 0 });
+    mocks.claim.mockResolvedValueOnce({ count: 0 });
     await expect(sendNotificationEmails()).resolves.toMatchObject({ checked: 0, sent: 0 });
     expect(mocks.send).not.toHaveBeenCalled();
   });
@@ -95,12 +102,12 @@ describe("durable outbid email delivery", () => {
   });
 
   it("recovers a crash after provider acceptance using the same payload and key", async () => {
-    const original = mocks.updateMany.getMockImplementation()!;
-    mocks.updateMany.mockImplementation(async (args) => { if (args.data.emailStatus === "SENT") throw new Error("database offline"); return original(args); });
+    const original = mocks.finish.getMockImplementation()!;
+    mocks.finish.mockImplementation(async (...args) => { if (args[2].emailStatus === "SENT") throw new Error("database offline"); return original(...args); });
     await expect(sendNotificationEmails()).resolves.toMatchObject({ failed: 1 });
     expect(job.emailStatus).toBe("SENDING"); expect(job.emailPayload).not.toBeNull();
     const first = structuredClone(mocks.send.mock.calls[0]);
-    mocks.updateMany.mockImplementation(original);
+    mocks.finish.mockImplementation(original);
     await sendNotificationEmails();
     expect(mocks.send.mock.calls[1]).toEqual(first);
     expect(job.emailStatus).toBe("SENT");
@@ -134,12 +141,11 @@ describe("durable outbid email delivery", () => {
   it("does not claim records while configuration is missing", async () => {
     mocks.config.mockReturnValue(null);
     await expect(sendNotificationEmails()).rejects.toThrow("not configured");
-    expect(mocks.updateMany).not.toHaveBeenCalled();
+    expect(mocks.claim).not.toHaveBeenCalled();
   });
 
   it("does not send after losing its lease while preparing the payload", async () => {
-    const original = mocks.updateMany.getMockImplementation()!;
-    mocks.updateMany.mockImplementation(async (args) => args.data.emailPayload ? { count: 0 } : original(args));
+    mocks.prepare.mockResolvedValueOnce({ count: 0 });
     await sendNotificationEmails();
     expect(mocks.send).not.toHaveBeenCalled();
   });

@@ -11,8 +11,9 @@ the administrator role command. Bidding, auction start/end/finalization, and
 ending-soon reminders also use native sessions. Drafts, listing publication,
 moderation, seller media/VIN/record edits, comments, listing views, watchlist
 updates, and account watchlist reads now use native repositories as well.
-General listing reads, notification reads/email delivery,
-and email verification still have Prisma 6.19.3 callers. The typed v8 ORM has not been
+Notification feeds/read updates, notification email delivery, and email
+verification now use native repositories too. General listing, bid, seller,
+and account-summary reads still have Prisma 6.19.3 callers. The typed v8 ORM has not been
 switched on for application queries.
 
 ## Working commands
@@ -271,12 +272,55 @@ and watch requests, opposite watch intents, rollback of related writes and
 notifications, moderation races, single-charge retries, public field allowlists,
 legacy missing/null data, and watchlist visibility/order.
 
+## Notification feeds, delivery, and email verification
+
+`prisma/native/notifications.ts` now implements owned cursor anchors, public
+feed projections, total/unread counts, and scoped read updates as well as event
+insertion. Pagination retains the descending `(createdAt, _id)` boundary and
+50-item pages; an anchor remains usable after it is marked read. Other users'
+cursors are rejected. Unread filters and read updates match explicit null
+`readAt` values, excluding missing fields as Prisma 6 did. Mark-all requests use
+the displayed timestamp cutoff, and repeated reads preserve the first timestamp.
+Feed DTOs omit event keys, recipient IDs, email payloads, and lease metadata.
+Realtime read updates publish only after persistence succeeds.
+
+`prisma/native/notification-emails.ts` implements delivery candidates, atomic
+claims, minimal recipient/listing projections, payload preparation, and fenced
+completion. Every prepare/finish requires the current `SENDING` lease token.
+The worker retains two-minute leases, eight attempts, exponential backoff,
+provider rate-limit delays, batch limits, and the 23-hour idempotency cutoff.
+Payload and first-attempt time are persisted before HTTP. Recovery after
+provider acceptance reuses that exact payload and idempotency key, including
+when configuration changes. Current preferences and recipient identity are
+checked again, and ending-soon reminders also recheck relevance on retries.
+Provider calls never run in a transaction. Legacy missing/null preference,
+schedule, and attempt-counter behavior is preserved; malformed legacy records
+are not silently normalized by this migration.
+
+`prisma/native/email-verification.ts` stores ObjectId-keyed requests and hashed
+tokens. Requests retain the one-minute resend cooldown and 30-minute expiry.
+A concurrent initial upsert that loses the primary-key race rechecks the
+committed request before returning cooldown. Resends rotate the proof; only the
+committed token is emailed, outside the transaction, using the existing URL
+fragment and explicit confirmation POST. Confirmation atomically consumes the
+exact unexpired hash and updates `User.emailVerified`/`updatedAt` only for the
+address originally emailed. Changed/deleted accounts and failed account writes
+roll back consumption. Verification transactions are bounded to three attempts
+and five seconds; routes retain their retryable 503 failure responses.
+
+The local notification and verification suites cover equal-timestamp pagination,
+ownership and cutoff reads, competing workers, expired/stale leases, frozen
+provider requests, crash recovery, preferences/relevance, backoff and retry
+limits, legacy BSON compatibility, resend/claim races, and persisted rollback.
+Mail calls are mocked; no test sends email.
+
 ## Native indexes
 
-`prisma/native/indexes.mjs` defines the existing twenty-three named secondary indexes
-on fourteen collections, including user emails, provider subjects, bid request
+`prisma/native/indexes.mjs` defines the existing twenty-four named secondary indexes
+on fifteen collections, including user emails, provider subjects, bid request
 keys, notification event keys, asset URLs, reset-token hashes, and lifecycle
-query indexes. The notification pagination index preserves its existing
+query indexes, plus `EmailVerification_tokenHash_key` for verification proof
+uniqueness. The notification pagination index preserves its existing
 `Notification_userId_createdAt__id_idx` name, including the stored `_id` field.
 The `_id` index continues
 to enforce string-key uniqueness. Expiry indexes are regular indexes rather
@@ -327,18 +371,20 @@ reset single-use semantics, persisted transaction rollback, email lease
 fencing, NextAuth OAuth signup/linking, credential login, JWT revocation,
 profile/preference permissions, admin-role revocation, auction/bid contention,
 exact bid replays, stale deadlines/approval revisions, draft save/publication
-races, moderation/seller-edit races, comment/view/watchlist contention, and
-persisted rollback on a local replica set. Start a disposable MongoDB 8+ replica set, then run:
+races, moderation/seller-edit races, comment/view/watchlist contention, notification
+pagination/delivery leases, verification resend/claim races, and persisted rollback on a local replica set. Start a disposable MongoDB 8+ replica set, then run:
 
 ```bash
-NATIVE_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_native_strings?replicaSet=bidlane-test' npm test -- prisma/native/
+NATIVE_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_native_strings?replicaSet=bidlane-test' npm test -- prisma/native/ --maxWorkers=2
 ```
 
-Use the port and replica-set name of your local server. These tests only accept
+Use the port and replica-set name of your local server. Limit workers to avoid
+saturating local storage with concurrent index builds during setup. These tests only accept
 one `127.0.0.1` host and a database named `bidlane_test_native_*`. They reset and
-drop that test database. Authentication, auction, authoring, and engagement suites
-append `_auth`, `_auctions`, `_authoring`, and `_engagement` to isolate their databases when run in
-parallel. Rollback tests temporarily reject writes using validators only in
+drop that test database. Authentication, auction, authoring, engagement,
+notification, and verification suites append `_auth`, `_auctions`, `_authoring`,
+`_engagement`, `_notifications`, and `_verification` to isolate their databases
+when run in parallel. Rollback tests temporarily reject writes using validators only in
 their disposable local database and restore those validators afterward. Tests never fall back to
 `DATABASE_URL`, send mail, or contact Cloudinary. Without the explicit test URL
 they are skipped. The
@@ -347,26 +393,18 @@ shared database was only queried for server metadata and existing index definiti
 
 ## Remaining migration work
 
-1. Migrate notification reads/email delivery and email verification. Preserve ownership
-   checks, conditional updates, race retries, and related writes in the same
-   native session.
-2. Retain explicit foreign-key and array operations for migrated relations,
-   updating both sides atomically as bidding, views, and watchlists now do.
-   Many-to-many key arrays remain persisted fields; they are not v8 ORM relations.
-3. Supply remaining literal/default array values explicitly on creation. Preserve
-   any remaining defaults when those writers migrate. Native listing, draft,
-   review, user, bid, comment, notification, queue, and asset defaults are already explicit.
-   `Listing.lastCommentAt` and `updatedAt` stay
-   nullable; migrated writes must supply their timestamps. Implement any
-   required cascading cleanup explicitly before retiring v6's emulation.
-4. Port remaining reads and generated model/filter/payload types to the chained v8 API.
-   Preserve public-field allowlists, moderation visibility, pagination,
-   `null` versus missing fields, and optional legacy fields/defaults on reads.
-5. On a disposable copy of the database, inspect existing BSON types, missing
+1. Port remaining listing, bid, seller, and account-summary reads and generated
+   model/filter/payload types to the chained v8 API. Preserve public-field
+   allowlists, moderation visibility, pagination, `null` versus missing fields,
+   and optional legacy fields/defaults on reads.
+2. Retain explicit foreign-key/array operations and creation defaults for migrated
+   writers. Many-to-many arrays remain persisted fields, not v8 ORM relations.
+   Implement any required cascading cleanup before retiring v6's emulation.
+3. On a disposable copy of the database, inspect existing BSON types, missing
    fields, extra fields, and index names before introducing strict validators.
-   Finalize management of the native collections, inspect the full migration
-   delta, and extend the local transactional integration tests to those flows.
-6. Cut over the remaining application and operator commands together, then remove v6,
+   Finalize management of native collections, inspect the full migration delta,
+   and validate compatibility of the remaining read paths.
+4. Cut over the remaining application and operator commands together, then remove v6,
    its generated client and dependency override. Replace the emit-only
    config with the reviewed migration config at that point.
 

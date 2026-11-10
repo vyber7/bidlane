@@ -1,22 +1,17 @@
-import prisma from "@/app/libs/prismadb";
+import { getNativeRepositories } from "@/app/libs/native-repositories";
 import type { NotificationFeed } from "@/app/types/account";
 import { ApiRequestError } from "@/app/libs/api-request";
 
 export async function getNotificationFeed(userId: string, { cursor, unreadOnly = false }: { cursor?: string; unreadOnly?: boolean } = {}): Promise<NotificationFeed> {
-  const anchor = cursor ? await prisma.notification.findFirst({ where: { id: cursor, userId }, select: { id: true, createdAt: true } }) : null;
+  const { notifications } = getNativeRepositories();
+  const anchor = cursor ? await notifications.anchor(userId, cursor) : null;
   if (cursor && !anchor) {
     throw new ApiRequestError(400, "Invalid notification cursor");
   }
   const [items, total, unreadCount] = await Promise.all([
-    prisma.notification.findMany({
-      where: { userId, ...(unreadOnly && { readAt: null }),
-        ...(anchor && { OR: [{ createdAt: { lt: anchor.createdAt } }, { createdAt: anchor.createdAt, id: { lt: anchor.id } }] }),
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 51,
-      select: { id: true, kind: true, title: true, message: true, createdAt: true, readAt: true, href: true, actionLabel: true, tone: true },
-    }),
-    prisma.notification.count({ where: { userId } }),
-    prisma.notification.count({ where: { userId, readAt: null } }),
+    notifications.list(userId, unreadOnly, anchor),
+    notifications.count(userId),
+    notifications.unreadCount(userId),
   ]);
   return {
     items: items.slice(0, 50).map(({ id, kind, title, message, createdAt, readAt, href, actionLabel, tone }) => ({

@@ -18,6 +18,7 @@ export const nativeIndexes = {
     { key: { emailStatus: 1, emailLockedUntil: 1 }, name: "Notification_emailStatus_emailLockedUntil_idx" },
   ],
   User: [{ key: { email: 1 }, name: "User_email_key", unique: true }],
+  EmailVerification: [{ key: { tokenHash: 1 }, name: "EmailVerification_tokenHash_key", unique: true }],
   Account: [{ key: { provider: 1, providerAccountId: 1 }, name: "Account_provider_providerAccountId_key", unique: true }],
   ContactRateLimit: [{ key: { expiresAt: 1 }, name: "ContactRateLimit_expiresAt_idx" }],
   UploadQuota: [{ key: { expiresAt: 1 }, name: "UploadQuota_expiresAt_idx" }],

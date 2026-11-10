@@ -1,5 +1,6 @@
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import prisma from "@/app/libs/prismadb";
+import { getNativeRepositories } from "@/app/libs/native-repositories";
+import type { NotificationReadScope } from "@/prisma/native/notifications";
 import { getNotificationFeed } from "@/app/account/lib/notifications";
 import { ApiRequestError, apiErrorResponse, errorResponse, readJsonObject } from "@/app/libs/api-request";
 import { publishNotificationChanges } from "@/app/libs/notifications";
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
     if (!user) return errorResponse("Unauthorized", 401);
     const params = new URL(request.url).searchParams;
     if (params.get("summary") === "1") {
-      const unreadCount = await prisma.notification.count({ where: { userId: user.id, readAt: null } });
+      const unreadCount = await getNativeRepositories().notifications.unreadCount(user.id);
       return Response.json({ userId: user.id, unreadCount } satisfies NotificationSummary, { headers: { "Cache-Control": "private, no-store" } });
     }
     const cursor = params.get("cursor") ?? undefined;
@@ -33,15 +34,15 @@ export async function PATCH(request: Request) {
     const user = await getCurrentUser();
     if (!user) return errorResponse("Unauthorized", 401);
     const body = await readJsonObject(request);
-    let scope: { id: { in: string[] } } | { createdAt: { lte: Date } };
+    let scope: NotificationReadScope;
     if (body.all === true && body.ids === undefined && typeof body.before === "string") {
       const before = new Date(body.before);
       if (!Number.isFinite(before.getTime()) || before > new Date()) throw new ApiRequestError(400, "Invalid notification cutoff");
-      scope = { createdAt: { lte: before } };
+      scope = { before };
     } else if (body.all === undefined && Array.isArray(body.ids) && body.ids.length > 0 && body.ids.length <= 100 && body.ids.every((id) => typeof id === "string" && objectId.test(id))) {
-      scope = { id: { in: [...new Set(body.ids as string[])] } };
+      scope = { ids: [...new Set(body.ids as string[])] };
     } else throw new ApiRequestError(400, "Provide notification IDs or an all-read cutoff");
-    const updated = await prisma.notification.updateMany({ where: { userId: user.id, readAt: null, ...scope }, data: { readAt: new Date() } });
+    const updated = await getNativeRepositories().notifications.markRead(user.id, scope, new Date());
     if (updated.count > 0) await publishNotificationChanges([user.id]);
     return Response.json({ updated: updated.count });
   } catch (error) {
