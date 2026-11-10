@@ -41,6 +41,29 @@ credentials or inherited configuration. `db:v8:emit` runs offline and writes
 regenerate them when the contract changes. The build emits them automatically.
 The existing `prisma/schema.prisma` remains the source for v6 generation.
 
+## Editor support during the migration
+
+Keep the workspace pinned to Prisma 6 (`prisma.pinToPrisma6` in
+`.vscode/settings.json`) while the legacy schema remains active. Its language
+server recursively loads `.prisma` files under the schema directory as one
+schema, including nested files. A v8 PSL file beside the v6 schema therefore
+produces false errors in both files, even when both CLI checks pass. The
+`// use prisma-8` header does not isolate it when the editor is pinned to v6.
+
+The v8 source now uses Prisma's supported [TypeScript contract builder](https://www.prisma.io/docs/orm/contract-authoring/typescript-schema-builder)
+in `prisma/v8/contract.ts`. Do not add v8 `.prisma` files under `prisma/` during
+this parallel-toolchain phase. TypeScript provides editor checking for the v8
+source, and the Prisma 6 extension continues validating `prisma/schema.prisma`.
+
+This authoring-format change preserves byte-identical `contract.json` and
+`contract.d.ts` artifacts, including storage, execution, and profile hashes.
+The contract regression suite compiles the TypeScript source into a temporary
+directory and compares it with both committed artifacts. No database change is
+needed. Close any old `contract.prisma` tab and run **Prisma: Restart Language
+Server** (or **Developer: Reload Window**) to clear stale editor diagnostics.
+
+## Connection checks
+
 `db:v8:check` loads `.env` if present, respecting an existing `DATABASE_URL`, and
 only runs MongoDB `buildInfo` and `hello`. Its `ready` value means the server is
 MongoDB 8.0+ and supports transactions through a replica set or sharded cluster;
@@ -58,13 +81,13 @@ Recheck this override when updating the toolchain.
 The v6 schema importer rejects this app's string IDs, literal defaults,
 cascades, optional generated timestamps, and list-backed many-to-many
 relations. Rather than weaken the active v6 schema, the separate
-`prisma/v8/contract.prisma` describes the ten ObjectId-backed collections:
+`prisma/v8/contract.ts` describes the ten ObjectId-backed collections:
 `Account`, `User`, `Notification`, `Listing`, `ListingReview`, `Comment`, `Bid`,
 `BidSubmission`, `EmailVerification`, and `ListingDraft`.
 
 All persisted fields, field mappings, nullability, list element types, enum
 values, collection names, and index names are preserved. In particular, v6
-`Int` fields remain BSON longs through `Int64Number`; changing them to `Int32`
+`Int` fields remain BSON longs through `field.int64Number()`; changing them to `field.int32()`
 would change storage. Tests compare the emitted contract with v6's generated
 metadata to catch omitted fields and codec drift. The existing unique indexes
 for accounts, emails, bid request keys, and notification keys stay named as v6

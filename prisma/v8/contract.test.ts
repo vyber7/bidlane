@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Prisma } from "@prisma/client";
 import contract from "./contract.json";
 
@@ -10,6 +14,25 @@ const nativeCollections = [
 ];
 
 describe("Prisma 8 storage compatibility", () => {
+  it("emits the committed contract and types from the TypeScript source", () => {
+    const root = fileURLToPath(new URL("../../", import.meta.url));
+    // Emitted type imports are resolved relative to the output directory.
+    // Stay in this package's dependency context, outside TypeScript's inputs.
+    const output = mkdtempSync(join(root, "node_modules/.bidlane-contract-"));
+    try {
+      // Offline compilation also catches source/artifact drift before a build.
+      execFileSync(process.execPath, [
+        join(root, "node_modules/prisma-v8/dist/prisma.js"), "contract", "emit",
+        "--config", join(root, "prisma8.config.ts"), "--output-path", output,
+      ], { cwd: root, timeout: 25_000, stdio: "pipe" });
+      for (const name of ["contract.json", "contract.d.ts"]) {
+        expect(readFileSync(join(output, name), "utf8")).toBe(readFileSync(new URL(name, import.meta.url), "utf8"));
+      }
+    } finally {
+      rmSync(output, { recursive: true, force: true });
+    }
+  }, 30_000);
+
   it("accounts for every v6 collection without changing string IDs to ObjectIds", () => {
     expect([...Object.keys(models), ...nativeCollections].sort()).toEqual(
       Prisma.dmmf.datamodel.models.map((model) => model.name).sort(),

@@ -5,6 +5,6 @@ import { defineConfig } from "@prisma/orm-mongo/config";
 export default definePrismaConfig({
   parent: false,
   orm: defineConfig({
-    contract: "prisma/v8/contract.prisma",
+    contract: "prisma/v8/contract.ts",
   }),
 });
