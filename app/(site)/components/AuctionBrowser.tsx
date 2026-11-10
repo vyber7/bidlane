@@ -51,7 +51,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
 
   return (
     <>
-      <div className="mt-6 flex flex-col gap-4 border-b border-slate-200 pb-6 xl:flex-row xl:items-center xl:justify-between">
+      <div className="mt-6 flex flex-col gap-4 pb-6 xl:flex-row xl:items-center xl:justify-between">
         <div
           className="flex min-w-0 max-w-full snap-x snap-proximity gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:thin] xl:shrink-0 [&::-webkit-scrollbar]:h-1"
           role="tablist"
