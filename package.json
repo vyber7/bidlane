@@ -25,7 +25,8 @@
     "db:legacy:validate": "node node_modules/prisma/build/index.js validate",
     "db:audit": "node --env-file-if-exists=.env scripts/prisma-management.mjs audit",
     "db:plan": "node --env-file-if-exists=.env scripts/prisma-management.mjs plan",
-    "db:rehearse": "vitest run prisma/v8/management.integration.test.ts --maxWorkers=1"
+    "db:rehearse": "vitest run prisma/v8/management.integration.test.ts prisma/v8/user-defaults.integration.test.ts --maxWorkers=1",
+    "db:backfill-users": "node --env-file-if-exists=.env scripts/backfill-user-defaults.mjs"
   },
   "engines": {
     "node": "24.x"

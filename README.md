@@ -111,6 +111,11 @@ schema operations before applying validators and verifying the database. It
 never backfills, deletes, or converts application data. Raw v8 commands and
 legacy v6 `db push` bypass these guards. See the [migration guide](docs/prisma-8-migration.md#database-management-rehearsal).
 
+If the audit finds missing legacy User arrays or `endingSoonEmailsEnabled`,
+`npm run db:backfill-users` previews the narrowly scoped repair without writes.
+Review it and follow the [backfill procedure](docs/prisma-8-migration.md#missing-user-defaults)
+before explicitly applying it; database adoption never runs this repair automatically.
+
 The v6 CLI/client remain development-only for comparison tests and legacy
 inspection while existing-data adoption is completed. `db:legacy:generate`
 regenerates that comparison client; `db:studio` currently remains its legacy
@@ -147,6 +152,7 @@ Auction views use `q` for search, `status=live|upcoming|ended` for the home page
 | `npm run db:audit` | Read-only data compatibility and index audit                 |
 | `npm run db:plan` | Audit and preview additive adoption operations without writes |
 | `npm run db:rehearse` | Run the guarded local-only management rehearsal              |
+| `npm run db:backfill-users` | Preview missing User defaults; `-- --apply` writes them explicitly |
 | `npm run db:v8:check` | Read MongoDB version and transaction-support metadata        |
 | `npm run db:native:indexes` | Verify the string-ID collections’ existing indexes     |
 

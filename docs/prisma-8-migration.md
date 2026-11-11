@@ -444,6 +444,47 @@ DDL/signing is not one MongoDB transaction: a command failure can leave partial
 metadata changes, so stop and inspect before retrying. No shared database's
 records, validators, indexes, or marker were changed during this rehearsal.
 
+## Missing User defaults
+
+The configured database's read-only audit found missing required arrays and
+`endingSoonEmailsEnabled` on legacy User records. The other nine managed
+collections, existing index definitions, and native string-ID types passed.
+Missing optional account fields are valid and need no repair. A server-side
+projection of the proposed defaults cleared all observed validator failures
+without updating records or exporting account values.
+
+```bash
+npm run db:backfill-users             # preview only; counts and known defaults
+# After reviewing the preview, backing up, and rehearsing on a restored copy:
+npm run db:backfill-users -- --apply   # explicit, transactional data write
+npm run db:audit
+npm run db:plan
+```
+
+The separate backfill fills only absent `BidOnListIds`, `highestBidsIds`,
+`listingsCommentedOnIds`, `seenListIds`, and `watchListIds` with empty arrays,
+and absent `endingSoonEmailsEnabled` with `true`. These match the existing
+Prisma 6 read defaults and native signup behavior. Existing array entries,
+explicit email opt-outs, and every other stored field are preserved, including
+roles, credentials, verification proof, session versions, and timestamps.
+Explicit nulls and wrong types are never replaced.
+
+Before writing, the script checks that these additions would resolve every
+User validator failure and that the remaining audit passes. It repeats the
+User check inside a snapshot/majority transaction, uses missing-only update
+expressions to preserve concurrent changes, and validates the resulting records
+before committing. A validation/write failure rolls back the transaction;
+repeating a successful backfill adds nothing. Unexpected fields, unresolved
+null/type problems, other incompatible collections, native ID problems, and
+index issues block the repair. The script does not install validators, change
+indexes or IDs, sign the database, or send email.
+
+`db:rehearse` includes independent fixtures matching the observed missing-field
+pattern. Tests verify preview privacy, preservation, idempotence, refusal of
+unresolved failures, rollback, and concurrent watchlist/preference updates.
+This is separate from rehearsing on a restored copy of the actual database;
+retain the backup until adoption and application checks are complete.
+
 ## Client and transaction boundary
 
 Server code obtains the shared pool through `getDatabaseV8` from
@@ -486,7 +527,9 @@ NATIVE_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_native_strings?
 ```
 
 Use the port and replica-set name of your local server. Limit workers to avoid
-saturating local storage with concurrent index builds during setup. These tests only accept
+saturating local storage with concurrent index builds during setup. Run the
+DDL-heavy `db:rehearse` separately, with its configured single worker, rather
+than enabling both integration URLs in a parallel run. These tests only accept
 one `127.0.0.1` host and a database named `bidlane_test_native_*`. They reset and
 drop that test database. Authentication, auction, authoring, engagement,
 notification, verification, and read suites append `_auth`, `_auctions`,
@@ -495,14 +538,17 @@ when run in parallel. Rollback tests temporarily reject writes using validators 
 their disposable local database and restore those validators afterward. Tests never fall back to
 `DATABASE_URL`, send mail, or contact Cloudinary. Without the explicit test URL
 they are skipped. The
-migration has been verified against local MongoDB 8.0.17 and 8.0.37 replica sets; the configured
-shared database was only queried for server metadata and existing index definitions.
+migration has been verified against local MongoDB 8.0.17 and 8.0.37 replica sets.
+The configured shared database was also audited read-only for document/schema
+compatibility, indexes, and native ID types. No shared records, validators,
+indexes, or migration marker were changed.
 
 ## Remaining migration work
 
 1. Repeat the tested adoption flow on a restored copy of the actual database.
-   Review its audit, resolve incompatible data, and coordinate old-writer shutdown
-   before applying the guarded changes to the target. Representative local
+   Review its audit and missing-default preview, rehearse any repair, and
+   coordinate old-writer shutdown before applying the guarded changes to the
+   target. Representative local
    rehearsal does not establish that existing shared data is compatible.
 2. Retain explicit foreign-key/array operations, creation defaults, and native
    transaction boundaries. Many-to-many arrays remain persisted fields, not
