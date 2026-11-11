@@ -1,4 +1,4 @@
-import { definePrismaConfig } from "prisma-v8/config";
+import { definePrismaConfig } from "prisma/config";
 import { defineConfig } from "@prisma/orm-mongo/config";
 
 // Used by the guarded scripts, not by normal offline contract emission.

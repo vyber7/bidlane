@@ -3,8 +3,8 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Prisma } from "@prisma/client";
 import contract from "./contract.json";
+import { nativeCollections as nativeInventory } from "../../scripts/prisma-management.mjs";
 
 const models = contract.domain.namespaces.__unbound__.models;
 const collections = contract.storage.namespaces.__unbound__.entries.collection;
@@ -12,6 +12,27 @@ const nativeCollections = [
   "ContactRateLimit", "UploadedAsset", "UploadQuota", "AbuseQuota",
   "PasswordReset", "PasswordResetQuota", "RecoveryEmail",
 ];
+
+// Independently reviewed persistence requirements, not generated model metadata.
+// Changes here require reviewing stored BSON compatibility, not just re-emission.
+const storedFields = {
+  Account: { objectId: "id userId", string: "type provider providerAccountId", "string?": "refresh_token access_token token_type scope id_token session_state", "int64Number?": "refresh_token_expires_in expires_at" },
+  User: { objectId: "id", "string?": "name email role image sessionVersion hashedPassword", "date?": "emailVerified", date: "createdAt updatedAt", bool: "outbidEmailsEnabled endingSoonEmailsEnabled", "objectId[]": "listingsCommentedOnIds watchListIds BidOnListIds seenListIds highestBidsIds" },
+  Notification: { objectId: "id userId", string: "eventKey kind title message href actionLabel tone", date: "createdAt", "date?": "readAt emailNextAttemptAt emailLockedUntil emailFirstAttemptAt emailSentAt", "objectId?": "emailListingId", "string?": "emailStatus emailLockToken emailProviderId emailLastError", int64Number: "emailAttempts", "json?": "emailPayload" },
+  Listing: { objectId: "id userId", int64Number: "year miles views", string: "make model location description status", "string[]": "images", "string?": "transmission drivetrain titleStatus serviceHistory modifications vin knownFlaws coverImage result reviewStatus reviewNote", "json?": "vehicleRecords", "int64Number?": "reservePrice reviewRevision startingBid currentBid bidIncrement", date: "createdAt", "date?": "lastCommentAt updatedAt auctionStartsAt auctionEndsAt endingSoonReminderAt", bool: "isFeatured", "objectId[]": "biddersIds seenIds watchersIds commentsIds commenterIds", "objectId?": "highestBidderId" },
+  ListingReview: { objectId: "id listingId reviewerId", string: "reviewerName decision", "string?": "reason", int64Number: "revision", date: "createdAt" },
+  Comment: { objectId: "id listingId", "objectId?": "userId", "string?": "body image", date: "createdAt" },
+  Bid: { objectId: "id listingId userId", int64Number: "amount", date: "createdAt" },
+  BidSubmission: { objectId: "id userId listingId", string: "key", int64Number: "amount", json: "response", date: "createdAt" },
+  EmailVerification: { objectId: "id", string: "email tokenHash", date: "requestedAt expiresAt" },
+  ListingDraft: { objectId: "id userId", json: "payload", int64Number: "revision", string: "lastSaveKey", "objectId?": "publishedListingId", "date?": "deletedAt", date: "createdAt updatedAt" },
+} as const;
+const storedEnums = {
+  UserRole: ["USER", "ADMIN"], NotificationKind: ["bid", "auction", "comment"],
+  NotificationTone: ["success", "warning", "neutral"],
+  EmailDeliveryStatus: ["PENDING", "SENDING", "SENT", "SKIPPED", "FAILED"],
+  ListingReviewStatus: ["PENDING", "APPROVED", "CHANGES_REQUESTED"],
+} as const;
 
 describe("Prisma 8 storage compatibility", () => {
   it("manages only the declared ObjectId collections and tolerates native/operational collections", () => {
@@ -27,8 +48,8 @@ describe("Prisma 8 storage compatibility", () => {
     try {
       // Offline compilation also catches source/artifact drift before a build.
       execFileSync(process.execPath, [
-        join(root, "node_modules/prisma-v8/dist/prisma.js"), "contract", "emit",
-        "--config", join(root, "prisma8.config.ts"), "--output-path", output,
+        join(root, "node_modules/prisma/dist/prisma.js"), "contract", "emit",
+        "--config", join(root, "prisma.config.ts"), "--output-path", output,
       ], { cwd: root, timeout: 25_000, stdio: "pipe" });
       for (const name of ["contract.json", "contract.d.ts"]) {
         expect(readFileSync(join(output, name), "utf8")).toBe(readFileSync(new URL(name, import.meta.url), "utf8"));
@@ -38,44 +59,33 @@ describe("Prisma 8 storage compatibility", () => {
     }
   }, 30_000);
 
-  it("accounts for every v6 collection without changing string IDs to ObjectIds", () => {
-    expect([...Object.keys(models), ...nativeCollections].sort()).toEqual(
-      Prisma.dmmf.datamodel.models.map((model) => model.name).sort(),
-    );
-    for (const name of nativeCollections) {
-      const id = Prisma.dmmf.datamodel.models.find((model) => model.name === name)!.fields.find((field) => field.isId)!;
-      expect(id.type).toBe("String");
-      expect(id.nativeType).toBeNull();
-    }
+  it("accounts for all ten managed and seven native collections", () => {
+    expect(Object.keys(models).sort()).toEqual(Object.keys(storedFields).sort());
+    expect(Object.keys(collections).sort()).toEqual(Object.keys(storedFields).sort());
+    expect([...nativeInventory].sort()).toEqual([...nativeCollections].sort());
   });
 
-  for (const [name, model] of Object.entries(models)) {
+  for (const [name, groups] of Object.entries(storedFields)) {
     it(`preserves ${name}'s stored fields, types, nullability, and collection name`, () => {
-      const legacy = Prisma.dmmf.datamodel.models.find((item) => item.name === name)!;
-      const fields = legacy.fields.filter((field) => field.kind !== "object");
-      expect(model.storage.collection).toBe(legacy.dbName ?? legacy.name);
+      const model = models[name as keyof typeof models];
+      const fields = Object.entries(groups).flatMap(([type, names]) => names.split(" ").map((name) => ({ name, type })));
+      expect(model.storage.collection).toBe(name);
       expect(Object.keys(model.fields).sort()).toEqual(fields.map((field) => field.name).sort());
-      for (const field of fields) {
-        const migrated = model.fields[field.name as keyof typeof model.fields];
-        expect(migrated.nullable).toBe(!field.isRequired);
-        expect("many" in migrated).toBe(field.isList);
-        const codec = field.nativeType?.[0] === "ObjectId" ? "objectId"
-          : field.kind === "enum" ? "string"
-          : ({ String: "string", Int: "int64Number", Boolean: "bool", DateTime: "date", Json: "json" }[field.type]);
-        expect(codec).toBeDefined();
-        expect(migrated.type).toEqual({ kind: "scalar", codecId: `mongo/${codec}@1` });
-        expect(model.storage.fields[field.name as keyof typeof model.storage.fields]).toEqual({ field: field.dbName ?? field.name });
+      for (const { name, type } of fields) {
+        const migrated = model.fields[name as keyof typeof model.fields];
+        expect(migrated.nullable).toBe(type.endsWith("?"));
+        expect("many" in migrated).toBe(type.endsWith("[]"));
+        expect(migrated.type).toEqual({ kind: "scalar", codecId: `mongo/${type.replace(/\?|\[\]/g, "")}@1` });
+        expect(model.storage.fields[name as keyof typeof model.storage.fields]).toEqual({ field: name === "id" ? "_id" : name });
       }
     });
   }
 
   it("preserves enum storage values for roles, moderation, and notifications", () => {
     const enums = contract.domain.namespaces.__unbound__.enum;
-    // UploadKind belongs to UploadedAsset, which keeps its native string ID.
-    expect([...Object.keys(enums), "UploadKind"].sort()).toEqual(Prisma.dmmf.datamodel.enums.map((item) => item.name).sort());
-    for (const [name, current] of Object.entries(enums)) {
-      const legacy = Prisma.dmmf.datamodel.enums.find((item) => item.name === name)!;
-      expect(current.members).toEqual(legacy.values.map((member) => ({ name: member.name, value: member.dbName ?? member.name })));
+    expect(Object.keys(enums).sort()).toEqual(Object.keys(storedEnums).sort());
+    for (const [name, values] of Object.entries(storedEnums)) {
+      expect(enums[name as keyof typeof enums].members).toEqual(values.map((value) => ({ name: value, value })));
     }
   });
 

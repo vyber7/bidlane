@@ -1,6 +1,6 @@
 # Prisma 8 migration
 
-This branch has a parallel Prisma 8 toolchain and typed contract. The seven
+This branch uses the Prisma 8 toolchain and a typed contract. The seven
 string-ID collections now use native MongoDB repositories through the shared
 v8 connection pool. Password-reset credential changes also use native sessions
 so reset-token consumption, session invalidation, and queued notices stay atomic.
@@ -15,8 +15,9 @@ Notification feeds/read updates, notification email delivery, and email
 verification now use native repositories too. Listing, bid, seller, and
 account-summary reads now use the typed v8 ORM. Application code no longer
 queries the Prisma 6 client. Builds, generation, and validation use only v8.
-The unused v6 provider/schema, CLI, and dev-only client remain for compatibility
-comparisons and legacy inspection until those checks are replaced.
+The unused v6 provider/schema, CLI, client, and test mocks have been removed.
+Storage requirements and compatibility fixtures no longer depend on generated
+v6 metadata or a reference client.
 
 ## Working commands
 
@@ -35,41 +36,35 @@ npm run build
 
 `db:generate` emits the v8 contract/types offline; `db:validate` emits into a
 temporary directory and compares both artifacts without opening a database.
-The build runs only v8 emission and Next.js. `@prisma/client` is a development
-dependency. `db:legacy:generate`, `db:legacy:validate`, and the existing
-`db:studio` use v6 explicitly for comparison tests/inspection. Both CLI packages
-expose a `prisma` binary, so continue using npm scripts rather than bare
-`npx prisma` until the legacy tooling is removed.
+The build runs only v8 emission and Next.js. The canonical `prisma` package is
+pinned to the v8 CLI; there is no aliased CLI, generated `@prisma/client`, legacy
+schema generation, or Prisma 6 Studio command. Read-only `db:audit` and `db:plan`
+are the supported repository inspection commands. Use the npm scripts for
+management so the reviewed operation and permission guards run.
 
-`prisma8.config.ts` is deliberately offline, without database credentials or
+`prisma.config.ts` is deliberately offline, without database credentials or
 inherited configuration. `db:v8:emit` writes `prisma/v8/contract.json` and
 `contract.d.ts`; commit both artifacts after changing the TypeScript source.
 `prisma.management.config.ts` is used only by guarded adoption commands. It
 receives the explicit connection through the environment, and CLI ref/snapshot
 files are isolated in command-specific temporary directories. The database's
 marker is persisted; rehearsal-local refs are not written into the repository.
-The existing `prisma/schema.prisma` remains the source for v6 comparisons.
+The Prisma 6 schema and unused application client have been deleted.
 
-## Editor support during the migration
+## Contract authoring and editor support
 
-Keep the workspace pinned to Prisma 6 (`prisma.pinToPrisma6` in
-`.vscode/settings.json`) while the legacy schema remains active. Its language
-server recursively loads `.prisma` files under the schema directory as one
-schema, including nested files. A v8 PSL file beside the v6 schema therefore
-produces false errors in both files, even when both CLI checks pass. The
-`// use prisma-8` header does not isolate it when the editor is pinned to v6.
+The canonical source is the TypeScript contract builder in
+`prisma/v8/contract.ts`. TypeScript provides editor checking directly, and the
+Prisma 6 editor pin has been removed from `.vscode/settings.json`. There are no
+legacy `.prisma` schemas in this checkout.
 
-The v8 source now uses Prisma's supported [TypeScript contract builder](https://www.prisma.io/docs/orm/contract-authoring/typescript-schema-builder)
-in `prisma/v8/contract.ts`. Do not add v8 `.prisma` files under `prisma/` during
-this parallel-toolchain phase. TypeScript provides editor checking for the v8
-source, and the Prisma 6 extension continues validating `prisma/schema.prisma`.
-
-This authoring-format change preserves byte-identical `contract.json` and
-`contract.d.ts` artifacts, including storage, execution, and profile hashes.
-The contract regression suite compiles the TypeScript source into a temporary
-directory and compares it with both committed artifacts. No database change is
-needed. Close any old `contract.prisma` tab and run **Prisma: Restart Language
-Server** (or **Developer: Reload Window**) to clear stale editor diagnostics.
+The v8-only toolchain produces byte-identical `contract.json` and `contract.d.ts`
+artifacts, including storage, execution, and profile hashes. The regression
+suite emits into a temporary directory and compares both artifacts. It also
+checks an independently maintained persistence specification: all stored fields,
+codec types, nullability, arrays, enum values, collection names, and critical
+index names/keys. Updating the builder cannot silently update the expected
+persistence requirements. No database changes are part of this tooling cleanup.
 
 ## Connection checks
 
@@ -87,18 +82,17 @@ Recheck this override when updating the toolchain.
 
 ## Contract scope and compatibility
 
-The v6 schema importer rejects this app's string IDs, literal defaults,
-cascades, optional generated timestamps, and list-backed many-to-many
-relations. Rather than weaken the active v6 schema, the separate
-`prisma/v8/contract.ts` describes the ten ObjectId-backed collections:
+The original schema importer could not represent the string IDs, implicit
+defaults/timestamps, cascades, and list-backed relations. The canonical
+TypeScript builder in `prisma/v8/contract.ts` describes the ten ObjectId-backed collections:
 `Account`, `User`, `Notification`, `Listing`, `ListingReview`, `Comment`, `Bid`,
 `BidSubmission`, `EmailVerification`, and `ListingDraft`.
 
 All persisted fields, field mappings, nullability, list element types, enum
 values, collection names, and index names are preserved. In particular, v6
 `Int` fields remain BSON longs through `field.int64Number()`; changing them to `field.int32()`
-would change storage. Tests compare the emitted contract with v6's generated
-metadata to catch omitted fields and codec drift. The existing unique indexes
+would change storage. Tests compare the emitted contract with independent
+stored-field requirements to catch omitted fields and codec drift. The existing unique indexes
 for accounts, emails, bid request keys, and notification keys stay named as v6
 created them.
 
@@ -112,10 +106,10 @@ integer fields still store BSON longs, and DTOs retain their existing string IDs
 and JavaScript numbers. Native duplicate-key errors replace Prisma `P2002` in
 quota creation races, while other storage failures still fail closed.
 
-The v6 schema retains these model declarations for index management and legacy
-client compatibility during the transition; application access to these seven
-collections no longer goes through that generated client. The recovery worker's
-case-insensitive `User` lookup also uses the native account repository.
+The native index inventory owns these collections independently of the typed
+contract. Their string IDs, ObjectId foreign keys, and BSON longs are asserted
+directly in integration tests. The recovery worker's case-insensitive `User`
+lookup also uses the native account repository.
 
 ## Authentication and account access
 
@@ -196,7 +190,7 @@ notification-writer bridge has been removed.
 revision-guarded saves, deletion markers, and publication links. Draft APIs,
 account draft lists, and the submission resume page use these native reads.
 ObjectId ownership, BSON long revisions, JSON payloads, and explicit timestamps
-remain readable by the v6 client. Draft DTOs exclude internal owner/save-key
+are checked directly against historical BSON fixtures. Draft DTOs exclude internal owner/save-key
 fields and normalize saved content through the existing draft schema.
 
 Create retries compare the original save key and normalized payload, including
@@ -274,7 +268,7 @@ Private watch events stay on the authenticated user's channel; the public
 listing channel receives only a count. A failed post-commit snapshot or realtime
 notification still returns the successful write response.
 
-The engagement integration suite covers BSON/v6 compatibility, concurrent view
+The engagement integration suite covers stored BSON compatibility, concurrent view
 and watch requests, opposite watch intents, rollback of related writes and
 notifications, moderation races, single-charge retries, public field allowlists,
 legacy missing/null data, and watchlist visibility/order.
@@ -356,12 +350,15 @@ with BSON longs, an owner/status/revision guard, explicit timestamp, and approva
 reset in one atomic update. Upload ownership checks also use native authoring
 reads; admin counts still authorize against the current account role first.
 
-`prisma/reads/repositories.integration.test.ts` compares actual v8 and v6 results
-on a disposable database. It covers BSON/default compatibility, raw visibility,
-public payloads, seller pagination, bid grouping, authorized sale contacts,
-role revocation, upload ownership, and atomic seller corrections racing with
-another correction or an auction start. The application-side v6 client is
-mocked to throw if any migrated path accidentally calls it.
+`prisma/reads/repositories.integration.test.ts` compares v8 reads against known
+fixture values and explicit public/account expectations on a disposable database.
+It covers ObjectId/long/JSON/date decoding, missing/null defaults without writes,
+raw visibility, public payloads, seller pagination with ObjectId ties, bid grouping,
+authorized sale contacts, role revocation, upload ownership, and atomic seller
+corrections racing with another correction or an auction start. Native repository
+suites independently inspect stored BSON, relation arrays, and persisted rollback.
+There is no generated reference client or mocked legacy provider to hide a missing
+migration; all test imports resolve on a clean v8-only install.
 
 ## Native indexes
 
@@ -641,7 +638,7 @@ notifications remain in the same native session.
 
 The regular test suite covers business policies and duplicate-key fallback.
 Integration tests additionally exercise actual BSON encodings, concurrent
-counters, ownership filters, unique indexes, native/v6 read compatibility,
+counters, ownership filters, unique indexes, historical BSON/read compatibility,
 reset single-use semantics, persisted transaction rollback, email lease
 fencing, NextAuth OAuth signup/linking, credential login, JWT revocation,
 profile/preference permissions, admin-role revocation, auction/bid contention,
@@ -673,6 +670,16 @@ and verified, and development validator adoption/signing has completed with
 live preservation, ORM, enforcement, rollback and repeat-plan checks.
 Production remains on Prisma 6 and was not changed.
 
+## Prisma 6 tooling retirement
+
+The test/tooling cleanup is complete. Independent persistence requirements and
+BSON/DTO fixtures replace the generated metadata and reference client. The
+canonical v8 CLI/config, editor setup, lockfile, and documentation replace
+legacy commands and dependencies. A clean install, byte-for-byte contract
+validation, the regular and replica-set test suites, lint, TypeScript, and a
+production build verify this checkout without Prisma 6. This cleanup changes
+no persisted contract or database data.
+
 ## Remaining migration work
 
 1. Separately plan production's Prisma 6 cutover with its own backup, audit,
@@ -681,13 +688,12 @@ Production remains on Prisma 6 and was not changed.
    are complete; production has not been targeted.
 2. Retain explicit foreign-key/array operations, creation defaults, and native
    transaction boundaries. Many-to-many arrays remain persisted fields, not
-   v8 ORM relations. Confirm required cascading cleanup before retiring v6's
-   emulation; account deletion is not currently an application operation.
-3. Replace compatibility checks that depend on the generated v6 model metadata
-   with independent contract assertions. Complete the operator/config/editor
-   cutover together, then remove the unused v6 provider, schema/toolchain, client,
-   dependency override, and remaining test-only imports/mocks. Retain the split
-   between offline emission and explicit guarded database management.
+   v8 ORM relations. Account deletion is not currently an application operation;
+   any future deletion workflow must explicitly implement its required cleanup
+   in the native transaction boundary.
+3. Review the pinned Prisma 8 release candidates as part of production release
+   readiness. Retain the split between offline contract emission and explicit
+   guarded database management in future changes.
 
 ## References
 

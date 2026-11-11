@@ -77,7 +77,7 @@ export async function runPrisma(args, url) {
   const state = await mkdtemp(join(tmpdir(), "bidlane-management-"));
   let stdout;
   try {
-    ({ stdout } = await execute(process.execPath, ["node_modules/prisma-v8/dist/prisma.js", ...args, "--config", "prisma.management.config.ts", "--json"], {
+    ({ stdout } = await execute(process.execPath, ["node_modules/prisma/dist/prisma.js", ...args, "--config", "prisma.management.config.ts", "--json"], {
       cwd: root, env: { ...process.env, DATABASE_URL: url, BIDLANE_MANAGEMENT_STATE_DIR: state }, timeout: 120_000, maxBuffer: 8 * 1024 * 1024,
     }));
   } catch { throw new Error("Prisma management command did not succeed"); }

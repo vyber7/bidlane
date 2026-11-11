@@ -2,11 +2,11 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Long, ObjectId, type Document } from "mongodb";
 import ConnectionString from "mongodb-connection-string-url";
-import { PrismaClient } from "@prisma/client";
 import { createDatabaseV8, type DatabaseV8 } from "../v8/client";
 import { createNativeRepositories, type NativeRepositories } from "./repositories";
 import { ensureNativeIndexes } from "./indexes.mjs";
 import type { AuthUser } from "./auth";
+import type { Listing } from "@/app/types/database";
 
 const state = vi.hoisted(() => ({ connection: undefined as DatabaseV8 | undefined, trigger: vi.fn() }));
 const sessions = new AsyncLocalStorage<{ user: { email: string } } | null>();
@@ -14,7 +14,6 @@ vi.mock("@/app/libs/prismadb-v8", () => ({ getDatabaseV8: () => {
   if (!state.connection) throw new Error("Local engagement database is not initialized");
   return state.connection;
 } }));
-vi.mock("@/app/libs/prismadb", () => ({ default: new Proxy({}, { get() { throw new Error("Engagement must not use Prisma 6"); } }) }));
 vi.mock("@/app/actions/getSession", () => ({ getSession: async () => sessions.getStore() ?? null }));
 vi.mock("@/app/libs/pusher", () => ({ pusherServer: { trigger: state.trigger } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn(), warn: vi.fn() } }));
@@ -35,7 +34,7 @@ const asUser = <T>(user: AuthUser | null, operation: () => T): T => sessions.run
 const url = process.env.NATIVE_TEST_DATABASE_URL;
 
 describe.skipIf(!url)("native comments, listing views and watchlists on a local replica set", () => {
-  let connection: DatabaseV8, repositories: NativeRepositories, legacy: PrismaClient;
+  let connection: DatabaseV8, repositories: NativeRepositories;
   let seller: AuthUser, buyer: AuthUser, other: AuthUser, admin: AuthUser, listingId: string;
   beforeAll(async () => {
     const parsed = new ConnectionString(url!);
@@ -46,7 +45,6 @@ describe.skipIf(!url)("native comments, listing views and watchlists on a local 
     await connection.mongoClient.connect(); await connection.database.dropDatabase();
     await ensureNativeIndexes(connection.database);
     repositories = createNativeRepositories(connection.database);
-    legacy = new PrismaClient({ datasourceUrl: localUrl });
   }, 30_000);
   beforeEach(async () => {
     vi.clearAllMocks(); state.trigger.mockResolvedValue(undefined);
@@ -63,7 +61,7 @@ describe.skipIf(!url)("native comments, listing views and watchlists on a local 
   });
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
   afterAll(async () => {
-    if (connection) { await legacy?.$disconnect(); await connection.database.dropDatabase(); await connection.close(); state.connection = undefined; }
+    if (connection) { await connection.database.dropDatabase(); await connection.close(); state.connection = undefined; }
   }, 30_000);
 
   const listings = () => connection.database.collection("Listing");
@@ -71,6 +69,13 @@ describe.skipIf(!url)("native comments, listing views and watchlists on a local 
   const setListing = (fields: Record<string, unknown>) => listings().updateOne({ _id: new ObjectId(listingId) }, { $set: fields });
   const rawListing = () => listings().findOne({ _id: new ObjectId(listingId) }, { promoteLongs: false });
   const rawUser = (user = buyer) => users().findOne({ _id: new ObjectId(user.id) });
+  const fixtureListing = (overrides: Partial<Listing> = {}) => makeListing({
+    id: listingId, userId: seller.id, images: [image], coverImage: image,
+    createdAt: new Date("2026-01-01"), updatedAt: new Date("2026-01-01"), lastCommentAt: new Date("2026-01-01"),
+    transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: "None known", modifications: "None known", knownFlaws: "None known",
+    vin: "", vehicleRecords: [], reservePrice: 90000, status: "LIVE", reviewStatus: "PENDING", reviewRevision: 0,
+    auctionStartsAt: null, auctionEndsAt: null, startingBid: null, bidIncrement: null, ...overrides,
+  });
   const postComment = (actor = buyer, extra = {}) => asUser(actor, () => comment(request({ listingId, comment: " Great car ", ...extra })));
   const postView = (actor: AuthUser | null = buyer) => asUser(actor, () => view(request({ listingId, userId: seller.id })));
   const postWatch = (watching: boolean, actor = buyer) => asUser(actor, () => watch(request({ listingId, watching, userId: seller.id })));
@@ -106,7 +111,7 @@ describe.skipIf(!url)("native comments, listing views and watchlists on a local 
     expect(listing?.lastCommentAt).toEqual(raw?.createdAt); expect(listing?.updatedAt).toEqual(raw?.createdAt);
     expect(listing?.commentsIds).toEqual(before?.commentsIds); expect(listing?.commenterIds).toEqual(before?.commenterIds);
     expect((await rawUser())?.listingsCommentedOnIds).toEqual([]);
-    expect(await legacy.comment.findUnique({ where: { id: payload.id }, include: { user: { select: { name: true } } } })).toMatchObject({ body: "Great car", userId: buyer.id, listingId, user: { name: "Buyer" } });
+    expect(await getComments(listingId)).toMatchObject([{ id: payload.id, body: "Great car", user: { name: "Buyer" } }]);
     expect(await connection.database.collection("Notification").findOne({ userId: new ObjectId(seller.id) })).toMatchObject({ eventKey: `comment:${payload.id}`, readAt: null });
     expect(state.trigger).toHaveBeenCalledWith(`listing-${listingId}`, "new-comment", payload);
     expect(state.trigger).toHaveBeenCalledWith(`private-user-${seller.id}`, "notifications-changed", {});
@@ -180,7 +185,7 @@ describe.skipIf(!url)("native comments, listing views and watchlists on a local 
     const raw = await rawListing(); expect(raw?.views).toEqual(Long.fromNumber(2)); expect(raw?.seenIds).toEqual([new ObjectId(buyer.id)]);
     expect((await rawUser())?.seenListIds).toEqual([new ObjectId(listingId)]);
     expect((await rawUser(seller))?.seenListIds).toEqual([]);
-    expect(await legacy.listing.findUnique({ where: { id: listingId } })).toMatchObject({ views: 2, seenIds: [buyer.id] });
+    expect(await connection.database.collection("Listing").findOne({ _id: new ObjectId(listingId) }, { promoteLongs: false })).toMatchObject({ views: Long.fromNumber(2), seenIds: [new ObjectId(buyer.id)] });
   });
 
   it("counts distinct users concurrently without exceeding the signed Int cap", async () => {
@@ -213,20 +218,20 @@ describe.skipIf(!url)("native comments, listing views and watchlists on a local 
     expect((await rawUser())?.seenListIds).toEqual([]);
   });
 
-  it.each(["missing", "null"])("matches Prisma 6 view filters for %s legacy fields", async (kind) => {
+  it.each(["missing", "null"])("preserves distinct view behavior for %s historical fields", async (kind) => {
     const fieldUpdate = (field: string) => kind === "missing" ? { $unset: { [field]: "" } } : { $set: { [field]: null } };
     await listings().updateOne({ _id: new ObjectId(listingId) }, fieldUpdate("seenIds"));
     await users().updateOne({ _id: new ObjectId(buyer.id) }, fieldUpdate("seenListIds"));
     const response = await postView(); expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ views: kind === "missing" ? 1 : 2 });
-    expect((await legacy.user.findUnique({ where: { id: buyer.id } }))?.seenListIds).toEqual(kind === "missing" ? [] : [listingId]);
+    expect((await rawUser())?.seenListIds).toEqual(kind === "missing" ? undefined : [new ObjectId(listingId)]);
     await listings().updateOne({ _id: new ObjectId(listingId) }, { $set: { seenIds: [] } });
     await listings().updateOne({ _id: new ObjectId(listingId) }, fieldUpdate("views"));
     expect(await (await postView()).json()).toEqual({ views: kind === "missing" ? 1 : 2 });
     expect((await rawListing())?.seenIds).toEqual(kind === "missing" ? [] : [new ObjectId(buyer.id)]);
     await listings().updateOne({ _id: new ObjectId(listingId) }, { $set: { seenIds: [] } });
-    // Verify the original v6 predicate against the same raw legacy counter.
-    expect((await legacy.listing.updateMany({ where: { id: listingId, views: { lt: 2_147_483_647 }, NOT: { seenIds: { has: buyer.id } } }, data: { views: { increment: 1 } } })).count).toBe(kind === "missing" ? 0 : 1);
+    // Display defaults must not materialize a missing counter or turn null into a number.
+    expect((await rawListing())?.views).toBe(kind === "missing" ? undefined : null);
   });
 
   it("persists idempotent watch/unwatch intent on both sides without changing timestamps", async () => {
@@ -237,7 +242,7 @@ describe.skipIf(!url)("native comments, listing views and watchlists on a local 
       expect((await rawUser())?.watchListIds).toEqual(watching ? [new ObjectId(listingId)] : []);
     }
     expect((await rawListing())?.updatedAt).toEqual(before?.updatedAt); expect((await rawUser())?.updatedAt).toEqual(userBefore?.updatedAt);
-    expect((await legacy.user.findUnique({ where: { id: buyer.id } }))?.watchListIds).toEqual([]);
+    expect((await connection.database.collection("User").findOne({ _id: new ObjectId(buyer.id) }, { promoteLongs: false }))?.watchListIds).toEqual([]);
   });
 
   it("preserves concurrent watchers and deduplicates repeated requests", async () => {
@@ -287,10 +292,10 @@ describe.skipIf(!url)("native comments, listing views and watchlists on a local 
     expect(state.trigger).not.toHaveBeenCalled();
   });
 
-  it("matches the public Prisma snapshot, including legacy defaults, without returning private fields", async () => {
+  it("matches the explicit public fixture, including historical defaults, without returning private fields", async () => {
     await listings().updateOne({ _id: new ObjectId(listingId) }, { $unset: { views: "", isFeatured: "", lastCommentAt: "", updatedAt: "", reservePrice: "", images: "" }, $set: { watchersIds: [new ObjectId(buyer.id), new ObjectId(other.id)] } });
     const snapshot = (await repositories.engagement.watchSnapshot(listingId, buyer.id))!;
-    expect(snapshot.listing).toEqual(toPublicListing((await legacy.listing.findUnique({ where: { id: listingId } }))!, buyer.id));
+    expect(snapshot.listing).toEqual(toPublicListing(fixtureListing({ views: 1, images: [], isFeatured: false, lastCommentAt: null, updatedAt: null, reservePrice: null, watchersIds: [buyer.id, other.id] }), buyer.id));
     for (const field of ["reservePrice", "watchersIds", "seenIds", "reviewNote", "futureSecret"]) expect(snapshot.listing).not.toHaveProperty(field);
     expect((await postWatch(true)).status).toBe(200);
     for (const [channel, event, payload] of state.trigger.mock.calls) {
@@ -301,7 +306,7 @@ describe.skipIf(!url)("native comments, listing views and watchlists on a local 
     }
   });
 
-  it("loads only the viewer's public watchlist in updatedAt order with the same visibility as Prisma 6", async () => {
+  it("loads only the viewer's public watchlist in updatedAt order", async () => {
     await setListing({ watchersIds: [new ObjectId(buyer.id)], updatedAt: new Date("2026-01-03") });
     const base = (await rawListing())!;
     const approved = new ObjectId(), ended = new ObjectId();
@@ -316,8 +321,11 @@ describe.skipIf(!url)("native comments, listing views and watchlists on a local 
     ]);
     const result = await repositories.engagement.watchlist(buyer.id);
     expect(result.map((item) => item.id)).toEqual([listingId, approved.toHexString(), ended.toHexString()]);
-    const previous = await legacy.listing.findMany({ where: { watchersIds: { has: buyer.id }, OR: [{ status: { in: ["LIVE", "ENDED"] } }, { status: "UPCOMING", reviewStatus: "APPROVED" }] }, orderBy: { updatedAt: "desc" } });
-    expect(result).toEqual(previous.map((item) => toPublicListing(item, buyer.id)));
+    expect(result).toEqual([
+      fixtureListing({ watchersIds: [buyer.id], updatedAt: new Date("2026-01-03") }),
+      fixtureListing({ id: approved.toHexString(), status: "UPCOMING", reviewStatus: "APPROVED", watchersIds: [buyer.id], updatedAt: new Date("2026-01-02") }),
+      fixtureListing({ id: ended.toHexString(), status: "ENDED", reviewStatus: null, watchersIds: [buyer.id], updatedAt: new Date("2026-01-01") }),
+    ].map((item) => toPublicListing(item, buyer.id)));
     expect(JSON.stringify(result)).not.toContain("never publish"); expect(JSON.stringify(result)).not.toContain("Private seller feedback");
   });
 

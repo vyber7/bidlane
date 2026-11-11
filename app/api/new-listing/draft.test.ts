@@ -8,7 +8,6 @@ vi.mock("@/app/libs/native-repositories", () => ({
 }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
 vi.mock("@/app/libs/listing-drafts", () => ({ publishListingDraft: mocks.publish }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { create: mocks.create } } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
 import { POST } from "./route";
 const draftId = "abcdef0123456789abcdef01";

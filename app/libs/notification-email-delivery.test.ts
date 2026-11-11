@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { auctionNow, makeListing } from "@/app/test/auction-fixtures";
-import type { Notification } from "@prisma/client";
+import type { Notification } from "@/app/types/database";
 
 const mocks = vi.hoisted(() => ({ findMany: vi.fn(), findUnique: vi.fn(), claim: vi.fn(), prepare: vi.fn(), finish: vi.fn(), attempts: vi.fn(), listing: vi.fn(), send: vi.fn(), config: vi.fn(), warn: vi.fn() }));
 vi.mock("./native-repositories", () => ({ getNativeRepositories: () => ({ notificationEmails: { candidates: mocks.findMany, find: mocks.findUnique, claim: mocks.claim, prepare: mocks.prepare, finish: mocks.finish, attempts: mocks.attempts, listing: mocks.listing } }) }));

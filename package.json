@@ -13,16 +13,13 @@
     "db:generate": "npm run db:v8:emit",
     "db:validate": "node scripts/validate-contract.mjs",
     "db:push": "node --env-file-if-exists=.env scripts/prisma-management.mjs apply",
-    "db:studio": "node node_modules/prisma/build/index.js studio",
-    "db:v8:emit": "node node_modules/prisma-v8/dist/prisma.js contract emit --config prisma8.config.ts --output-path prisma/v8",
+    "db:v8:emit": "node node_modules/prisma/dist/prisma.js contract emit --config prisma.config.ts --output-path prisma/v8",
     "db:v8:check": "node --env-file-if-exists=.env scripts/prisma-v8-check.mjs",
     "db:native:indexes": "node --env-file-if-exists=.env scripts/native-indexes.mjs",
     "admin:grant": "node --env-file-if-exists=.env scripts/admin-role.mjs grant",
     "admin:revoke": "node --env-file-if-exists=.env scripts/admin-role.mjs revoke",
     "uploads:check": "node --env-file-if-exists=.env scripts/secure-uploads.mjs check",
     "uploads:secure": "node --env-file-if-exists=.env scripts/secure-uploads.mjs apply",
-    "db:legacy:generate": "node node_modules/prisma/build/index.js generate",
-    "db:legacy:validate": "node node_modules/prisma/build/index.js validate",
     "db:audit": "node --env-file-if-exists=.env scripts/prisma-management.mjs audit",
     "db:plan": "node --env-file-if-exists=.env scripts/prisma-management.mjs plan",
     "db:rehearse": "vitest run prisma/v8/management.integration.test.ts prisma/v8/user-defaults.integration.test.ts --maxWorkers=1",
@@ -57,7 +54,6 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@prisma/client": "^6.19.3",
     "@testing-library/react": "^16.3.3",
     "@types/bcrypt": "^5.0.2",
     "@types/lodash": "^4.17.27",
@@ -68,8 +64,7 @@
     "eslint-config-next": "^16.4.6",
     "jsdom": "^30.1.3",
     "postcss": "^8",
-    "prisma": "^6.19.3",
-    "prisma-v8": "npm:prisma@8.0.0-rc.33",
+    "prisma": "8.0.0-rc.33",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
     "vitest": "^4.1.12"
@@ -78,20 +73,14 @@
     "@vercel/nft": {
       "glob": "^14.0.2"
     },
-    "@prisma/config@6.19.3": {
-      "deepmerge-ts": "^8.0.2"
-    },
     "@typescript-eslint/typescript-estree": {
       "minimatch": "^11.0.1"
     }
   },
   "allowScripts": {
     "esbuild@0.28.2": true,
-    "@prisma/client@6.19.3": true,
     "sharp@0.35.5": true,
     "unrs-resolver@1.11.1": true,
-    "prisma@6.19.3": true,
-    "@prisma/engines@6.19.3": true,
     "bcrypt@6.0.0": true
   }
 }

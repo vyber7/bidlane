@@ -2,7 +2,6 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Long, ObjectId, type Document } from "mongodb";
 import ConnectionString from "mongodb-connection-string-url";
-import { PrismaClient } from "@prisma/client";
 import { createDatabaseV8, type DatabaseV8 } from "../v8/client";
 import { createReadRepositories } from "./repositories";
 import { createNativeRepositories, type NativeRepositories } from "../native/repositories";
@@ -16,7 +15,6 @@ vi.mock("@/app/libs/prismadb-v8", () => ({ getDatabaseV8: () => {
   if (!state.connection) throw new Error("Local read database is not initialized");
   return state.connection;
 } }));
-vi.mock("@/app/libs/prismadb", () => ({ default: new Proxy({}, { get() { throw new Error("Application reads must not use Prisma 6"); } }) }));
 vi.mock("@/app/actions/getSession", () => ({ getSession: async () => sessions.getStore() ?? null }));
 vi.mock("@/app/libs/pusher", () => ({ pusherServer: { trigger: state.trigger } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { warn: vi.fn(), error: vi.fn() } }));
@@ -38,17 +36,20 @@ const image = "https://res.cloudinary.com/demo/image/upload/read-fixture.jpg";
 const request = (data: unknown) => new Request("http://localhost/api/listing", { method: "POST", body: JSON.stringify(data) });
 const url = process.env.NATIVE_TEST_DATABASE_URL;
 describe.skipIf(!url)("Prisma 8 read compatibility on a local replica set", () => {
-  let connection: DatabaseV8, reads: ReturnType<typeof createReadRepositories>, native: NativeRepositories, legacy: PrismaClient;
+  let connection: DatabaseV8, reads: ReturnType<typeof createReadRepositories>, native: NativeRepositories;
   let seller: AuthUser, buyer: AuthUser, other: AuthUser, admin: AuthUser;
+  const fixtures = new Map<string, Listing>();
+  const fixture = (id: string) => fixtures.get(id)!;
   beforeAll(async () => {
     const parsed = new ConnectionString(url!);
     if (parsed.hosts.length !== 1 || !/^127\.0\.0\.1:\d+$/.test(parsed.hosts[0]) || !/^\/bidlane_test_native_[a-z0-9_]+$/.test(parsed.pathname)) throw new Error("Read tests require a loopback bidlane_test_native_ database");
     parsed.pathname += "_reads";
     const localUrl = parsed.toString(); connection = createDatabaseV8(localUrl); state.connection = connection;
     await connection.mongoClient.connect(); await connection.database.dropDatabase(); await ensureNativeIndexes(connection.database);
-    reads = createReadRepositories(connection); native = createNativeRepositories(connection.database); legacy = new PrismaClient({ datasourceUrl: localUrl });
+    reads = createReadRepositories(connection); native = createNativeRepositories(connection.database);
   }, 30_000);
   beforeEach(async () => {
+    fixtures.clear();
     vi.clearAllMocks(); state.trigger.mockResolvedValue(undefined); state.save.mockResolvedValue(image);
     for (const item of await connection.database.listCollections().toArray()) await connection.database.collection(item.name).deleteMany({});
     vi.stubEnv("NEXTAUTH_SECRET", "local-read-test-secret"); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo");
@@ -60,7 +61,7 @@ describe.skipIf(!url)("Prisma 8 read compatibility on a local replica set", () =
   });
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
   afterAll(async () => {
-    if (connection) { await legacy?.$disconnect(); await connection.database.dropDatabase(); await connection.close(); state.connection = undefined; }
+    if (connection) { await connection.database.dropDatabase(); await connection.close(); state.connection = undefined; }
   }, 30_000);
   const asUser = <T>(user: AuthUser | null, fn: () => T): T => sessions.run(user ? { user: { email: user.email! } } : null, fn);
   const listings = () => connection.database.collection("Listing");
@@ -70,71 +71,75 @@ describe.skipIf(!url)("Prisma 8 read compatibility on a local replica set", () =
     const document: Document = { ...fields, _id: new ObjectId(id), userId: new ObjectId(data.userId), highestBidderId: data.highestBidderId ? new ObjectId(data.highestBidderId) : null, futureSecret: "private listing metadata" };
     for (const key of ["year", "miles", "views", "reservePrice", "currentBid", "startingBid", "bidIncrement", "reviewRevision"] as const) if (data[key] != null) document[key] = Long.fromNumber(data[key]);
     for (const key of ["seenIds", "watchersIds", "biddersIds", "commentsIds", "commenterIds"] as const) document[key] = data[key].map((value) => new ObjectId(value));
-    await listings().insertOne(document); return id;
+    await listings().insertOne(document); fixtures.set(id, data); return id;
   }
   const update = (id: string, fields: Record<string, unknown>) => listings().updateOne({ _id: new ObjectId(id) }, { $set: fields });
   async function bid(listingId: string, amount: number, user = buyer, createdAt = new Date()) {
-    await connection.database.collection("Bid").insertOne({ _id: new ObjectId(), listingId: new ObjectId(listingId), userId: new ObjectId(user.id), amount: Long.fromNumber(amount), createdAt });
+    const id = new ObjectId();
+    await connection.database.collection("Bid").insertOne({ _id: id, listingId: new ObjectId(listingId), userId: new ObjectId(user.id), amount: Long.fromNumber(amount), createdAt });
+    return { id: id.toHexString(), listingId, userId: user.id, amount, createdAt };
   }
   const correction = (id: string, revision = 3) => asUser(seller, () => edit(request({ revision, data: { year: 2021, make: "Porsche", model: "911", miles: 250, location: "Miami", description: "Corrected", reservePrice: 12000, vin: "", vehicleRecords: [], transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: "Known", modifications: "None", knownFlaws: "Paint chips", images: [image], userId: buyer.id, status: "LIVE", reviewStatus: "APPROVED" } }), { params: Promise.resolve({ id }) }));
 
-  it("decodes ObjectIds, BSON longs, JSON, dates and fields identically to Prisma 6", async () => {
-    const id = await listing({ watchersIds: [buyer.id], reservePrice: 20000 });
-    expect(await reads.listings.find(id)).toEqual(await legacy.listing.findUnique({ where: { id } }));
+  it("decodes independently seeded ObjectIds, BSON longs, JSON and dates without publishing extra fields", async () => {
+    const id = await listing({ watchersIds: [buyer.id], reservePrice: 20000, vehicleRecords: [{ label: "History", url: "https://res.cloudinary.com/demo/image/upload/history.pdf" }] });
+    const stored = (await listings().findOne({ _id: new ObjectId(id) }, { promoteLongs: false }))!;
+    expect(stored).toMatchObject({ _id: new ObjectId(id), userId: new ObjectId(seller.id), year: Long.fromNumber(2020), miles: Long.fromNumber(10000), reservePrice: Long.fromNumber(20000), watchersIds: [new ObjectId(buyer.id)], vehicleRecords: fixture(id).vehicleRecords, createdAt: fixture(id).createdAt });
+    expect(await reads.listings.find(id)).toEqual(fixture(id));
     expect(await reads.listings.find(id)).not.toHaveProperty("futureSecret");
     const payload = toPublicListing((await reads.listings.find(id))!, buyer.id);
     expect(payload).toMatchObject({ isWatching: true, watcherCount: 1, isNoReserve: false });
     for (const key of ["reservePrice", "watchersIds", "biddersIds", "seenIds", "reviewNote", "futureSecret"]) expect(payload).not.toHaveProperty(key);
   });
 
-  it.each(["missing", "null"])("preserves Prisma 6 defaults for %s legacy fields without writing data", async (kind) => {
+  it.each(["missing", "null"])("preserves the established read defaults for %s fields without materializing them", async (kind) => {
     const id = await listing(); const fields = ["status", "views", "isFeatured", "images", "watchersIds", "biddersIds", "seenIds", "commentsIds", "commenterIds", "lastCommentAt", "updatedAt", "reviewStatus", "reviewRevision", "vin", "vehicleRecords"];
     await listings().updateOne({ _id: new ObjectId(id) }, kind === "missing" ? { $unset: Object.fromEntries(fields.map((key) => [key, ""])) } : { $set: Object.fromEntries(fields.map((key) => [key, null])) });
     const before = await listings().findOne({ _id: new ObjectId(id) });
-    expect(await reads.listings.find(id)).toEqual(await legacy.listing.findUnique({ where: { id } }));
+    expect(await reads.listings.find(id)).toEqual({ ...fixture(id), status: "UPCOMING", views: 1, isFeatured: false, images: [], watchersIds: [], biddersIds: [], seenIds: [], commentsIds: [], commenterIds: [], lastCommentAt: null, updatedAt: null, reviewStatus: null, reviewRevision: null, vin: null, vehicleRecords: null });
     expect(await listings().findOne({ _id: new ObjectId(id) })).toEqual(before);
   });
 
   it("matches raw visibility filters and preserves listing access for owners and admins", async () => {
     const ids = await Promise.all([listing({ status: "LIVE" }), listing({ status: "ENDED" }), listing({ status: "UPCOMING", reviewStatus: "APPROVED" }), listing({ status: "UPCOMING", reviewStatus: "PENDING" }), listing({ status: "UPCOMING", reviewStatus: null }), listing({ status: "UPCOMING", reviewStatus: "CHANGES_REQUESTED" })]);
     const missingStatus = await listing({ reviewStatus: "APPROVED" }); await listings().updateOne({ _id: new ObjectId(missingStatus) }, { $unset: { status: "" } });
-    const actual = await reads.listings.public(), previous = await legacy.listing.findMany({ where: { OR: [{ status: { in: ["LIVE", "ENDED"] } }, { status: "UPCOMING", reviewStatus: "APPROVED" }] }, orderBy: { createdAt: "desc" } });
-    expect(actual).toEqual(previous); expect(actual).toHaveLength(3);
+    const actual = await reads.listings.public();
+    expect(actual.toSorted((a, b) => a.id.localeCompare(b.id))).toEqual(ids.slice(0, 3).map(fixture).sort((a, b) => a.id.localeCompare(b.id)));
     const privateListing = (await reads.listings.find(ids[3]))!;
     expect(canViewListing(privateListing, null)).toBe(false); expect(canViewListing(privateListing, buyer)).toBe(false); expect(canViewListing(privateListing, seller)).toBe(true); expect(canViewListing(privateListing, { id: admin.id, role: "ADMIN" })).toBe(true);
-    expect(await reads.listings.live()).toEqual(await legacy.listing.findMany({ where: { status: "LIVE" } }));
+    expect(await reads.listings.live()).toEqual([fixture(ids[0])]);
   });
 
   it("keeps the four newest sold auctions, includes a zero bid, and excludes null/missing bids", async () => {
-    await Promise.all(Array.from({ length: 6 }, (_, i) => listing({ status: "ENDED", result: "SOLD", currentBid: i * 1000, auctionEndsAt: new Date(2026, 0, i === 0 ? 9 : i + 1) })));
+    const ids = await Promise.all(Array.from({ length: 6 }, (_, i) => listing({ status: "ENDED", result: "SOLD", currentBid: i * 1000, auctionEndsAt: new Date(2026, 0, i === 0 ? 9 : i + 1) })));
     await listing({ status: "ENDED", result: "RESERVE_NOT_MET", currentBid: 50000 });
     const missing = await listing({ status: "ENDED", result: "SOLD", currentBid: null });
     await listing({ status: "ENDED", result: "SOLD", currentBid: null }); await listings().updateOne({ _id: new ObjectId(missing) }, { $unset: { currentBid: "" } });
-    const previous = await legacy.listing.findMany({ where: { status: "ENDED", result: "SOLD", currentBid: { not: null } }, orderBy: { auctionEndsAt: "desc" }, take: 4 });
-    expect(await reads.listings.sold()).toEqual(previous); expect(await getSoldAuctions()).toEqual(previous.map((row) => toPublicListing(row)));
-    expect(previous.some((row) => row.currentBid === 0)).toBe(true);
+    const expected = [ids[0], ids[5], ids[4], ids[3]].map(fixture);
+    expect(await reads.listings.sold()).toEqual(expected); expect(await getSoldAuctions()).toEqual(expected.map((row) => toPublicListing(row)));
+    expect(expected[0].currentBid).toBe(0);
   });
 
   it("loads only the owner's uploaded listings, including private submissions", async () => {
-    await listing({ userId: seller.id, status: "UPCOMING", reviewStatus: "PENDING" }); await listing({ userId: buyer.id });
+    const owned = await listing({ userId: seller.id, status: "UPCOMING", reviewStatus: "PENDING" }); await listing({ userId: buyer.id });
     const actual = await reads.listings.owned(seller.id);
-    expect(actual).toEqual(await legacy.listing.findMany({ where: { userId: seller.id }, orderBy: { createdAt: "desc" } }));
+    expect(actual).toEqual([fixture(owned)]);
     expect(actual).toHaveLength(1); expect(toSellerListing(actual[0], seller)).not.toHaveProperty("seenIds");
     expect(() => toSellerListing(actual[0], buyer)).toThrow("Only the seller");
   });
 
   it("preserves seller pagination, stable ObjectId ties, counts, and public account fields", async () => {
-    await Promise.all(Array.from({ length: 25 }, () => listing({ status: "ENDED", result: "SOLD", currentBid: 5000 })));
+    const soldIds = await Promise.all(Array.from({ length: 25 }, () => listing({ status: "ENDED", result: "SOLD", currentBid: 5000 })));
     await listing({ status: "UPCOMING", reviewStatus: "PENDING", createdAt: new Date("2026-01-30") });
-    await Promise.all(Array.from({ length: 13 }, (_, index) => listing({ status: "LIVE", createdAt: new Date(2026, 0, index + 1) })));
-    await listing({ status: "UPCOMING", reviewStatus: "APPROVED", createdAt: new Date("2026-01-25") }); await listing({ userId: buyer.id, status: "ENDED", result: "SOLD" });
+    const liveIds = await Promise.all(Array.from({ length: 13 }, (_, index) => listing({ status: "LIVE", createdAt: new Date(2026, 0, index + 1) })));
+    const approved = await listing({ status: "UPCOMING", reviewStatus: "APPROVED", createdAt: new Date("2026-01-25") }); await listing({ userId: buyer.id, status: "ENDED", result: "SOLD" });
     await connection.database.collection("User").updateOne({ _id: new ObjectId(seller.id) }, { $set: { hashedPassword: "private hash", futureSecret: "private account metadata" } });
     const profile = (await getSellerProfile(seller.id, 2))!;
     expect(profile.salesCount).toBe(25); expect(profile.sales).toHaveLength(12); expect(profile.active).toHaveLength(12);
     expect(Object.keys(profile.seller).sort()).toEqual(["id", "name", "image", "createdAt", "emailVerified"].sort()); expect(profile.seller.emailVerified).toBe(true);
-    const select = { id: true, year: true, make: true, model: true, location: true, status: true, currentBid: true, coverImage: true, auctionEndsAt: true } as const;
-    expect(profile.sales).toEqual(await legacy.listing.findMany({ where: { userId: seller.id, status: "ENDED", result: "SOLD" }, select, orderBy: [{ auctionEndsAt: "desc" }, { id: "desc" }], skip: 12, take: 12 }));
-    expect(profile.active).toEqual(await legacy.listing.findMany({ where: { userId: seller.id, status: { in: ["LIVE", "UPCOMING"] }, OR: [{ status: "LIVE" }, { status: "UPCOMING", reviewStatus: "APPROVED" }] }, select, orderBy: { createdAt: "desc" }, take: 12 }));
+    const vehicle = (id: string) => { const row = fixture(id); return { id, year: row.year, make: row.make, model: row.model, location: row.location, status: row.status, currentBid: row.currentBid, coverImage: row.coverImage, auctionEndsAt: row.auctionEndsAt }; };
+    expect(profile.sales).toEqual(soldIds.sort().reverse().slice(12, 24).map(vehicle));
+    expect(profile.active).toEqual([approved, ...liveIds.toReversed().slice(0, 11)].map(vehicle));
     expect(JSON.stringify(profile)).not.toContain("private");
   });
 
@@ -145,18 +150,18 @@ describe.skipIf(!url)("Prisma 8 read compatibility on a local replica set", () =
   });
 
   it("loads bids in amount order and publishes only author names", async () => {
-    const id = await listing(); await bid(id, 1000); await bid(id, 2000, other);
-    const previous = await legacy.bid.findMany({ where: { listingId: id }, orderBy: { amount: "desc" }, include: { user: { select: { name: true } } } });
-    expect(await getBids(id)).toEqual(previous);
+    const id = await listing(); const first = await bid(id, 1000), second = await bid(id, 2000, other);
+    expect(await getBids(id)).toEqual([{ ...second, user: { name: other.name } }, { ...first, user: { name: buyer.name } }]);
     for (const item of await getBids(id)) expect(Object.keys(item.user)).toEqual(["name"]);
     await connection.database.collection("User").deleteOne({ _id: new ObjectId(other.id) }); expect(await getBids(id)).toEqual([]);
   });
 
   it("preserves account bid aggregation and limits history to the authenticated account", async () => {
     const first = await listing({ highestBidderId: buyer.id }), second = await listing();
-    await bid(first, 2000, buyer, new Date("2026-01-01")); await bid(first, 3000, buyer, new Date("2026-01-02")); await bid(second, 1000, buyer, new Date("2026-01-03")); await bid(second, 9000, other);
-    const actual = await reads.bids.forUser(buyer.id), previous = await legacy.bid.findMany({ where: { userId: buyer.id }, include: { listing: true }, orderBy: { createdAt: "desc" } });
-    expect(actual).toEqual(previous); expect(buildBidSummaries(actual, buyer.id)).toEqual(buildBidSummaries(previous.map((row) => ({ ...row, listing: { ...row.listing, vehicleRecords: null } })), buyer.id));
+    const oldest = await bid(first, 2000, buyer, new Date("2026-01-01")), higher = await bid(first, 3000, buyer, new Date("2026-01-02")), latest = await bid(second, 1000, buyer, new Date("2026-01-03")); await bid(second, 9000, other);
+    const actual = await reads.bids.forUser(buyer.id);
+    expect(actual).toEqual([{ ...latest, listing: fixture(second) }, { ...higher, listing: fixture(first) }, { ...oldest, listing: fixture(first) }]);
+    expect(buildBidSummaries(actual, buyer.id)).toMatchObject([{ id: second, highestBid: 1000, bidCount: 1, lastBidAt: latest.createdAt.toISOString(), isHighestBidder: false }, { id: first, highestBid: 3000, bidCount: 2, lastBidAt: higher.createdAt.toISOString(), isHighestBidder: true }]);
     expect(buildBidSummaries(actual, buyer.id)).toHaveLength(2);
     await connection.database.collection("Bid").insertOne({ _id: new ObjectId(), listingId: new ObjectId(), userId: new ObjectId(buyer.id), amount: Long.ONE, createdAt: new Date() });
     await expect(reads.bids.forUser(buyer.id)).rejects.toThrow("Bid listing not found");
@@ -166,8 +171,9 @@ describe.skipIf(!url)("Prisma 8 read compatibility on a local replica set", () =
     const id = await listing({ status: "ENDED", result: "SOLD", currentBid: 15000, highestBidderId: buyer.id });
     await listing({ userId: other.id, status: "ENDED", result: "SOLD", highestBidderId: other.id }); await listing({ status: "LIVE", result: "SOLD", highestBidderId: buyer.id }); await listing({ status: "ENDED", result: "RESERVE_NOT_MET", highestBidderId: buyer.id });
     const actor = role === "seller" ? seller : buyer;
-    const actual = await reads.shipments.forUser(actor.id), previous = await legacy.listing.findMany({ where: { status: "ENDED", result: "SOLD", OR: [{ userId: actor.id }, { highestBidderId: actor.id }] }, include: { user: { select: { name: true, email: true } }, highestBidder: { select: { name: true, email: true } } }, orderBy: { auctionEndsAt: "desc" } });
-    expect(buildShipments(actual, actor.id)).toEqual(buildShipments(previous, actor.id)); expect(actual.map((row) => row.id)).toEqual([id]);
+    const actual = await reads.shipments.forUser(actor.id), expected = fixture(id);
+    expect(buildShipments(actual, actor.id)).toEqual([{ id, year: expected.year, make: expected.make, model: expected.model, location: expected.location, coverImage: expected.coverImage, price: 15000, soldAt: expected.auctionEndsAt!.toISOString(), role, contactName: role === "seller" ? "Buyer" : "Seller", contactEmail: role === "seller" ? buyer.email : seller.email }]);
+    expect(actual.map((row) => row.id)).toEqual([id]);
     expect(Object.keys(actual[0].user).sort()).toEqual(["email", "name"]); expect(Object.keys(actual[0].highestBidder!).sort()).toEqual(["email", "name"]);
   });
 
@@ -192,7 +198,7 @@ describe.skipIf(!url)("Prisma 8 read compatibility on a local replica set", () =
     expect((await correction(id)).status).toBe(200);
     const raw = (await listings().findOne({ _id: new ObjectId(id) }, { promoteLongs: false }))!;
     expect(raw).toMatchObject({ year: Long.fromNumber(2021), miles: Long.fromNumber(250), reservePrice: Long.fromNumber(12000), status: "UPCOMING", userId: new ObjectId(seller.id), reviewStatus: "PENDING", reviewRevision: Long.fromNumber(4), reviewNote: null, vin: null, images: [image], watchersIds: [new ObjectId(buyer.id)] });
-    expect(raw.updatedAt).toBeInstanceOf(Date); expect((await legacy.listing.findUnique({ where: { id } }))?.description).toBe("Corrected");
+    expect(raw.updatedAt).toBeInstanceOf(Date); expect(raw.description).toBe("Corrected");
     expect((await correction(id)).status).toBe(409);
   });
 

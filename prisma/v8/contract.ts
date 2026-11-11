@@ -1,7 +1,5 @@
-// Prisma 8 uses TypeScript authoring during the parallel v6/v8 migration.
-// The Prisma 6 editor recursively treats sibling .prisma files as one schema,
-// so keeping v8 PSL here causes false errors in both versions. This builder
-// preserves the emitted contract; see docs/prisma-8-migration.md.
+// Canonical database contract, authored and checked through TypeScript.
+// Emission is offline; database adoption uses the guarded management command.
 import { defineContract, enumType, field, gen, index, member, model, rel } from "@prisma/orm-mongo/contract-builder";
 
 const mongoString = { codecId: "mongo/string@1" } as const;

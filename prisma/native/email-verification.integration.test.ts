@@ -2,7 +2,6 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ObjectId } from "mongodb";
 import ConnectionString from "mongodb-connection-string-url";
-import { PrismaClient } from "@prisma/client";
 import { createDatabaseV8, type DatabaseV8 } from "../v8/client";
 import { createNativeRepositories, type NativeRepositories } from "./repositories";
 import { ensureNativeIndexes } from "./indexes.mjs";
@@ -14,7 +13,6 @@ vi.mock("@/app/libs/prismadb-v8", () => ({ getDatabaseV8: () => {
   if (!state.connection) throw new Error("Local verification database is not initialized");
   return state.connection;
 } }));
-vi.mock("@/app/libs/prismadb", () => ({ default: new Proxy({}, { get() { throw new Error("Email verification must not use Prisma 6"); } }) }));
 vi.mock("@/app/actions/getSession", () => ({ getSession: async () => sessions.getStore() ?? null }));
 vi.mock("@/app/libs/logger", () => ({ logger: { warn: vi.fn() } }));
 import { POST as requestVerification } from "@/app/api/account/verify-email/route";
@@ -25,7 +23,7 @@ import { TransactionRetryLimitError } from "./transaction-errors";
 
 const url = process.env.NATIVE_TEST_DATABASE_URL;
 describe.skipIf(!url)("native email verification on a local replica set", () => {
-  let connection: DatabaseV8, repositories: NativeRepositories, legacy: PrismaClient, user: AuthUser;
+  let connection: DatabaseV8, repositories: NativeRepositories, user: AuthUser;
   beforeAll(async () => {
     const parsed = new ConnectionString(url!);
     if (parsed.hosts.length !== 1 || !/^127\.0\.0\.1:\d+$/.test(parsed.hosts[0]) || !/^\/bidlane_test_native_[a-z0-9_]+$/.test(parsed.pathname)) throw new Error("Verification tests require a loopback bidlane_test_native_ database");
@@ -33,7 +31,7 @@ describe.skipIf(!url)("native email verification on a local replica set", () => 
     const localUrl = parsed.toString();
     connection = createDatabaseV8(localUrl); state.connection = connection;
     await connection.mongoClient.connect(); await connection.database.dropDatabase(); await ensureNativeIndexes(connection.database);
-    repositories = createNativeRepositories(connection.database); legacy = new PrismaClient({ datasourceUrl: localUrl });
+    repositories = createNativeRepositories(connection.database);
   }, 30_000);
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -44,7 +42,7 @@ describe.skipIf(!url)("native email verification on a local replica set", () => 
   });
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
   afterAll(async () => {
-    if (connection) { await legacy?.$disconnect(); await connection.database.dropDatabase(); await connection.close(); state.connection = undefined; }
+    if (connection) { await connection.database.dropDatabase(); await connection.close(); state.connection = undefined; }
   }, 30_000);
   const records = () => connection.database.collection("EmailVerification");
   const request = () => sessions.run({ user: { email: user.email! } }, () => requestVerification());
@@ -70,7 +68,7 @@ describe.skipIf(!url)("native email verification on a local replica set", () => 
     expect(JSON.stringify(record)).not.toContain(token);
     const body = JSON.parse(state.fetch.mock.calls[0][1].body), link = new URL(body.text.match(/https:\/\/\S+/)[0]);
     expect(body.to).toEqual([user.email]); expect(link.origin + link.pathname).toBe("https://bidlane.net/verify-email"); expect(link.search).toBe("");
-    expect(await legacy.emailVerification.findUnique({ where: { id: user.id } })).toMatchObject({ id: user.id, email: user.email, tokenHash: verificationHash(token) });
+    expect(await connection.database.collection("EmailVerification").findOne({ _id: new ObjectId(user.id) }, { promoteLongs: false })).toMatchObject({ _id: new ObjectId(user.id), email: user.email, tokenHash: verificationHash(token) });
     await expect(records().insertOne({ ...record, _id: new ObjectId() })).rejects.toMatchObject({ code: 11000 });
   });
 
@@ -94,7 +92,7 @@ describe.skipIf(!url)("native email verification on a local replica set", () => 
     expect(responses.map((item) => item.status).sort()).toEqual([200, 400]); expect(await saved()).toBeNull();
     const verified = (await account())!;
     expect(verified.emailVerified).toBeInstanceOf(Date); expect(verified.updatedAt).toEqual(verified.emailVerified); expect(verified.updatedAt.getTime()).toBeGreaterThanOrEqual(before.updatedAt.getTime());
-    expect((await legacy.user.findUnique({ where: { id: user.id } }))?.emailVerified).toEqual(verified.emailVerified);
+    expect((await connection.database.collection("User").findOne({ _id: new ObjectId(user.id) }, { promoteLongs: false }))?.emailVerified).toEqual(verified.emailVerified);
     expect((await redeem(token)).status).toBe(400);
   });
 

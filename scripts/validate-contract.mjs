@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const output = mkdtempSync(join(root, "node_modules/.bidlane-contract-"));
 try {
-  execFileSync(process.execPath, [join(root, "node_modules/prisma-v8/dist/prisma.js"), "contract", "emit", "--config", join(root, "prisma8.config.ts"), "--output-path", output], { cwd: root, stdio: "pipe", timeout: 30_000 });
+  execFileSync(process.execPath, [join(root, "node_modules/prisma/dist/prisma.js"), "contract", "emit", "--config", join(root, "prisma.config.ts"), "--output-path", output], { cwd: root, stdio: "pipe", timeout: 30_000 });
   for (const name of ["contract.json", "contract.d.ts"]) {
     if (readFileSync(join(output, name), "utf8") !== readFileSync(join(root, "prisma/v8", name), "utf8")) throw new Error("Artifact drift");
   }

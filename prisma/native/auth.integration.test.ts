@@ -3,7 +3,6 @@ import { dirname, join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Long, ObjectId } from "mongodb";
 import ConnectionString from "mongodb-connection-string-url";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { encode } from "next-auth/jwt";
 import type { Account, User } from "next-auth";
@@ -20,7 +19,6 @@ vi.mock("@/app/libs/prismadb-v8", () => ({ getDatabaseV8: () => {
   return state.connection;
 } }));
 vi.mock("@/app/actions/getSession", () => ({ getSession: async () => state.session }));
-vi.mock("@/app/libs/prismadb", () => ({ default: new Proxy({}, { get() { throw new Error("Authentication must not use Prisma 6"); } }) }));
 
 import { authOptions } from "@/app/libs/auth-config";
 import { decodeSessionToken } from "@/app/libs/session-token";
@@ -82,7 +80,7 @@ describe.skipIf(!url)("native authentication on a local MongoDB replica set", ()
     } });
   }
 
-  it("registers with explicit defaults and keeps the user readable by Prisma 6", async () => {
+  it("registers with explicit defaults, ObjectId storage and a public account DTO", async () => {
     const response = await register(request({ name: "Driver", email: " Driver@Example.COM ", password: "a long password", role: "ADMIN", sessionVersion: "attacker", emailVerified: new Date() }));
     expect(response.status).toBe(201);
     const { id } = await response.json();
@@ -91,9 +89,7 @@ describe.skipIf(!url)("native authentication on a local MongoDB replica set", ()
     expect(raw?.createdAt).toBeInstanceOf(Date);
     expect(raw?.updatedAt).toBeInstanceOf(Date);
     expect(await bcrypt.compare("a long password", raw!.hashedPassword)).toBe(true);
-    const legacy = new PrismaClient({ datasourceUrl: localUrl });
-    try { expect(await legacy.user.findUnique({ where: { id } })).toMatchObject({ id, role: "USER", watchListIds: [], outbidEmailsEnabled: true }); }
-    finally { await legacy.$disconnect(); }
+    expect(await connection.database.collection("User").findOne({ _id: new ObjectId(id) }, { promoteLongs: false })).toMatchObject({ _id: new ObjectId(id), role: "USER", watchListIds: [], outbidEmailsEnabled: true });
   });
 
   it("matches literal emails, limits collisions, and preserves exact legacy access", async () => {
@@ -150,9 +146,7 @@ describe.skipIf(!url)("native authentication on a local MongoDB replica set", ()
     expect(raw?.refresh_token_expires_in.toNumber()).toBe(3600);
     expect(raw).not.toHaveProperty("role"); expect(raw).not.toHaveProperty("arbitrary");
     await expect(authOptions.adapter!.linkAccount!(input)).rejects.toMatchObject({ code: 11000 });
-    const legacy = new PrismaClient({ datasourceUrl: localUrl });
-    try { expect(await legacy.account.findUnique({ where: { provider_providerAccountId: { provider: "github", providerAccountId: "subject" } } })).toMatchObject({ userId: user.id, expires_at: 1800000000, refresh_token_expires_in: 3600 }); }
-    finally { await legacy.$disconnect(); }
+    expect(await connection.database.collection("Account").findOne({ provider: "github", providerAccountId: "subject" }, { promoteLongs: false })).toMatchObject({ userId: new ObjectId(user.id), expires_at: Long.fromNumber(1800000000), refresh_token_expires_in: Long.fromNumber(3600) });
     await authOptions.adapter!.unlinkAccount!({ provider: "github", providerAccountId: "subject" });
     expect(await authOptions.adapter!.getUserByAccount!({ provider: "github", providerAccountId: "subject" })).toBeNull();
   });

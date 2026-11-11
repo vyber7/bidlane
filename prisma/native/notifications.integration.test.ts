@@ -2,7 +2,6 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Long, ObjectId } from "mongodb";
 import ConnectionString from "mongodb-connection-string-url";
-import { PrismaClient } from "@prisma/client";
 import { createDatabaseV8, type DatabaseV8 } from "../v8/client";
 import { createNativeRepositories, type NativeRepositories } from "./repositories";
 import { ensureNativeIndexes } from "./indexes.mjs";
@@ -14,7 +13,6 @@ vi.mock("@/app/libs/prismadb-v8", () => ({ getDatabaseV8: () => {
   if (!state.connection) throw new Error("Local notification database is not initialized");
   return state.connection;
 } }));
-vi.mock("@/app/libs/prismadb", () => ({ default: new Proxy({}, { get() { throw new Error("Notifications must not use Prisma 6"); } }) }));
 vi.mock("@/app/actions/getSession", () => ({ getSession: async () => sessions.getStore() ?? null }));
 vi.mock("@/app/libs/pusher", () => ({ pusherServer: { trigger: state.trigger } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn(), warn: vi.fn() } }));
@@ -28,7 +26,7 @@ import { makeListing } from "@/app/test/auction-fixtures";
 
 const url = process.env.NATIVE_TEST_DATABASE_URL;
 describe.skipIf(!url)("native notification reads and delivery on a local replica set", () => {
-  let connection: DatabaseV8, repositories: NativeRepositories, legacy: PrismaClient;
+  let connection: DatabaseV8, repositories: NativeRepositories;
   let buyer: AuthUser, other: AuthUser, listingId: string;
   const createdAt = new Date("2026-01-01T12:00:00Z");
   beforeAll(async () => {
@@ -38,7 +36,7 @@ describe.skipIf(!url)("native notification reads and delivery on a local replica
     const localUrl = parsed.toString();
     connection = createDatabaseV8(localUrl); state.connection = connection;
     await connection.mongoClient.connect(); await connection.database.dropDatabase(); await ensureNativeIndexes(connection.database);
-    repositories = createNativeRepositories(connection.database); legacy = new PrismaClient({ datasourceUrl: localUrl });
+    repositories = createNativeRepositories(connection.database);
   }, 30_000);
   beforeEach(async () => {
     vi.clearAllMocks(); state.send.mockResolvedValue("local-provider-id"); state.trigger.mockResolvedValue(undefined);
@@ -53,7 +51,7 @@ describe.skipIf(!url)("native notification reads and delivery on a local replica
   });
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
   afterAll(async () => {
-    if (connection) { await legacy?.$disconnect(); await connection.database.dropDatabase(); await connection.close(); state.connection = undefined; }
+    if (connection) { await connection.database.dropDatabase(); await connection.close(); state.connection = undefined; }
   }, 30_000);
   const collection = () => connection.database.collection("Notification");
   const oid = (index: number) => new ObjectId(index.toString(16).padStart(24, "0"));
@@ -100,7 +98,7 @@ describe.skipIf(!url)("native notification reads and delivery on a local replica
   it("keeps missing readAt outside unread counts and writes, matching Prisma's explicit-null filter", async () => {
     await collection().insertMany([record(1), record(2)]); await collection().updateOne({ _id: oid(2) }, { $unset: { readAt: "" } });
     const feed = await getNotificationFeed(buyer.id); expect(feed.total).toBe(2); expect(feed.unreadCount).toBe(1); expect(feed.items.every((item) => item.readAt === null)).toBe(true);
-    expect(await repositories.notifications.unreadCount(buyer.id)).toBe(await legacy.notification.count({ where: { userId: buyer.id, readAt: null } }));
+    expect(await repositories.notifications.unreadCount(buyer.id)).toBe(1);
     expect(await (await mark({ all: true, before: createdAt.toISOString() })).json()).toEqual({ updated: 1 });
     expect(await raw(oid(2).toHexString())).not.toHaveProperty("readAt");
   });
@@ -113,7 +111,7 @@ describe.skipIf(!url)("native notification reads and delivery on a local replica
     expect((await raw(oid(1).toHexString()))?.readAt).toBeNull(); expect(state.trigger).not.toHaveBeenCalled();
   });
 
-  it("freezes the payload before provider HTTP, preserves BSON/v6 compatibility, and records acceptance", async () => {
+  it("freezes the payload before provider HTTP, preserves BSON types, and records acceptance", async () => {
     const id = await queue();
     state.send.mockImplementation(async (_key, payload) => {
       const saved = (await raw(id))!;
@@ -125,7 +123,7 @@ describe.skipIf(!url)("native notification reads and delivery on a local replica
     expect(saved.userId).toEqual(new ObjectId(buyer.id)); expect(saved.emailListingId).toEqual(new ObjectId(listingId)); expect(saved.emailAttempts).toEqual(Long.ONE);
     expect(saved).toMatchObject({ emailStatus: "SENT", emailProviderId: "accepted", emailLockToken: null, emailLockedUntil: null });
     expect(state.send).toHaveBeenCalledWith("local-test-no-email-sent", saved.emailPayload, id);
-    expect(await legacy.notification.findUnique({ where: { id } })).toMatchObject({ userId: buyer.id, emailListingId: listingId, emailAttempts: 1, emailStatus: "SENT" });
+    expect(await connection.database.collection("Notification").findOne({ _id: new ObjectId(id) }, { promoteLongs: false })).toMatchObject({ userId: new ObjectId(buyer.id), emailListingId: new ObjectId(listingId), emailAttempts: Long.ONE, emailStatus: "SENT" });
     expect(Object.keys((await repositories.notificationEmails.find(id))!.user!).sort()).toEqual(["email", "outbidEmailsEnabled", "endingSoonEmailsEnabled"].sort());
   });
 
@@ -230,14 +228,13 @@ describe.skipIf(!url)("native notification reads and delivery on a local replica
     expect(await sendNotificationEmails()).toMatchObject({ sent: 1 });
   });
 
-  it.each(["PENDING", "SENDING"] as const)("matches Prisma's nullable-date eligibility for %s legacy jobs", async (status) => {
+  it.each(["PENDING", "SENDING"] as const)("excludes missing and includes explicit-null eligibility dates for %s jobs", async (status) => {
     const id = await queue(), field = status === "PENDING" ? "emailNextAttemptAt" : "emailLockedUntil", now = new Date();
     for (const kind of ["missing", "null"]) {
       await update(id, { emailStatus: status });
       await collection().updateOne({ _id: new ObjectId(id) }, kind === "missing" ? { $unset: { [field]: "" } } : { $set: { [field]: null } });
       const candidates = await repositories.notificationEmails.candidates(now, 20);
-      const old = await legacy.notification.findMany({ where: { emailStatus: status, [field]: { lte: now } }, select: { id: true } });
-      expect(candidates).toEqual(old); expect(candidates).toHaveLength(kind === "missing" ? 0 : 1);
+      expect(candidates).toEqual(kind === "missing" ? [] : [{ id }]);
     }
   });
 
@@ -246,6 +243,6 @@ describe.skipIf(!url)("native notification reads and delivery on a local replica
     await collection().updateOne({ _id: new ObjectId(id) }, kind === "missing" ? { $unset: { emailAttempts: "" } } : { $set: { emailAttempts: null } });
     expect(await repositories.notificationEmails.claim(id, new Date(), "legacy")).toEqual({ count: 1 });
     expect((await raw(id))?.emailAttempts).toBeNull(); expect(await repositories.notificationEmails.attempts(id)).toBe(0);
-    expect((await legacy.notification.findUnique({ where: { id }, select: { emailAttempts: true } }))?.emailAttempts).toBe(0);
+    expect((await repositories.notificationEmails.find(id))?.emailAttempts).toBe(0);
   });
 });

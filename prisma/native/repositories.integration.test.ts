@@ -1,7 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Long, ObjectId } from "mongodb";
 import ConnectionString from "mongodb-connection-string-url";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { createDatabaseV8, type DatabaseV8 } from "../v8/client";
 import { createNativeRepositories, type NativeRepositories } from "./repositories";
@@ -142,7 +141,7 @@ describe.skipIf(!url)("native repositories on a local MongoDB replica set", () =
     await expect(assertOwnedAssets(input)).rejects.toMatchObject({ status: 400 });
   });
 
-  it("supplies queue defaults and keeps native records readable by the v6 client", async () => {
+  it("persists queue defaults, BSON longs and natural string keys", async () => {
     await requestPasswordReset("USER@example.com");
     const id = resetHash("user@example.com");
     const record = await repositories.passwordResets.find(id);
@@ -152,11 +151,8 @@ describe.skipIf(!url)("native repositories on a local MongoDB replica set", () =
     const job = await repositories.recoveryEmails.find(jobs[0].id);
     expect(job).toMatchObject({ status: "PENDING", attempts: 0, lockedUntil: null, lockToken: null, resetId: id, nonce: record!.nonce });
     expect(job?.createdAt).toBeInstanceOf(Date);
-    const legacy = new PrismaClient({ datasourceUrl: url });
-    try {
-      expect(await legacy.passwordReset.findUnique({ where: { id } })).toMatchObject({ id, tokenHash: record!.tokenHash, userId: null });
-      expect(await legacy.recoveryEmail.findUnique({ where: { id: jobs[0].id } })).toMatchObject({ id: jobs[0].id, attempts: 0, status: "PENDING" });
-    } finally { await legacy.$disconnect(); }
+    expect(await connection.database.collection<{ _id: string }>("PasswordReset").findOne({ _id: id }, { promoteLongs: false })).toMatchObject({ _id: id, tokenHash: record!.tokenHash, userId: null });
+    expect(await connection.database.collection<{ _id: string }>("RecoveryEmail").findOne({ _id: jobs[0].id }, { promoteLongs: false })).toMatchObject({ _id: jobs[0].id, attempts: Long.ZERO, status: "PENDING" });
   });
 
   it("rolls back the token claim, password change, and session revocation if notice insertion fails", async () => {

@@ -1,7 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Long, ObjectId } from "mongodb";
 import ConnectionString from "mongodb-connection-string-url";
-import { PrismaClient } from "@prisma/client";
 import { createDatabaseV8, type DatabaseV8 } from "../v8/client";
 import { createNativeRepositories, type NativeRepositories } from "./repositories";
 import { ensureNativeIndexes } from "./indexes.mjs";
@@ -14,7 +13,6 @@ vi.mock("@/app/libs/prismadb-v8", () => ({ getDatabaseV8: () => {
   if (!state.connection) throw new Error("Local auction database is not initialized");
   return state.connection;
 } }));
-vi.mock("@/app/libs/prismadb", () => ({ default: new Proxy({}, { get() { throw new Error("Auction lifecycle must not use Prisma 6"); } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: state.currentUser }));
 vi.mock("@/app/libs/pusher", () => ({ pusherServer: { trigger: state.trigger } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: state.log, warn: state.log } }));
@@ -32,7 +30,6 @@ const url = process.env.NATIVE_TEST_DATABASE_URL;
 describe.skipIf(!url)("native auction transactions on a local MongoDB replica set", () => {
   let connection: DatabaseV8;
   let repositories: NativeRepositories;
-  let legacy: PrismaClient;
   let seller: AuthUser, buyer: AuthUser, other: AuthUser;
 
   beforeAll(async () => {
@@ -48,7 +45,6 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     await connection.database.dropDatabase();
     await ensureNativeIndexes(connection.database);
     repositories = createNativeRepositories(connection.database);
-    legacy = new PrismaClient({ datasourceUrl: localUrl });
   }, 30_000);
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -61,7 +57,7 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
   });
   afterEach(() => vi.unstubAllEnvs());
   afterAll(async () => {
-    if (connection) { await legacy?.$disconnect(); await connection.database.dropDatabase(); await connection.close(); state.connection = undefined; }
+    if (connection) { await connection.database.dropDatabase(); await connection.close(); state.connection = undefined; }
   }, 30_000);
 
   async function seed(overrides: Parameters<typeof makeListing>[0] = {}) {
@@ -114,11 +110,11 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     expect(raw?.highestBidderId).toEqual(new ObjectId(buyer.id));
     expect(raw?.biddersIds).toEqual([new ObjectId(other.id), new ObjectId(buyer.id)]);
     expect(raw?.updatedAt).toEqual(new Date(body.bid.createdAt));
-    expect(await legacy.user.findUnique({ where: { id: buyer.id } })).toMatchObject({ BidOnListIds: [listing.id] });
-    expect(await legacy.bid.findUnique({ where: { id: body.bid.id } })).toMatchObject({ amount: 1000, listingId: listing.id, userId: buyer.id });
-    expect(await legacy.bidSubmission.findUnique({ where: { userId_key: { userId: buyer.id, key: "bid-request-00000001" } } })).toMatchObject({ amount: 1000, response: body });
-    const notification = await legacy.notification.findUnique({ where: { userId_eventKey: { userId: other.id, eventKey: `outbid:${body.bid.id}` } } });
-    expect(notification).toMatchObject({ readAt: null, emailListingId: listing.id, emailStatus: "PENDING", emailAttempts: 0, emailLockedUntil: null, emailPayload: null });
+    expect(await connection.database.collection("User").findOne({ _id: new ObjectId(buyer.id) }, { promoteLongs: false })).toMatchObject({ BidOnListIds: [new ObjectId(listing.id)] });
+    expect(await connection.database.collection("Bid").findOne({ _id: new ObjectId(body.bid.id) }, { promoteLongs: false })).toMatchObject({ amount: Long.fromNumber(1000), listingId: new ObjectId(listing.id), userId: new ObjectId(buyer.id) });
+    expect(await connection.database.collection("BidSubmission").findOne({ userId: new ObjectId(buyer.id), key: "bid-request-00000001" }, { promoteLongs: false })).toMatchObject({ amount: Long.fromNumber(1000), response: body });
+    const notification = await connection.database.collection("Notification").findOne({ userId: new ObjectId(other.id), eventKey: `outbid:${body.bid.id}` }, { promoteLongs: false });
+    expect(notification).toMatchObject({ readAt: null, emailListingId: new ObjectId(listing.id), emailStatus: "PENDING", emailAttempts: Long.ZERO, emailLockedUntil: null, emailPayload: null });
     expect(notification?.emailNextAttemptAt).toBeInstanceOf(Date);
   });
 
@@ -156,8 +152,8 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     expect(responses.filter((item) => item.status === 201)).toHaveLength(1);
     expect(responses.filter((item) => [400, 409, 503].includes(item.status))).toHaveLength(1);
     const accepted = await responses.find((item) => item.status === 201)!.json();
-    const current = await legacy.listing.findUnique({ where: { id: listing.id } });
-    expect(current).toMatchObject({ currentBid: 1000, highestBidderId: accepted.bid.userId, biddersIds: [accepted.bid.userId] });
+    const current = await connection.database.collection("Listing").findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false });
+    expect(current).toMatchObject({ currentBid: Long.fromNumber(1000), highestBidderId: new ObjectId(accepted.bid.userId), biddersIds: [new ObjectId(accepted.bid.userId)] });
     expect(await connection.database.collection("Bid").countDocuments()).toBe(1);
     expect(await connection.database.collection("BidSubmission").countDocuments()).toBe(1);
   });
@@ -167,7 +163,7 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     const responses = await Promise.all([bid(buyer, listing.id, 1000), bid(other, listing.id, 1100)]);
     const accepted = await Promise.all(responses.filter((item) => item.status === 201).map((item) => item.json()));
     expect(accepted.length).toBeGreaterThan(0);
-    expect(await legacy.listing.findUnique({ where: { id: listing.id } })).toMatchObject({ currentBid: 1100, highestBidderId: other.id });
+    expect(await connection.database.collection("Listing").findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false })).toMatchObject({ currentBid: Long.fromNumber(1100), highestBidderId: new ObjectId(other.id) });
     expect(await connection.database.collection("Bid").countDocuments()).toBe(accepted.length);
     expect(await connection.database.collection("BidSubmission").countDocuments()).toBe(accepted.length);
   });
@@ -176,8 +172,8 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     const listing = await seed({ currentBid: 900, highestBidderId: other.id });
     await rejectWrites(collection, async () => {
       expect((await bid(buyer, listing.id)).status).toBe(500);
-      expect(await legacy.listing.findUnique({ where: { id: listing.id } })).toMatchObject({ currentBid: 900, highestBidderId: other.id, biddersIds: [], updatedAt: listing.updatedAt });
-      expect(await legacy.user.findUnique({ where: { id: buyer.id } })).toMatchObject({ BidOnListIds: [] });
+      expect(await connection.database.collection("Listing").findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false })).toMatchObject({ currentBid: Long.fromNumber(900), highestBidderId: new ObjectId(other.id), biddersIds: [], updatedAt: listing.updatedAt });
+      expect(await connection.database.collection("User").findOne({ _id: new ObjectId(buyer.id) }, { promoteLongs: false })).toMatchObject({ BidOnListIds: [] });
       for (const name of ["Bid", "BidSubmission", "Notification"]) expect(await connection.database.collection(name).countDocuments()).toBe(0);
       expect(state.trigger).not.toHaveBeenCalled();
       // Quota attempts deliberately survive a rejected transaction.
@@ -188,10 +184,10 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     expect((await bid(buyer, listing.id)).status).toBe(201);
   });
 
-  it("reads successful request snapshots written by Prisma 6 without touching a closed auction", async () => {
+  it("replays a historical BSON request snapshot without touching a closed auction", async () => {
     const listing = await seed({ status: "ENDED" });
     const response = { bid: { id: new ObjectId().toHexString(), amount: 1000, listingId: listing.id, userId: buyer.id, user: { name: "Historical name" }, createdAt: new Date().toISOString() }, currentBid: 1000, auctionEndsAt: listing.auctionEndsAt!.toISOString() };
-    await legacy.bidSubmission.create({ data: { userId: buyer.id, key: "bid-request-00000001", listingId: listing.id, amount: 1000, response } });
+    await connection.database.collection("BidSubmission").insertOne({ _id: new ObjectId(), userId: new ObjectId(buyer.id), key: "bid-request-00000001", listingId: new ObjectId(listing.id), amount: Long.fromNumber(1000), response, createdAt: new Date() });
     const replay = await bid(buyer, listing.id);
     expect(replay.status).toBe(201); expect(await replay.json()).toEqual(response);
     expect(await connection.database.collection("Bid").countDocuments()).toBe(0);
@@ -205,8 +201,8 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     expect((await start(listing.id)).status).toBe(201);
     const raw = await connection.database.collection("Listing").findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false });
     expect(raw?.status).toBe("LIVE"); expect(Long.isLong(raw?.startingBid)).toBe(true); expect(Long.isLong(raw?.bidIncrement)).toBe(true);
-    expect(await legacy.notification.count()).toBe(1);
-    expect((await legacy.notification.findFirst())?.userId).toBe(buyer.id);
+    expect(await connection.database.collection("Notification").countDocuments({})).toBe(1);
+    expect((await connection.database.collection("Notification").findOne({}, { promoteLongs: false }))?.userId).toEqual(new ObjectId(buyer.id));
   });
 
   it("allows one concurrent start and rolls back a start whose notification fails", async () => {
@@ -218,7 +214,7 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     });
     const responses = await Promise.all([start(listing.id), start(listing.id)]);
     expect(responses.map((item) => item.status).sort()).toEqual([201, 409]);
-    expect(await legacy.notification.count()).toBe(1);
+    expect(await connection.database.collection("Notification").countDocuments({})).toBe(1);
     expect(state.trigger.mock.calls.filter(([, event]) => event === "auction-started")).toHaveLength(1);
   });
 
@@ -237,19 +233,19 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     const now = new Date();
     const results = await Promise.all([finalizeAuction(listing.id, now), finalizeAuction(listing.id, now)]);
     expect(results.map((item) => item.status).sort()).toEqual(["already_finalized", "finalized"]);
-    expect(await legacy.listing.findUnique({ where: { id: listing.id } })).toMatchObject({ status: "ENDED", result: "SOLD", auctionEndsAt: listing.auctionEndsAt });
-    expect(await legacy.notification.count()).toBe(2);
+    expect(await connection.database.collection("Listing").findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false })).toMatchObject({ status: "ENDED", result: "SOLD", auctionEndsAt: listing.auctionEndsAt });
+    expect(await connection.database.collection("Notification").countDocuments({})).toBe(2);
     expect(state.trigger.mock.calls.filter(([, event]) => event === "auction-ended")).toHaveLength(1);
     state.currentUser.mockResolvedValueOnce(seller);
     expect((await endAuction(request({ listingId: listing.id }))).status).toBe(200);
-    expect(await legacy.notification.count()).toBe(2);
+    expect(await connection.database.collection("Notification").countDocuments({})).toBe(2);
   });
 
   it("rolls back finalization on a notification failure and retries on the next run", async () => {
     const listing = await seed({ auctionEndsAt: new Date(Date.now() - 1000) });
     await rejectWrites("Notification", async () => {
       await expect(finalizeAuction(listing.id)).rejects.toMatchObject({ code: 121 });
-      expect(await legacy.listing.findUnique({ where: { id: listing.id } })).toMatchObject({ status: "LIVE", result: null, updatedAt: listing.updatedAt });
+      expect(await connection.database.collection("Listing").findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false })).toMatchObject({ status: "LIVE", result: null, updatedAt: listing.updatedAt });
       expect(state.trigger).not.toHaveBeenCalled();
     });
     expect(await finalizeAuction(listing.id)).toMatchObject({ status: "finalized", result: "RESERVE_NOT_MET" });
@@ -261,7 +257,7 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     await expect(finalizeAuction(listing.id)).rejects.toThrow("Invalid auction date");
     const raw = await connection.database.collection("Listing").findOne({ _id: new ObjectId(listing.id) });
     expect(raw?.status).toBe("LIVE");
-    expect(await legacy.notification.count()).toBe(0);
+    expect(await connection.database.collection("Notification").countDocuments({})).toBe(0);
     expect(state.trigger).not.toHaveBeenCalled();
   });
 
@@ -282,7 +278,7 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     await seed(); await seed({ status: "UPCOMING", auctionEndsAt: new Date(Date.now() - 1000) });
     expect(await finalizeExpiredAuctions(new Date(), 1)).toEqual({ checked: 1, finalized: 1, skipped: 0, failed: 0, hasMore: true });
     expect(await finalizeExpiredAuctions(new Date(), 100)).toEqual({ checked: 1, finalized: 1, skipped: 0, failed: 0, hasMore: false });
-    expect(await legacy.listing.count({ where: { status: "LIVE" } })).toBe(1);
+    expect(await connection.database.collection("Listing").countDocuments({ status: "LIVE" })).toBe(1);
   });
 
   it("claims ending-soon reminders once across workers, including a legacy missing marker", async () => {
@@ -294,8 +290,8 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     await seed({ status: "UPCOMING", auctionEndsAt: new Date(now.getTime() + 10000) });
     const results = await Promise.all([queueEndingSoonReminders(now), queueEndingSoonReminders(now)]);
     expect(results.reduce((sum, item) => sum + item.queued, 0)).toBe(1);
-    const alerts = await legacy.notification.findMany();
-    expect(alerts.map((item) => item.userId).sort()).toEqual([buyer.id, other.id].sort());
+    const alerts = await connection.database.collection("Notification").find({}, { promoteLongs: false }).toArray();
+    expect(alerts.map((item) => item.userId.toHexString()).sort()).toEqual([buyer.id, other.id].sort());
     expect(alerts.every((item) => item.eventKey === `ending-soon:${listing.id}` && item.emailStatus === "PENDING")).toBe(true);
     expect(await queueEndingSoonReminders(now)).toMatchObject({ queued: 0 });
   });
@@ -305,7 +301,7 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     const listing = await seed({ auctionEndsAt: new Date(now.getTime() + 10000), watchersIds: [buyer.id] });
     await rejectWrites("Notification", async () => {
       expect(await queueEndingSoonReminders(now)).toMatchObject({ failed: 1, queued: 0 });
-      expect((await legacy.listing.findUnique({ where: { id: listing.id } }))?.endingSoonReminderAt).toBeNull();
+      expect((await connection.database.collection("Listing").findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false }))?.endingSoonReminderAt).toBeNull();
       expect(state.trigger).not.toHaveBeenCalled();
     });
     expect(await queueEndingSoonReminders(now)).toMatchObject({ queued: 1 });
@@ -318,7 +314,7 @@ describe.skipIf(!url)("native auction transactions on a local MongoDB replica se
     const readAt = new Date();
     await connection.database.collection("Notification").updateOne({ userId: new ObjectId(other.id) }, { $set: { readAt, emailStatus: "SENT", emailAttempts: Long.fromNumber(2), emailProviderId: "sent-once" } });
     await withNativeTransaction((tx) => saveNotifications(tx, event), auctionTransactionOptions);
-    expect(await legacy.notification.findFirst()).toMatchObject({ readAt, emailStatus: "SENT", emailAttempts: 2, emailProviderId: "sent-once" });
-    expect(await legacy.notification.count()).toBe(1);
+    expect(await connection.database.collection("Notification").findOne({}, { promoteLongs: false })).toMatchObject({ readAt, emailStatus: "SENT", emailAttempts: Long.fromNumber(2), emailProviderId: "sent-once" });
+    expect(await connection.database.collection("Notification").countDocuments({})).toBe(1);
   });
 });

@@ -108,8 +108,7 @@ migrated writers are deployed and old writers are stopped, resolve audit issues
 and review the plan, then run `npm run db:push`. This command now uses the v8
 **guarded adoption flow**: it refuses incompatible documents and unreviewed
 schema operations before applying validators and verifying the database. It
-never backfills, deletes, or converts application data. Raw v8 commands and
-legacy v6 `db push` bypass these guards. See the [migration guide](docs/prisma-8-migration.md#database-management-rehearsal).
+never backfills, deletes, or converts application data. Raw CLI database commands bypass these guards. See the [migration guide](docs/prisma-8-migration.md#database-management-rehearsal).
 
 If the audit finds missing legacy User arrays or `endingSoonEmailsEnabled`,
 `npm run db:backfill-users` previews the narrowly scoped repair without writes.
@@ -124,11 +123,12 @@ explicit loopback test URL; see the [restored-copy procedure](docs/prisma-8-migr
 Validator additions require `collMod`; see the [development adoption status](docs/prisma-8-migration.md#development-adoption-status)
 for the verified development adoption results. Production remains on Prisma 6.
 
-The v6 CLI/client remain development-only for comparison tests and legacy
-inspection while existing-data adoption is completed. `db:legacy:generate`
-regenerates that comparison client; `db:studio` currently remains its legacy
-inspection tool. The v6-specific dependency override remains until this tooling
-is removed.
+Prisma 8 is the sole CLI and runtime contract toolchain. `prisma.config.ts`
+keeps default contract emission offline; guarded management uses the separate
+`prisma.management.config.ts`. Tests use independent stored-field requirements,
+BSON fixtures, and application expectations without a generated Prisma 6 client.
+The legacy Studio command has been retired; `db:audit` and `db:plan` provide
+read-only compatibility and schema inspection.
 
 ### 4. Start the app
 
@@ -154,7 +154,6 @@ Auction views use `q` for search, `status=live|upcoming|ended` for the home page
 | `npx tsc --noEmit`    | Check TypeScript types                                      |
 | `npm run db:generate` | Emit the v8 contract and types offline           |
 | `npm run db:push`  | Audit, apply additive v8 adoption DDL, sign and verify |
-| `npm run db:studio`   | Open the legacy inspection browser (development only)                                   |
 | `npm run db:validate` | Validate v8 source/artifact consistency offline                          |
 | `npm run db:v8:emit` | Emit the Prisma 8 contract offline                           |
 | `npm run db:audit` | Read-only data compatibility and index audit                 |
@@ -292,7 +291,8 @@ app/
 ├── past/            # Past auctions
 ├── submit-listing/  # Vehicle submission
 └── utils/           # Formatting helpers
-prisma/v8/contract.ts # Active typed models; schema.prisma remains a legacy comparison source
+prisma/v8/contract.ts # Canonical typed database contract
+prisma.config.ts     # Offline Prisma 8 contract emission
 proxy.ts             # Authentication for account, submission, and user routes
 public/              # Static assets
 vercel.json          # Auction finalization and notification email schedules

@@ -11,14 +11,6 @@ vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => 
 vi.mock("@/app/actions/getCurrentUser", () => ({
   default: mocks.getCurrentUser,
 }));
-vi.mock("../../libs/prismadb", () => ({
-  default: {
-    listing: {
-      findUnique: mocks.findUnique,
-      updateMany: mocks.updateMany,
-    },
-  },
-}));
 vi.mock("@/app/libs/logger", () => ({
   logger: { error: vi.fn() },
 }));

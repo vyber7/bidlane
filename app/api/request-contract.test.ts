@@ -2,18 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ currentUser: vi.fn(), database: vi.fn(), hash: vi.fn(), finalize: vi.fn() }));
 vi.mock("@/app/libs/native-repositories", () => ({
-  getNativeRepositories: () => { throw new Error("Unexpected native database access in this test"); },
-  withNativeTransaction: () => { throw new Error("Unexpected native transaction in this test"); },
+  getNativeRepositories: () => { mocks.database(); throw new Error("Unexpected native database access in this test"); },
+  withNativeTransaction: () => { mocks.database(); throw new Error("Unexpected native transaction in this test"); },
 }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.currentUser }));
-vi.mock("@/app/libs/prismadb", () => ({
-  default: {
-    user: { create: mocks.database, update: mocks.database },
-    listing: { findUnique: mocks.database, update: mocks.database, updateMany: mocks.database, create: mocks.database },
-    comment: { create: mocks.database },
-    $transaction: mocks.database,
-  },
-}));
 vi.mock("@/app/libs/pusher", () => ({ pusherServer: { trigger: vi.fn() } }));
 vi.mock("@/app/libs/auction-finalization", () => ({ finalizeAuction: mocks.finalize }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn(), warn: vi.fn() } }));

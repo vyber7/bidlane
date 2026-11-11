@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Long, ObjectId } from "mongodb";
 import ConnectionString from "mongodb-connection-string-url";
-import { PrismaClient } from "@prisma/client";
 import { createDatabaseV8, type DatabaseV8 } from "../v8/client";
 import { createNativeRepositories, type NativeRepositories } from "./repositories";
 import { ensureNativeIndexes } from "./indexes.mjs";
@@ -15,7 +14,6 @@ vi.mock("@/app/libs/prismadb-v8", () => ({ getDatabaseV8: () => {
   if (!state.connection) throw new Error("Local authoring database is not initialized");
   return state.connection;
 } }));
-vi.mock("@/app/libs/prismadb", () => ({ default: new Proxy({}, { get() { throw new Error("Listing authoring must not use Prisma 6"); } }) }));
 vi.mock("@/app/actions/getSession", () => ({ getSession: async () => sessions.getStore() ?? null }));
 vi.mock("@/app/libs/pusher", () => ({ pusherServer: { trigger: state.trigger } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn(), warn: vi.fn() } }));
@@ -44,7 +42,7 @@ const asUser = <T>(user: AuthUser | null, operation: () => T): T => sessions.run
 
 const url = process.env.NATIVE_TEST_DATABASE_URL;
 describe.skipIf(!url)("native listing authoring on a local MongoDB replica set", () => {
-  let connection: DatabaseV8, repositories: NativeRepositories, legacy: PrismaClient;
+  let connection: DatabaseV8, repositories: NativeRepositories;
   let seller: AuthUser, other: AuthUser, admin: AuthUser;
   beforeAll(async () => {
     const parsed = new ConnectionString(url!);
@@ -57,7 +55,6 @@ describe.skipIf(!url)("native listing authoring on a local MongoDB replica set",
     await connection.database.dropDatabase();
     await ensureNativeIndexes(connection.database);
     repositories = createNativeRepositories(connection.database);
-    legacy = new PrismaClient({ datasourceUrl: localUrl });
   }, 30_000);
   beforeEach(async () => {
     vi.clearAllMocks(); state.trigger.mockResolvedValue(undefined);
@@ -71,7 +68,7 @@ describe.skipIf(!url)("native listing authoring on a local MongoDB replica set",
   });
   afterEach(() => vi.unstubAllEnvs());
   afterAll(async () => {
-    if (connection) { await legacy?.$disconnect(); await connection.database.dropDatabase(); await connection.close(); state.connection = undefined; }
+    if (connection) { await connection.database.dropDatabase(); await connection.close(); state.connection = undefined; }
   }, 30_000);
 
   const createDraft = (payload = complete, id = new ObjectId().toHexString(), saveKey = randomUUID(), owner = seller) => createListingDraft(owner.id, { id, payload, saveKey });
@@ -90,14 +87,14 @@ describe.skipIf(!url)("native listing authoring on a local MongoDB replica set",
     const raw = await connection.database.collection("ListingDraft").findOne({ _id: new ObjectId(draft.id) }, { promoteLongs: false });
     expect(raw?.userId).toEqual(new ObjectId(seller.id)); expect(Long.isLong(raw?.revision)).toBe(true);
     expect(raw?.deletedAt).toBeNull(); expect(raw?.publishedListingId).toBeNull(); expect(raw?.createdAt).toBeInstanceOf(Date);
-    expect(await legacy.listingDraft.findUnique({ where: { id: draft.id } })).toMatchObject({ userId: seller.id, revision: 1, payload: emptyDraftPayload });
+    expect(await connection.database.collection("ListingDraft").findOne({ _id: new ObjectId(draft.id) }, { promoteLongs: false })).toMatchObject({ userId: new ObjectId(seller.id), revision: Long.fromNumber(1), payload: emptyDraftPayload });
     expect(await connection.database.collection("Listing").countDocuments()).toBe(0);
   });
 
   it("replays concurrent identical creates and rejects another owner's use of the same ID", async () => {
     const id = new ObjectId().toHexString(), saveKey = randomUUID();
     const results = await Promise.all([createDraft(emptyDraftPayload, id, saveKey), createDraft(emptyDraftPayload, id, saveKey)]);
-    expect(results[0]).toEqual(results[1]); expect(await legacy.listingDraft.count()).toBe(1);
+    expect(results[0]).toEqual(results[1]); expect(await connection.database.collection("ListingDraft").countDocuments({})).toBe(1);
     await expect(createDraft(emptyDraftPayload, id, saveKey, other)).rejects.toMatchObject({ status: 404 });
     expect(await repositories.drafts.owned(id, other.id)).toBeNull();
   });
@@ -132,11 +129,11 @@ describe.skipIf(!url)("native listing authoring on a local MongoDB replica set",
     await expect(createDraft(complete, id, saveKey)).rejects.toMatchObject({ status: 409 });
   });
 
-  it("keeps explicit-null draft filters aligned with Prisma 6", async () => {
+  it("excludes absent draft markers while accepting explicit-null markers", async () => {
     const draft = await createDraft();
     await connection.database.collection("ListingDraft").updateOne({ _id: new ObjectId(draft.id) }, { $unset: { deletedAt: "" } });
     expect(await repositories.drafts.owned(draft.id, seller.id)).toBeNull();
-    expect(await legacy.listingDraft.findFirst({ where: { id: draft.id, userId: seller.id, deletedAt: null } })).toBeNull();
+    expect(await connection.database.collection("ListingDraft").findOne({ _id: new ObjectId(draft.id), userId: new ObjectId(seller.id) })).not.toHaveProperty("deletedAt");
     expect(await repositories.drafts.list(seller.id)).toEqual([]);
   });
 
@@ -144,11 +141,11 @@ describe.skipIf(!url)("native listing authoring on a local MongoDB replica set",
     const draft = await createDraft();
     await connection.database.collection("ListingDraft").updateOne({ _id: new ObjectId(draft.id) }, kind === "missing" ? { $unset: { revision: "" } } : { $set: { revision: null } });
     expect((await repositories.drafts.owned(draft.id, seller.id))?.revision).toBe(1);
-    expect((await legacy.listingDraft.findUnique({ where: { id: draft.id } }))?.revision).toBe(1);
+    expect((await connection.database.collection("ListingDraft").findOne({ _id: new ObjectId(draft.id) }, { promoteLongs: false }))?.revision).toBe(kind === "missing" ? undefined : null);
     await expect(updateListingDraft(seller.id, draft.id, { revision: 1, saveKey: randomUUID(), payload: complete })).rejects.toMatchObject({ status: 409 });
   });
 
-  it("publishes a validated draft with all listing defaults and remains readable by Prisma 6", async () => {
+  it("publishes a validated draft with complete BSON defaults and relation keys", async () => {
     const draft = await createDraft();
     const listing = await publishListingDraft(seller, draft.id, 1);
     expect(listing).toEqual({ id: listing.id });
@@ -156,15 +153,15 @@ describe.skipIf(!url)("native listing authoring on a local MongoDB replica set",
     expect(raw).toMatchObject({ status: "UPCOMING", reviewStatus: "PENDING", reviewNote: null, result: null, isFeatured: false, auctionStartsAt: null, auctionEndsAt: null, currentBid: null, highestBidderId: null, images: [image], coverImage: image, biddersIds: [], watchersIds: [], seenIds: [], commentsIds: [], commenterIds: [] });
     for (const key of ["year", "miles", "views", "reviewRevision"]) expect(Long.isLong(raw?.[key])).toBe(true);
     expect(raw?.createdAt).toBeInstanceOf(Date); expect(raw?.updatedAt).toEqual(raw?.createdAt); expect(raw?.lastCommentAt).toEqual(raw?.createdAt);
-    expect(await legacy.listing.findUnique({ where: { id: listing.id } })).toMatchObject({ userId: seller.id, year: 2020, views: 1, reviewRevision: 0, reservePrice: null });
-    expect(await legacy.listingDraft.findUnique({ where: { id: draft.id } })).toMatchObject({ publishedListingId: listing.id, revision: 1 });
+    expect(await connection.database.collection("Listing").findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false })).toMatchObject({ userId: new ObjectId(seller.id), year: Long.fromNumber(2020), views: Long.fromNumber(1), reviewRevision: Long.fromNumber(0), reservePrice: null });
+    expect(await connection.database.collection("ListingDraft").findOne({ _id: new ObjectId(draft.id) }, { promoteLongs: false })).toMatchObject({ publishedListingId: new ObjectId(listing.id), revision: Long.fromNumber(1) });
     expect(raw).not.toHaveProperty("photoChecklist"); expect(raw).not.toHaveProperty("step");
   });
 
   it("publishes concurrent requests once and replays only the ID even after verification is revoked", async () => {
     const draft = await createDraft();
     const results = await Promise.all([publishListingDraft(seller, draft.id, 1), publishListingDraft(seller, draft.id, 1)]);
-    expect(results[0]).toEqual(results[1]); expect(await legacy.listing.count()).toBe(1);
+    expect(results[0]).toEqual(results[1]); expect(await connection.database.collection("Listing").countDocuments({})).toBe(1);
     await connection.database.collection("User").updateOne({ _id: new ObjectId(seller.id) }, { $set: { emailVerified: null } });
     await connection.database.collection("Listing").updateOne({ _id: new ObjectId(results[0].id) }, { $set: { status: "LIVE", watchersIds: [new ObjectId(other.id)], reservePrice: Long.fromNumber(9000), reviewNote: "Private feedback", futureSecret: "private" } });
     const response = await asUser(seller, () => submit(request({ draftId: draft.id, revision: 1, data: { make: "Unsaved change" } })));
@@ -177,7 +174,7 @@ describe.skipIf(!url)("native listing authoring on a local MongoDB replica set",
     const draft = await createDraft();
     await rejectWrites("ListingDraft", async () => {
       await expect(publishListingDraft(seller, draft.id, 1)).rejects.toMatchObject({ code: 121 });
-      expect(await legacy.listing.count()).toBe(0);
+      expect(await connection.database.collection("Listing").countDocuments({})).toBe(0);
       expect((await repositories.drafts.owned(draft.id, seller.id))?.publishedListingId).toBeNull();
     });
     expect(await publishListingDraft(seller, draft.id, 1)).toHaveProperty("id");
@@ -190,7 +187,7 @@ describe.skipIf(!url)("native listing authoring on a local MongoDB replica set",
     await expect(publishListingDraft(other, draft.id, 1)).rejects.toMatchObject({ status: 404 });
     const full = await createDraft();
     await expect(publishListingDraft({ ...seller, emailVerified: null }, full.id, 1)).rejects.toMatchObject({ status: 403 });
-    expect(await legacy.listing.count()).toBe(0);
+    expect(await connection.database.collection("Listing").countDocuments({})).toBe(0);
   });
 
   it("arbitrates publication against an edit or deletion without orphan listings", async () => {
@@ -204,13 +201,14 @@ describe.skipIf(!url)("native listing authoring on a local MongoDB replica set",
       const saved = (await repositories.drafts.find(draft.id))!;
       if (saved.publishedListingId) expect(await repositories.listingAuthoring.ownedListing(saved.publishedListingId, seller.id)).not.toBeNull();
     }
-    const linked = (await legacy.listingDraft.findMany()).filter((item) => item.publishedListingId);
-    expect(await legacy.listing.count()).toBe(linked.length);
+    const linked = (await connection.database.collection("ListingDraft").find({}, { promoteLongs: false }).toArray()).filter((item) => item.publishedListingId);
+    expect(await connection.database.collection("Listing").countDocuments({})).toBe(linked.length);
   });
 
-  it("reads a draft written by Prisma 6 and publishes its stored snapshot", async () => {
+  it("reads a historical BSON draft and publishes its stored snapshot", async () => {
     const id = new ObjectId().toHexString();
-    await legacy.listingDraft.create({ data: { id, userId: seller.id, payload: complete, lastSaveKey: randomUUID(), publishedListingId: null, deletedAt: null } });
+    const now = new Date();
+    await connection.database.collection("ListingDraft").insertOne({ _id: new ObjectId(id), userId: new ObjectId(seller.id), payload: complete, revision: Long.ONE, lastSaveKey: randomUUID(), publishedListingId: null, deletedAt: null, createdAt: now, updatedAt: now });
     expect(serializeDraft((await repositories.drafts.owned(id, seller.id))!).payload).toEqual(complete);
     expect(await publishListingDraft(seller, id, 1)).toHaveProperty("id");
   });
@@ -219,27 +217,27 @@ describe.skipIf(!url)("native listing authoring on a local MongoDB replica set",
     const response = await asUser(seller, () => submit(request({ data: { ...validated(), reviewStatus: "APPROVED", reviewRevision: 99, status: "LIVE", userId: other.id, views: 999 } })));
     expect(response.status).toBe(201);
     const { id } = await response.json();
-    expect(await legacy.listing.findUnique({ where: { id } })).toMatchObject({ userId: seller.id, status: "UPCOMING", reviewStatus: "PENDING", reviewRevision: 0, views: 1 });
+    expect(await connection.database.collection("Listing").findOne({ _id: new ObjectId(id) }, { promoteLongs: false })).toMatchObject({ userId: new ObjectId(seller.id), status: "UPCOMING", reviewStatus: "PENDING", reviewRevision: Long.fromNumber(0), views: Long.fromNumber(1) });
     const bad = await asUser(other, () => submit(request({ data: validated() })));
-    expect(bad.status).toBe(400); expect(await legacy.listing.count()).toBe(1);
+    expect(bad.status).toBe(400); expect(await connection.database.collection("Listing").countDocuments({})).toBe(1);
   });
 
   it.each(["missing", "null", "zero"])("reviews legacy listings with a %s revision and stores a BSON audit", async (kind) => {
     const listing = await repositories.listingAuthoring.create(seller.id, validated(), new Date());
     if (kind !== "zero") await connection.database.collection("Listing").updateOne({ _id: new ObjectId(listing.id) }, kind === "missing" ? { $unset: { reviewRevision: "" } } : { $set: { reviewRevision: null } });
     expect((await decide(listing.id)).status).toBe(200);
-    expect(await legacy.listing.findUnique({ where: { id: listing.id } })).toMatchObject({ reviewStatus: "APPROVED", reviewRevision: 1 });
+    expect(await connection.database.collection("Listing").findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false })).toMatchObject({ reviewStatus: "APPROVED", reviewRevision: Long.fromNumber(1) });
     const raw = await connection.database.collection("ListingReview").findOne({}, { promoteLongs: false });
     expect(raw?.reviewerId).toEqual(new ObjectId(admin.id)); expect(raw?.listingId).toEqual(new ObjectId(listing.id)); expect(Long.isLong(raw?.revision)).toBe(true);
-    expect(await legacy.listingReview.findFirst()).toMatchObject({ decision: "APPROVED", revision: 1, reviewerName: "Moderator", reason: null });
+    expect(await connection.database.collection("ListingReview").findOne({}, { promoteLongs: false })).toMatchObject({ decision: "APPROVED", revision: Long.fromNumber(1), reviewerName: "Moderator", reason: null });
   });
 
   it("rolls back approval when its audit cannot be stored and denies revoked administrators", async () => {
     const listing = await repositories.listingAuthoring.create(seller.id, validated(), new Date());
     await rejectWrites("ListingReview", async () => {
       expect((await decide(listing.id)).status).toBe(500);
-      expect(await legacy.listing.findUnique({ where: { id: listing.id } })).toMatchObject({ reviewStatus: "PENDING", reviewRevision: 0 });
-      expect(await legacy.listingReview.count()).toBe(0);
+      expect(await connection.database.collection("Listing").findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false })).toMatchObject({ reviewStatus: "PENDING", reviewRevision: Long.fromNumber(0) });
+      expect(await connection.database.collection("ListingReview").countDocuments({})).toBe(0);
     });
     await connection.database.collection("User").updateOne({ _id: new ObjectId(admin.id) }, { $set: { role: "USER" } });
     expect((await decide(listing.id)).status).toBe(403);
@@ -250,7 +248,7 @@ describe.skipIf(!url)("native listing authoring on a local MongoDB replica set",
     const listing = await repositories.listingAuthoring.create(seller.id, validated(), new Date());
     const results = await Promise.all([decide(listing.id), decide(listing.id, 0, "CHANGES_REQUESTED")]);
     expect(results.map((item) => item.status).sort()).toEqual([200, 409]);
-    expect(await legacy.listingReview.count()).toBe(1);
+    expect(await connection.database.collection("ListingReview").countDocuments({})).toBe(1);
     expect((await repositories.listingAuthoring.find(listing.id))?.reviewRevision).toBe(1);
   });
 
@@ -260,7 +258,7 @@ describe.skipIf(!url)("native listing authoring on a local MongoDB replica set",
     const coverUrl = `https://res.cloudinary.com/demo/image/upload/listing-${listing.id}/cover.jpg`;
     await repositories.assets.register({ id: "fixture:cover", userId: seller.id, listingId: listing.id, kind: "PHOTO", url: coverUrl, bytes: 10, format: "jpg" });
     expect((await asUser(seller, () => cover(request({ url: coverUrl }), context(listing.id)))).status).toBe(200);
-    expect(await legacy.listing.findUnique({ where: { id: listing.id } })).toMatchObject({ reviewStatus: "PENDING", reviewRevision: 2, coverImage: coverUrl, images: [image, coverUrl] });
+    expect(await connection.database.collection("Listing").findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false })).toMatchObject({ reviewStatus: "PENDING", reviewRevision: Long.fromNumber(2), coverImage: coverUrl, images: [image, coverUrl] });
     expect((await decide(listing.id, 1)).status).toBe(409);
     expect((await asUser(seller, () => records(request({ vin: "BCNR33-012345", vehicleRecords: [] }), context(listing.id)))).status).toBe(200);
     const extra = coverUrl.replace("cover.jpg", "detail.jpg");
@@ -282,10 +280,10 @@ describe.skipIf(!url)("native listing authoring on a local MongoDB replica set",
     const record = (await repositories.listingAuthoring.find(listing.id))!;
     if (record.status === "LIVE") {
       expect(results.map((item) => item.status)).toEqual([201, 409]); expect(record.reviewStatus).toBe("APPROVED");
-      expect(await legacy.listingReview.count()).toBe(1);
+      expect(await connection.database.collection("ListingReview").countDocuments({})).toBe(1);
     } else {
       expect(results.map((item) => item.status)).toEqual([409, 200]); expect(record.reviewStatus).toBe("CHANGES_REQUESTED");
-      expect(await legacy.listingReview.count()).toBe(2);
+      expect(await connection.database.collection("ListingReview").countDocuments({})).toBe(2);
     }
   });
 
