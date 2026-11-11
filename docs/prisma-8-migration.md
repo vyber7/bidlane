@@ -423,6 +423,16 @@ flag rejects unclaimed native collections even when their policy is tolerated.
 MongoDB validators themselves still use strict/error enforcement; the native
 index check and guarded plan cover the deliberately external collections.
 
+Plan/apply also inspect the current connection's effective privileges with
+`connectionStatus`. The `permissions` report lists missing `collMod` actions
+for validator additions and `createCollection` actions for collection creation,
+respecting database/collection scopes. Known missing privileges make the plan
+not ready and prevent DDL. Identities are never included. When an inventory is
+unavailable or the connection is unauthenticated (as on the local fixture
+server), `permissions.checked` is false; actual server authorization and command
+verification still apply. This check covers planned DDL, not every permission
+that signing or application operations may need.
+
 The rehearsal uses independent representative fixtures, **not a production data
 copy**. Run it against a disposable local MongoDB 8+ replica set:
 
@@ -443,6 +453,76 @@ issues deliberately, then repeat audit/plan immediately before applying.
 DDL/signing is not one MongoDB transaction: a command failure can leave partial
 metadata changes, so stop and inspect before retrying. No shared database's
 records, validators, indexes, or marker were changed during this rehearsal.
+
+## Restored-copy rehearsal
+
+`npm run db:rehearse-copy` reads the configured `DATABASE_URL`, creates a
+private database archive, and exercises the initial adoption on the actual
+documents restored into a uniquely named local database. Install the official
+[MongoDB Database Tools](https://www.mongodb.com/try/download/database-tools)
+and start a disposable MongoDB 8+ replica set bound only to loopback. Run this
+operator command separately from the fixture integration suites:
+
+```bash
+MIGRATION_TEST_DATABASE_URL='mongodb://127.0.0.1:28019/bidlane_test_migration_copy?replicaSet=bidlane-test' npm run db:rehearse-copy
+```
+
+The tools must be on `PATH`, or provide `MONGODUMP_BIN` and `MONGORESTORE_BIN`
+as absolute executable paths. The script accepts no command-line overrides.
+Its local URL must identify one literal `127.0.0.1:port` host and a
+`bidlane_test_migration_*` database; a new suffixed name is generated. Local
+credentials and connection options other than `replicaSet`/`directConnection`
+are refused, and direct connection is forced to prevent discovery or proxies
+from redirecting writes. Restore requires an empty destination, selects only
+the source database's namespaces, remaps every restored collection, stops on
+errors, and never uses `--drop` or oplog replay.
+
+The source URI is supplied through a temporary mode-600 tool configuration,
+not process arguments, and that file is removed after the dump. Archives,
+tool logs, snapshot manifests, and reports are kept in a new mode-700 directory
+under `~/.local/state/bidlane/backups/` (override the parent with
+`BIDLANE_BACKUP_ROOT`). Files are mode 600. They contain real application data
+and must stay outside Git; retain the archive through cutover and verification.
+The summary reports counts and check results without identities or documents.
+
+The checks are:
+
+1. Read every ordinary collection in one read-only snapshot, hashing raw BSON
+   without changing integer, floating-point, or binary representations. Record
+   collection options and full index definitions, and refuse metadata drift.
+2. Create a gzip `mongodump` archive of this database only. Require another
+   source snapshot to match, then restore and require the copy's raw document
+   hashes, counts, options, and indexes to match too. A changing source fails
+   the rehearsal instead of accepting an inconsistent copy.
+3. Preview and apply the missing-only User backfill on the copy. Compare every
+   original collection with the expected result: only absent defaults may be
+   added; other values, BSON types, timestamps, and all indexes must survive.
+4. Run guarded validator adoption, signing, and verification. Require unchanged
+   original document hashes/indexes and unchanged unmanaged collection options.
+   Require a second plan to be ready with zero operations.
+5. Read all ten managed models through the v8 ORM. Verify an actual restored
+   User accepts a transactional preference update, a native string-key quota
+   accepts an insert, and both roll back. Verify an invalid User insert fails
+   validation and that the final copy is otherwise unchanged.
+
+The generated local database is dropped on exit; the backup remains. A failed
+run exits nonzero and leaves private diagnostic logs. This is an
+application-database logical backup, not a full deployment backup of database
+users/roles, other databases, or infrastructure. The command deliberately does
+not request the cluster-wide access needed for `mongodump --oplog`; MongoDB
+requires a full replica-set dump for that mode. The snapshot comparisons make
+this rehearsal suitable for a small, stable database. Before cutover, stop old
+writers and obtain a fresh coordinated backup or deployment snapshot using the
+[MongoDB backup procedure](https://www.mongodb.com/docs/database-tools/mongodump/#std-option-mongodump.--oplog).
+
+The configured database's restored-copy rehearsal passed on 2026-11-10 using
+Database Tools 100.20.1 and a local MongoDB 8.0.17 replica set. All seventeen
+collections were restored exactly, the eleven legacy Users were repaired,
+all ten validator additions were adopted and verified, all ten ORM reads
+passed, and the repeat plan was empty. During this copy rehearsal, the source
+received no data/schema/index or marker writes. The configured source was then
+confirmed to be development; see [development adoption status](#development-adoption-status)
+for the subsequent backfill. Production remains a separate Prisma 6 deployment.
 
 ## Missing User defaults
 
@@ -484,6 +564,53 @@ pattern. Tests verify preview privacy, preservation, idempotence, refusal of
 unresolved failures, rollback, and concurrent watchlist/preference updates.
 This is separate from rehearsing on a restored copy of the actual database;
 retain the backup until adoption and application checks are complete.
+
+## Development adoption status
+
+The configured `DATABASE_URL` was confirmed to target development on 2026-11-10;
+production is still running Prisma 6 and was not targeted. Before development
+writes, the live raw-BSON snapshot, collection options, and indexes were
+rechecked against the restored/verified archive, and the archive checksum was
+verified. The transactional backfill then added the reviewed missing defaults
+to the eleven legacy Users. All other stored values, BSON types, timestamps,
+collection options, and indexes were verified unchanged. The data audit passes.
+
+The initial validator attempt was blocked because the development account
+lacked `collMod`; no validators were installed during that attempt. The plan
+now reports known missing DDL permissions explicitly. A migration account
+needs existing read/write access plus `collMod` on the managed collections.
+MongoDB's built-in
+[`dbAdmin` role](https://www.mongodb.com/docs/manual/reference/command/collmod/#access-control)
+provides that action; scope migration privileges to the intended database.
+
+After the development account received `dbAdmin`, adoption completed on
+2026-11-11. A fresh private backup and restored-copy rehearsal passed before
+applying the ten reviewed validator additions. The guarded `db:push` command
+completed schema verification, signing, and marker verification. Final live
+checks confirmed:
+
+- All ten managed collections use strict/error validator enforcement.
+- All seventeen original collections and 160 documents retain their raw BSON
+  hashes and index definitions from the post-backfill backup; native collection
+  options and string IDs are unchanged.
+- All ten v8 ORM model reads return the expected counts.
+- An invalid User insert is rejected, and a session-bound User preference
+  change plus native string-key quota insert both roll back without changes.
+- The data audit passes, the contract marker matches, and the follow-up plan is
+  ready with zero operations.
+
+The normal operator sequence remains:
+
+```bash
+npm run db:plan       # audit ready; no missing permissions or blocked operations
+npm run db:push       # guarded validator adoption, signing and verification
+npm run db:plan       # ready with zero operations
+```
+
+The pre-backfill and pre-validator archives and private development verification
+reports remain outside Git. Production needs its own
+backup, audit, restored-copy rehearsal, and coordinated application/validator
+cutover; the development result does not authorize or perform those operations.
 
 ## Client and transaction boundary
 
@@ -539,17 +666,19 @@ their disposable local database and restore those validators afterward. Tests ne
 `DATABASE_URL`, send mail, or contact Cloudinary. Without the explicit test URL
 they are skipped. The
 migration has been verified against local MongoDB 8.0.17 and 8.0.37 replica sets.
-The configured shared database was also audited read-only for document/schema
-compatibility, indexes, and native ID types. No shared records, validators,
-indexes, or migration marker were changed.
+The configured development database was also audited for document/schema
+compatibility, indexes, and native ID types, then backed up and successfully
+rehearsed on a local restored copy. Its missing User defaults were backfilled
+and verified, and development validator adoption/signing has completed with
+live preservation, ORM, enforcement, rollback and repeat-plan checks.
+Production remains on Prisma 6 and was not changed.
 
 ## Remaining migration work
 
-1. Repeat the tested adoption flow on a restored copy of the actual database.
-   Review its audit and missing-default preview, rehearse any repair, and
-   coordinate old-writer shutdown before applying the guarded changes to the
-   target. Representative local
-   rehearsal does not establish that existing shared data is compatible.
+1. Separately plan production's Prisma 6 cutover with its own backup, audit,
+   restored-copy rehearsal, and old-writer shutdown before applying production
+   changes. Development backfill, validator adoption/signing, and live checks
+   are complete; production has not been targeted.
 2. Retain explicit foreign-key/array operations, creation defaults, and native
    transaction boundaries. Many-to-many arrays remain persisted fields, not
    v8 ORM relations. Confirm required cascading cleanup before retiring v6's

@@ -116,6 +116,14 @@ If the audit finds missing legacy User arrays or `endingSoonEmailsEnabled`,
 Review it and follow the [backfill procedure](docs/prisma-8-migration.md#missing-user-defaults)
 before explicitly applying it; database adoption never runs this repair automatically.
 
+`npm run db:rehearse-copy` backs up the configured database and rehearses repair
+and adoption on a fresh local copy. It requires MongoDB Database Tools and an
+explicit loopback test URL; see the [restored-copy procedure](docs/prisma-8-migration.md#restored-copy-rehearsal).
+
+`db:plan` also reports missing management privileges for the planned DDL.
+Validator additions require `collMod`; see the [development adoption status](docs/prisma-8-migration.md#development-adoption-status)
+for the verified development adoption results. Production remains on Prisma 6.
+
 The v6 CLI/client remain development-only for comparison tests and legacy
 inspection while existing-data adoption is completed. `db:legacy:generate`
 regenerates that comparison client; `db:studio` currently remains its legacy
@@ -153,6 +161,7 @@ Auction views use `q` for search, `status=live|upcoming|ended` for the home page
 | `npm run db:plan` | Audit and preview additive adoption operations without writes |
 | `npm run db:rehearse` | Run the guarded local-only management rehearsal              |
 | `npm run db:backfill-users` | Preview missing User defaults; `-- --apply` writes them explicitly |
+| `npm run db:rehearse-copy` | Back up the configured database and migrate an isolated local copy |
 | `npm run db:v8:check` | Read MongoDB version and transaction-support metadata        |
 | `npm run db:native:indexes` | Verify the string-ID collections’ existing indexes     |
 

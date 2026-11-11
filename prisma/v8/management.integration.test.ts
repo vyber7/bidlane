@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Long, ObjectId } from "mongodb";
 import { createDatabaseV8, type DatabaseV8 } from "./client";
 import { createNativeRepositories } from "../native/repositories";
@@ -30,6 +30,24 @@ describe.skipIf(!suppliedUrl)("guarded v8 database-management rehearsal", () => 
     const report = await manageDatabase("apply", connection.database, url);
     expect(report.applied).toBe(true); expect(report.blockedOperations).toEqual([]);
     expect((await auditDatabase(connection.database)).ready).toBe(true);
+  }, 60_000);
+
+  it("refuses adoption before DDL when the connection reports no validator permission", async () => {
+    const names = (await connection.database.listCollections().toArray()).map((entry) => entry.name);
+    const before = await fingerprint(connection.database, names);
+    const status = vi.spyOn(connection.database, "command").mockResolvedValueOnce({ ok: 1, authInfo: {
+      authenticatedUsers: [{ user: "fixture", db: "admin" }],
+      authenticatedUserPrivileges: [{ resource: { db: connection.database.databaseName, collection: "" }, actions: ["find", "insert", "update", "createCollection"] }],
+    } });
+    try {
+      const report = await manageDatabase("apply", connection.database, url);
+      expect(report).toMatchObject({ ready: false, applied: false, permissions: { checked: true } });
+      expect(report.permissions.missing).toHaveLength(10);
+      expect(report.permissions.missing).toContainEqual({ collection: "User", action: "collMod" });
+      expect(await fingerprint(connection.database, names)).toEqual(before);
+      const info = await connection.database.listCollections({ name: "User" }).next();
+      expect(info && "options" in info ? info.options?.validator : undefined).toBeUndefined();
+    } finally { status.mockRestore(); }
   }, 60_000);
 
   it.each(["missing", "null", "type", "extra"])("blocks strict validator adoption for %s legacy incompatibility without changing data/schema", async (kind) => {
