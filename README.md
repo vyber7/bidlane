@@ -123,6 +123,11 @@ explicit loopback test URL; see the [restored-copy procedure](docs/prisma-8-migr
 Validator additions require `collMod`; see the [development adoption status](docs/prisma-8-migration.md#development-adoption-status)
 for the verified development adoption results. Production remains on Prisma 6.
 
+Before production rollout, follow the [Prisma 8 cutover procedure](docs/prisma-8-production-cutover.md).
+`npm run services:check` checks provider credentials and the local cron inventory
+without sending mail, publishing events, uploading files, or modifying data.
+Actual OAuth, delivery, and deployed scheduler checks remain separate.
+
 Prisma 8 is the sole CLI and runtime contract toolchain. `prisma.config.ts`
 keeps default contract emission offline; guarded management uses the separate
 `prisma.management.config.ts`. Tests use independent stored-field requirements,
@@ -163,6 +168,7 @@ Auction views use `q` for search, `status=live|upcoming|ended` for the home page
 | `npm run db:rehearse-copy` | Back up the configured database and migrate an isolated local copy |
 | `npm run db:v8:check` | Read MongoDB version and transaction-support metadata        |
 | `npm run db:native:indexes` | Verify the string-ID collections’ existing indexes     |
+| `npm run services:check` | Read-only provider authentication and local cron inventory |
 
 Tests live alongside the implementation as `*.test.ts` or `*.test.tsx` files. API and data tests run in Vitest's Node environment; React hook and component tests opt into jsdom. Coverage includes auction transitions, bid validation, finalization, API authorization, data helpers, and live auction state reconciliation after refreshes and missed events.
 

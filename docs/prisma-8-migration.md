@@ -682,6 +682,11 @@ no persisted contract or database data.
 
 ## Remaining migration work
 
+Use the [production cutover procedure](prisma-8-production-cutover.md) for the
+remaining service checks, Vercel scheduler verification, release-candidate
+review, and coordinated production adoption. `npm run services:check` performs
+repeatable read-only provider checks; its result does not certify delivery.
+
 1. Separately plan production's Prisma 6 cutover with its own backup, audit,
    restored-copy rehearsal, and old-writer shutdown before applying production
    changes. Development backfill, validator adoption/signing, and live checks

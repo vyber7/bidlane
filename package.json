@@ -19,6 +19,7 @@
     "admin:grant": "node --env-file-if-exists=.env scripts/admin-role.mjs grant",
     "admin:revoke": "node --env-file-if-exists=.env scripts/admin-role.mjs revoke",
     "uploads:check": "node --env-file-if-exists=.env scripts/secure-uploads.mjs check",
+    "services:check": "node --env-file-if-exists=.env scripts/check-services.mjs",
     "uploads:secure": "node --env-file-if-exists=.env scripts/secure-uploads.mjs apply",
     "db:audit": "node --env-file-if-exists=.env scripts/prisma-management.mjs audit",
     "db:plan": "node --env-file-if-exists=.env scripts/prisma-management.mjs plan",

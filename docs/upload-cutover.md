@@ -19,10 +19,11 @@ The following steps intentionally separate preparation from the live change.
 1. Set `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `NEXT_PUBLIC_CLOUDINARY_API_KEY`, and
    `CLOUDINARY_API_SECRET` in the production runtime. Keep the API secret server
    only. Use that same Cloudinary account for the cutover command.
-2. Apply the additive MongoDB schema with production `DATABASE_URL` configured:
-   `npx prisma db push`. This adds `UploadedAsset` and `UploadQuota` collections
-   and indexes. Do not use `--accept-data-loss`. Deploy the application normally
-   (`npm run build` regenerates the Prisma client).
+2. Follow the [Prisma 8 production cutover procedure](prisma-8-production-cutover.md)
+   with the reviewed target supplied through `DATABASE_URL`. Inspect the native
+   index inventory, audit, and plan first; initialize missing native indexes only
+   after backup and review, then use guarded adoption after stopping old writers.
+   Deploy the application with its emitted contract (`npm run build` emits it).
 3. On the production domain, sign in and smoke-test a photo, PDF record, and
    profile image below 4 MB. Save and reload each; confirm an existing draft and
    existing saved media still work. A file above 4 MB must be rejected. Confirm
