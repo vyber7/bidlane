@@ -26,10 +26,10 @@ development. The generated artifacts are committed in `89a29d5`.
 
 ## Development service results — 2026-11-12
 
-Live checks used the configured development services and the operator's GitHub
-account/inbox. Verification and password recovery used an isolated temporary
-local account; the real development account's password/verification were not
-changed to manufacture test data.
+Live checks used the configured development services, the operator's GitHub and
+Google accounts, and the approved inbox. Verification and password recovery
+used an isolated temporary local account; the real development account's
+password/verification were not changed to manufacture test data.
 
 | Check | Result |
 | --- | --- |
@@ -41,7 +41,7 @@ changed to manufacture test data.
 | Vehicle records | PDF upload and draft save/reload passed. Following the operator's manual fix, a fresh signed PDF delivery retest also passed: HTTP 200, `application/pdf`, and a valid PDF body. |
 | Provider cleanup | All created test assets were removed, including the diagnostic PDF and the successful delivery retest asset. |
 | Vercel | Read-only API inspection confirms a ready production deployment with all four one-minute schedules enabled and production `CRON_SECRET` metadata present. Pro is confirmed by the operator and dashboard. Dashboard request logs show recent HTTP 200 invocations for all four workers; no job was invoked manually. |
-| Google OAuth | Not exercised with a live account; only configuration presence and the existing automated adapter tests are covered. |
+| Google OAuth | Existing linked Google account sign-in, stored-user/session binding, protected profile access, and sign-out passed. Existing account bindings and BSON types were preserved; no duplicate User or Google Account records were created. |
 
 Earlier checks confirmed that development and production shared the Cloudinary
 product environment. Following the operator's manual fix, a fresh signed PDF
