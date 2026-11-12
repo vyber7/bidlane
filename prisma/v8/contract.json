@@ -239,8 +239,12 @@
                 "cardinality": "N:1",
                 "nullable": false,
                 "on": {
-                  "localFields": ["userId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "User",
@@ -336,8 +340,12 @@
                 "cardinality": "N:1",
                 "nullable": false,
                 "on": {
-                  "localFields": ["listingId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "listingId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "Listing",
@@ -348,8 +356,12 @@
                 "cardinality": "N:1",
                 "nullable": false,
                 "on": {
-                  "localFields": ["userId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "User",
@@ -435,8 +447,12 @@
                 "cardinality": "N:1",
                 "nullable": false,
                 "on": {
-                  "localFields": ["userId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "User",
@@ -521,8 +537,12 @@
                 "cardinality": "N:1",
                 "nullable": false,
                 "on": {
-                  "localFields": ["listingId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "listingId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "Listing",
@@ -533,8 +553,12 @@
                 "cardinality": "N:1",
                 "nullable": true,
                 "on": {
-                  "localFields": ["userId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "User",
@@ -944,8 +968,12 @@
               "bids": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["listingId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "listingId"
+                  ]
                 },
                 "to": {
                   "model": "Bid",
@@ -955,8 +983,12 @@
               "comments": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["listingId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "listingId"
+                  ]
                 },
                 "to": {
                   "model": "Comment",
@@ -967,8 +999,12 @@
                 "cardinality": "N:1",
                 "nullable": true,
                 "on": {
-                  "localFields": ["highestBidderId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "highestBidderId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "User",
@@ -978,8 +1014,12 @@
               "reviews": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["listingId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "listingId"
+                  ]
                 },
                 "to": {
                   "model": "ListingReview",
@@ -990,8 +1030,12 @@
                 "cardinality": "N:1",
                 "nullable": false,
                 "on": {
-                  "localFields": ["userId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "User",
@@ -1199,8 +1243,12 @@
                 "cardinality": "N:1",
                 "nullable": false,
                 "on": {
-                  "localFields": ["userId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "User",
@@ -1311,8 +1359,12 @@
                 "cardinality": "N:1",
                 "nullable": false,
                 "on": {
-                  "localFields": ["listingId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "listingId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "Listing",
@@ -1530,8 +1582,12 @@
                 "cardinality": "N:1",
                 "nullable": false,
                 "on": {
-                  "localFields": ["userId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "User",
@@ -1758,8 +1814,12 @@
               "accounts": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["userId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
                 },
                 "to": {
                   "model": "Account",
@@ -1769,8 +1829,12 @@
               "bidSubmissions": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["userId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
                 },
                 "to": {
                   "model": "BidSubmission",
@@ -1780,8 +1844,12 @@
               "bids": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["userId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
                 },
                 "to": {
                   "model": "Bid",
@@ -1791,8 +1859,12 @@
               "comments": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["userId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
                 },
                 "to": {
                   "model": "Comment",
@@ -1802,8 +1874,12 @@
               "highestBids": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["highestBidderId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "highestBidderId"
+                  ]
                 },
                 "to": {
                   "model": "Listing",
@@ -1813,8 +1889,12 @@
               "listingDrafts": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["userId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
                 },
                 "to": {
                   "model": "ListingDraft",
@@ -1824,8 +1904,12 @@
               "notifications": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["userId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
                 },
                 "to": {
                   "model": "Notification",
@@ -1835,8 +1919,12 @@
               "uploadList": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["userId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
                 },
                 "to": {
                   "model": "Listing",
@@ -1939,13 +2027,22 @@
                       "bsonType": "objectId"
                     },
                     "access_token": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "expires_at": {
-                      "bsonType": ["null", "long"]
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
                     },
                     "id_token": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "provider": {
                       "bsonType": "string"
@@ -1954,19 +2051,34 @@
                       "bsonType": "string"
                     },
                     "refresh_token": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "refresh_token_expires_in": {
-                      "bsonType": ["null", "long"]
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
                     },
                     "scope": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "session_state": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "token_type": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "type": {
                       "bsonType": "string"
@@ -2108,22 +2220,35 @@
                       "bsonType": "objectId"
                     },
                     "body": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "createdAt": {
                       "bsonType": "date"
                     },
                     "image": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "listingId": {
                       "bsonType": "objectId"
                     },
                     "userId": {
-                      "bsonType": ["null", "objectId"]
+                      "bsonType": [
+                        "null",
+                        "objectId"
+                      ]
                     }
                   },
-                  "required": ["_id", "createdAt", "listingId"]
+                  "required": [
+                    "_id",
+                    "createdAt",
+                    "listingId"
+                  ]
                 },
                 "kind": "mongo-validator",
                 "validationAction": "error",
@@ -2226,13 +2351,22 @@
                       "bsonType": "objectId"
                     },
                     "auctionEndsAt": {
-                      "bsonType": ["null", "date"]
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
                     },
                     "auctionStartsAt": {
-                      "bsonType": ["null", "date"]
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
                     },
                     "bidIncrement": {
-                      "bsonType": ["null", "long"]
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
                     },
                     "biddersIds": {
                       "bsonType": "array",
@@ -2253,25 +2387,40 @@
                       }
                     },
                     "coverImage": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "createdAt": {
                       "bsonType": "date"
                     },
                     "currentBid": {
-                      "bsonType": ["null", "long"]
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
                     },
                     "description": {
                       "bsonType": "string"
                     },
                     "drivetrain": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "endingSoonReminderAt": {
-                      "bsonType": ["null", "date"]
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
                     },
                     "highestBidderId": {
-                      "bsonType": ["null", "objectId"]
+                      "bsonType": [
+                        "null",
+                        "objectId"
+                      ]
                     },
                     "images": {
                       "bsonType": "array",
@@ -2283,10 +2432,16 @@
                       "bsonType": "bool"
                     },
                     "knownFlaws": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "lastCommentAt": {
-                      "bsonType": ["null", "date"]
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
                     },
                     "location": {
                       "bsonType": "string"
@@ -2301,23 +2456,46 @@
                       "bsonType": "string"
                     },
                     "modifications": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "reservePrice": {
-                      "bsonType": ["null", "long"]
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
                     },
                     "result": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "reviewNote": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "reviewRevision": {
-                      "bsonType": ["null", "long"]
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
                     },
                     "reviewStatus": {
-                      "bsonType": ["null", "string"],
-                      "enum": ["PENDING", "APPROVED", "CHANGES_REQUESTED", null]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ],
+                      "enum": [
+                        "PENDING",
+                        "APPROVED",
+                        "CHANGES_REQUESTED",
+                        null
+                      ]
                     },
                     "seenIds": {
                       "bsonType": "array",
@@ -2326,22 +2504,37 @@
                       }
                     },
                     "serviceHistory": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "startingBid": {
-                      "bsonType": ["null", "long"]
+                      "bsonType": [
+                        "null",
+                        "long"
+                      ]
                     },
                     "status": {
                       "bsonType": "string"
                     },
                     "titleStatus": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "transmission": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "updatedAt": {
-                      "bsonType": ["null", "date"]
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
                     },
                     "userId": {
                       "bsonType": "objectId"
@@ -2362,7 +2555,10 @@
                       "bsonType": "long"
                     },
                     "vin": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "watchersIds": {
                       "bsonType": "array",
@@ -2439,7 +2635,10 @@
                       "bsonType": "date"
                     },
                     "deletedAt": {
-                      "bsonType": ["null", "date"]
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
                     },
                     "lastSaveKey": {
                       "bsonType": "string"
@@ -2457,7 +2656,10 @@
                       ]
                     },
                     "publishedListingId": {
-                      "bsonType": ["null", "objectId"]
+                      "bsonType": [
+                        "null",
+                        "objectId"
+                      ]
                     },
                     "revision": {
                       "bsonType": "long"
@@ -2516,13 +2718,20 @@
                     },
                     "decision": {
                       "bsonType": "string",
-                      "enum": ["PENDING", "APPROVED", "CHANGES_REQUESTED"]
+                      "enum": [
+                        "PENDING",
+                        "APPROVED",
+                        "CHANGES_REQUESTED"
+                      ]
                     },
                     "listingId": {
                       "bsonType": "objectId"
                     },
                     "reason": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "reviewerId": {
                       "bsonType": "objectId"
@@ -2647,22 +2856,40 @@
                       "bsonType": "long"
                     },
                     "emailFirstAttemptAt": {
-                      "bsonType": ["null", "date"]
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
                     },
                     "emailLastError": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "emailListingId": {
-                      "bsonType": ["null", "objectId"]
+                      "bsonType": [
+                        "null",
+                        "objectId"
+                      ]
                     },
                     "emailLockToken": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "emailLockedUntil": {
-                      "bsonType": ["null", "date"]
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
                     },
                     "emailNextAttemptAt": {
-                      "bsonType": ["null", "date"]
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
                     },
                     "emailPayload": {
                       "bsonType": [
@@ -2677,13 +2904,22 @@
                       ]
                     },
                     "emailProviderId": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "emailSentAt": {
-                      "bsonType": ["null", "date"]
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
                     },
                     "emailStatus": {
-                      "bsonType": ["null", "string"],
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ],
                       "enum": [
                         "PENDING",
                         "SENDING",
@@ -2701,20 +2937,31 @@
                     },
                     "kind": {
                       "bsonType": "string",
-                      "enum": ["bid", "auction", "comment"]
+                      "enum": [
+                        "bid",
+                        "auction",
+                        "comment"
+                      ]
                     },
                     "message": {
                       "bsonType": "string"
                     },
                     "readAt": {
-                      "bsonType": ["null", "date"]
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
                     },
                     "title": {
                       "bsonType": "string"
                     },
                     "tone": {
                       "bsonType": "string",
-                      "enum": ["success", "warning", "neutral"]
+                      "enum": [
+                        "success",
+                        "warning",
+                        "neutral"
+                      ]
                     },
                     "userId": {
                       "bsonType": "objectId"
@@ -2773,16 +3020,25 @@
                       "bsonType": "date"
                     },
                     "email": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "emailVerified": {
-                      "bsonType": ["null", "date"]
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
                     },
                     "endingSoonEmailsEnabled": {
                       "bsonType": "bool"
                     },
                     "hashedPassword": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "highestBidsIds": {
                       "bsonType": "array",
@@ -2791,7 +3047,10 @@
                       }
                     },
                     "image": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "listingsCommentedOnIds": {
                       "bsonType": "array",
@@ -2800,14 +3059,24 @@
                       }
                     },
                     "name": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "outbidEmailsEnabled": {
                       "bsonType": "bool"
                     },
                     "role": {
-                      "bsonType": ["null", "string"],
-                      "enum": ["USER", "ADMIN", null]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ],
+                      "enum": [
+                        "USER",
+                        "ADMIN",
+                        null
+                      ]
                     },
                     "seenListIds": {
                       "bsonType": "array",
@@ -2816,7 +3085,10 @@
                       }
                     },
                     "sessionVersion": {
-                      "bsonType": ["null", "string"]
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
                     },
                     "updatedAt": {
                       "bsonType": "date"
@@ -2850,23 +3122,44 @@
           "valueSet": {
             "EmailDeliveryStatus": {
               "kind": "valueSet",
-              "values": ["PENDING", "SENDING", "SENT", "SKIPPED", "FAILED"]
+              "values": [
+                "PENDING",
+                "SENDING",
+                "SENT",
+                "SKIPPED",
+                "FAILED"
+              ]
             },
             "ListingReviewStatus": {
               "kind": "valueSet",
-              "values": ["PENDING", "APPROVED", "CHANGES_REQUESTED"]
+              "values": [
+                "PENDING",
+                "APPROVED",
+                "CHANGES_REQUESTED"
+              ]
             },
             "NotificationKind": {
               "kind": "valueSet",
-              "values": ["bid", "auction", "comment"]
+              "values": [
+                "bid",
+                "auction",
+                "comment"
+              ]
             },
             "NotificationTone": {
               "kind": "valueSet",
-              "values": ["success", "warning", "neutral"]
+              "values": [
+                "success",
+                "warning",
+                "neutral"
+              ]
             },
             "UserRole": {
               "kind": "valueSet",
-              "values": ["USER", "ADMIN"]
+              "values": [
+                "USER",
+                "ADMIN"
+              ]
             }
           }
         },

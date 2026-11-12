@@ -4,14 +4,14 @@
 import type {
   CodecTypes as MongoCodecTypes,
   ParameterizedOutputTypesForTypeParams as MongoParameterizedOutputTypes,
-} from "@prisma/orm-mongo/target/codec-types";
+} from '@prisma/orm-mongo/target/codec-types';
 
 import type {
   MongoCollection,
   MongoContractWithTypeMaps,
   MongoTypeMaps,
   RelationKeys,
-} from "@prisma/orm-mongo/family-contract";
+} from '@prisma/orm-mongo/family-contract';
 import type {
   Contract as ContractType,
   ExecutionHashBase,
@@ -19,14 +19,14 @@ import type {
   NamespaceId,
   ProfileHashBase,
   StorageHashBase,
-} from "@prisma/orm-mongo/contract/types";
+} from '@prisma/orm-mongo/contract/types';
 
 export type StorageHash =
-  StorageHashBase<"06862e19d26294690bdaddd47a215879f8da8892480db9ce666271563deafca6">;
+  StorageHashBase<'06862e19d26294690bdaddd47a215879f8da8892480db9ce666271563deafca6'>;
 export type ExecutionHash =
-  ExecutionHashBase<"cae9bf47fa46800937a10e07ab2b7ad0c63254bebba7fc85b4557c02a75d1df4">;
+  ExecutionHashBase<'cae9bf47fa46800937a10e07ab2b7ad0c63254bebba7fc85b4557c02a75d1df4'>;
 export type ProfileHash =
-  ProfileHashBase<"251b3ce23f6c9f561892e7c1af9d2cc941a13d64ba1aa7226b90036b09568cc3">;
+  ProfileHashBase<'251b3ce23f6c9f561892e7c1af9d2cc941a13d64ba1aa7226b90036b09568cc3'>;
 
 export type CodecTypes = MongoCodecTypes;
 
@@ -37,234 +37,229 @@ type FieldTypeOverrides = {
     readonly models: {
       readonly Listing: {
         readonly reviewStatus: {
-          readonly output: "PENDING" | "APPROVED" | "CHANGES_REQUESTED";
-          readonly input: "PENDING" | "APPROVED" | "CHANGES_REQUESTED";
+          readonly output: 'PENDING' | 'APPROVED' | 'CHANGES_REQUESTED';
+          readonly input: 'PENDING' | 'APPROVED' | 'CHANGES_REQUESTED';
         };
       };
       readonly ListingReview: {
         readonly decision: {
-          readonly output: "PENDING" | "APPROVED" | "CHANGES_REQUESTED";
-          readonly input: "PENDING" | "APPROVED" | "CHANGES_REQUESTED";
+          readonly output: 'PENDING' | 'APPROVED' | 'CHANGES_REQUESTED';
+          readonly input: 'PENDING' | 'APPROVED' | 'CHANGES_REQUESTED';
         };
       };
       readonly Notification: {
         readonly emailStatus: {
-          readonly output:
-            "PENDING" | "SENDING" | "SENT" | "SKIPPED" | "FAILED";
-          readonly input: "PENDING" | "SENDING" | "SENT" | "SKIPPED" | "FAILED";
+          readonly output: 'PENDING' | 'SENDING' | 'SENT' | 'SKIPPED' | 'FAILED';
+          readonly input: 'PENDING' | 'SENDING' | 'SENT' | 'SKIPPED' | 'FAILED';
         };
         readonly kind: {
-          readonly output: "bid" | "auction" | "comment";
-          readonly input: "bid" | "auction" | "comment";
+          readonly output: 'bid' | 'auction' | 'comment';
+          readonly input: 'bid' | 'auction' | 'comment';
         };
         readonly tone: {
-          readonly output: "success" | "warning" | "neutral";
-          readonly input: "success" | "warning" | "neutral";
+          readonly output: 'success' | 'warning' | 'neutral';
+          readonly input: 'success' | 'warning' | 'neutral';
         };
       };
       readonly User: {
-        readonly role: {
-          readonly output: "USER" | "ADMIN";
-          readonly input: "USER" | "ADMIN";
-        };
+        readonly role: { readonly output: 'USER' | 'ADMIN'; readonly input: 'USER' | 'ADMIN' };
       };
     };
   };
 };
 export type FieldOutputTypes = FieldTypesFromDomain<
-  ContractBase["domain"]["namespaces"],
+  ContractBase['domain']['namespaces'],
   CodecTypes,
   ParameterizedOutputTypeFunctions,
   FieldTypeOverrides,
-  "output",
-  ContractBase["storage"]["namespaces"]
+  'output',
+  ContractBase['storage']['namespaces']
 >;
 export type FieldInputTypes = FieldTypesFromDomain<
-  ContractBase["domain"]["namespaces"],
+  ContractBase['domain']['namespaces'],
   CodecTypes,
   ParameterizedOutputTypeFunctions,
   FieldTypeOverrides,
-  "input",
-  ContractBase["storage"]["namespaces"]
+  'input',
+  ContractBase['storage']['namespaces']
 >;
 
 export namespace Models {
   export type unbound_Account = {
-    access_token: FieldOutputTypes["__unbound__"]["Account"]["access_token"];
-    expires_at: FieldOutputTypes["__unbound__"]["Account"]["expires_at"];
-    id: FieldOutputTypes["__unbound__"]["Account"]["id"];
-    id_token: FieldOutputTypes["__unbound__"]["Account"]["id_token"];
-    provider: FieldOutputTypes["__unbound__"]["Account"]["provider"];
-    providerAccountId: FieldOutputTypes["__unbound__"]["Account"]["providerAccountId"];
-    refresh_token: FieldOutputTypes["__unbound__"]["Account"]["refresh_token"];
-    refresh_token_expires_in: FieldOutputTypes["__unbound__"]["Account"]["refresh_token_expires_in"];
-    scope: FieldOutputTypes["__unbound__"]["Account"]["scope"];
-    session_state: FieldOutputTypes["__unbound__"]["Account"]["session_state"];
-    token_type: FieldOutputTypes["__unbound__"]["Account"]["token_type"];
-    type: FieldOutputTypes["__unbound__"]["Account"]["type"];
-    userId: FieldOutputTypes["__unbound__"]["Account"]["userId"];
+    access_token: FieldOutputTypes['__unbound__']['Account']['access_token'];
+    expires_at: FieldOutputTypes['__unbound__']['Account']['expires_at'];
+    id: FieldOutputTypes['__unbound__']['Account']['id'];
+    id_token: FieldOutputTypes['__unbound__']['Account']['id_token'];
+    provider: FieldOutputTypes['__unbound__']['Account']['provider'];
+    providerAccountId: FieldOutputTypes['__unbound__']['Account']['providerAccountId'];
+    refresh_token: FieldOutputTypes['__unbound__']['Account']['refresh_token'];
+    refresh_token_expires_in: FieldOutputTypes['__unbound__']['Account']['refresh_token_expires_in'];
+    scope: FieldOutputTypes['__unbound__']['Account']['scope'];
+    session_state: FieldOutputTypes['__unbound__']['Account']['session_state'];
+    token_type: FieldOutputTypes['__unbound__']['Account']['token_type'];
+    type: FieldOutputTypes['__unbound__']['Account']['type'];
+    userId: FieldOutputTypes['__unbound__']['Account']['userId'];
     user: unbound_User;
-    readonly [RelationKeys]?: "user";
+    readonly [RelationKeys]?: 'user';
   };
   export type unbound_Bid = {
-    amount: FieldOutputTypes["__unbound__"]["Bid"]["amount"];
-    createdAt: FieldOutputTypes["__unbound__"]["Bid"]["createdAt"];
-    id: FieldOutputTypes["__unbound__"]["Bid"]["id"];
-    listingId: FieldOutputTypes["__unbound__"]["Bid"]["listingId"];
-    userId: FieldOutputTypes["__unbound__"]["Bid"]["userId"];
+    amount: FieldOutputTypes['__unbound__']['Bid']['amount'];
+    createdAt: FieldOutputTypes['__unbound__']['Bid']['createdAt'];
+    id: FieldOutputTypes['__unbound__']['Bid']['id'];
+    listingId: FieldOutputTypes['__unbound__']['Bid']['listingId'];
+    userId: FieldOutputTypes['__unbound__']['Bid']['userId'];
     listing: unbound_Listing;
     user: unbound_User;
-    readonly [RelationKeys]?: "listing" | "user";
+    readonly [RelationKeys]?: 'listing' | 'user';
   };
   export type unbound_BidSubmission = {
-    amount: FieldOutputTypes["__unbound__"]["BidSubmission"]["amount"];
-    createdAt: FieldOutputTypes["__unbound__"]["BidSubmission"]["createdAt"];
-    id: FieldOutputTypes["__unbound__"]["BidSubmission"]["id"];
-    key: FieldOutputTypes["__unbound__"]["BidSubmission"]["key"];
-    listingId: FieldOutputTypes["__unbound__"]["BidSubmission"]["listingId"];
-    response: FieldOutputTypes["__unbound__"]["BidSubmission"]["response"];
-    userId: FieldOutputTypes["__unbound__"]["BidSubmission"]["userId"];
+    amount: FieldOutputTypes['__unbound__']['BidSubmission']['amount'];
+    createdAt: FieldOutputTypes['__unbound__']['BidSubmission']['createdAt'];
+    id: FieldOutputTypes['__unbound__']['BidSubmission']['id'];
+    key: FieldOutputTypes['__unbound__']['BidSubmission']['key'];
+    listingId: FieldOutputTypes['__unbound__']['BidSubmission']['listingId'];
+    response: FieldOutputTypes['__unbound__']['BidSubmission']['response'];
+    userId: FieldOutputTypes['__unbound__']['BidSubmission']['userId'];
     user: unbound_User;
-    readonly [RelationKeys]?: "user";
+    readonly [RelationKeys]?: 'user';
   };
   export type unbound_Comment = {
-    body: FieldOutputTypes["__unbound__"]["Comment"]["body"];
-    createdAt: FieldOutputTypes["__unbound__"]["Comment"]["createdAt"];
-    id: FieldOutputTypes["__unbound__"]["Comment"]["id"];
-    image: FieldOutputTypes["__unbound__"]["Comment"]["image"];
-    listingId: FieldOutputTypes["__unbound__"]["Comment"]["listingId"];
-    userId: FieldOutputTypes["__unbound__"]["Comment"]["userId"];
+    body: FieldOutputTypes['__unbound__']['Comment']['body'];
+    createdAt: FieldOutputTypes['__unbound__']['Comment']['createdAt'];
+    id: FieldOutputTypes['__unbound__']['Comment']['id'];
+    image: FieldOutputTypes['__unbound__']['Comment']['image'];
+    listingId: FieldOutputTypes['__unbound__']['Comment']['listingId'];
+    userId: FieldOutputTypes['__unbound__']['Comment']['userId'];
     listing: unbound_Listing;
     user: unbound_User | null;
-    readonly [RelationKeys]?: "listing" | "user";
+    readonly [RelationKeys]?: 'listing' | 'user';
   };
   export type unbound_EmailVerification = {
-    email: FieldOutputTypes["__unbound__"]["EmailVerification"]["email"];
-    expiresAt: FieldOutputTypes["__unbound__"]["EmailVerification"]["expiresAt"];
-    id: FieldOutputTypes["__unbound__"]["EmailVerification"]["id"];
-    requestedAt: FieldOutputTypes["__unbound__"]["EmailVerification"]["requestedAt"];
-    tokenHash: FieldOutputTypes["__unbound__"]["EmailVerification"]["tokenHash"];
+    email: FieldOutputTypes['__unbound__']['EmailVerification']['email'];
+    expiresAt: FieldOutputTypes['__unbound__']['EmailVerification']['expiresAt'];
+    id: FieldOutputTypes['__unbound__']['EmailVerification']['id'];
+    requestedAt: FieldOutputTypes['__unbound__']['EmailVerification']['requestedAt'];
+    tokenHash: FieldOutputTypes['__unbound__']['EmailVerification']['tokenHash'];
     readonly [RelationKeys]?: never;
   };
   export type unbound_Listing = {
-    auctionEndsAt: FieldOutputTypes["__unbound__"]["Listing"]["auctionEndsAt"];
-    auctionStartsAt: FieldOutputTypes["__unbound__"]["Listing"]["auctionStartsAt"];
-    bidIncrement: FieldOutputTypes["__unbound__"]["Listing"]["bidIncrement"];
-    biddersIds: FieldOutputTypes["__unbound__"]["Listing"]["biddersIds"];
-    commenterIds: FieldOutputTypes["__unbound__"]["Listing"]["commenterIds"];
-    commentsIds: FieldOutputTypes["__unbound__"]["Listing"]["commentsIds"];
-    coverImage: FieldOutputTypes["__unbound__"]["Listing"]["coverImage"];
-    createdAt: FieldOutputTypes["__unbound__"]["Listing"]["createdAt"];
-    currentBid: FieldOutputTypes["__unbound__"]["Listing"]["currentBid"];
-    description: FieldOutputTypes["__unbound__"]["Listing"]["description"];
-    drivetrain: FieldOutputTypes["__unbound__"]["Listing"]["drivetrain"];
-    endingSoonReminderAt: FieldOutputTypes["__unbound__"]["Listing"]["endingSoonReminderAt"];
-    highestBidderId: FieldOutputTypes["__unbound__"]["Listing"]["highestBidderId"];
-    id: FieldOutputTypes["__unbound__"]["Listing"]["id"];
-    images: FieldOutputTypes["__unbound__"]["Listing"]["images"];
-    isFeatured: FieldOutputTypes["__unbound__"]["Listing"]["isFeatured"];
-    knownFlaws: FieldOutputTypes["__unbound__"]["Listing"]["knownFlaws"];
-    lastCommentAt: FieldOutputTypes["__unbound__"]["Listing"]["lastCommentAt"];
-    location: FieldOutputTypes["__unbound__"]["Listing"]["location"];
-    make: FieldOutputTypes["__unbound__"]["Listing"]["make"];
-    miles: FieldOutputTypes["__unbound__"]["Listing"]["miles"];
-    model: FieldOutputTypes["__unbound__"]["Listing"]["model"];
-    modifications: FieldOutputTypes["__unbound__"]["Listing"]["modifications"];
-    reservePrice: FieldOutputTypes["__unbound__"]["Listing"]["reservePrice"];
-    result: FieldOutputTypes["__unbound__"]["Listing"]["result"];
-    reviewNote: FieldOutputTypes["__unbound__"]["Listing"]["reviewNote"];
-    reviewRevision: FieldOutputTypes["__unbound__"]["Listing"]["reviewRevision"];
-    reviewStatus: FieldOutputTypes["__unbound__"]["Listing"]["reviewStatus"];
-    seenIds: FieldOutputTypes["__unbound__"]["Listing"]["seenIds"];
-    serviceHistory: FieldOutputTypes["__unbound__"]["Listing"]["serviceHistory"];
-    startingBid: FieldOutputTypes["__unbound__"]["Listing"]["startingBid"];
-    status: FieldOutputTypes["__unbound__"]["Listing"]["status"];
-    titleStatus: FieldOutputTypes["__unbound__"]["Listing"]["titleStatus"];
-    transmission: FieldOutputTypes["__unbound__"]["Listing"]["transmission"];
-    updatedAt: FieldOutputTypes["__unbound__"]["Listing"]["updatedAt"];
-    userId: FieldOutputTypes["__unbound__"]["Listing"]["userId"];
-    vehicleRecords: FieldOutputTypes["__unbound__"]["Listing"]["vehicleRecords"];
-    views: FieldOutputTypes["__unbound__"]["Listing"]["views"];
-    vin: FieldOutputTypes["__unbound__"]["Listing"]["vin"];
-    watchersIds: FieldOutputTypes["__unbound__"]["Listing"]["watchersIds"];
-    year: FieldOutputTypes["__unbound__"]["Listing"]["year"];
+    auctionEndsAt: FieldOutputTypes['__unbound__']['Listing']['auctionEndsAt'];
+    auctionStartsAt: FieldOutputTypes['__unbound__']['Listing']['auctionStartsAt'];
+    bidIncrement: FieldOutputTypes['__unbound__']['Listing']['bidIncrement'];
+    biddersIds: FieldOutputTypes['__unbound__']['Listing']['biddersIds'];
+    commenterIds: FieldOutputTypes['__unbound__']['Listing']['commenterIds'];
+    commentsIds: FieldOutputTypes['__unbound__']['Listing']['commentsIds'];
+    coverImage: FieldOutputTypes['__unbound__']['Listing']['coverImage'];
+    createdAt: FieldOutputTypes['__unbound__']['Listing']['createdAt'];
+    currentBid: FieldOutputTypes['__unbound__']['Listing']['currentBid'];
+    description: FieldOutputTypes['__unbound__']['Listing']['description'];
+    drivetrain: FieldOutputTypes['__unbound__']['Listing']['drivetrain'];
+    endingSoonReminderAt: FieldOutputTypes['__unbound__']['Listing']['endingSoonReminderAt'];
+    highestBidderId: FieldOutputTypes['__unbound__']['Listing']['highestBidderId'];
+    id: FieldOutputTypes['__unbound__']['Listing']['id'];
+    images: FieldOutputTypes['__unbound__']['Listing']['images'];
+    isFeatured: FieldOutputTypes['__unbound__']['Listing']['isFeatured'];
+    knownFlaws: FieldOutputTypes['__unbound__']['Listing']['knownFlaws'];
+    lastCommentAt: FieldOutputTypes['__unbound__']['Listing']['lastCommentAt'];
+    location: FieldOutputTypes['__unbound__']['Listing']['location'];
+    make: FieldOutputTypes['__unbound__']['Listing']['make'];
+    miles: FieldOutputTypes['__unbound__']['Listing']['miles'];
+    model: FieldOutputTypes['__unbound__']['Listing']['model'];
+    modifications: FieldOutputTypes['__unbound__']['Listing']['modifications'];
+    reservePrice: FieldOutputTypes['__unbound__']['Listing']['reservePrice'];
+    result: FieldOutputTypes['__unbound__']['Listing']['result'];
+    reviewNote: FieldOutputTypes['__unbound__']['Listing']['reviewNote'];
+    reviewRevision: FieldOutputTypes['__unbound__']['Listing']['reviewRevision'];
+    reviewStatus: FieldOutputTypes['__unbound__']['Listing']['reviewStatus'];
+    seenIds: FieldOutputTypes['__unbound__']['Listing']['seenIds'];
+    serviceHistory: FieldOutputTypes['__unbound__']['Listing']['serviceHistory'];
+    startingBid: FieldOutputTypes['__unbound__']['Listing']['startingBid'];
+    status: FieldOutputTypes['__unbound__']['Listing']['status'];
+    titleStatus: FieldOutputTypes['__unbound__']['Listing']['titleStatus'];
+    transmission: FieldOutputTypes['__unbound__']['Listing']['transmission'];
+    updatedAt: FieldOutputTypes['__unbound__']['Listing']['updatedAt'];
+    userId: FieldOutputTypes['__unbound__']['Listing']['userId'];
+    vehicleRecords: FieldOutputTypes['__unbound__']['Listing']['vehicleRecords'];
+    views: FieldOutputTypes['__unbound__']['Listing']['views'];
+    vin: FieldOutputTypes['__unbound__']['Listing']['vin'];
+    watchersIds: FieldOutputTypes['__unbound__']['Listing']['watchersIds'];
+    year: FieldOutputTypes['__unbound__']['Listing']['year'];
     bids: unbound_Bid[];
     comments: unbound_Comment[];
     highestBidder: unbound_User | null;
     reviews: unbound_ListingReview[];
     user: unbound_User;
-    readonly [RelationKeys]?:
-      "bids" | "comments" | "highestBidder" | "reviews" | "user";
+    readonly [RelationKeys]?: 'bids' | 'comments' | 'highestBidder' | 'reviews' | 'user';
   };
   export type unbound_ListingDraft = {
-    createdAt: FieldOutputTypes["__unbound__"]["ListingDraft"]["createdAt"];
-    deletedAt: FieldOutputTypes["__unbound__"]["ListingDraft"]["deletedAt"];
-    id: FieldOutputTypes["__unbound__"]["ListingDraft"]["id"];
-    lastSaveKey: FieldOutputTypes["__unbound__"]["ListingDraft"]["lastSaveKey"];
-    payload: FieldOutputTypes["__unbound__"]["ListingDraft"]["payload"];
-    publishedListingId: FieldOutputTypes["__unbound__"]["ListingDraft"]["publishedListingId"];
-    revision: FieldOutputTypes["__unbound__"]["ListingDraft"]["revision"];
-    updatedAt: FieldOutputTypes["__unbound__"]["ListingDraft"]["updatedAt"];
-    userId: FieldOutputTypes["__unbound__"]["ListingDraft"]["userId"];
+    createdAt: FieldOutputTypes['__unbound__']['ListingDraft']['createdAt'];
+    deletedAt: FieldOutputTypes['__unbound__']['ListingDraft']['deletedAt'];
+    id: FieldOutputTypes['__unbound__']['ListingDraft']['id'];
+    lastSaveKey: FieldOutputTypes['__unbound__']['ListingDraft']['lastSaveKey'];
+    payload: FieldOutputTypes['__unbound__']['ListingDraft']['payload'];
+    publishedListingId: FieldOutputTypes['__unbound__']['ListingDraft']['publishedListingId'];
+    revision: FieldOutputTypes['__unbound__']['ListingDraft']['revision'];
+    updatedAt: FieldOutputTypes['__unbound__']['ListingDraft']['updatedAt'];
+    userId: FieldOutputTypes['__unbound__']['ListingDraft']['userId'];
     user: unbound_User;
-    readonly [RelationKeys]?: "user";
+    readonly [RelationKeys]?: 'user';
   };
   export type unbound_ListingReview = {
-    createdAt: FieldOutputTypes["__unbound__"]["ListingReview"]["createdAt"];
-    decision: FieldOutputTypes["__unbound__"]["ListingReview"]["decision"];
-    id: FieldOutputTypes["__unbound__"]["ListingReview"]["id"];
-    listingId: FieldOutputTypes["__unbound__"]["ListingReview"]["listingId"];
-    reason: FieldOutputTypes["__unbound__"]["ListingReview"]["reason"];
-    reviewerId: FieldOutputTypes["__unbound__"]["ListingReview"]["reviewerId"];
-    reviewerName: FieldOutputTypes["__unbound__"]["ListingReview"]["reviewerName"];
-    revision: FieldOutputTypes["__unbound__"]["ListingReview"]["revision"];
+    createdAt: FieldOutputTypes['__unbound__']['ListingReview']['createdAt'];
+    decision: FieldOutputTypes['__unbound__']['ListingReview']['decision'];
+    id: FieldOutputTypes['__unbound__']['ListingReview']['id'];
+    listingId: FieldOutputTypes['__unbound__']['ListingReview']['listingId'];
+    reason: FieldOutputTypes['__unbound__']['ListingReview']['reason'];
+    reviewerId: FieldOutputTypes['__unbound__']['ListingReview']['reviewerId'];
+    reviewerName: FieldOutputTypes['__unbound__']['ListingReview']['reviewerName'];
+    revision: FieldOutputTypes['__unbound__']['ListingReview']['revision'];
     listing: unbound_Listing;
-    readonly [RelationKeys]?: "listing";
+    readonly [RelationKeys]?: 'listing';
   };
   export type unbound_Notification = {
-    actionLabel: FieldOutputTypes["__unbound__"]["Notification"]["actionLabel"];
-    createdAt: FieldOutputTypes["__unbound__"]["Notification"]["createdAt"];
-    emailAttempts: FieldOutputTypes["__unbound__"]["Notification"]["emailAttempts"];
-    emailFirstAttemptAt: FieldOutputTypes["__unbound__"]["Notification"]["emailFirstAttemptAt"];
-    emailLastError: FieldOutputTypes["__unbound__"]["Notification"]["emailLastError"];
-    emailListingId: FieldOutputTypes["__unbound__"]["Notification"]["emailListingId"];
-    emailLockToken: FieldOutputTypes["__unbound__"]["Notification"]["emailLockToken"];
-    emailLockedUntil: FieldOutputTypes["__unbound__"]["Notification"]["emailLockedUntil"];
-    emailNextAttemptAt: FieldOutputTypes["__unbound__"]["Notification"]["emailNextAttemptAt"];
-    emailPayload: FieldOutputTypes["__unbound__"]["Notification"]["emailPayload"];
-    emailProviderId: FieldOutputTypes["__unbound__"]["Notification"]["emailProviderId"];
-    emailSentAt: FieldOutputTypes["__unbound__"]["Notification"]["emailSentAt"];
-    emailStatus: FieldOutputTypes["__unbound__"]["Notification"]["emailStatus"];
-    eventKey: FieldOutputTypes["__unbound__"]["Notification"]["eventKey"];
-    href: FieldOutputTypes["__unbound__"]["Notification"]["href"];
-    id: FieldOutputTypes["__unbound__"]["Notification"]["id"];
-    kind: FieldOutputTypes["__unbound__"]["Notification"]["kind"];
-    message: FieldOutputTypes["__unbound__"]["Notification"]["message"];
-    readAt: FieldOutputTypes["__unbound__"]["Notification"]["readAt"];
-    title: FieldOutputTypes["__unbound__"]["Notification"]["title"];
-    tone: FieldOutputTypes["__unbound__"]["Notification"]["tone"];
-    userId: FieldOutputTypes["__unbound__"]["Notification"]["userId"];
+    actionLabel: FieldOutputTypes['__unbound__']['Notification']['actionLabel'];
+    createdAt: FieldOutputTypes['__unbound__']['Notification']['createdAt'];
+    emailAttempts: FieldOutputTypes['__unbound__']['Notification']['emailAttempts'];
+    emailFirstAttemptAt: FieldOutputTypes['__unbound__']['Notification']['emailFirstAttemptAt'];
+    emailLastError: FieldOutputTypes['__unbound__']['Notification']['emailLastError'];
+    emailListingId: FieldOutputTypes['__unbound__']['Notification']['emailListingId'];
+    emailLockToken: FieldOutputTypes['__unbound__']['Notification']['emailLockToken'];
+    emailLockedUntil: FieldOutputTypes['__unbound__']['Notification']['emailLockedUntil'];
+    emailNextAttemptAt: FieldOutputTypes['__unbound__']['Notification']['emailNextAttemptAt'];
+    emailPayload: FieldOutputTypes['__unbound__']['Notification']['emailPayload'];
+    emailProviderId: FieldOutputTypes['__unbound__']['Notification']['emailProviderId'];
+    emailSentAt: FieldOutputTypes['__unbound__']['Notification']['emailSentAt'];
+    emailStatus: FieldOutputTypes['__unbound__']['Notification']['emailStatus'];
+    eventKey: FieldOutputTypes['__unbound__']['Notification']['eventKey'];
+    href: FieldOutputTypes['__unbound__']['Notification']['href'];
+    id: FieldOutputTypes['__unbound__']['Notification']['id'];
+    kind: FieldOutputTypes['__unbound__']['Notification']['kind'];
+    message: FieldOutputTypes['__unbound__']['Notification']['message'];
+    readAt: FieldOutputTypes['__unbound__']['Notification']['readAt'];
+    title: FieldOutputTypes['__unbound__']['Notification']['title'];
+    tone: FieldOutputTypes['__unbound__']['Notification']['tone'];
+    userId: FieldOutputTypes['__unbound__']['Notification']['userId'];
     user: unbound_User;
-    readonly [RelationKeys]?: "user";
+    readonly [RelationKeys]?: 'user';
   };
   export type unbound_User = {
-    BidOnListIds: FieldOutputTypes["__unbound__"]["User"]["BidOnListIds"];
-    createdAt: FieldOutputTypes["__unbound__"]["User"]["createdAt"];
-    email: FieldOutputTypes["__unbound__"]["User"]["email"];
-    emailVerified: FieldOutputTypes["__unbound__"]["User"]["emailVerified"];
-    endingSoonEmailsEnabled: FieldOutputTypes["__unbound__"]["User"]["endingSoonEmailsEnabled"];
-    hashedPassword: FieldOutputTypes["__unbound__"]["User"]["hashedPassword"];
-    highestBidsIds: FieldOutputTypes["__unbound__"]["User"]["highestBidsIds"];
-    id: FieldOutputTypes["__unbound__"]["User"]["id"];
-    image: FieldOutputTypes["__unbound__"]["User"]["image"];
-    listingsCommentedOnIds: FieldOutputTypes["__unbound__"]["User"]["listingsCommentedOnIds"];
-    name: FieldOutputTypes["__unbound__"]["User"]["name"];
-    outbidEmailsEnabled: FieldOutputTypes["__unbound__"]["User"]["outbidEmailsEnabled"];
-    role: FieldOutputTypes["__unbound__"]["User"]["role"];
-    seenListIds: FieldOutputTypes["__unbound__"]["User"]["seenListIds"];
-    sessionVersion: FieldOutputTypes["__unbound__"]["User"]["sessionVersion"];
-    updatedAt: FieldOutputTypes["__unbound__"]["User"]["updatedAt"];
-    watchListIds: FieldOutputTypes["__unbound__"]["User"]["watchListIds"];
+    BidOnListIds: FieldOutputTypes['__unbound__']['User']['BidOnListIds'];
+    createdAt: FieldOutputTypes['__unbound__']['User']['createdAt'];
+    email: FieldOutputTypes['__unbound__']['User']['email'];
+    emailVerified: FieldOutputTypes['__unbound__']['User']['emailVerified'];
+    endingSoonEmailsEnabled: FieldOutputTypes['__unbound__']['User']['endingSoonEmailsEnabled'];
+    hashedPassword: FieldOutputTypes['__unbound__']['User']['hashedPassword'];
+    highestBidsIds: FieldOutputTypes['__unbound__']['User']['highestBidsIds'];
+    id: FieldOutputTypes['__unbound__']['User']['id'];
+    image: FieldOutputTypes['__unbound__']['User']['image'];
+    listingsCommentedOnIds: FieldOutputTypes['__unbound__']['User']['listingsCommentedOnIds'];
+    name: FieldOutputTypes['__unbound__']['User']['name'];
+    outbidEmailsEnabled: FieldOutputTypes['__unbound__']['User']['outbidEmailsEnabled'];
+    role: FieldOutputTypes['__unbound__']['User']['role'];
+    seenListIds: FieldOutputTypes['__unbound__']['User']['seenListIds'];
+    sessionVersion: FieldOutputTypes['__unbound__']['User']['sessionVersion'];
+    updatedAt: FieldOutputTypes['__unbound__']['User']['updatedAt'];
+    watchListIds: FieldOutputTypes['__unbound__']['User']['watchListIds'];
     accounts: unbound_Account[];
     bidSubmissions: unbound_BidSubmission[];
     bids: unbound_Bid[];
@@ -274,14 +269,14 @@ export namespace Models {
     notifications: unbound_Notification[];
     uploadList: unbound_Listing[];
     readonly [RelationKeys]?:
-      | "accounts"
-      | "bidSubmissions"
-      | "bids"
-      | "comments"
-      | "highestBids"
-      | "listingDrafts"
-      | "notifications"
-      | "uploadList";
+      | 'accounts'
+      | 'bidSubmissions'
+      | 'bids'
+      | 'comments'
+      | 'highestBids'
+      | 'listingDrafts'
+      | 'notifications'
+      | 'uploadList';
   };
 }
 
@@ -300,747 +295,614 @@ export declare const models: {
   };
 };
 
-export type TypeMaps = MongoTypeMaps<
-  CodecTypes,
-  FieldOutputTypes,
-  FieldInputTypes
->;
+export type TypeMaps = MongoTypeMaps<CodecTypes, FieldOutputTypes, FieldInputTypes>;
 
 type ContractBase = Omit<
   ContractType<{
     readonly namespaces: {
       readonly __unbound__: {
-        readonly id: "__unbound__";
-        readonly kind: "mongo-database";
+        readonly id: '__unbound__';
+        readonly kind: 'mongo-database';
         readonly entries: {
           readonly collection: {
             readonly Account: {
-              readonly control: "managed";
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [
-                    { readonly direction: 1; readonly field: "provider" },
-                    {
-                      readonly direction: 1;
-                      readonly field: "providerAccountId";
-                    },
+                    { readonly direction: 1; readonly field: 'provider' },
+                    { readonly direction: 1; readonly field: 'providerAccountId' },
                   ];
-                  readonly kind: "mongo-index";
-                  readonly name: "Account_provider_providerAccountId_key";
+                  readonly kind: 'mongo-index';
+                  readonly name: 'Account_provider_providerAccountId_key';
                   readonly unique: true;
                 },
               ];
-              readonly kind: "mongo-collection";
+              readonly kind: 'mongo-collection';
               readonly validator: {
                 readonly jsonSchema: {
                   readonly additionalProperties: false;
-                  readonly bsonType: "object";
+                  readonly bsonType: 'object';
                   readonly properties: {
-                    readonly _id: { readonly bsonType: "objectId" };
-                    readonly access_token: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly expires_at: {
-                      readonly bsonType: readonly ["null", "long"];
-                    };
-                    readonly id_token: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly provider: { readonly bsonType: "string" };
-                    readonly providerAccountId: { readonly bsonType: "string" };
-                    readonly refresh_token: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
+                    readonly _id: { readonly bsonType: 'objectId' };
+                    readonly access_token: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly expires_at: { readonly bsonType: readonly ['null', 'long'] };
+                    readonly id_token: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly provider: { readonly bsonType: 'string' };
+                    readonly providerAccountId: { readonly bsonType: 'string' };
+                    readonly refresh_token: { readonly bsonType: readonly ['null', 'string'] };
                     readonly refresh_token_expires_in: {
-                      readonly bsonType: readonly ["null", "long"];
+                      readonly bsonType: readonly ['null', 'long'];
                     };
-                    readonly scope: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly session_state: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly token_type: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly type: { readonly bsonType: "string" };
-                    readonly userId: { readonly bsonType: "objectId" };
+                    readonly scope: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly session_state: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly token_type: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly type: { readonly bsonType: 'string' };
+                    readonly userId: { readonly bsonType: 'objectId' };
                   };
                   readonly required: readonly [
-                    "_id",
-                    "provider",
-                    "providerAccountId",
-                    "type",
-                    "userId",
+                    '_id',
+                    'provider',
+                    'providerAccountId',
+                    'type',
+                    'userId',
                   ];
                 };
-                readonly kind: "mongo-validator";
-                readonly validationAction: "error";
-                readonly validationLevel: "strict";
+                readonly kind: 'mongo-validator';
+                readonly validationAction: 'error';
+                readonly validationLevel: 'strict';
               };
             };
             readonly Bid: {
-              readonly control: "managed";
-              readonly kind: "mongo-collection";
+              readonly control: 'managed';
+              readonly kind: 'mongo-collection';
               readonly validator: {
                 readonly jsonSchema: {
                   readonly additionalProperties: false;
-                  readonly bsonType: "object";
+                  readonly bsonType: 'object';
                   readonly properties: {
-                    readonly _id: { readonly bsonType: "objectId" };
-                    readonly amount: { readonly bsonType: "long" };
-                    readonly createdAt: { readonly bsonType: "date" };
-                    readonly listingId: { readonly bsonType: "objectId" };
-                    readonly userId: { readonly bsonType: "objectId" };
+                    readonly _id: { readonly bsonType: 'objectId' };
+                    readonly amount: { readonly bsonType: 'long' };
+                    readonly createdAt: { readonly bsonType: 'date' };
+                    readonly listingId: { readonly bsonType: 'objectId' };
+                    readonly userId: { readonly bsonType: 'objectId' };
                   };
-                  readonly required: readonly [
-                    "_id",
-                    "amount",
-                    "createdAt",
-                    "listingId",
-                    "userId",
-                  ];
+                  readonly required: readonly ['_id', 'amount', 'createdAt', 'listingId', 'userId'];
                 };
-                readonly kind: "mongo-validator";
-                readonly validationAction: "error";
-                readonly validationLevel: "strict";
+                readonly kind: 'mongo-validator';
+                readonly validationAction: 'error';
+                readonly validationLevel: 'strict';
               };
             };
             readonly BidSubmission: {
-              readonly control: "managed";
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [
-                    { readonly direction: 1; readonly field: "userId" },
-                    { readonly direction: 1; readonly field: "key" },
+                    { readonly direction: 1; readonly field: 'userId' },
+                    { readonly direction: 1; readonly field: 'key' },
                   ];
-                  readonly kind: "mongo-index";
-                  readonly name: "BidSubmission_userId_key_key";
+                  readonly kind: 'mongo-index';
+                  readonly name: 'BidSubmission_userId_key_key';
                   readonly unique: true;
                 },
               ];
-              readonly kind: "mongo-collection";
+              readonly kind: 'mongo-collection';
               readonly validator: {
                 readonly jsonSchema: {
                   readonly additionalProperties: false;
-                  readonly bsonType: "object";
+                  readonly bsonType: 'object';
                   readonly properties: {
-                    readonly _id: { readonly bsonType: "objectId" };
-                    readonly amount: { readonly bsonType: "long" };
-                    readonly createdAt: { readonly bsonType: "date" };
-                    readonly key: { readonly bsonType: "string" };
-                    readonly listingId: { readonly bsonType: "objectId" };
+                    readonly _id: { readonly bsonType: 'objectId' };
+                    readonly amount: { readonly bsonType: 'long' };
+                    readonly createdAt: { readonly bsonType: 'date' };
+                    readonly key: { readonly bsonType: 'string' };
+                    readonly listingId: { readonly bsonType: 'objectId' };
                     readonly response: {
                       readonly bsonType: readonly [
-                        "object",
-                        "array",
-                        "string",
-                        "double",
-                        "int",
-                        "long",
-                        "bool",
-                        "null",
+                        'object',
+                        'array',
+                        'string',
+                        'double',
+                        'int',
+                        'long',
+                        'bool',
+                        'null',
                       ];
                     };
-                    readonly userId: { readonly bsonType: "objectId" };
+                    readonly userId: { readonly bsonType: 'objectId' };
                   };
                   readonly required: readonly [
-                    "_id",
-                    "amount",
-                    "createdAt",
-                    "key",
-                    "listingId",
-                    "response",
-                    "userId",
+                    '_id',
+                    'amount',
+                    'createdAt',
+                    'key',
+                    'listingId',
+                    'response',
+                    'userId',
                   ];
                 };
-                readonly kind: "mongo-validator";
-                readonly validationAction: "error";
-                readonly validationLevel: "strict";
+                readonly kind: 'mongo-validator';
+                readonly validationAction: 'error';
+                readonly validationLevel: 'strict';
               };
             };
             readonly Comment: {
-              readonly control: "managed";
-              readonly kind: "mongo-collection";
+              readonly control: 'managed';
+              readonly kind: 'mongo-collection';
               readonly validator: {
                 readonly jsonSchema: {
                   readonly additionalProperties: false;
-                  readonly bsonType: "object";
+                  readonly bsonType: 'object';
                   readonly properties: {
-                    readonly _id: { readonly bsonType: "objectId" };
-                    readonly body: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly createdAt: { readonly bsonType: "date" };
-                    readonly image: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly listingId: { readonly bsonType: "objectId" };
-                    readonly userId: {
-                      readonly bsonType: readonly ["null", "objectId"];
-                    };
+                    readonly _id: { readonly bsonType: 'objectId' };
+                    readonly body: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly createdAt: { readonly bsonType: 'date' };
+                    readonly image: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly listingId: { readonly bsonType: 'objectId' };
+                    readonly userId: { readonly bsonType: readonly ['null', 'objectId'] };
                   };
-                  readonly required: readonly ["_id", "createdAt", "listingId"];
+                  readonly required: readonly ['_id', 'createdAt', 'listingId'];
                 };
-                readonly kind: "mongo-validator";
-                readonly validationAction: "error";
-                readonly validationLevel: "strict";
+                readonly kind: 'mongo-validator';
+                readonly validationAction: 'error';
+                readonly validationLevel: 'strict';
               };
             };
             readonly EmailVerification: {
-              readonly control: "managed";
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
-                  readonly keys: readonly [
-                    { readonly direction: 1; readonly field: "tokenHash" },
-                  ];
-                  readonly kind: "mongo-index";
-                  readonly name: "EmailVerification_tokenHash_key";
+                  readonly keys: readonly [{ readonly direction: 1; readonly field: 'tokenHash' }];
+                  readonly kind: 'mongo-index';
+                  readonly name: 'EmailVerification_tokenHash_key';
                   readonly unique: true;
                 },
               ];
-              readonly kind: "mongo-collection";
+              readonly kind: 'mongo-collection';
               readonly validator: {
                 readonly jsonSchema: {
                   readonly additionalProperties: false;
-                  readonly bsonType: "object";
+                  readonly bsonType: 'object';
                   readonly properties: {
-                    readonly _id: { readonly bsonType: "objectId" };
-                    readonly email: { readonly bsonType: "string" };
-                    readonly expiresAt: { readonly bsonType: "date" };
-                    readonly requestedAt: { readonly bsonType: "date" };
-                    readonly tokenHash: { readonly bsonType: "string" };
+                    readonly _id: { readonly bsonType: 'objectId' };
+                    readonly email: { readonly bsonType: 'string' };
+                    readonly expiresAt: { readonly bsonType: 'date' };
+                    readonly requestedAt: { readonly bsonType: 'date' };
+                    readonly tokenHash: { readonly bsonType: 'string' };
                   };
                   readonly required: readonly [
-                    "_id",
-                    "email",
-                    "expiresAt",
-                    "requestedAt",
-                    "tokenHash",
+                    '_id',
+                    'email',
+                    'expiresAt',
+                    'requestedAt',
+                    'tokenHash',
                   ];
                 };
-                readonly kind: "mongo-validator";
-                readonly validationAction: "error";
-                readonly validationLevel: "strict";
+                readonly kind: 'mongo-validator';
+                readonly validationAction: 'error';
+                readonly validationLevel: 'strict';
               };
             };
             readonly Listing: {
-              readonly control: "managed";
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [
-                    { readonly direction: 1; readonly field: "status" },
-                    { readonly direction: 1; readonly field: "auctionEndsAt" },
+                    { readonly direction: 1; readonly field: 'status' },
+                    { readonly direction: 1; readonly field: 'auctionEndsAt' },
                   ];
-                  readonly kind: "mongo-index";
-                  readonly name: "Listing_status_auctionEndsAt_idx";
+                  readonly kind: 'mongo-index';
+                  readonly name: 'Listing_status_auctionEndsAt_idx';
                 },
                 {
                   readonly keys: readonly [
-                    { readonly direction: 1; readonly field: "status" },
-                    { readonly direction: 1; readonly field: "reviewStatus" },
-                    { readonly direction: 1; readonly field: "createdAt" },
+                    { readonly direction: 1; readonly field: 'status' },
+                    { readonly direction: 1; readonly field: 'reviewStatus' },
+                    { readonly direction: 1; readonly field: 'createdAt' },
                   ];
-                  readonly kind: "mongo-index";
-                  readonly name: "Listing_status_reviewStatus_createdAt_idx";
+                  readonly kind: 'mongo-index';
+                  readonly name: 'Listing_status_reviewStatus_createdAt_idx';
                 },
               ];
-              readonly kind: "mongo-collection";
+              readonly kind: 'mongo-collection';
               readonly validator: {
                 readonly jsonSchema: {
                   readonly additionalProperties: false;
-                  readonly bsonType: "object";
+                  readonly bsonType: 'object';
                   readonly properties: {
-                    readonly _id: { readonly bsonType: "objectId" };
-                    readonly auctionEndsAt: {
-                      readonly bsonType: readonly ["null", "date"];
-                    };
-                    readonly auctionStartsAt: {
-                      readonly bsonType: readonly ["null", "date"];
-                    };
-                    readonly bidIncrement: {
-                      readonly bsonType: readonly ["null", "long"];
-                    };
+                    readonly _id: { readonly bsonType: 'objectId' };
+                    readonly auctionEndsAt: { readonly bsonType: readonly ['null', 'date'] };
+                    readonly auctionStartsAt: { readonly bsonType: readonly ['null', 'date'] };
+                    readonly bidIncrement: { readonly bsonType: readonly ['null', 'long'] };
                     readonly biddersIds: {
-                      readonly bsonType: "array";
-                      readonly items: { readonly bsonType: "objectId" };
+                      readonly bsonType: 'array';
+                      readonly items: { readonly bsonType: 'objectId' };
                     };
                     readonly commenterIds: {
-                      readonly bsonType: "array";
-                      readonly items: { readonly bsonType: "objectId" };
+                      readonly bsonType: 'array';
+                      readonly items: { readonly bsonType: 'objectId' };
                     };
                     readonly commentsIds: {
-                      readonly bsonType: "array";
-                      readonly items: { readonly bsonType: "objectId" };
+                      readonly bsonType: 'array';
+                      readonly items: { readonly bsonType: 'objectId' };
                     };
-                    readonly coverImage: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly createdAt: { readonly bsonType: "date" };
-                    readonly currentBid: {
-                      readonly bsonType: readonly ["null", "long"];
-                    };
-                    readonly description: { readonly bsonType: "string" };
-                    readonly drivetrain: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly endingSoonReminderAt: {
-                      readonly bsonType: readonly ["null", "date"];
-                    };
-                    readonly highestBidderId: {
-                      readonly bsonType: readonly ["null", "objectId"];
-                    };
+                    readonly coverImage: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly createdAt: { readonly bsonType: 'date' };
+                    readonly currentBid: { readonly bsonType: readonly ['null', 'long'] };
+                    readonly description: { readonly bsonType: 'string' };
+                    readonly drivetrain: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly endingSoonReminderAt: { readonly bsonType: readonly ['null', 'date'] };
+                    readonly highestBidderId: { readonly bsonType: readonly ['null', 'objectId'] };
                     readonly images: {
-                      readonly bsonType: "array";
-                      readonly items: { readonly bsonType: "string" };
+                      readonly bsonType: 'array';
+                      readonly items: { readonly bsonType: 'string' };
                     };
-                    readonly isFeatured: { readonly bsonType: "bool" };
-                    readonly knownFlaws: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly lastCommentAt: {
-                      readonly bsonType: readonly ["null", "date"];
-                    };
-                    readonly location: { readonly bsonType: "string" };
-                    readonly make: { readonly bsonType: "string" };
-                    readonly miles: { readonly bsonType: "long" };
-                    readonly model: { readonly bsonType: "string" };
-                    readonly modifications: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly reservePrice: {
-                      readonly bsonType: readonly ["null", "long"];
-                    };
-                    readonly result: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly reviewNote: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly reviewRevision: {
-                      readonly bsonType: readonly ["null", "long"];
-                    };
+                    readonly isFeatured: { readonly bsonType: 'bool' };
+                    readonly knownFlaws: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly lastCommentAt: { readonly bsonType: readonly ['null', 'date'] };
+                    readonly location: { readonly bsonType: 'string' };
+                    readonly make: { readonly bsonType: 'string' };
+                    readonly miles: { readonly bsonType: 'long' };
+                    readonly model: { readonly bsonType: 'string' };
+                    readonly modifications: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly reservePrice: { readonly bsonType: readonly ['null', 'long'] };
+                    readonly result: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly reviewNote: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly reviewRevision: { readonly bsonType: readonly ['null', 'long'] };
                     readonly reviewStatus: {
-                      readonly bsonType: readonly ["null", "string"];
-                      readonly enum: readonly [
-                        "PENDING",
-                        "APPROVED",
-                        "CHANGES_REQUESTED",
-                        null,
-                      ];
+                      readonly bsonType: readonly ['null', 'string'];
+                      readonly enum: readonly ['PENDING', 'APPROVED', 'CHANGES_REQUESTED', null];
                     };
                     readonly seenIds: {
-                      readonly bsonType: "array";
-                      readonly items: { readonly bsonType: "objectId" };
+                      readonly bsonType: 'array';
+                      readonly items: { readonly bsonType: 'objectId' };
                     };
-                    readonly serviceHistory: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly startingBid: {
-                      readonly bsonType: readonly ["null", "long"];
-                    };
-                    readonly status: { readonly bsonType: "string" };
-                    readonly titleStatus: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly transmission: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly updatedAt: {
-                      readonly bsonType: readonly ["null", "date"];
-                    };
-                    readonly userId: { readonly bsonType: "objectId" };
+                    readonly serviceHistory: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly startingBid: { readonly bsonType: readonly ['null', 'long'] };
+                    readonly status: { readonly bsonType: 'string' };
+                    readonly titleStatus: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly transmission: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly updatedAt: { readonly bsonType: readonly ['null', 'date'] };
+                    readonly userId: { readonly bsonType: 'objectId' };
                     readonly vehicleRecords: {
                       readonly bsonType: readonly [
-                        "object",
-                        "array",
-                        "string",
-                        "double",
-                        "int",
-                        "long",
-                        "bool",
-                        "null",
+                        'object',
+                        'array',
+                        'string',
+                        'double',
+                        'int',
+                        'long',
+                        'bool',
+                        'null',
                       ];
                     };
-                    readonly views: { readonly bsonType: "long" };
-                    readonly vin: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
+                    readonly views: { readonly bsonType: 'long' };
+                    readonly vin: { readonly bsonType: readonly ['null', 'string'] };
                     readonly watchersIds: {
-                      readonly bsonType: "array";
-                      readonly items: { readonly bsonType: "objectId" };
+                      readonly bsonType: 'array';
+                      readonly items: { readonly bsonType: 'objectId' };
                     };
-                    readonly year: { readonly bsonType: "long" };
+                    readonly year: { readonly bsonType: 'long' };
                   };
                   readonly required: readonly [
-                    "_id",
-                    "biddersIds",
-                    "commenterIds",
-                    "commentsIds",
-                    "createdAt",
-                    "description",
-                    "images",
-                    "isFeatured",
-                    "location",
-                    "make",
-                    "miles",
-                    "model",
-                    "seenIds",
-                    "status",
-                    "userId",
-                    "views",
-                    "watchersIds",
-                    "year",
+                    '_id',
+                    'biddersIds',
+                    'commenterIds',
+                    'commentsIds',
+                    'createdAt',
+                    'description',
+                    'images',
+                    'isFeatured',
+                    'location',
+                    'make',
+                    'miles',
+                    'model',
+                    'seenIds',
+                    'status',
+                    'userId',
+                    'views',
+                    'watchersIds',
+                    'year',
                   ];
                 };
-                readonly kind: "mongo-validator";
-                readonly validationAction: "error";
-                readonly validationLevel: "strict";
+                readonly kind: 'mongo-validator';
+                readonly validationAction: 'error';
+                readonly validationLevel: 'strict';
               };
             };
             readonly ListingDraft: {
-              readonly control: "managed";
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [
-                    { readonly direction: 1; readonly field: "userId" },
-                    { readonly direction: 1; readonly field: "deletedAt" },
-                    {
-                      readonly direction: 1;
-                      readonly field: "publishedListingId";
-                    },
-                    { readonly direction: 1; readonly field: "updatedAt" },
+                    { readonly direction: 1; readonly field: 'userId' },
+                    { readonly direction: 1; readonly field: 'deletedAt' },
+                    { readonly direction: 1; readonly field: 'publishedListingId' },
+                    { readonly direction: 1; readonly field: 'updatedAt' },
                   ];
-                  readonly kind: "mongo-index";
-                  readonly name: "ListingDraft_userId_deletedAt_publishedListingId_updatedAt_idx";
+                  readonly kind: 'mongo-index';
+                  readonly name: 'ListingDraft_userId_deletedAt_publishedListingId_updatedAt_idx';
                 },
               ];
-              readonly kind: "mongo-collection";
+              readonly kind: 'mongo-collection';
               readonly validator: {
                 readonly jsonSchema: {
                   readonly additionalProperties: false;
-                  readonly bsonType: "object";
+                  readonly bsonType: 'object';
                   readonly properties: {
-                    readonly _id: { readonly bsonType: "objectId" };
-                    readonly createdAt: { readonly bsonType: "date" };
-                    readonly deletedAt: {
-                      readonly bsonType: readonly ["null", "date"];
-                    };
-                    readonly lastSaveKey: { readonly bsonType: "string" };
+                    readonly _id: { readonly bsonType: 'objectId' };
+                    readonly createdAt: { readonly bsonType: 'date' };
+                    readonly deletedAt: { readonly bsonType: readonly ['null', 'date'] };
+                    readonly lastSaveKey: { readonly bsonType: 'string' };
                     readonly payload: {
                       readonly bsonType: readonly [
-                        "object",
-                        "array",
-                        "string",
-                        "double",
-                        "int",
-                        "long",
-                        "bool",
-                        "null",
+                        'object',
+                        'array',
+                        'string',
+                        'double',
+                        'int',
+                        'long',
+                        'bool',
+                        'null',
                       ];
                     };
                     readonly publishedListingId: {
-                      readonly bsonType: readonly ["null", "objectId"];
+                      readonly bsonType: readonly ['null', 'objectId'];
                     };
-                    readonly revision: { readonly bsonType: "long" };
-                    readonly updatedAt: { readonly bsonType: "date" };
-                    readonly userId: { readonly bsonType: "objectId" };
+                    readonly revision: { readonly bsonType: 'long' };
+                    readonly updatedAt: { readonly bsonType: 'date' };
+                    readonly userId: { readonly bsonType: 'objectId' };
                   };
                   readonly required: readonly [
-                    "_id",
-                    "createdAt",
-                    "lastSaveKey",
-                    "payload",
-                    "revision",
-                    "updatedAt",
-                    "userId",
+                    '_id',
+                    'createdAt',
+                    'lastSaveKey',
+                    'payload',
+                    'revision',
+                    'updatedAt',
+                    'userId',
                   ];
                 };
-                readonly kind: "mongo-validator";
-                readonly validationAction: "error";
-                readonly validationLevel: "strict";
+                readonly kind: 'mongo-validator';
+                readonly validationAction: 'error';
+                readonly validationLevel: 'strict';
               };
             };
             readonly ListingReview: {
-              readonly control: "managed";
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [
-                    { readonly direction: 1; readonly field: "listingId" },
-                    { readonly direction: 1; readonly field: "createdAt" },
+                    { readonly direction: 1; readonly field: 'listingId' },
+                    { readonly direction: 1; readonly field: 'createdAt' },
                   ];
-                  readonly kind: "mongo-index";
-                  readonly name: "ListingReview_listingId_createdAt_idx";
+                  readonly kind: 'mongo-index';
+                  readonly name: 'ListingReview_listingId_createdAt_idx';
                 },
               ];
-              readonly kind: "mongo-collection";
+              readonly kind: 'mongo-collection';
               readonly validator: {
                 readonly jsonSchema: {
                   readonly additionalProperties: false;
-                  readonly bsonType: "object";
+                  readonly bsonType: 'object';
                   readonly properties: {
-                    readonly _id: { readonly bsonType: "objectId" };
-                    readonly createdAt: { readonly bsonType: "date" };
+                    readonly _id: { readonly bsonType: 'objectId' };
+                    readonly createdAt: { readonly bsonType: 'date' };
                     readonly decision: {
-                      readonly bsonType: "string";
-                      readonly enum: readonly [
-                        "PENDING",
-                        "APPROVED",
-                        "CHANGES_REQUESTED",
-                      ];
+                      readonly bsonType: 'string';
+                      readonly enum: readonly ['PENDING', 'APPROVED', 'CHANGES_REQUESTED'];
                     };
-                    readonly listingId: { readonly bsonType: "objectId" };
-                    readonly reason: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly reviewerId: { readonly bsonType: "objectId" };
-                    readonly reviewerName: { readonly bsonType: "string" };
-                    readonly revision: { readonly bsonType: "long" };
+                    readonly listingId: { readonly bsonType: 'objectId' };
+                    readonly reason: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly reviewerId: { readonly bsonType: 'objectId' };
+                    readonly reviewerName: { readonly bsonType: 'string' };
+                    readonly revision: { readonly bsonType: 'long' };
                   };
                   readonly required: readonly [
-                    "_id",
-                    "createdAt",
-                    "decision",
-                    "listingId",
-                    "reviewerId",
-                    "reviewerName",
-                    "revision",
+                    '_id',
+                    'createdAt',
+                    'decision',
+                    'listingId',
+                    'reviewerId',
+                    'reviewerName',
+                    'revision',
                   ];
                 };
-                readonly kind: "mongo-validator";
-                readonly validationAction: "error";
-                readonly validationLevel: "strict";
+                readonly kind: 'mongo-validator';
+                readonly validationAction: 'error';
+                readonly validationLevel: 'strict';
               };
             };
             readonly Notification: {
-              readonly control: "managed";
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
                   readonly keys: readonly [
-                    { readonly direction: 1; readonly field: "userId" },
-                    { readonly direction: 1; readonly field: "eventKey" },
+                    { readonly direction: 1; readonly field: 'userId' },
+                    { readonly direction: 1; readonly field: 'eventKey' },
                   ];
-                  readonly kind: "mongo-index";
-                  readonly name: "Notification_userId_eventKey_key";
+                  readonly kind: 'mongo-index';
+                  readonly name: 'Notification_userId_eventKey_key';
                   readonly unique: true;
                 },
                 {
                   readonly keys: readonly [
-                    { readonly direction: 1; readonly field: "userId" },
-                    { readonly direction: 1; readonly field: "createdAt" },
-                    { readonly direction: 1; readonly field: "_id" },
+                    { readonly direction: 1; readonly field: 'userId' },
+                    { readonly direction: 1; readonly field: 'createdAt' },
+                    { readonly direction: 1; readonly field: '_id' },
                   ];
-                  readonly kind: "mongo-index";
-                  readonly name: "Notification_userId_createdAt__id_idx";
+                  readonly kind: 'mongo-index';
+                  readonly name: 'Notification_userId_createdAt__id_idx';
                 },
                 {
                   readonly keys: readonly [
-                    { readonly direction: 1; readonly field: "userId" },
-                    { readonly direction: 1; readonly field: "readAt" },
+                    { readonly direction: 1; readonly field: 'userId' },
+                    { readonly direction: 1; readonly field: 'readAt' },
                   ];
-                  readonly kind: "mongo-index";
-                  readonly name: "Notification_userId_readAt_idx";
+                  readonly kind: 'mongo-index';
+                  readonly name: 'Notification_userId_readAt_idx';
                 },
                 {
                   readonly keys: readonly [
-                    { readonly direction: 1; readonly field: "emailStatus" },
-                    {
-                      readonly direction: 1;
-                      readonly field: "emailNextAttemptAt";
-                    },
+                    { readonly direction: 1; readonly field: 'emailStatus' },
+                    { readonly direction: 1; readonly field: 'emailNextAttemptAt' },
                   ];
-                  readonly kind: "mongo-index";
-                  readonly name: "Notification_emailStatus_emailNextAttemptAt_idx";
+                  readonly kind: 'mongo-index';
+                  readonly name: 'Notification_emailStatus_emailNextAttemptAt_idx';
                 },
                 {
                   readonly keys: readonly [
-                    { readonly direction: 1; readonly field: "emailStatus" },
-                    {
-                      readonly direction: 1;
-                      readonly field: "emailLockedUntil";
-                    },
+                    { readonly direction: 1; readonly field: 'emailStatus' },
+                    { readonly direction: 1; readonly field: 'emailLockedUntil' },
                   ];
-                  readonly kind: "mongo-index";
-                  readonly name: "Notification_emailStatus_emailLockedUntil_idx";
+                  readonly kind: 'mongo-index';
+                  readonly name: 'Notification_emailStatus_emailLockedUntil_idx';
                 },
               ];
-              readonly kind: "mongo-collection";
+              readonly kind: 'mongo-collection';
               readonly validator: {
                 readonly jsonSchema: {
                   readonly additionalProperties: false;
-                  readonly bsonType: "object";
+                  readonly bsonType: 'object';
                   readonly properties: {
-                    readonly _id: { readonly bsonType: "objectId" };
-                    readonly actionLabel: { readonly bsonType: "string" };
-                    readonly createdAt: { readonly bsonType: "date" };
-                    readonly emailAttempts: { readonly bsonType: "long" };
-                    readonly emailFirstAttemptAt: {
-                      readonly bsonType: readonly ["null", "date"];
-                    };
-                    readonly emailLastError: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly emailListingId: {
-                      readonly bsonType: readonly ["null", "objectId"];
-                    };
-                    readonly emailLockToken: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly emailLockedUntil: {
-                      readonly bsonType: readonly ["null", "date"];
-                    };
-                    readonly emailNextAttemptAt: {
-                      readonly bsonType: readonly ["null", "date"];
-                    };
+                    readonly _id: { readonly bsonType: 'objectId' };
+                    readonly actionLabel: { readonly bsonType: 'string' };
+                    readonly createdAt: { readonly bsonType: 'date' };
+                    readonly emailAttempts: { readonly bsonType: 'long' };
+                    readonly emailFirstAttemptAt: { readonly bsonType: readonly ['null', 'date'] };
+                    readonly emailLastError: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly emailListingId: { readonly bsonType: readonly ['null', 'objectId'] };
+                    readonly emailLockToken: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly emailLockedUntil: { readonly bsonType: readonly ['null', 'date'] };
+                    readonly emailNextAttemptAt: { readonly bsonType: readonly ['null', 'date'] };
                     readonly emailPayload: {
                       readonly bsonType: readonly [
-                        "object",
-                        "array",
-                        "string",
-                        "double",
-                        "int",
-                        "long",
-                        "bool",
-                        "null",
+                        'object',
+                        'array',
+                        'string',
+                        'double',
+                        'int',
+                        'long',
+                        'bool',
+                        'null',
                       ];
                     };
-                    readonly emailProviderId: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly emailSentAt: {
-                      readonly bsonType: readonly ["null", "date"];
-                    };
+                    readonly emailProviderId: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly emailSentAt: { readonly bsonType: readonly ['null', 'date'] };
                     readonly emailStatus: {
-                      readonly bsonType: readonly ["null", "string"];
+                      readonly bsonType: readonly ['null', 'string'];
                       readonly enum: readonly [
-                        "PENDING",
-                        "SENDING",
-                        "SENT",
-                        "SKIPPED",
-                        "FAILED",
+                        'PENDING',
+                        'SENDING',
+                        'SENT',
+                        'SKIPPED',
+                        'FAILED',
                         null,
                       ];
                     };
-                    readonly eventKey: { readonly bsonType: "string" };
-                    readonly href: { readonly bsonType: "string" };
+                    readonly eventKey: { readonly bsonType: 'string' };
+                    readonly href: { readonly bsonType: 'string' };
                     readonly kind: {
-                      readonly bsonType: "string";
-                      readonly enum: readonly ["bid", "auction", "comment"];
+                      readonly bsonType: 'string';
+                      readonly enum: readonly ['bid', 'auction', 'comment'];
                     };
-                    readonly message: { readonly bsonType: "string" };
-                    readonly readAt: {
-                      readonly bsonType: readonly ["null", "date"];
-                    };
-                    readonly title: { readonly bsonType: "string" };
+                    readonly message: { readonly bsonType: 'string' };
+                    readonly readAt: { readonly bsonType: readonly ['null', 'date'] };
+                    readonly title: { readonly bsonType: 'string' };
                     readonly tone: {
-                      readonly bsonType: "string";
-                      readonly enum: readonly ["success", "warning", "neutral"];
+                      readonly bsonType: 'string';
+                      readonly enum: readonly ['success', 'warning', 'neutral'];
                     };
-                    readonly userId: { readonly bsonType: "objectId" };
+                    readonly userId: { readonly bsonType: 'objectId' };
                   };
                   readonly required: readonly [
-                    "_id",
-                    "actionLabel",
-                    "createdAt",
-                    "emailAttempts",
-                    "eventKey",
-                    "href",
-                    "kind",
-                    "message",
-                    "title",
-                    "tone",
-                    "userId",
+                    '_id',
+                    'actionLabel',
+                    'createdAt',
+                    'emailAttempts',
+                    'eventKey',
+                    'href',
+                    'kind',
+                    'message',
+                    'title',
+                    'tone',
+                    'userId',
                   ];
                 };
-                readonly kind: "mongo-validator";
-                readonly validationAction: "error";
-                readonly validationLevel: "strict";
+                readonly kind: 'mongo-validator';
+                readonly validationAction: 'error';
+                readonly validationLevel: 'strict';
               };
             };
             readonly User: {
-              readonly control: "managed";
+              readonly control: 'managed';
               readonly indexes: readonly [
                 {
-                  readonly keys: readonly [
-                    { readonly direction: 1; readonly field: "email" },
-                  ];
-                  readonly kind: "mongo-index";
-                  readonly name: "User_email_key";
+                  readonly keys: readonly [{ readonly direction: 1; readonly field: 'email' }];
+                  readonly kind: 'mongo-index';
+                  readonly name: 'User_email_key';
                   readonly unique: true;
                 },
               ];
-              readonly kind: "mongo-collection";
+              readonly kind: 'mongo-collection';
               readonly validator: {
                 readonly jsonSchema: {
                   readonly additionalProperties: false;
-                  readonly bsonType: "object";
+                  readonly bsonType: 'object';
                   readonly properties: {
                     readonly BidOnListIds: {
-                      readonly bsonType: "array";
-                      readonly items: { readonly bsonType: "objectId" };
+                      readonly bsonType: 'array';
+                      readonly items: { readonly bsonType: 'objectId' };
                     };
-                    readonly _id: { readonly bsonType: "objectId" };
-                    readonly createdAt: { readonly bsonType: "date" };
-                    readonly email: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly emailVerified: {
-                      readonly bsonType: readonly ["null", "date"];
-                    };
-                    readonly endingSoonEmailsEnabled: {
-                      readonly bsonType: "bool";
-                    };
-                    readonly hashedPassword: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
+                    readonly _id: { readonly bsonType: 'objectId' };
+                    readonly createdAt: { readonly bsonType: 'date' };
+                    readonly email: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly emailVerified: { readonly bsonType: readonly ['null', 'date'] };
+                    readonly endingSoonEmailsEnabled: { readonly bsonType: 'bool' };
+                    readonly hashedPassword: { readonly bsonType: readonly ['null', 'string'] };
                     readonly highestBidsIds: {
-                      readonly bsonType: "array";
-                      readonly items: { readonly bsonType: "objectId" };
+                      readonly bsonType: 'array';
+                      readonly items: { readonly bsonType: 'objectId' };
                     };
-                    readonly image: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
+                    readonly image: { readonly bsonType: readonly ['null', 'string'] };
                     readonly listingsCommentedOnIds: {
-                      readonly bsonType: "array";
-                      readonly items: { readonly bsonType: "objectId" };
+                      readonly bsonType: 'array';
+                      readonly items: { readonly bsonType: 'objectId' };
                     };
-                    readonly name: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly outbidEmailsEnabled: { readonly bsonType: "bool" };
+                    readonly name: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly outbidEmailsEnabled: { readonly bsonType: 'bool' };
                     readonly role: {
-                      readonly bsonType: readonly ["null", "string"];
-                      readonly enum: readonly ["USER", "ADMIN", null];
+                      readonly bsonType: readonly ['null', 'string'];
+                      readonly enum: readonly ['USER', 'ADMIN', null];
                     };
                     readonly seenListIds: {
-                      readonly bsonType: "array";
-                      readonly items: { readonly bsonType: "objectId" };
+                      readonly bsonType: 'array';
+                      readonly items: { readonly bsonType: 'objectId' };
                     };
-                    readonly sessionVersion: {
-                      readonly bsonType: readonly ["null", "string"];
-                    };
-                    readonly updatedAt: { readonly bsonType: "date" };
+                    readonly sessionVersion: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly updatedAt: { readonly bsonType: 'date' };
                     readonly watchListIds: {
-                      readonly bsonType: "array";
-                      readonly items: { readonly bsonType: "objectId" };
+                      readonly bsonType: 'array';
+                      readonly items: { readonly bsonType: 'objectId' };
                     };
                   };
                   readonly required: readonly [
-                    "BidOnListIds",
-                    "_id",
-                    "createdAt",
-                    "endingSoonEmailsEnabled",
-                    "highestBidsIds",
-                    "listingsCommentedOnIds",
-                    "outbidEmailsEnabled",
-                    "seenListIds",
-                    "updatedAt",
-                    "watchListIds",
+                    'BidOnListIds',
+                    '_id',
+                    'createdAt',
+                    'endingSoonEmailsEnabled',
+                    'highestBidsIds',
+                    'listingsCommentedOnIds',
+                    'outbidEmailsEnabled',
+                    'seenListIds',
+                    'updatedAt',
+                    'watchListIds',
                   ];
                 };
-                readonly kind: "mongo-validator";
-                readonly validationAction: "error";
-                readonly validationLevel: "strict";
+                readonly kind: 'mongo-validator';
+                readonly validationAction: 'error';
+                readonly validationLevel: 'strict';
               };
             };
           };
@@ -1049,51 +911,45 @@ type ContractBase = Omit<
     };
     readonly storageHash: StorageHash;
   }>,
-  "roots" | "domain"
+  'roots' | 'domain'
 > & {
-  readonly target: "mongo";
-  readonly targetFamily: "mongo";
+  readonly target: 'mongo';
+  readonly targetFamily: 'mongo';
   readonly roots: {
     readonly Account: {
-      readonly namespace: "__unbound__" & NamespaceId;
-      readonly model: "Account";
+      readonly namespace: '__unbound__' & NamespaceId;
+      readonly model: 'Account';
     };
-    readonly Bid: {
-      readonly namespace: "__unbound__" & NamespaceId;
-      readonly model: "Bid";
-    };
+    readonly Bid: { readonly namespace: '__unbound__' & NamespaceId; readonly model: 'Bid' };
     readonly BidSubmission: {
-      readonly namespace: "__unbound__" & NamespaceId;
-      readonly model: "BidSubmission";
+      readonly namespace: '__unbound__' & NamespaceId;
+      readonly model: 'BidSubmission';
     };
     readonly Comment: {
-      readonly namespace: "__unbound__" & NamespaceId;
-      readonly model: "Comment";
+      readonly namespace: '__unbound__' & NamespaceId;
+      readonly model: 'Comment';
     };
     readonly EmailVerification: {
-      readonly namespace: "__unbound__" & NamespaceId;
-      readonly model: "EmailVerification";
+      readonly namespace: '__unbound__' & NamespaceId;
+      readonly model: 'EmailVerification';
     };
     readonly Listing: {
-      readonly namespace: "__unbound__" & NamespaceId;
-      readonly model: "Listing";
+      readonly namespace: '__unbound__' & NamespaceId;
+      readonly model: 'Listing';
     };
     readonly ListingDraft: {
-      readonly namespace: "__unbound__" & NamespaceId;
-      readonly model: "ListingDraft";
+      readonly namespace: '__unbound__' & NamespaceId;
+      readonly model: 'ListingDraft';
     };
     readonly ListingReview: {
-      readonly namespace: "__unbound__" & NamespaceId;
-      readonly model: "ListingReview";
+      readonly namespace: '__unbound__' & NamespaceId;
+      readonly model: 'ListingReview';
     };
     readonly Notification: {
-      readonly namespace: "__unbound__" & NamespaceId;
-      readonly model: "Notification";
+      readonly namespace: '__unbound__' & NamespaceId;
+      readonly model: 'Notification';
     };
-    readonly User: {
-      readonly namespace: "__unbound__" & NamespaceId;
-      readonly model: "User";
-    };
+    readonly User: { readonly namespace: '__unbound__' & NamespaceId; readonly model: 'User' };
   };
   readonly domain: {
     readonly namespaces: {
@@ -1103,130 +959,87 @@ type ContractBase = Omit<
             readonly fields: {
               readonly access_token: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly expires_at: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
               readonly id: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly id_token: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly provider: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly providerAccountId: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly refresh_token: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly refresh_token_expires_in: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
               readonly scope: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly session_state: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly token_type: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly type: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly userId: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
             };
             readonly relations: {
               readonly user: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "User";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'User';
                 };
-                readonly cardinality: "N:1";
+                readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
-                  readonly localFields: readonly ["userId"];
-                  readonly targetFields: readonly ["id"];
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
                 };
               };
             };
             readonly storage: {
-              readonly collection: "Account";
+              readonly collection: 'Account';
               readonly fields: {
-                readonly access_token: { readonly field: "access_token" };
-                readonly expires_at: { readonly field: "expires_at" };
-                readonly id: { readonly field: "_id" };
-                readonly id_token: { readonly field: "id_token" };
-                readonly provider: { readonly field: "provider" };
-                readonly providerAccountId: {
-                  readonly field: "providerAccountId";
-                };
-                readonly refresh_token: { readonly field: "refresh_token" };
-                readonly refresh_token_expires_in: {
-                  readonly field: "refresh_token_expires_in";
-                };
-                readonly scope: { readonly field: "scope" };
-                readonly session_state: { readonly field: "session_state" };
-                readonly token_type: { readonly field: "token_type" };
-                readonly type: { readonly field: "type" };
-                readonly userId: { readonly field: "userId" };
+                readonly access_token: { readonly field: 'access_token' };
+                readonly expires_at: { readonly field: 'expires_at' };
+                readonly id: { readonly field: '_id' };
+                readonly id_token: { readonly field: 'id_token' };
+                readonly provider: { readonly field: 'provider' };
+                readonly providerAccountId: { readonly field: 'providerAccountId' };
+                readonly refresh_token: { readonly field: 'refresh_token' };
+                readonly refresh_token_expires_in: { readonly field: 'refresh_token_expires_in' };
+                readonly scope: { readonly field: 'scope' };
+                readonly session_state: { readonly field: 'session_state' };
+                readonly token_type: { readonly field: 'token_type' };
+                readonly type: { readonly field: 'type' };
+                readonly userId: { readonly field: 'userId' };
               };
             };
           };
@@ -1234,74 +1047,59 @@ type ContractBase = Omit<
             readonly fields: {
               readonly amount: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
               readonly createdAt: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly id: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly listingId: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly userId: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
             };
             readonly relations: {
               readonly listing: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "Listing";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Listing';
                 };
-                readonly cardinality: "N:1";
+                readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
-                  readonly localFields: readonly ["listingId"];
-                  readonly targetFields: readonly ["id"];
+                  readonly localFields: readonly ['listingId'];
+                  readonly targetFields: readonly ['id'];
                 };
               };
               readonly user: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "User";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'User';
                 };
-                readonly cardinality: "N:1";
+                readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
-                  readonly localFields: readonly ["userId"];
-                  readonly targetFields: readonly ["id"];
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
                 };
               };
             };
             readonly storage: {
-              readonly collection: "Bid";
+              readonly collection: 'Bid';
               readonly fields: {
-                readonly amount: { readonly field: "amount" };
-                readonly createdAt: { readonly field: "createdAt" };
-                readonly id: { readonly field: "_id" };
-                readonly listingId: { readonly field: "listingId" };
-                readonly userId: { readonly field: "userId" };
+                readonly amount: { readonly field: 'amount' };
+                readonly createdAt: { readonly field: 'createdAt' };
+                readonly id: { readonly field: '_id' };
+                readonly listingId: { readonly field: 'listingId' };
+                readonly userId: { readonly field: 'userId' };
               };
             };
           };
@@ -1309,78 +1107,57 @@ type ContractBase = Omit<
             readonly fields: {
               readonly amount: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
               readonly createdAt: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly id: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly key: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly listingId: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly response: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/json@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/json@1' };
               };
               readonly userId: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
             };
             readonly relations: {
               readonly user: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "User";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'User';
                 };
-                readonly cardinality: "N:1";
+                readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
-                  readonly localFields: readonly ["userId"];
-                  readonly targetFields: readonly ["id"];
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
                 };
               };
             };
             readonly storage: {
-              readonly collection: "BidSubmission";
+              readonly collection: 'BidSubmission';
               readonly fields: {
-                readonly amount: { readonly field: "amount" };
-                readonly createdAt: { readonly field: "createdAt" };
-                readonly id: { readonly field: "_id" };
-                readonly key: { readonly field: "key" };
-                readonly listingId: { readonly field: "listingId" };
-                readonly response: { readonly field: "response" };
-                readonly userId: { readonly field: "userId" };
+                readonly amount: { readonly field: 'amount' };
+                readonly createdAt: { readonly field: 'createdAt' };
+                readonly id: { readonly field: '_id' };
+                readonly key: { readonly field: 'key' };
+                readonly listingId: { readonly field: 'listingId' };
+                readonly response: { readonly field: 'response' };
+                readonly userId: { readonly field: 'userId' };
               };
             };
           };
@@ -1388,82 +1165,64 @@ type ContractBase = Omit<
             readonly fields: {
               readonly body: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly createdAt: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly id: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly image: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly listingId: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly userId: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
             };
             readonly relations: {
               readonly listing: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "Listing";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Listing';
                 };
-                readonly cardinality: "N:1";
+                readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
-                  readonly localFields: readonly ["listingId"];
-                  readonly targetFields: readonly ["id"];
+                  readonly localFields: readonly ['listingId'];
+                  readonly targetFields: readonly ['id'];
                 };
               };
               readonly user: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "User";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'User';
                 };
-                readonly cardinality: "N:1";
+                readonly cardinality: 'N:1';
                 readonly nullable: true;
                 readonly on: {
-                  readonly localFields: readonly ["userId"];
-                  readonly targetFields: readonly ["id"];
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
                 };
               };
             };
             readonly storage: {
-              readonly collection: "Comment";
+              readonly collection: 'Comment';
               readonly fields: {
-                readonly body: { readonly field: "body" };
-                readonly createdAt: { readonly field: "createdAt" };
-                readonly id: { readonly field: "_id" };
-                readonly image: { readonly field: "image" };
-                readonly listingId: { readonly field: "listingId" };
-                readonly userId: { readonly field: "userId" };
+                readonly body: { readonly field: 'body' };
+                readonly createdAt: { readonly field: 'createdAt' };
+                readonly id: { readonly field: '_id' };
+                readonly image: { readonly field: 'image' };
+                readonly listingId: { readonly field: 'listingId' };
+                readonly userId: { readonly field: 'userId' };
               };
             };
           };
@@ -1471,49 +1230,34 @@ type ContractBase = Omit<
             readonly fields: {
               readonly email: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly expiresAt: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly id: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly requestedAt: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly tokenHash: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
             };
             readonly relations: Record<string, never>;
             readonly storage: {
-              readonly collection: "EmailVerification";
+              readonly collection: 'EmailVerification';
               readonly fields: {
-                readonly email: { readonly field: "email" };
-                readonly expiresAt: { readonly field: "expiresAt" };
-                readonly id: { readonly field: "_id" };
-                readonly requestedAt: { readonly field: "requestedAt" };
-                readonly tokenHash: { readonly field: "tokenHash" };
+                readonly email: { readonly field: 'email' };
+                readonly expiresAt: { readonly field: 'expiresAt' };
+                readonly id: { readonly field: '_id' };
+                readonly requestedAt: { readonly field: 'requestedAt' };
+                readonly tokenHash: { readonly field: 'tokenHash' };
               };
             };
           };
@@ -1521,403 +1265,278 @@ type ContractBase = Omit<
             readonly fields: {
               readonly auctionEndsAt: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly auctionStartsAt: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly bidIncrement: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
               readonly biddersIds: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
                 readonly many: { readonly elementNullable: false };
               };
               readonly commenterIds: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
                 readonly many: { readonly elementNullable: false };
               };
               readonly commentsIds: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
                 readonly many: { readonly elementNullable: false };
               };
               readonly coverImage: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly createdAt: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly currentBid: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
               readonly description: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly drivetrain: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly endingSoonReminderAt: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly highestBidderId: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly id: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly images: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
                 readonly many: { readonly elementNullable: false };
               };
               readonly isFeatured: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/bool@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/bool@1' };
               };
               readonly knownFlaws: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly lastCommentAt: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly location: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly make: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly miles: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
               readonly model: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly modifications: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly reservePrice: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
               readonly result: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly reviewNote: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly reviewRevision: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
               readonly reviewStatus: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly seenIds: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
                 readonly many: { readonly elementNullable: false };
               };
               readonly serviceHistory: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly startingBid: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
               readonly status: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly titleStatus: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly transmission: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly updatedAt: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly userId: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly vehicleRecords: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/json@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/json@1' };
               };
               readonly views: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
               readonly vin: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly watchersIds: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
                 readonly many: { readonly elementNullable: false };
               };
               readonly year: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
             };
             readonly relations: {
               readonly bids: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "Bid";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Bid';
                 };
-                readonly cardinality: "1:N";
+                readonly cardinality: '1:N';
                 readonly on: {
-                  readonly localFields: readonly ["id"];
-                  readonly targetFields: readonly ["listingId"];
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['listingId'];
                 };
               };
               readonly comments: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "Comment";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Comment';
                 };
-                readonly cardinality: "1:N";
+                readonly cardinality: '1:N';
                 readonly on: {
-                  readonly localFields: readonly ["id"];
-                  readonly targetFields: readonly ["listingId"];
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['listingId'];
                 };
               };
               readonly highestBidder: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "User";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'User';
                 };
-                readonly cardinality: "N:1";
+                readonly cardinality: 'N:1';
                 readonly nullable: true;
                 readonly on: {
-                  readonly localFields: readonly ["highestBidderId"];
-                  readonly targetFields: readonly ["id"];
+                  readonly localFields: readonly ['highestBidderId'];
+                  readonly targetFields: readonly ['id'];
                 };
               };
               readonly reviews: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "ListingReview";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'ListingReview';
                 };
-                readonly cardinality: "1:N";
+                readonly cardinality: '1:N';
                 readonly on: {
-                  readonly localFields: readonly ["id"];
-                  readonly targetFields: readonly ["listingId"];
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['listingId'];
                 };
               };
               readonly user: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "User";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'User';
                 };
-                readonly cardinality: "N:1";
+                readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
-                  readonly localFields: readonly ["userId"];
-                  readonly targetFields: readonly ["id"];
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
                 };
               };
             };
             readonly storage: {
-              readonly collection: "Listing";
+              readonly collection: 'Listing';
               readonly fields: {
-                readonly auctionEndsAt: { readonly field: "auctionEndsAt" };
-                readonly auctionStartsAt: { readonly field: "auctionStartsAt" };
-                readonly bidIncrement: { readonly field: "bidIncrement" };
-                readonly biddersIds: { readonly field: "biddersIds" };
-                readonly commenterIds: { readonly field: "commenterIds" };
-                readonly commentsIds: { readonly field: "commentsIds" };
-                readonly coverImage: { readonly field: "coverImage" };
-                readonly createdAt: { readonly field: "createdAt" };
-                readonly currentBid: { readonly field: "currentBid" };
-                readonly description: { readonly field: "description" };
-                readonly drivetrain: { readonly field: "drivetrain" };
-                readonly endingSoonReminderAt: {
-                  readonly field: "endingSoonReminderAt";
-                };
-                readonly highestBidderId: { readonly field: "highestBidderId" };
-                readonly id: { readonly field: "_id" };
-                readonly images: { readonly field: "images" };
-                readonly isFeatured: { readonly field: "isFeatured" };
-                readonly knownFlaws: { readonly field: "knownFlaws" };
-                readonly lastCommentAt: { readonly field: "lastCommentAt" };
-                readonly location: { readonly field: "location" };
-                readonly make: { readonly field: "make" };
-                readonly miles: { readonly field: "miles" };
-                readonly model: { readonly field: "model" };
-                readonly modifications: { readonly field: "modifications" };
-                readonly reservePrice: { readonly field: "reservePrice" };
-                readonly result: { readonly field: "result" };
-                readonly reviewNote: { readonly field: "reviewNote" };
-                readonly reviewRevision: { readonly field: "reviewRevision" };
-                readonly reviewStatus: { readonly field: "reviewStatus" };
-                readonly seenIds: { readonly field: "seenIds" };
-                readonly serviceHistory: { readonly field: "serviceHistory" };
-                readonly startingBid: { readonly field: "startingBid" };
-                readonly status: { readonly field: "status" };
-                readonly titleStatus: { readonly field: "titleStatus" };
-                readonly transmission: { readonly field: "transmission" };
-                readonly updatedAt: { readonly field: "updatedAt" };
-                readonly userId: { readonly field: "userId" };
-                readonly vehicleRecords: { readonly field: "vehicleRecords" };
-                readonly views: { readonly field: "views" };
-                readonly vin: { readonly field: "vin" };
-                readonly watchersIds: { readonly field: "watchersIds" };
-                readonly year: { readonly field: "year" };
+                readonly auctionEndsAt: { readonly field: 'auctionEndsAt' };
+                readonly auctionStartsAt: { readonly field: 'auctionStartsAt' };
+                readonly bidIncrement: { readonly field: 'bidIncrement' };
+                readonly biddersIds: { readonly field: 'biddersIds' };
+                readonly commenterIds: { readonly field: 'commenterIds' };
+                readonly commentsIds: { readonly field: 'commentsIds' };
+                readonly coverImage: { readonly field: 'coverImage' };
+                readonly createdAt: { readonly field: 'createdAt' };
+                readonly currentBid: { readonly field: 'currentBid' };
+                readonly description: { readonly field: 'description' };
+                readonly drivetrain: { readonly field: 'drivetrain' };
+                readonly endingSoonReminderAt: { readonly field: 'endingSoonReminderAt' };
+                readonly highestBidderId: { readonly field: 'highestBidderId' };
+                readonly id: { readonly field: '_id' };
+                readonly images: { readonly field: 'images' };
+                readonly isFeatured: { readonly field: 'isFeatured' };
+                readonly knownFlaws: { readonly field: 'knownFlaws' };
+                readonly lastCommentAt: { readonly field: 'lastCommentAt' };
+                readonly location: { readonly field: 'location' };
+                readonly make: { readonly field: 'make' };
+                readonly miles: { readonly field: 'miles' };
+                readonly model: { readonly field: 'model' };
+                readonly modifications: { readonly field: 'modifications' };
+                readonly reservePrice: { readonly field: 'reservePrice' };
+                readonly result: { readonly field: 'result' };
+                readonly reviewNote: { readonly field: 'reviewNote' };
+                readonly reviewRevision: { readonly field: 'reviewRevision' };
+                readonly reviewStatus: { readonly field: 'reviewStatus' };
+                readonly seenIds: { readonly field: 'seenIds' };
+                readonly serviceHistory: { readonly field: 'serviceHistory' };
+                readonly startingBid: { readonly field: 'startingBid' };
+                readonly status: { readonly field: 'status' };
+                readonly titleStatus: { readonly field: 'titleStatus' };
+                readonly transmission: { readonly field: 'transmission' };
+                readonly updatedAt: { readonly field: 'updatedAt' };
+                readonly userId: { readonly field: 'userId' };
+                readonly vehicleRecords: { readonly field: 'vehicleRecords' };
+                readonly views: { readonly field: 'views' };
+                readonly vin: { readonly field: 'vin' };
+                readonly watchersIds: { readonly field: 'watchersIds' };
+                readonly year: { readonly field: 'year' };
               };
             };
           };
@@ -1925,96 +1544,67 @@ type ContractBase = Omit<
             readonly fields: {
               readonly createdAt: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly deletedAt: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly id: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly lastSaveKey: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly payload: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/json@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/json@1' };
               };
               readonly publishedListingId: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly revision: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
               readonly updatedAt: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly userId: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
             };
             readonly relations: {
               readonly user: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "User";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'User';
                 };
-                readonly cardinality: "N:1";
+                readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
-                  readonly localFields: readonly ["userId"];
-                  readonly targetFields: readonly ["id"];
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
                 };
               };
             };
             readonly storage: {
-              readonly collection: "ListingDraft";
+              readonly collection: 'ListingDraft';
               readonly fields: {
-                readonly createdAt: { readonly field: "createdAt" };
-                readonly deletedAt: { readonly field: "deletedAt" };
-                readonly id: { readonly field: "_id" };
-                readonly lastSaveKey: { readonly field: "lastSaveKey" };
-                readonly payload: { readonly field: "payload" };
-                readonly publishedListingId: {
-                  readonly field: "publishedListingId";
-                };
-                readonly revision: { readonly field: "revision" };
-                readonly updatedAt: { readonly field: "updatedAt" };
-                readonly userId: { readonly field: "userId" };
+                readonly createdAt: { readonly field: 'createdAt' };
+                readonly deletedAt: { readonly field: 'deletedAt' };
+                readonly id: { readonly field: '_id' };
+                readonly lastSaveKey: { readonly field: 'lastSaveKey' };
+                readonly payload: { readonly field: 'payload' };
+                readonly publishedListingId: { readonly field: 'publishedListingId' };
+                readonly revision: { readonly field: 'revision' };
+                readonly updatedAt: { readonly field: 'updatedAt' };
+                readonly userId: { readonly field: 'userId' };
               };
             };
           };
@@ -2022,86 +1612,62 @@ type ContractBase = Omit<
             readonly fields: {
               readonly createdAt: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly decision: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly id: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly listingId: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly reason: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly reviewerId: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly reviewerName: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly revision: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
             };
             readonly relations: {
               readonly listing: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "Listing";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Listing';
                 };
-                readonly cardinality: "N:1";
+                readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
-                  readonly localFields: readonly ["listingId"];
-                  readonly targetFields: readonly ["id"];
+                  readonly localFields: readonly ['listingId'];
+                  readonly targetFields: readonly ['id'];
                 };
               };
             };
             readonly storage: {
-              readonly collection: "ListingReview";
+              readonly collection: 'ListingReview';
               readonly fields: {
-                readonly createdAt: { readonly field: "createdAt" };
-                readonly decision: { readonly field: "decision" };
-                readonly id: { readonly field: "_id" };
-                readonly listingId: { readonly field: "listingId" };
-                readonly reason: { readonly field: "reason" };
-                readonly reviewerId: { readonly field: "reviewerId" };
-                readonly reviewerName: { readonly field: "reviewerName" };
-                readonly revision: { readonly field: "revision" };
+                readonly createdAt: { readonly field: 'createdAt' };
+                readonly decision: { readonly field: 'decision' };
+                readonly id: { readonly field: '_id' };
+                readonly listingId: { readonly field: 'listingId' };
+                readonly reason: { readonly field: 'reason' };
+                readonly reviewerId: { readonly field: 'reviewerId' };
+                readonly reviewerName: { readonly field: 'reviewerName' };
+                readonly revision: { readonly field: 'revision' };
               };
             };
           };
@@ -2109,204 +1675,132 @@ type ContractBase = Omit<
             readonly fields: {
               readonly actionLabel: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly createdAt: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly emailAttempts: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/int64Number@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
               };
               readonly emailFirstAttemptAt: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly emailLastError: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly emailListingId: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly emailLockToken: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly emailLockedUntil: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly emailNextAttemptAt: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly emailPayload: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/json@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/json@1' };
               };
               readonly emailProviderId: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly emailSentAt: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly emailStatus: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly eventKey: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly href: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly id: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly kind: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly message: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly readAt: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly title: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly tone: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly userId: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
             };
             readonly relations: {
               readonly user: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "User";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'User';
                 };
-                readonly cardinality: "N:1";
+                readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
-                  readonly localFields: readonly ["userId"];
-                  readonly targetFields: readonly ["id"];
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
                 };
               };
             };
             readonly storage: {
-              readonly collection: "Notification";
+              readonly collection: 'Notification';
               readonly fields: {
-                readonly actionLabel: { readonly field: "actionLabel" };
-                readonly createdAt: { readonly field: "createdAt" };
-                readonly emailAttempts: { readonly field: "emailAttempts" };
-                readonly emailFirstAttemptAt: {
-                  readonly field: "emailFirstAttemptAt";
-                };
-                readonly emailLastError: { readonly field: "emailLastError" };
-                readonly emailListingId: { readonly field: "emailListingId" };
-                readonly emailLockToken: { readonly field: "emailLockToken" };
-                readonly emailLockedUntil: {
-                  readonly field: "emailLockedUntil";
-                };
-                readonly emailNextAttemptAt: {
-                  readonly field: "emailNextAttemptAt";
-                };
-                readonly emailPayload: { readonly field: "emailPayload" };
-                readonly emailProviderId: { readonly field: "emailProviderId" };
-                readonly emailSentAt: { readonly field: "emailSentAt" };
-                readonly emailStatus: { readonly field: "emailStatus" };
-                readonly eventKey: { readonly field: "eventKey" };
-                readonly href: { readonly field: "href" };
-                readonly id: { readonly field: "_id" };
-                readonly kind: { readonly field: "kind" };
-                readonly message: { readonly field: "message" };
-                readonly readAt: { readonly field: "readAt" };
-                readonly title: { readonly field: "title" };
-                readonly tone: { readonly field: "tone" };
-                readonly userId: { readonly field: "userId" };
+                readonly actionLabel: { readonly field: 'actionLabel' };
+                readonly createdAt: { readonly field: 'createdAt' };
+                readonly emailAttempts: { readonly field: 'emailAttempts' };
+                readonly emailFirstAttemptAt: { readonly field: 'emailFirstAttemptAt' };
+                readonly emailLastError: { readonly field: 'emailLastError' };
+                readonly emailListingId: { readonly field: 'emailListingId' };
+                readonly emailLockToken: { readonly field: 'emailLockToken' };
+                readonly emailLockedUntil: { readonly field: 'emailLockedUntil' };
+                readonly emailNextAttemptAt: { readonly field: 'emailNextAttemptAt' };
+                readonly emailPayload: { readonly field: 'emailPayload' };
+                readonly emailProviderId: { readonly field: 'emailProviderId' };
+                readonly emailSentAt: { readonly field: 'emailSentAt' };
+                readonly emailStatus: { readonly field: 'emailStatus' };
+                readonly eventKey: { readonly field: 'eventKey' };
+                readonly href: { readonly field: 'href' };
+                readonly id: { readonly field: '_id' };
+                readonly kind: { readonly field: 'kind' };
+                readonly message: { readonly field: 'message' };
+                readonly readAt: { readonly field: 'readAt' };
+                readonly title: { readonly field: 'title' };
+                readonly tone: { readonly field: 'tone' };
+                readonly userId: { readonly field: 'userId' };
               };
             };
           };
@@ -2314,324 +1808,261 @@ type ContractBase = Omit<
             readonly fields: {
               readonly BidOnListIds: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
                 readonly many: { readonly elementNullable: false };
               };
               readonly createdAt: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly email: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly emailVerified: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly endingSoonEmailsEnabled: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/bool@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/bool@1' };
               };
               readonly hashedPassword: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly highestBidsIds: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
                 readonly many: { readonly elementNullable: false };
               };
               readonly id: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
               };
               readonly image: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly listingsCommentedOnIds: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
                 readonly many: { readonly elementNullable: false };
               };
               readonly name: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly outbidEmailsEnabled: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/bool@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/bool@1' };
               };
               readonly role: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly seenListIds: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
                 readonly many: { readonly elementNullable: false };
               };
               readonly sessionVersion: {
                 readonly nullable: true;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/string@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
               readonly updatedAt: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/date@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
               };
               readonly watchListIds: {
                 readonly nullable: false;
-                readonly type: {
-                  readonly kind: "scalar";
-                  readonly codecId: "mongo/objectId@1";
-                };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/objectId@1' };
                 readonly many: { readonly elementNullable: false };
               };
             };
             readonly relations: {
               readonly accounts: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "Account";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Account';
                 };
-                readonly cardinality: "1:N";
+                readonly cardinality: '1:N';
                 readonly on: {
-                  readonly localFields: readonly ["id"];
-                  readonly targetFields: readonly ["userId"];
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
                 };
               };
               readonly bidSubmissions: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "BidSubmission";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'BidSubmission';
                 };
-                readonly cardinality: "1:N";
+                readonly cardinality: '1:N';
                 readonly on: {
-                  readonly localFields: readonly ["id"];
-                  readonly targetFields: readonly ["userId"];
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
                 };
               };
               readonly bids: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "Bid";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Bid';
                 };
-                readonly cardinality: "1:N";
+                readonly cardinality: '1:N';
                 readonly on: {
-                  readonly localFields: readonly ["id"];
-                  readonly targetFields: readonly ["userId"];
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
                 };
               };
               readonly comments: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "Comment";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Comment';
                 };
-                readonly cardinality: "1:N";
+                readonly cardinality: '1:N';
                 readonly on: {
-                  readonly localFields: readonly ["id"];
-                  readonly targetFields: readonly ["userId"];
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
                 };
               };
               readonly highestBids: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "Listing";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Listing';
                 };
-                readonly cardinality: "1:N";
+                readonly cardinality: '1:N';
                 readonly on: {
-                  readonly localFields: readonly ["id"];
-                  readonly targetFields: readonly ["highestBidderId"];
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['highestBidderId'];
                 };
               };
               readonly listingDrafts: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "ListingDraft";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'ListingDraft';
                 };
-                readonly cardinality: "1:N";
+                readonly cardinality: '1:N';
                 readonly on: {
-                  readonly localFields: readonly ["id"];
-                  readonly targetFields: readonly ["userId"];
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
                 };
               };
               readonly notifications: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "Notification";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Notification';
                 };
-                readonly cardinality: "1:N";
+                readonly cardinality: '1:N';
                 readonly on: {
-                  readonly localFields: readonly ["id"];
-                  readonly targetFields: readonly ["userId"];
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
                 };
               };
               readonly uploadList: {
                 readonly to: {
-                  readonly namespace: "__unbound__" & NamespaceId;
-                  readonly model: "Listing";
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Listing';
                 };
-                readonly cardinality: "1:N";
+                readonly cardinality: '1:N';
                 readonly on: {
-                  readonly localFields: readonly ["id"];
-                  readonly targetFields: readonly ["userId"];
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
                 };
               };
             };
             readonly storage: {
-              readonly collection: "User";
+              readonly collection: 'User';
               readonly fields: {
-                readonly BidOnListIds: { readonly field: "BidOnListIds" };
-                readonly createdAt: { readonly field: "createdAt" };
-                readonly email: { readonly field: "email" };
-                readonly emailVerified: { readonly field: "emailVerified" };
-                readonly endingSoonEmailsEnabled: {
-                  readonly field: "endingSoonEmailsEnabled";
-                };
-                readonly hashedPassword: { readonly field: "hashedPassword" };
-                readonly highestBidsIds: { readonly field: "highestBidsIds" };
-                readonly id: { readonly field: "_id" };
-                readonly image: { readonly field: "image" };
-                readonly listingsCommentedOnIds: {
-                  readonly field: "listingsCommentedOnIds";
-                };
-                readonly name: { readonly field: "name" };
-                readonly outbidEmailsEnabled: {
-                  readonly field: "outbidEmailsEnabled";
-                };
-                readonly role: { readonly field: "role" };
-                readonly seenListIds: { readonly field: "seenListIds" };
-                readonly sessionVersion: { readonly field: "sessionVersion" };
-                readonly updatedAt: { readonly field: "updatedAt" };
-                readonly watchListIds: { readonly field: "watchListIds" };
+                readonly BidOnListIds: { readonly field: 'BidOnListIds' };
+                readonly createdAt: { readonly field: 'createdAt' };
+                readonly email: { readonly field: 'email' };
+                readonly emailVerified: { readonly field: 'emailVerified' };
+                readonly endingSoonEmailsEnabled: { readonly field: 'endingSoonEmailsEnabled' };
+                readonly hashedPassword: { readonly field: 'hashedPassword' };
+                readonly highestBidsIds: { readonly field: 'highestBidsIds' };
+                readonly id: { readonly field: '_id' };
+                readonly image: { readonly field: 'image' };
+                readonly listingsCommentedOnIds: { readonly field: 'listingsCommentedOnIds' };
+                readonly name: { readonly field: 'name' };
+                readonly outbidEmailsEnabled: { readonly field: 'outbidEmailsEnabled' };
+                readonly role: { readonly field: 'role' };
+                readonly seenListIds: { readonly field: 'seenListIds' };
+                readonly sessionVersion: { readonly field: 'sessionVersion' };
+                readonly updatedAt: { readonly field: 'updatedAt' };
+                readonly watchListIds: { readonly field: 'watchListIds' };
               };
             };
           };
         };
         readonly enum: {
           readonly EmailDeliveryStatus: {
-            readonly codecId: "mongo/string@1";
+            readonly codecId: 'mongo/string@1';
             readonly members: readonly [
-              { readonly name: "PENDING"; readonly value: "PENDING" },
-              { readonly name: "SENDING"; readonly value: "SENDING" },
-              { readonly name: "SENT"; readonly value: "SENT" },
-              { readonly name: "SKIPPED"; readonly value: "SKIPPED" },
-              { readonly name: "FAILED"; readonly value: "FAILED" },
+              { readonly name: 'PENDING'; readonly value: 'PENDING' },
+              { readonly name: 'SENDING'; readonly value: 'SENDING' },
+              { readonly name: 'SENT'; readonly value: 'SENT' },
+              { readonly name: 'SKIPPED'; readonly value: 'SKIPPED' },
+              { readonly name: 'FAILED'; readonly value: 'FAILED' },
             ];
           };
           readonly ListingReviewStatus: {
-            readonly codecId: "mongo/string@1";
+            readonly codecId: 'mongo/string@1';
             readonly members: readonly [
-              { readonly name: "PENDING"; readonly value: "PENDING" },
-              { readonly name: "APPROVED"; readonly value: "APPROVED" },
-              {
-                readonly name: "CHANGES_REQUESTED";
-                readonly value: "CHANGES_REQUESTED";
-              },
+              { readonly name: 'PENDING'; readonly value: 'PENDING' },
+              { readonly name: 'APPROVED'; readonly value: 'APPROVED' },
+              { readonly name: 'CHANGES_REQUESTED'; readonly value: 'CHANGES_REQUESTED' },
             ];
           };
           readonly NotificationKind: {
-            readonly codecId: "mongo/string@1";
+            readonly codecId: 'mongo/string@1';
             readonly members: readonly [
-              { readonly name: "bid"; readonly value: "bid" },
-              { readonly name: "auction"; readonly value: "auction" },
-              { readonly name: "comment"; readonly value: "comment" },
+              { readonly name: 'bid'; readonly value: 'bid' },
+              { readonly name: 'auction'; readonly value: 'auction' },
+              { readonly name: 'comment'; readonly value: 'comment' },
             ];
           };
           readonly NotificationTone: {
-            readonly codecId: "mongo/string@1";
+            readonly codecId: 'mongo/string@1';
             readonly members: readonly [
-              { readonly name: "success"; readonly value: "success" },
-              { readonly name: "warning"; readonly value: "warning" },
-              { readonly name: "neutral"; readonly value: "neutral" },
+              { readonly name: 'success'; readonly value: 'success' },
+              { readonly name: 'warning'; readonly value: 'warning' },
+              { readonly name: 'neutral'; readonly value: 'neutral' },
             ];
           };
           readonly UserRole: {
-            readonly codecId: "mongo/string@1";
+            readonly codecId: 'mongo/string@1';
             readonly members: readonly [
-              { readonly name: "USER"; readonly value: "USER" },
-              { readonly name: "ADMIN"; readonly value: "ADMIN" },
+              { readonly name: 'USER'; readonly value: 'USER' },
+              { readonly name: 'ADMIN'; readonly value: 'ADMIN' },
             ];
           };
         };
         readonly enumMemberTypes?: {
           readonly EmailDeliveryStatus: readonly [
-            { readonly name: "PENDING"; readonly value: "PENDING" },
-            { readonly name: "SENDING"; readonly value: "SENDING" },
-            { readonly name: "SENT"; readonly value: "SENT" },
-            { readonly name: "SKIPPED"; readonly value: "SKIPPED" },
-            { readonly name: "FAILED"; readonly value: "FAILED" },
+            { readonly name: 'PENDING'; readonly value: 'PENDING' },
+            { readonly name: 'SENDING'; readonly value: 'SENDING' },
+            { readonly name: 'SENT'; readonly value: 'SENT' },
+            { readonly name: 'SKIPPED'; readonly value: 'SKIPPED' },
+            { readonly name: 'FAILED'; readonly value: 'FAILED' },
           ];
           readonly ListingReviewStatus: readonly [
-            { readonly name: "PENDING"; readonly value: "PENDING" },
-            { readonly name: "APPROVED"; readonly value: "APPROVED" },
-            {
-              readonly name: "CHANGES_REQUESTED";
-              readonly value: "CHANGES_REQUESTED";
-            },
+            { readonly name: 'PENDING'; readonly value: 'PENDING' },
+            { readonly name: 'APPROVED'; readonly value: 'APPROVED' },
+            { readonly name: 'CHANGES_REQUESTED'; readonly value: 'CHANGES_REQUESTED' },
           ];
           readonly NotificationKind: readonly [
-            { readonly name: "bid"; readonly value: "bid" },
-            { readonly name: "auction"; readonly value: "auction" },
-            { readonly name: "comment"; readonly value: "comment" },
+            { readonly name: 'bid'; readonly value: 'bid' },
+            { readonly name: 'auction'; readonly value: 'auction' },
+            { readonly name: 'comment'; readonly value: 'comment' },
           ];
           readonly NotificationTone: readonly [
-            { readonly name: "success"; readonly value: "success" },
-            { readonly name: "warning"; readonly value: "warning" },
-            { readonly name: "neutral"; readonly value: "neutral" },
+            { readonly name: 'success'; readonly value: 'success' },
+            { readonly name: 'warning'; readonly value: 'warning' },
+            { readonly name: 'neutral'; readonly value: 'neutral' },
           ];
           readonly UserRole: readonly [
-            { readonly name: "USER"; readonly value: "USER" },
-            { readonly name: "ADMIN"; readonly value: "ADMIN" },
+            { readonly name: 'USER'; readonly value: 'USER' },
+            { readonly name: 'ADMIN'; readonly value: 'ADMIN' },
           ];
         };
       };
@@ -2644,121 +2075,85 @@ type ContractBase = Omit<
     readonly mutations: {
       readonly defaults: readonly [
         {
-          readonly onCreate: {
-            readonly id: "timestampNow";
-            readonly kind: "generator";
-          };
+          readonly onCreate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
           readonly ref: {
-            readonly entry: "Bid";
-            readonly field: "createdAt";
-            readonly namespace: "__unbound__";
+            readonly entry: 'Bid';
+            readonly field: 'createdAt';
+            readonly namespace: '__unbound__';
           };
         },
         {
-          readonly onCreate: {
-            readonly id: "timestampNow";
-            readonly kind: "generator";
-          };
+          readonly onCreate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
           readonly ref: {
-            readonly entry: "BidSubmission";
-            readonly field: "createdAt";
-            readonly namespace: "__unbound__";
+            readonly entry: 'BidSubmission';
+            readonly field: 'createdAt';
+            readonly namespace: '__unbound__';
           };
         },
         {
-          readonly onCreate: {
-            readonly id: "timestampNow";
-            readonly kind: "generator";
-          };
+          readonly onCreate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
           readonly ref: {
-            readonly entry: "Comment";
-            readonly field: "createdAt";
-            readonly namespace: "__unbound__";
+            readonly entry: 'Comment';
+            readonly field: 'createdAt';
+            readonly namespace: '__unbound__';
           };
         },
         {
-          readonly onCreate: {
-            readonly id: "timestampNow";
-            readonly kind: "generator";
-          };
+          readonly onCreate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
           readonly ref: {
-            readonly entry: "Listing";
-            readonly field: "createdAt";
-            readonly namespace: "__unbound__";
+            readonly entry: 'Listing';
+            readonly field: 'createdAt';
+            readonly namespace: '__unbound__';
           };
         },
         {
-          readonly onCreate: {
-            readonly id: "timestampNow";
-            readonly kind: "generator";
-          };
+          readonly onCreate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
           readonly ref: {
-            readonly entry: "ListingDraft";
-            readonly field: "createdAt";
-            readonly namespace: "__unbound__";
+            readonly entry: 'ListingDraft';
+            readonly field: 'createdAt';
+            readonly namespace: '__unbound__';
           };
         },
         {
-          readonly onCreate: {
-            readonly id: "timestampNow";
-            readonly kind: "generator";
-          };
-          readonly onUpdate: {
-            readonly id: "timestampNow";
-            readonly kind: "generator";
-          };
+          readonly onCreate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
+          readonly onUpdate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
           readonly ref: {
-            readonly entry: "ListingDraft";
-            readonly field: "updatedAt";
-            readonly namespace: "__unbound__";
+            readonly entry: 'ListingDraft';
+            readonly field: 'updatedAt';
+            readonly namespace: '__unbound__';
           };
         },
         {
-          readonly onCreate: {
-            readonly id: "timestampNow";
-            readonly kind: "generator";
-          };
+          readonly onCreate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
           readonly ref: {
-            readonly entry: "ListingReview";
-            readonly field: "createdAt";
-            readonly namespace: "__unbound__";
+            readonly entry: 'ListingReview';
+            readonly field: 'createdAt';
+            readonly namespace: '__unbound__';
           };
         },
         {
-          readonly onCreate: {
-            readonly id: "timestampNow";
-            readonly kind: "generator";
-          };
+          readonly onCreate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
           readonly ref: {
-            readonly entry: "Notification";
-            readonly field: "createdAt";
-            readonly namespace: "__unbound__";
+            readonly entry: 'Notification';
+            readonly field: 'createdAt';
+            readonly namespace: '__unbound__';
           };
         },
         {
-          readonly onCreate: {
-            readonly id: "timestampNow";
-            readonly kind: "generator";
-          };
+          readonly onCreate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
           readonly ref: {
-            readonly entry: "User";
-            readonly field: "createdAt";
-            readonly namespace: "__unbound__";
+            readonly entry: 'User';
+            readonly field: 'createdAt';
+            readonly namespace: '__unbound__';
           };
         },
         {
-          readonly onCreate: {
-            readonly id: "timestampNow";
-            readonly kind: "generator";
-          };
-          readonly onUpdate: {
-            readonly id: "timestampNow";
-            readonly kind: "generator";
-          };
+          readonly onCreate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
+          readonly onUpdate: { readonly id: 'timestampNow'; readonly kind: 'generator' };
           readonly ref: {
-            readonly entry: "User";
-            readonly field: "updatedAt";
-            readonly namespace: "__unbound__";
+            readonly entry: 'User';
+            readonly field: 'updatedAt';
+            readonly namespace: '__unbound__';
           };
         },
       ];
