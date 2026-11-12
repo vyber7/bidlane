@@ -1,4 +1,4 @@
-import prisma from "../libs/prismadb";
+import { getNativeRepositories } from "../libs/native-repositories";
 import { logger } from "../libs/logger";
 
 async function getComments(listingId: string) {
@@ -7,20 +7,7 @@ async function getComments(listingId: string) {
       throw new Error("Listing ID is required");
     }
 
-    const comments = await prisma.comment.findMany({
-      where: { listingId },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        body: true,
-        image: true,
-        createdAt: true,
-        listingId: true,
-        user: { select: { name: true } },
-      },
-    });
-
-    return comments;
+    return await getNativeRepositories().comments.list(listingId);
   } catch (error) {
     logger.error("comments.fetch_failed", error, { listingId });
     return [];

@@ -9,13 +9,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/app/actions/getCurrentUser", () => ({
   default: mocks.getCurrentUser,
 }));
-vi.mock("@/app/libs/prismadb", () => ({
-  default: {
-    listing: {
-      findUnique: mocks.findUnique,
-    },
-  },
-}));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ auctions: { find: mocks.findUnique } }) }));
 vi.mock("@/app/libs/auction-finalization", () => ({
   finalizeAuction: mocks.finalizeAuction,
 }));

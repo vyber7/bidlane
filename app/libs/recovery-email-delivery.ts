@@ -1,41 +1,29 @@
 import { randomUUID } from "node:crypto";
-import type { Prisma } from "@prisma/client";
-import prisma from "./prismadb";
+import { getNativeRepositories } from "./native-repositories";
 import { EmailProviderError, getEmailConfiguration, sendEmail } from "./outbid-email";
 import { resetHash, resetToken } from "./password-reset";
 import { logger } from "./logger";
-import { emailIdentityFilter } from "./email-identity";
-
-const eligible = (now: Date): Prisma.RecoveryEmailWhereInput => ({ OR: [
-  { status: "PENDING", nextAttemptAt: { lte: now } },
-  { status: "SENDING", lockedUntil: { lte: now } },
-] });
 
 export async function sendRecoveryEmails(batchSize = 20) {
   const config = getEmailConfiguration();
   if (!config || !process.env.NEXTAUTH_SECRET) throw new Error("Recovery email delivery is not configured");
+  const { passwordResets, recoveryEmails, users: userRepository } = getNativeRepositories();
   const startedAt = Date.now();
-  await prisma.passwordReset.deleteMany({ where: { expiresAt: { lt: new Date(startedAt - 86400_000) } } });
-  await prisma.recoveryEmail.deleteMany({ where: { status: { in: ["SENT", "SKIPPED", "FAILED"] }, createdAt: { lt: new Date(startedAt - 30 * 86400_000) } } });
+  await passwordResets.deleteBefore(new Date(startedAt - 86400_000));
+  await recoveryEmails.deleteCompletedBefore(new Date(startedAt - 30 * 86400_000));
   const limit = Math.min(Math.max(Math.trunc(batchSize), 1), 20);
-  const jobs = await prisma.recoveryEmail.findMany({ where: eligible(new Date()), orderBy: { createdAt: "asc" }, take: limit, select: { id: true } });
+  const jobs = await recoveryEmails.candidates(new Date(), limit);
   const summary = { checked: 0, sent: 0, skipped: 0, retried: 0, failed: 0, hasMore: jobs.length === limit };
   for (const candidate of jobs) {
     if (Date.now() - startedAt >= 40_000) { summary.hasMore = true; break; }
     const now = new Date();
     const lockToken = randomUUID();
-    const claimed = await prisma.recoveryEmail.updateMany({
-      where: { id: candidate.id, ...eligible(now) },
-      data: { status: "SENDING", lockToken, lockedUntil: new Date(now.getTime() + 120_000), attempts: { increment: 1 } },
-    });
+    const claimed = await recoveryEmails.claim(candidate.id, now, lockToken);
     if (claimed.count !== 1) continue;
     summary.checked++;
-    const finish = (data: Prisma.RecoveryEmailUpdateManyMutationInput) => prisma.recoveryEmail.updateMany({
-      where: { id: candidate.id, status: "SENDING", lockToken },
-      data: { ...data, lockedUntil: null, lockToken: null },
-    });
+    const finish = (data: { status: string; nextAttemptAt?: Date }) => recoveryEmails.finish(candidate.id, lockToken, data);
     try {
-      const job = await prisma.recoveryEmail.findUnique({ where: { id: candidate.id } });
+      const job = await recoveryEmails.find(candidate.id);
       if (!job || job.lockToken !== lockToken) continue;
       if (job.attempts > 5 || now.getTime() - job.createdAt.getTime() >= 23 * 3600_000) {
         await finish({ status: "FAILED" }); summary.failed++; continue;
@@ -45,26 +33,20 @@ export async function sendRecoveryEmails(batchSize = 20) {
       let text: string;
       let html: string;
       if (job.kind === "RESET") {
-        const record = job.resetId ? await prisma.passwordReset.findUnique({ where: { id: job.resetId } }) : null;
+        const record = job.resetId ? await passwordResets.find(job.resetId) : null;
         if (!record || record.nonce !== job.nonce || record.usedAt || record.expiresAt <= now) {
           await finish({ status: "SKIPPED" }); summary.skipped++; continue;
         }
         // Match case-insensitively, but never choose between two legacy accounts
         // with case-colliding addresses. Connected-only accounts get no reset.
-        const users = await prisma.user.findMany({
-          where: { email: emailIdentityFilter(job.email) }, take: 2,
-          select: { id: true, email: true, hashedPassword: true, sessionVersion: true },
-        });
+        const users = await userRepository.passwordMatches(job.email);
         const user = users.length === 1 ? users[0] : null;
         if (!user?.hashedPassword || !user.email || (record.userId && (record.userId !== user.id || (record.sessionVersion ?? "") !== (user.sessionVersion ?? "")))) {
           await finish({ status: "SKIPPED" }); summary.skipped++; continue;
         }
         const token = resetToken(record.id, record.nonce);
         if (resetHash(token) !== record.tokenHash) { await finish({ status: "SKIPPED" }); summary.skipped++; continue; }
-        const bound = await prisma.passwordReset.updateMany({
-          where: { id: record.id, nonce: record.nonce, usedAt: null, expiresAt: { gt: now } },
-          data: { userId: user.id, sessionVersion: user.sessionVersion ?? "" },
-        });
+        const bound = await passwordResets.bind({ id: record.id, nonce: record.nonce }, now, { userId: user.id, sessionVersion: user.sessionVersion ?? "" });
         if (bound.count !== 1) { await finish({ status: "SKIPPED" }); summary.skipped++; continue; }
         to = user.email;
         const url = new URL("/reset-password", config.origin);

@@ -1,4 +1,5 @@
-import { Prisma } from "@prisma/client";
+import { MongoServerError } from "mongodb";
+import { TransactionRetryLimitError } from "@/prisma/native/transaction-errors";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ limit: vi.fn(),
@@ -6,11 +7,9 @@ const mocks = vi.hoisted(() => ({ limit: vi.fn(),
   transaction: vi.fn(),
   listingFindUnique: vi.fn(),
   listingUpdateMany: vi.fn(),
-  listingUpdate: vi.fn(),
   bidCreate: vi.fn(),
   submissionFindUnique: vi.fn(),
   submissionCreate: vi.fn(),
-  userUpdate: vi.fn(),
   trigger: vi.fn(),
   notificationUpsert: vi.fn(),
 }));
@@ -19,9 +18,7 @@ vi.mock("@/app/libs/abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
 vi.mock("@/app/actions/getCurrentUser", () => ({
   default: mocks.getCurrentUser,
 }));
-vi.mock("@/app/libs/prismadb", () => ({
-  default: { $transaction: mocks.transaction },
-}));
+vi.mock("@/app/libs/native-repositories", () => ({ withNativeTransaction: mocks.transaction }));
 vi.mock("@/app/libs/pusher", () => ({
   pusherServer: { trigger: mocks.trigger },
 }));
@@ -32,15 +29,9 @@ import { ApiRequestError } from "@/app/libs/api-request";
 const listingId = "abcdef0123456789abcdef01";
 const now = new Date("2026-09-04T12:00:00.000Z");
 const tx = {
-  listing: {
-    findUnique: mocks.listingFindUnique,
-    updateMany: mocks.listingUpdateMany,
-    update: mocks.listingUpdate,
-  },
-  bidSubmission: { findUnique: mocks.submissionFindUnique, create: mocks.submissionCreate },
-  bid: { create: mocks.bidCreate },
-  user: { update: mocks.userUpdate },
-  notification: { upsert: mocks.notificationUpsert },
+  auctions: { find: mocks.listingFindUnique, claimBid: mocks.listingUpdateMany, createBid: mocks.bidCreate },
+  bidSubmissions: { find: mocks.submissionFindUnique, create: mocks.submissionCreate },
+  notifications: { insertOnce: mocks.notificationUpsert },
 };
 
 const key = "test-bid-request-0001";
@@ -90,7 +81,7 @@ describe("POST /api/place-bid", () => {
     expect(mocks.limit).not.toHaveBeenCalled(); expect(mocks.bidCreate).not.toHaveBeenCalled();
   });
   it("charges one quota attempt across transaction contention retries", async () => {
-    mocks.listingFindUnique.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError("retry", { code: "P2034", clientVersion: "6" }));
+    mocks.submissionCreate.mockRejectedValueOnce(new MongoServerError({ message: "retry", code: 11000 }));
     expect((await POST(request({ listingId, bidAmount: 1000 }))).status).toBe(201);
     expect(mocks.transaction).toHaveBeenCalledTimes(2);
     expect(mocks.limit).toHaveBeenCalledTimes(1);
@@ -107,8 +98,6 @@ describe("POST /api/place-bid", () => {
     mocks.submissionCreate.mockResolvedValue({});
     mocks.listingFindUnique.mockResolvedValue(liveListing());
     mocks.listingUpdateMany.mockResolvedValue({ count: 1 });
-    mocks.listingUpdate.mockResolvedValue({});
-    mocks.userUpdate.mockResolvedValue({});
     mocks.bidCreate.mockResolvedValue({
       id: "bid-1",
       amount: 1_000,
@@ -131,7 +120,7 @@ describe("POST /api/place-bid", () => {
     mocks.listingFindUnique.mockResolvedValue(liveListing({ highestBidderId: "previous", currentBid: 900 }));
     const first = await POST(request({ listingId, bidAmount: 1000 }));
     const response = await first.json();
-    const stored = mocks.submissionCreate.mock.calls[0][0].data;
+    const stored = mocks.submissionCreate.mock.calls[0][0];
     expect(stored).toEqual({ userId: "bidder", key, listingId, amount: 1000, response });
     mocks.submissionFindUnique.mockResolvedValue(stored);
     mocks.listingFindUnique.mockResolvedValue(liveListing({ status: "ENDED" }));
@@ -163,13 +152,13 @@ describe("POST /api/place-bid", () => {
     await POST(request({ listingId, bidAmount: 1000 }));
     mocks.getCurrentUser.mockResolvedValue({ id: "another-bidder", email: "another@test.dev" });
     await POST(request({ listingId, bidAmount: 1000 }));
-    expect(mocks.submissionFindUnique).toHaveBeenNthCalledWith(1, { where: { userId_key: { userId: "bidder", key } } });
-    expect(mocks.submissionFindUnique).toHaveBeenNthCalledWith(2, { where: { userId_key: { userId: "another-bidder", key } } });
+    expect(mocks.submissionFindUnique).toHaveBeenNthCalledWith(1, "bidder", key);
+    expect(mocks.submissionFindUnique).toHaveBeenNthCalledWith(2, "another-bidder", key);
   });
 
-  it.each(["P2002", "P2034"])("replays a concurrently committed request after %s", async (code) => {
+  it.each([11000])("replays a concurrently committed request after %s", async (code) => {
     const response = { bid: { id: "winning-bid" }, currentBid: 1000, auctionEndsAt: now.toISOString() };
-    mocks.transaction.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError("race", { code, clientVersion: "test" }));
+    mocks.transaction.mockRejectedValueOnce(new MongoServerError({ message: "race", code }));
     mocks.submissionFindUnique.mockResolvedValue({ listingId, amount: 1000, response });
     const replay = await POST(request({ listingId, bidAmount: 1000 }));
     expect(replay.status).toBe(201);
@@ -180,7 +169,7 @@ describe("POST /api/place-bid", () => {
   });
 
   it("bounds transaction retries and returns a retryable failure", async () => {
-    mocks.transaction.mockRejectedValue(new Prisma.PrismaClientKnownRequestError("race", { code: "P2034", clientVersion: "test" }));
+    mocks.transaction.mockRejectedValue(new MongoServerError({ message: "race", code: 11000 }));
     expect((await POST(request({ listingId, bidAmount: 1000 }))).status).toBe(503);
     expect(mocks.transaction).toHaveBeenCalledTimes(3);
   });
@@ -247,36 +236,12 @@ describe("POST /api/place-bid", () => {
     const response = await POST(request({ listingId, bidAmount: "1000" }));
 
     expect(response.status).toBe(201);
-    expect(mocks.listingUpdateMany).toHaveBeenCalledWith({
-      where: {
-        id: listingId,
-        status: "LIVE",
-        OR: [{ currentBid: null }, { currentBid: { isSet: false } }],
-        auctionEndsAt: new Date("2026-09-04T13:00:00.000Z"),
-      },
-      data: {
-        currentBid: 1_000,
-        highestBidderId: "bidder",
-        auctionEndsAt: new Date("2026-09-04T13:00:00.000Z"),
-      },
-    });
-    expect(mocks.bidCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          amount: 1_000,
-          listingId,
-          userId: "bidder",
-        }),
-      })
+    expect(mocks.listingUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ id: listingId, currentBid: null, auctionEndsAt: new Date("2026-09-04T13:00:00.000Z") }),
+      { amount: 1000, userId: "bidder", auctionEndsAt: new Date("2026-09-04T13:00:00.000Z") }, now,
     );
-    expect(mocks.listingUpdate).toHaveBeenCalledWith({
-      where: { id: listingId },
-      data: { bidders: { connect: { id: "bidder" } } },
-    });
-    expect(mocks.userUpdate).toHaveBeenCalledWith({
-      where: { id: "bidder" },
-      data: { bidOnList: { connect: { id: listingId } } },
-    });
+    expect(mocks.bidCreate).toHaveBeenCalledWith({ amount: 1000, listingId, userId: "bidder", createdAt: now });
+    expect(mocks.transaction).toHaveBeenCalledWith(expect.any(Function), { maxAttempts: 3, timeoutMS: 5000 });
     expect(mocks.trigger).toHaveBeenCalledWith(
       `listing-${listingId}`,
       "new-bid",
@@ -289,7 +254,7 @@ describe("POST /api/place-bid", () => {
     const response = await POST(request({ listingId, bidAmount: 1_600 }));
 
     expect(response.status).toBe(201);
-    const where = mocks.listingUpdateMany.mock.calls[0][0].where;
+    const where = mocks.listingUpdateMany.mock.calls[0][0];
     expect(where.currentBid).toBe(1_500);
     expect(where).not.toHaveProperty("OR");
   });
@@ -302,13 +267,7 @@ describe("POST /api/place-bid", () => {
     const response = await POST(request({ listingId, bidAmount: 1_000 }));
 
     expect(response.status).toBe(201);
-    expect(mocks.listingUpdateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          auctionEndsAt: new Date("2026-09-04T12:02:00.000Z"),
-        }),
-      })
-    );
+    expect(mocks.listingUpdateMany).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({ auctionEndsAt: new Date("2026-09-04T12:02:00.000Z") }), now);
     expect(mocks.trigger).toHaveBeenCalledWith(
       `listing-${listingId}`,
       "new-end-time",
@@ -329,10 +288,7 @@ describe("POST /api/place-bid", () => {
   it("stores an outbid event for the previous leader in the bid transaction", async () => {
     mocks.listingFindUnique.mockResolvedValue(liveListing({ highestBidderId: "previous", currentBid: 900 }));
     expect((await POST(request({ listingId, bidAmount: 1000 }))).status).toBe(201);
-    expect(mocks.notificationUpsert).toHaveBeenCalledWith({
-      where: { userId_eventKey: { userId: "previous", eventKey: "outbid:bid-1" } },
-      create: expect.objectContaining({ userId: "previous", title: "You’ve been outbid", readAt: null, emailListingId: listingId, emailStatus: "PENDING", emailNextAttemptAt: expect.any(Date) }), update: {},
-    });
+    expect(mocks.notificationUpsert).toHaveBeenCalledWith(expect.objectContaining({ userId: "previous", eventKey: "outbid:bid-1", title: "You’ve been outbid", emailListingId: listingId }));
     expect(mocks.trigger).toHaveBeenCalledWith("private-user-previous", "notifications-changed", {});
   });
 
@@ -356,5 +312,20 @@ describe("POST /api/place-bid", () => {
       expect.stringContaining('"event":"bid.notification_failed"')
     );
     consoleWarn.mockRestore();
+  });
+
+  it("returns a retryable failure after the native callback budget is exhausted", async () => {
+    mocks.transaction.mockRejectedValueOnce(new TransactionRetryLimitError());
+    expect((await POST(request({ listingId, bidAmount: 1000 }))).status).toBe(503);
+    expect(mocks.trigger).not.toHaveBeenCalled();
+  });
+
+  it("does not rerun a transaction whose commit result is unknown", async () => {
+    mocks.transaction.mockRejectedValueOnce(new MongoServerError({ message: "uncertain commit", code: 11000, errorLabels: ["UnknownTransactionCommitResult"] }));
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect((await POST(request({ listingId, bidAmount: 1000 }))).status).toBe(500);
+    expect(mocks.transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.trigger).not.toHaveBeenCalled();
+    log.mockRestore();
   });
 });

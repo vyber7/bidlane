@@ -7,17 +7,9 @@ const mocks = vi.hoisted(() => ({
   assets: vi.fn(),
 }));
 
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets }, listingAuthoring: { find: mocks.findUnique, addPhoto: mocks.updateMany } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({
   default: mocks.getCurrentUser,
-}));
-vi.mock("../../libs/prismadb", () => ({
-  default: {
-    uploadedAsset: { findMany: mocks.assets },
-    listing: {
-      findUnique: mocks.findUnique,
-      updateMany: mocks.updateMany,
-    },
-  },
 }));
 vi.mock("@/app/libs/logger", () => ({
   logger: { error: vi.fn() },
@@ -39,7 +31,7 @@ function post(body: unknown) {
 
 describe("/api/cloudinary-images", () => {
   beforeEach(() => {
-    vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ where }) => [imageUrl].filter((url) => where.url.in.includes(url)).map((url) => ({ url })));
+    vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ urls }) => [imageUrl].filter((url) => urls.includes(url)).map((url) => ({ url })));
     mocks.getCurrentUser.mockResolvedValue({ id: "seller" });
     mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", reviewRevision: 2, images: [] });
     mocks.updateMany.mockResolvedValue({ count: 1 });
@@ -54,10 +46,7 @@ describe("/api/cloudinary-images", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(mocks.findUnique).toHaveBeenCalledWith({
-      where: { id: listingId },
-      select: { images: true, userId: true, status: true, reviewStatus: true },
-    });
+    expect(mocks.findUnique).toHaveBeenCalledWith(listingId);
     await expect(response.json()).resolves.toEqual({ images: [{ url: imageUrl }] });
   });
 
@@ -123,14 +112,7 @@ describe("/api/cloudinary-images", () => {
     const response = await POST(post({ listingId, imageUrl }));
 
     expect(response.status).toBe(200);
-    expect(mocks.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: listingId,
-        userId: "seller", status: "UPCOMING", reviewRevision: 2,
-        images: { equals: [] },
-      },
-      data: { images: { push: imageUrl }, reviewStatus: "PENDING", reviewRevision: 3, reviewNote: null },
-    });
+    expect(mocks.updateMany).toHaveBeenCalledWith(listingId, "seller", 2, [], imageUrl, expect.any(Date));
   });
 });
 

@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TransactionRetryLimitError } from "@/prisma/native/transaction-errors";
 
 const mocks = vi.hoisted(() => ({ user: vi.fn(), findUnique: vi.fn(), updateMany: vi.fn(), create: vi.fn(), transaction: vi.fn() }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { $transaction: mocks.transaction } }));
+vi.mock("@/app/libs/read-repositories", () => ({ getReadRepositories: () => { throw new Error("Unexpected overview query"); } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
+vi.mock("@/app/libs/native-repositories", () => ({ withNativeTransaction: mocks.transaction }));
 import { POST } from "./route";
 
 const id = "abcdef0123456789abcdef01";
@@ -15,7 +17,7 @@ beforeEach(() => {
   mocks.findUnique.mockResolvedValue({ id, userId: "seller", status: "UPCOMING", reviewRevision: 3, reviewStatus: "PENDING" });
   mocks.updateMany.mockResolvedValue({ count: 1 });
   mocks.create.mockResolvedValue({ id: "review" });
-  mocks.transaction.mockImplementation(async (callback) => callback({ listing: { findUnique: mocks.findUnique, updateMany: mocks.updateMany }, listingReview: { create: mocks.create } }));
+  mocks.transaction.mockImplementation(async (callback) => callback({ listingAuthoring: { find: mocks.findUnique, setReview: mocks.updateMany, addReview: mocks.create } }));
 });
 
 describe("listing moderation decisions", () => {
@@ -26,13 +28,13 @@ describe("listing moderation decisions", () => {
   });
   it("approves the reviewed version and records who reviewed it in the same transaction", async () => {
     expect((await submit()).status).toBe(200);
-    expect(mocks.updateMany).toHaveBeenCalledWith({ where: { id, status: "UPCOMING", reviewRevision: 3 }, data: { reviewStatus: "APPROVED", reviewNote: null, reviewRevision: 4 } });
-    expect(mocks.create).toHaveBeenCalledWith({ data: { listingId: id, reviewerId: "admin", reviewerName: "Moderator", decision: "APPROVED", reason: null, revision: 4 } });
+    expect(mocks.updateMany).toHaveBeenCalledWith(id, { revision: 3, decision: "APPROVED", reason: "" }, expect.any(Date));
+    expect(mocks.create).toHaveBeenCalledWith(id, { revision: 3, decision: "APPROVED", reason: "" }, { id: "admin", name: "Moderator" }, expect.any(Date));
   });
   it("saves actionable feedback and revokes approval when changes are requested", async () => {
     mocks.findUnique.mockResolvedValue({ id, userId: "seller", status: "UPCOMING", reviewRevision: 3, reviewStatus: "APPROVED" });
     expect((await submit({ revision: 3, decision: "CHANGES_REQUESTED", reason: "  Show the title status and underbody photos.  " })).status).toBe(200);
-    expect(mocks.updateMany.mock.calls[0][0].data).toEqual({ reviewStatus: "CHANGES_REQUESTED", reviewNote: "Show the title status and underbody photos.", reviewRevision: 4 });
+    expect(mocks.updateMany.mock.calls[0][1]).toEqual({ decision: "CHANGES_REQUESTED", reason: "Show the title status and underbody photos.", revision: 3 });
   });
   it.each([
     { revision: 3, decision: "CHANGES_REQUESTED", reason: " " },
@@ -60,7 +62,7 @@ describe("listing moderation decisions", () => {
   it("supports existing upcoming listings with no revision", async () => {
     mocks.findUnique.mockResolvedValue({ id, userId: "seller", status: "UPCOMING", reviewRevision: null });
     expect((await submit({ revision: 0, decision: "APPROVED" })).status).toBe(200);
-    expect(mocks.updateMany.mock.calls[0][0].where.OR).toContainEqual({ reviewRevision: { isSet: false } });
+    expect(mocks.updateMany.mock.calls[0][1].revision).toBe(0);
   });
   it("fails the transaction if the audit cannot be saved", async () => {
     mocks.create.mockRejectedValueOnce(new Error("private error"));
@@ -69,7 +71,7 @@ describe("listing moderation decisions", () => {
     expect(await response.json()).toEqual({ error: "Could not save this review. Please try again." });
   });
   it("returns a retryable conflict on a MongoDB transaction write conflict", async () => {
-    mocks.transaction.mockRejectedValueOnce({ code: "P2034" });
+    mocks.transaction.mockRejectedValueOnce(new TransactionRetryLimitError());
     expect((await submit()).status).toBe(409);
   });
 });

@@ -1,31 +1,20 @@
-import { Prisma } from "@prisma/client";
-import prisma from "./prismadb";
+import { getNativeRepositories } from "./native-repositories";
 
 async function quotaRetryAfter(key: string, limit: number, windowMs: number, now: number, mode: "check" | "consume" = "consume") {
   const window = Math.floor(now / windowMs);
   const id = `${key}:${window}`;
   if (mode === "check") {
-    const bucket = await prisma.uploadQuota.findUnique({ where: { id } });
+    const bucket = await getNativeRepositories().quotas.upload.read(id);
     return bucket && bucket.count >= limit ? Math.max(1, Math.ceil((bucket.expiresAt.getTime() - now) / 1000)) : 0;
   }
-  let bucket;
-  try {
-    bucket = await prisma.uploadQuota.upsert({
-      where: { id },
-      create: { id, count: 1, expiresAt: new Date((window + 1) * windowMs) },
-      update: { count: { increment: 1 } },
-    });
-  } catch (error) {
-    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
-    bucket = await prisma.uploadQuota.update({ where: { id }, data: { count: { increment: 1 } } });
-  }
+  const bucket = await getNativeRepositories().quotas.upload.consume(id, new Date((window + 1) * windowMs));
   return bucket.count <= limit ? 0 : Math.max(1, Math.ceil((bucket.expiresAt.getTime() - now) / 1000));
 }
 
 // Shared budgets cover attempts, including rejected files and provider errors.
 // Global budgets bound cost even when an attacker rotates signed-in accounts.
 export async function uploadRetryAfter(userId: string, now = Date.now()) {
-  await prisma.uploadQuota.deleteMany({ where: { expiresAt: { lte: new Date(now) } } });
+  await getNativeRepositories().quotas.upload.deleteExpired(new Date(now));
   const globalBudgets = [["global:hour", 100, 3_600_000], ["global:day", 500, 86_400_000]] as const;
   // Avoid allocating account buckets during global exhaustion. This read is
   // only an early rejection; atomic consumption below remains authoritative.

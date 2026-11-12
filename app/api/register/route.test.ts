@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Prisma } from "@prisma/client";
+import { MongoServerError } from "mongodb";
 
 const mocks = vi.hoisted(() => ({ limit: vi.fn(),
   hash: vi.fn(),
@@ -9,9 +9,7 @@ const mocks = vi.hoisted(() => ({ limit: vi.fn(),
 
 vi.mock("@/app/libs/abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
 vi.mock("bcrypt", () => ({ default: { hash: mocks.hash } }));
-vi.mock("../../libs/prismadb", () => ({
-  default: { user: { create: mocks.create, findFirst: mocks.findEmail } },
-}));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ users: { create: mocks.create, emailExists: mocks.findEmail } }) }));
 vi.mock("@/app/libs/logger", () => ({
   logger: { error: vi.fn() },
 }));
@@ -55,14 +53,7 @@ describe("POST /api/register", () => {
 
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toEqual({ id: "user-1" });
-    expect(mocks.create).toHaveBeenCalledWith({
-      data: {
-        name: "Driver",
-        email: "driver@example.com",
-        hashedPassword: "bcrypt-secret",
-      },
-      select: { id: true },
-    });
+    expect(mocks.create).toHaveBeenCalledWith({ name: "Driver", email: "driver@example.com", hashedPassword: "bcrypt-secret" });
   });
 
   it.each(["driver@EXAMPLE.COM", "DRIVER@example.com", " Driver@Example.Com "])("rejects case-variant signup against a legacy account: %s", async (email) => {
@@ -78,10 +69,7 @@ describe("POST /api/register", () => {
     const response = await POST(request({ name: " Driver ", email: " New.Driver@Example.COM ", password: " long secret " }));
     expect(response.status).toBe(201);
     expect(mocks.hash).toHaveBeenCalledWith(" long secret ", 12);
-    expect(mocks.create).toHaveBeenCalledWith({
-      data: { name: "Driver", email: "new.driver@example.com", hashedPassword: "bcrypt-secret" },
-      select: { id: true },
-    });
+    expect(mocks.create).toHaveBeenCalledWith({ name: "Driver", email: "new.driver@example.com", hashedPassword: "bcrypt-secret" });
   });
 
   it("keeps required registration fields", async () => {
@@ -118,7 +106,7 @@ describe("POST /api/register", () => {
   it("does not allow public registration to grant an admin role", async () => {
     const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "a long password", role: "ADMIN", isAdmin: true, emailVerified: "2026-01-01" }));
     expect(response.status).toBe(201);
-    expect(mocks.create.mock.calls[0][0].data).toEqual({ name: "Driver", email: "driver@example.com", hashedPassword: "bcrypt-secret" });
+    expect(mocks.create.mock.calls[0][0]).toEqual({ name: "Driver", email: "driver@example.com", hashedPassword: "bcrypt-secret" });
   });
 
   it.each([
@@ -132,9 +120,7 @@ describe("POST /api/register", () => {
   });
 
   it("reports duplicate registration as a conflict", async () => {
-    mocks.create.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError("Unique constraint", {
-      code: "P2002", clientVersion: "test",
-    }));
+    mocks.create.mockRejectedValueOnce(new MongoServerError({ message: "Unique constraint", code: 11000 }));
     const response = await POST(request({ name: "Driver", email: "driver@example.com", password: "a long password" }));
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toEqual({ error: "An account with this email already exists" });
@@ -153,7 +139,7 @@ describe("POST /api/register", () => {
     expect(response.status).toBe(201);
     expect(mocks.hash).toHaveBeenCalledWith(" long secret ", 12);
     expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: { name: "Driver", email: "driver@example.com", hashedPassword: "bcrypt-secret" },
+      name: "Driver", email: "driver@example.com", hashedPassword: "bcrypt-secret",
     }));
   });
 });

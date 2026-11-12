@@ -1,10 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ findMany: vi.fn() }));
+const mocks = vi.hoisted(() => ({ list: vi.fn() }));
 
-vi.mock("../libs/prismadb", () => ({
-  default: { comment: { findMany: mocks.findMany } },
-}));
+vi.mock("../libs/native-repositories", () => ({ getNativeRepositories: () => ({ comments: { list: mocks.list } }) }));
 vi.mock("../libs/logger", () => ({ logger: { error: vi.fn() } }));
 
 import getComments from "./getComments";
@@ -12,23 +10,12 @@ import getComments from "./getComments";
 describe("getComments", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.findMany.mockResolvedValue([]);
+    mocks.list.mockResolvedValue([]);
   });
 
-  it("selects only the public author name", async () => {
+  it("reads comments through the native repository", async () => {
     await getComments("abcdef0123456789abcdef01");
 
-    expect(mocks.findMany).toHaveBeenCalledWith({
-      where: { listingId: "abcdef0123456789abcdef01" },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        body: true,
-        image: true,
-        createdAt: true,
-        listingId: true,
-        user: { select: { name: true } },
-      },
-    });
+    expect(mocks.list).toHaveBeenCalledWith("abcdef0123456789abcdef01");
   });
 });

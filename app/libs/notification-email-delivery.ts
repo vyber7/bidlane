@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { Prisma } from "@prisma/client";
-import prisma from "./prismadb";
+import { getNativeRepositories } from "./native-repositories";
+import type { NotificationEmailFinish } from "@/prisma/native/notification-emails";
 import { logger } from "./logger";
 import {
   buildOutbidEmail,
@@ -13,24 +13,14 @@ import {
 
 const MAX_ATTEMPTS = 8;
 const IDEMPOTENCY_WINDOW_MS = 23 * 60 * 60 * 1000;
-const eligible = (now: Date): Prisma.NotificationWhereInput => ({
-  OR: [
-    { emailStatus: "PENDING", emailNextAttemptAt: { lte: now } },
-    { emailStatus: "SENDING", emailLockedUntil: { lte: now } },
-  ],
-});
 
 export async function sendNotificationEmails(batchSize = 20) {
   const config = getEmailConfiguration();
   if (!config) throw new Error("Email delivery is not configured");
   const startedAt = Date.now();
   const limit = Math.min(Math.max(Math.trunc(batchSize), 1), 20);
-  const candidates = await prisma.notification.findMany({
-    where: eligible(new Date()),
-    orderBy: { createdAt: "asc" },
-    take: limit,
-    select: { id: true },
-  });
+  const { notificationEmails } = getNativeRepositories();
+  const candidates = await notificationEmails.candidates(new Date(), limit);
   const summary = {
     checked: 0,
     sent: 0,
@@ -47,34 +37,12 @@ export async function sendNotificationEmails(batchSize = 20) {
     }
     const token = randomUUID();
     const now = new Date();
-    const claimed = await prisma.notification.updateMany({
-      where: { id: candidate.id, ...eligible(now) },
-      data: {
-        emailStatus: "SENDING",
-        emailLockToken: token,
-        emailLockedUntil: new Date(now.getTime() + 120000),
-        emailAttempts: { increment: 1 },
-      },
-    });
+    const claimed = await notificationEmails.claim(candidate.id, now, token);
     if (claimed.count !== 1) continue;
     summary.checked += 1;
-    const where = {
-      id: candidate.id,
-      emailStatus: "SENDING" as const,
-      emailLockToken: token,
-    };
-    const finish = (data: Prisma.NotificationUpdateManyMutationInput) =>
-      prisma.notification.updateMany({
-        where,
-        data: { ...data, emailLockToken: null, emailLockedUntil: null },
-      });
+    const finish = (data: NotificationEmailFinish) => notificationEmails.finish(candidate.id, token, data);
     try {
-      const notification = await prisma.notification.findUnique({
-        where: { id: candidate.id },
-        include: {
-          user: { select: { email: true, outbidEmailsEnabled: true, endingSoonEmailsEnabled: true } },
-        },
-      });
+      const notification = await notificationEmails.find(candidate.id);
       if (!notification || notification.emailLockToken !== token) continue;
       if (notification.emailAttempts > MAX_ATTEMPTS) {
         await finish({
@@ -121,20 +89,7 @@ export async function sendNotificationEmails(batchSize = 20) {
       }
       if (!payload || endingSoon) {
         const listing = notification.emailListingId
-          ? await prisma.listing.findUnique({
-              where: { id: notification.emailListingId },
-              select: {
-                id: true,
-                year: true,
-                make: true,
-                model: true,
-                status: true,
-                auctionEndsAt: true,
-                highestBidderId: true,
-                watchersIds: true,
-                biddersIds: true,
-              },
-            })
+          ? await notificationEmails.listing(notification.emailListingId)
           : null;
         if (
           notification.readAt ||
@@ -162,10 +117,7 @@ export async function sendNotificationEmails(batchSize = 20) {
           });
           // Freeze the recipient and content before HTTP. Retries must use the
           // same payload as well as the same provider idempotency key.
-          const prepared = await prisma.notification.updateMany({
-            where,
-            data: { emailPayload: payload, emailFirstAttemptAt: now },
-          });
+          const prepared = await notificationEmails.prepare(candidate.id, token, payload, now);
           if (prepared.count !== 1) continue;
         }
       }
@@ -193,11 +145,7 @@ export async function sendNotificationEmails(batchSize = 20) {
         summary.failed += 1;
         continue;
       }
-      const current = await prisma.notification.findUnique({
-        where: { id: candidate.id },
-        select: { emailAttempts: true },
-      });
-      const attempts = current?.emailAttempts ?? MAX_ATTEMPTS;
+      const attempts = await notificationEmails.attempts(candidate.id) ?? MAX_ATTEMPTS;
       const retry = error.retryable && attempts < MAX_ATTEMPTS;
       const delay = Math.max(
         Math.min(60000 * 2 ** (attempts - 1), 1800000),

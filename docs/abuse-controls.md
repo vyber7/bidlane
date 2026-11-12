@@ -64,9 +64,10 @@ Transaction contention retries consume a new-bid quota once per HTTP request.
 
 Before deployment, configure the existing `NEXTAUTH_SECRET`, verification email
 settings (`RESEND_API_KEY`, `EMAIL_FROM`, `NEXTAUTH_URL`), and production database.
-Run `npx prisma db push` to create the additive `AbuseQuota` collection/index, then
-deploy the app and generated client together (`npm run build` regenerates it).
-Do not use `--accept-data-loss`. Verify real email delivery before enabling the
+Follow the [Prisma 8 production cutover procedure](prisma-8-production-cutover.md),
+including the native `AbuseQuota` index inventory, backup/rehearsal, and guarded
+adoption. Deploy the app and emitted contract together (`npm run build` emits it).
+Verify real email delivery before enabling the
 new bidding/submission requirement. No existing account is marked verified
 automatically. Automated checks exercise real NextAuth callback/CSRF behavior
 with mocked database and password comparison; production database contention,

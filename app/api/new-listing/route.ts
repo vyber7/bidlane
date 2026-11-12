@@ -4,7 +4,8 @@ import { parseApiInput } from "@/app/libs/api-request";
 import { publishListingDraft } from "@/app/libs/listing-drafts";
 import { publishDraftSchema } from "@/app/schemas/listing-draft";
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import prisma from "@/app/libs/prismadb";
+import { withNativeTransaction } from "@/app/libs/native-repositories";
+import { authoringTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
 import { NextResponse } from "next/server";
 import { logger } from "@/app/libs/logger";
 import { parseListing } from "@/app/libs/listing-validation";
@@ -27,20 +28,12 @@ export async function POST(req: Request) {
     requireVerifiedEmail(currentUser, "submit a listing");
     const listing = parseListing(body.data);
     await assertListingAssets(currentUser.id, listing);
-    const newListing = await prisma.listing.create({
-      data: {
-        ...listing,
-        reviewStatus: "PENDING",
-        reviewRevision: 0,
-        user: { connect: { id: currentUser.id } },
-        coverImage: listing.images[0],
-      },
-    });
+    const newListing = await withNativeTransaction((tx) => tx.listingAuthoring.create(currentUser.id, listing, new Date()), authoringTransactionOptions);
     return NextResponse.json({ id: newListing.id }, { status: 201 });
   } catch (error: unknown) {
     const response = apiErrorResponse(error);
     if (response) return response;
-    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2034") {
+    if (isTransactionContention(error)) {
       return errorResponse("The listing changed while submitting. Retry with the same draft.", 503);
     }
     logger.error("listing.create_failed", error, { userId });

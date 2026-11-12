@@ -12,18 +12,16 @@ import Shipments from "./shipments/page";
 
 const mocks = vi.hoisted(() => ({
   getAccountUser: vi.fn(),
-  findListings: vi.fn(),
-  findBids: vi.fn(),
+  reads: vi.fn(),
   pathname: "/account/profile",
 }));
 
-vi.mock("./lib/current-user", () => ({ getAccountUser: mocks.getAccountUser }));
-vi.mock("@/app/libs/prismadb", () => ({
-  default: {
-    listing: { findMany: mocks.findListings },
-    bid: { findMany: mocks.findBids },
-  },
+vi.mock("@/app/libs/native-repositories", () => ({
+  getNativeRepositories: () => { throw new Error("Unexpected native database access in this test"); },
+  withNativeTransaction: () => { throw new Error("Unexpected native transaction in this test"); },
 }));
+vi.mock("./lib/current-user", () => ({ getAccountUser: mocks.getAccountUser }));
+vi.mock("@/app/libs/read-repositories", () => ({ getReadRepositories: mocks.reads }));
 vi.mock("next/navigation", () => ({ usePathname: () => mocks.pathname }));
 vi.mock("./components/ProfileEditor", () => ({ default: () => null }));
 vi.mock("./components/ListingsDashboard", () => ({ default: () => null }));
@@ -89,7 +87,6 @@ describe("account page authentication", () => {
     mocks.getAccountUser.mockResolvedValue(null);
 
     expect(await page()).toBeNull();
-    expect(mocks.findListings).not.toHaveBeenCalled();
-    expect(mocks.findBids).not.toHaveBeenCalled();
+    expect(mocks.reads).not.toHaveBeenCalled();
   });
 });

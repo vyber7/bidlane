@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Turbopack unwraps this package's CommonJS default twice via its ESM wrapper.
+  serverExternalPackages: ["mongodb-connection-string-url"],
   async redirects() {
     return [
       { source: "/live/listings", destination: "/?status=live#auctions", permanent: true },

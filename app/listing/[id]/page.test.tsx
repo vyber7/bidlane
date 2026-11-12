@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => ({ listing: vi.fn(), user: vi.fn(), comments: vi.fn(), bids: vi.fn(), live: vi.fn(), seller: vi.fn(), editor: vi.fn() }));
-vi.mock("../../libs/prismadb", () => ({ default: { listing: { findUnique: mocks.listing }, user: { findUnique: mocks.seller } } }));
+vi.mock("../../libs/read-repositories", () => ({ getReadRepositories: () => ({ listings: { find: mocks.listing }, sellers: { identity: mocks.seller } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
 vi.mock("@/app/actions/getComments", () => ({ default: mocks.comments }));
 vi.mock("@/app/actions/getBids", () => ({ default: mocks.bids }));

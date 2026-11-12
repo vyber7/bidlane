@@ -1,4 +1,4 @@
-import prisma from "../../libs/prismadb";
+import { getReadRepositories } from "../../libs/read-repositories";
 import Description from "./components/Description";
 import Comments from "./components/Comments";
 import getComments from "@/app/actions/getComments";
@@ -38,7 +38,7 @@ interface Params {
 const Listing = async (props: Params) => {
   const { id } = await props.params;
   if (!/^[a-f\d]{24}$/i.test(id)) notFound();
-  const listing = await prisma.listing.findUnique({ where: { id } });
+  const listing = await getReadRepositories().listings.find(id);
   if (!listing) notFound();
   const currentUser = await getCurrentUser();
   if (!canViewListing(listing, currentUser)) notFound();
@@ -47,10 +47,7 @@ const Listing = async (props: Params) => {
     [
       getComments(id),
       getBids(id),
-      prisma.user.findUnique({
-        where: { id: listing.userId },
-        select: { name: true, emailVerified: true },
-      }),
+      getReadRepositories().sellers.identity(listing.userId),
       getLiveAuctions(),
     ],
   );
@@ -157,7 +154,7 @@ const Listing = async (props: Params) => {
               key={`${id}:${listing.reviewRevision ?? 0}`}
               listingId={id}
               vehicleName={title}
-              initialImages={listing.images}
+              initialImages={[...listing.images]}
             />
           </div>
           <div className="order-2 min-w-0 lg:order-none lg:col-start-1 lg:row-start-3">

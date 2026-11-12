@@ -2,7 +2,8 @@ import { assertOwnedAssets } from "@/app/libs/uploaded-assets";
 import { enforceAbuseLimit } from "@/app/libs/abuse-limits";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
-import prisma from "@/app/libs/prismadb";
+import { withNativeTransaction } from "@/app/libs/native-repositories";
+import { engagementTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
 import { pusherServer } from "@/app/libs/pusher";
 import {
   commentNotifications,
@@ -35,58 +36,22 @@ export async function POST(req: Request) {
     const { listingId, comment, image } = parseApiInput(commentRequestSchema, await readJsonObject(req, 32768));
     await enforceAbuseLimit("comment", currentUser.id);
 
-    const { newComment, notificationUsers } = await prisma.$transaction(
+    const { newComment, notificationUsers } = await withNativeTransaction(
       async (tx) => {
-        const listing = await tx.listing.findUnique({
-          where: { id: listingId },
-        });
+        const listing = await tx.engagement.find(listingId);
         if (!listing) throw new ApiRequestError(404, "Listing not found");
         if (!isPublicListing(listing)) throw new ApiRequestError(409, "Comments open after the listing is approved.");
-        if (image) await assertOwnedAssets({ userId: currentUser.id, kind: "PHOTO", urls: [image], listingId }, tx);
-        const newComment = await tx.comment.create({
-          data: {
-            body: comment,
-            image: image,
-            user: {
-              connect: {
-                id: currentUser.id,
-              },
-            },
-            listing: {
-              connect: {
-                id: listingId,
-              },
-            },
-          },
-          select: {
-            id: true,
-            body: true,
-            image: true,
-            createdAt: true,
-            listingId: true,
-            user: { select: { name: true } },
-          },
-        });
-
-        await tx.listing.update({
-          where: {
-            id: listingId,
-          },
-          data: {
-            lastCommentAt: new Date(),
-            comments: {
-              connect: {
-                id: newComment.id,
-              },
-            },
-          },
-        });
+        if (image) await assertOwnedAssets({ userId: currentUser.id, kind: "PHOTO", urls: [image], listingId });
+        const now = new Date();
+        const newComment = await tx.comments.create({ listingId, userId: currentUser.id, body: comment, image }, now);
+        const touched = await tx.engagement.touchComment(listingId, now);
+        if (touched.count !== 1) throw new ApiRequestError(409, "Comments open after the listing is approved.");
         const notificationUsers = await saveNotifications(
           tx,
           commentNotifications(listing, newComment, currentUser.id),
         );
         return { newComment, notificationUsers };
-      },
+      }, engagementTransactionOptions,
     );
 
     const commentPayload = {
@@ -112,6 +77,7 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     const response = apiErrorResponse(error);
     if (response) return response;
+    if (isTransactionContention(error)) return errorResponse("The listing is busy. Please try again.", 503);
     logger.error("comment.create_failed", error);
     return errorResponse("Internal Server Error", 500);
   }

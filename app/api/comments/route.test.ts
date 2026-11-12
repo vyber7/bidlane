@@ -6,21 +6,19 @@ const mocks = vi.hoisted(() => ({ limit: vi.fn(),
   update: vi.fn(),
   trigger: vi.fn(),
   findUnique: vi.fn(),
-  upsert: vi.fn(),
+  insertOnce: vi.fn(),
   assets: vi.fn(),
 }));
 
+vi.mock("@/app/libs/native-repositories", () => ({
+  getNativeRepositories: () => ({ assets: { findOwned: mocks.assets } }),
+  withNativeTransaction: async (callback: (tx: unknown) => unknown) => callback({
+    comments: { create: mocks.create }, engagement: { find: mocks.findUnique, touchComment: mocks.update },
+    notifications: { insertOnce: mocks.insertOnce },
+  }),
+}));
 vi.mock("@/app/libs/abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
-vi.mock("@/app/actions/getCurrentUser", () => ({
-  default: mocks.getCurrentUser,
-}));
-vi.mock("@/app/libs/prismadb", () => ({
-  default: {
-    $transaction: async (callback: (tx: unknown) => unknown) => callback({ uploadedAsset: { findMany: mocks.assets }, comment: { create: mocks.create }, listing: { findUnique: mocks.findUnique, update: mocks.update }, notification: { upsert: mocks.upsert } }),
-    comment: { create: mocks.create },
-    listing: { update: mocks.update },
-  },
-}));
+vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.getCurrentUser }));
 vi.mock("@/app/libs/pusher", () => ({
   pusherServer: { trigger: mocks.trigger },
 }));
@@ -78,7 +76,7 @@ describe("POST /api/comments", () => {
       user: { name: "Driver" },
     });
     mocks.findUnique.mockResolvedValue({ id: listingId, userId: "seller", status: "LIVE", year: 2020, make: "Porsche", model: "911" });
-    mocks.update.mockResolvedValue({ id: listingId });
+    mocks.update.mockResolvedValue({ count: 1 });
     mocks.trigger.mockResolvedValue(undefined);
   });
 
@@ -86,14 +84,8 @@ describe("POST /api/comments", () => {
     const response = await POST(request({ listingId, comment: " Great car " }));
 
     expect(response.status).toBe(201);
-    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ userId: "seller", title: "New comment on your listing" }) }));
-    expect(mocks.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        select: expect.objectContaining({
-          user: { select: { name: true } },
-        }),
-      })
-    );
+    expect(mocks.insertOnce).toHaveBeenCalledWith(expect.objectContaining({ userId: "seller", title: "New comment on your listing" }));
+    expect(mocks.create).toHaveBeenCalledWith({ listingId, userId: "user-1", body: "Great car", image: undefined }, expect.any(Date));
     const payload = mocks.trigger.mock.calls.find((call) => call[1] === "new-comment")![2];
     expect(payload.createdAt).toBe("2026-09-10T12:00:00.000Z");
     expect(payload.user).toEqual({ name: "Driver" });

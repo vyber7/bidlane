@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/app/libs/prismadb";
+import { getNativeRepositories } from "@/app/libs/native-repositories";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import {
   ApiRequestError,
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const body = await readJsonObject(req);
 
     const listingId = requireListingId(body.listingId);
-    const listing = await prisma.listing.findUnique({ where: { id: listingId } });
+    const listing = await getNativeRepositories().auctions.find(listingId);
 
     if (!listing) throw new ApiRequestError(404, "Listing not found");
     if (listing.userId !== currentUser.id) {

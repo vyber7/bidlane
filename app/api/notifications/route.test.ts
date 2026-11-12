@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ user: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), updateMany: vi.fn(), publish: vi.fn() }));
+const mocks = vi.hoisted(() => ({ user: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), unreadCount: vi.fn(), updateMany: vi.fn(), publish: vi.fn() }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { notification: { findMany: mocks.findMany, findFirst: mocks.findFirst, count: mocks.count, updateMany: mocks.updateMany } } }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ notifications: { list: mocks.findMany, anchor: mocks.findFirst, count: mocks.count, unreadCount: mocks.unreadCount, markRead: mocks.updateMany } }) }));
 vi.mock("@/app/libs/notifications", () => ({ publishNotificationChanges: mocks.publish }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
 import { GET, PATCH } from "./route";
@@ -18,7 +18,7 @@ beforeEach(() => {
   mocks.user.mockResolvedValue({ id: "buyer" });
   mocks.findMany.mockResolvedValue([item]);
   mocks.findFirst.mockResolvedValue({ id, createdAt });
-  mocks.count.mockResolvedValue(1);
+  mocks.count.mockResolvedValue(1); mocks.unreadCount.mockResolvedValue(1);
   mocks.updateMany.mockResolvedValue({ count: 1 });
 });
 
@@ -38,8 +38,8 @@ describe("notification API", () => {
     expect(feed).toMatchObject({ total: 1, unreadCount: 1, nextCursor: null, items: [expect.objectContaining({ id, readAt: null, createdAt: createdAt.toISOString() })] });
     expect(feed.items[0]).not.toHaveProperty("eventKey");
     expect(feed.items[0]).not.toHaveProperty("userId");
-    expect(mocks.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: "buyer" }, take: 51 }));
-    expect(mocks.count).toHaveBeenCalledWith({ where: { userId: "buyer", readAt: null } });
+    expect(mocks.findMany).toHaveBeenCalledWith("buyer", false, null);
+    expect(mocks.unreadCount).toHaveBeenCalledWith("buyer");
   });
 
   it("loads only a count for the header", async () => {
@@ -53,8 +53,8 @@ describe("notification API", () => {
     const feed = await (await get(`?view=unread&cursor=${id}`)).json();
     expect(feed.items).toHaveLength(50);
     expect(feed.nextCursor).toBe(items[49].id);
-    expect(mocks.findFirst).toHaveBeenCalledWith({ where: { id, userId: "buyer" }, select: { id: true, createdAt: true } });
-    expect(mocks.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: "buyer", readAt: null, OR: [{ createdAt: { lt: createdAt } }, { createdAt, id: { lt: id } }] } }));
+    expect(mocks.findFirst).toHaveBeenCalledWith("buyer", id);
+    expect(mocks.findMany).toHaveBeenCalledWith("buyer", true, { id, createdAt });
   });
 
   it("rejects invalid and other-account cursors", async () => {
@@ -66,7 +66,7 @@ describe("notification API", () => {
 
   it("only marks owned unread records and makes repeated reads a no-op", async () => {
     expect((await patch({ ids: [id, id], userId: "someone-else" })).status).toBe(200);
-    expect(mocks.updateMany).toHaveBeenCalledWith({ where: { userId: "buyer", readAt: null, id: { in: [id] } }, data: { readAt: expect.any(Date) } });
+    expect(mocks.updateMany).toHaveBeenCalledWith("buyer", { ids: [id] }, expect.any(Date));
     expect(mocks.publish).toHaveBeenCalledWith(["buyer"]);
     mocks.updateMany.mockResolvedValue({ count: 0 });
     await patch({ ids: [id] });
@@ -75,7 +75,7 @@ describe("notification API", () => {
 
   it("marks all only through the displayed cutoff, leaving newer arrivals unread", async () => {
     await patch({ all: true, before: createdAt.toISOString() });
-    expect(mocks.updateMany).toHaveBeenCalledWith({ where: { userId: "buyer", readAt: null, createdAt: { lte: createdAt } }, data: { readAt: expect.any(Date) } });
+    expect(mocks.updateMany).toHaveBeenCalledWith("buyer", { before: createdAt }, expect.any(Date));
   });
 
   it.each([{}, { ids: [] }, { ids: ["bad"] }, { ids: Array(101).fill(id) }, { all: true }, { all: true, before: "bad" }, { all: true, before: "2099-01-01" }, { all: true, ids: [id], before: createdAt.toISOString() }])("rejects invalid read request %j", async (body) => {

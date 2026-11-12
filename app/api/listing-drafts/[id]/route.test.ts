@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ user: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn(), find: vi.fn() }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ drafts: { owned: mocks.find } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { listingDraft: { findFirst: mocks.find } } }));
 vi.mock("@/app/libs/listing-drafts", () => ({ createListingDraft: mocks.create, updateListingDraft: mocks.update, deleteListingDraft: mocks.remove, serializeDraft: (value: unknown) => value }));
 vi.mock("@/app/libs/logger", () => ({ logger: { warn: vi.fn() } }));
 import { POST } from "../route";
@@ -24,7 +24,7 @@ describe("private draft APIs", () => {
   });
   it("reads only the owner’s draft and prevents caching", async () => {
     const response = await GET(request(), context);
-    expect(response.headers.get("cache-control")).toBe("no-store"); expect(mocks.find).toHaveBeenCalledWith({ where: { id, userId: "seller", deletedAt: null } });
+    expect(response.headers.get("cache-control")).toBe("no-store"); expect(mocks.find).toHaveBeenCalledWith(id, "seller");
     mocks.find.mockResolvedValue(null); expect((await GET(request(), context)).status).toBe(404);
   });
   it("accepts partial fields and incomplete record labels in a draft", async () => {

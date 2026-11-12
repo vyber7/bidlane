@@ -1,6 +1,6 @@
-import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
-import prisma from "@/app/libs/prismadb";
+import { withNativeTransaction } from "@/app/libs/native-repositories";
+import { auctionTransactionOptions, isDuplicateKey, isTransactionContention } from "@/prisma/native/transaction-errors";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { pusherServer } from "@/app/libs/pusher";
 import {
@@ -34,20 +34,18 @@ export async function POST(req: Request) {
       await enforceAbuseLimit("bid", currentUser.id);
     })();
 
-    const placeBid = () => prisma.$transaction(async (tx) => {
-      const previous = await tx.bidSubmission.findUnique({
-        where: { userId_key: { userId: currentUser.id, key } },
-      });
+    const placeBid = () => withNativeTransaction(async (tx) => {
+      const previous = await tx.bidSubmissions.find(currentUser.id, key);
       if (previous) {
         if (previous.listingId !== listingId || previous.amount !== bidAmount) {
           throw new ApiRequestError(409, "Idempotency-Key was already used for a different bid");
         }
-        return { replayed: true as const, response: previous.response as unknown as AcceptedBidResponse };
+        return { replayed: true as const, response: previous.response };
       }
       // Accepted replays acknowledge history without placing another bid.
       await authorizeNewBid();
       const bidTime = new Date();
-      const listing = await tx.listing.findUnique({ where: { id: listingId } });
+      const listing = await tx.auctions.find(listingId);
 
       if (!listing) throw new ApiRequestError(404, "Listing not found");
       if (listing.userId === currentUser.id) {
@@ -90,23 +88,7 @@ export async function POST(req: Request) {
 
       // Optimistic locking on the previous price and end time prevents two
       // concurrent requests from both becoming the accepted highest bid.
-      const claimedListing = await tx.listing.updateMany({
-        where: {
-          id: listingId,
-          status: "LIVE",
-          // MongoDB distinguishes an absent field from an explicit null.
-          // Both represent an auction that has not received its first bid.
-          ...(listing.currentBid === null
-            ? { OR: [{ currentBid: null }, { currentBid: { isSet: false } }] }
-            : { currentBid: listing.currentBid }),
-          auctionEndsAt: listing.auctionEndsAt,
-        },
-        data: {
-          currentBid: bidAmount,
-          highestBidderId: currentUser.id,
-          auctionEndsAt,
-        },
-      });
+      const claimedListing = await tx.auctions.claimBid(listing, { amount: bidAmount, userId: currentUser.id, auctionEndsAt }, bidTime);
 
       if (claimedListing.count !== 1) {
         throw new ApiRequestError(
@@ -115,31 +97,7 @@ export async function POST(req: Request) {
         );
       }
 
-      const newBid = await tx.bid.create({
-        data: {
-          amount: bidAmount,
-          createdAt: bidTime,
-          listingId,
-          userId: currentUser.id,
-        },
-        select: {
-          id: true,
-          amount: true,
-          createdAt: true,
-          listingId: true,
-          userId: true,
-          user: { select: { name: true } },
-        },
-      });
-
-      await tx.listing.update({
-        where: { id: listingId },
-        data: { bidders: { connect: { id: currentUser.id } } },
-      });
-      await tx.user.update({
-        where: { id: currentUser.id },
-        data: { bidOnList: { connect: { id: listingId } } },
-      });
+      const newBid = await tx.auctions.createBid({ amount: bidAmount, createdAt: bidTime, listingId, userId: currentUser.id });
 
       const notificationUsers = await saveNotifications(tx, outbidNotifications(listing, newBid));
       const response = {
@@ -147,22 +105,21 @@ export async function POST(req: Request) {
         currentBid: newBid.amount,
         auctionEndsAt: auctionEndsAt.toISOString(),
       } satisfies AcceptedBidResponse;
-      await tx.bidSubmission.create({
-        data: { userId: currentUser.id, key, listingId, amount: bidAmount, response },
-      });
+      await tx.bidSubmissions.create({ userId: currentUser.id, key, listingId, amount: bidAmount, response }, bidTime);
       return { replayed: false as const, response, shouldExtend, notificationUsers };
-    });
+    }, auctionTransactionOptions);
 
-    // MongoDB can abort a competing transaction before it sees the winner's
-    // record. Retry with a fresh snapshot; the unique index is the final guard.
+    // The driver retries transient conflicts within a bounded native session.
+    // Duplicate request-key races need a new transaction to read the winner;
+    // the unique index remains the final guard. Never retry an unknown commit.
     let result: Awaited<ReturnType<typeof placeBid>> | undefined;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         result = await placeBid();
         break;
       } catch (error) {
-        if (!(error instanceof Prisma.PrismaClientKnownRequestError) ||
-          !["P2002", "P2034"].includes(error.code)) throw error;
+        if (isTransactionContention(error)) return errorResponse("Bidding is busy; retry this same request", 503);
+        if (!isDuplicateKey(error)) throw error;
         if (attempt === 2) {
           return errorResponse("Bidding is busy; retry this same request", 503);
         }

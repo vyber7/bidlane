@@ -1,9 +1,9 @@
 import bcrypt from "bcrypt";
 
-import prisma from "../../libs/prismadb";
+import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { NextResponse } from "next/server";
 import { logger } from "@/app/libs/logger";
-import { Prisma } from "@prisma/client";
+import { MongoServerError } from "mongodb";
 import { apiErrorResponse, errorResponse, parseApiInput, readJsonObject } from "@/app/libs/api-request";
 import { registrationSchema } from "@/app/schemas/account";
 import { enforceAbuseLimit } from "@/app/libs/abuse-limits";
@@ -16,19 +16,12 @@ export async function POST(request: Request) {
     const canonicalEmail = await assertEmailAvailable(email);
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email: canonicalEmail,
-        hashedPassword,
-      },
-      select: { id: true },
-    });
+    const user = await getNativeRepositories().users.create({ name, email: canonicalEmail, hashedPassword });
     return NextResponse.json({ id: user.id }, { status: 201 });
   } catch (error: unknown) {
     const response = apiErrorResponse(error);
     if (response) return response;
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (error instanceof MongoServerError && error.code === 11000) {
       return errorResponse("An account with this email already exists", 409);
     }
     logger.error("auth.registration_failed", error);

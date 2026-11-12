@@ -1,17 +1,13 @@
 import BidsAndWinsDashboard from "@/app/account/components/BidsAndWinsDashboard";
 import { getAccountUser } from "@/app/account/lib/current-user";
-import prisma from "@/app/libs/prismadb";
+import { getReadRepositories } from "@/app/libs/read-repositories";
 import { buildBidSummaries } from "@/app/account/lib/bids";
 
 const BidsAndWins = async () => {
   const currentUser = await getAccountUser();
   if (!currentUser) return null;
 
-  const bids = await prisma.bid.findMany({
-    where: { userId: currentUser.id },
-    include: { listing: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const bids = await getReadRepositories().bids.forUser(currentUser.id);
 
   return (
     <BidsAndWinsDashboard bids={buildBidSummaries(bids, currentUser.id)} />

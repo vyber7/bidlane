@@ -1,4 +1,4 @@
-import prisma from "@/app/libs/prismadb";
+import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { serializeDraft } from "@/app/libs/listing-drafts";
 import { listingIdSchema } from "@/app/schemas/common";
 import { notFound, redirect } from "next/navigation";
@@ -24,7 +24,7 @@ async function SubmitVehicle({ searchParams }: { searchParams: Promise<{ draft?:
   let initialDraft;
   if (draftId !== undefined) {
     if (!listingIdSchema.safeParse(draftId).success) notFound();
-    const draft = await prisma.listingDraft.findFirst({ where: { id: draftId, userId: currentUser.id, deletedAt: null } });
+    const draft = await getNativeRepositories().drafts.owned(draftId, currentUser.id);
     if (!draft) notFound();
     if (draft.publishedListingId) redirect(`/listing/${draft.publishedListingId}`);
     initialDraft = serializeDraft(draft);

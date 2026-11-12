@@ -1,21 +1,9 @@
-import prisma from "../libs/prismadb";
+import { getReadRepositories } from "../libs/read-repositories";
 import { logger } from "../libs/logger";
 
 const getBids = async (listingId: string) => {
   try {
-    const bids = await prisma.bid.findMany({
-      where: {
-        listingId: listingId,
-      },
-      orderBy: {
-        amount: "desc",
-      },
-      include: {
-        user: { select: { name: true } },
-      },
-    });
-
-    return bids;
+    return await getReadRepositories().bids.forListing(listingId);
   } catch (error: unknown) {
     logger.error("bids.fetch_failed", error, { listingId });
     return [];

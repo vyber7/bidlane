@@ -1,12 +1,14 @@
-import type { Bid, Comment, User, UserRole } from "@prisma/client";
+import type { Bid } from "@/app/types/database";
 
-export type CurrentUser = Pick<
-  User,
-  "id" | "name" | "email" | "image" | "createdAt"
-> & {
+export type CurrentUser = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+  createdAt: Date;
   hasPassword: boolean;
   emailVerified?: Date | null;
-  role?: UserRole | null;
+  role?: "USER" | "ADMIN" | null;
 };
 
 export type FullUserType = {
@@ -15,10 +17,11 @@ export type FullUserType = {
   image?: string | null;
 };
 
-export type CommentWithAuthor = Pick<
-  Comment,
-  "id" | "body" | "image" | "listingId"
-> & {
+export type CommentWithAuthor = {
+  id: string;
+  body: string | null;
+  image: string | null;
+  listingId: string;
   createdAt: Date | string;
   user: { name: string | null } | null;
 };

@@ -7,17 +7,9 @@ const mocks = vi.hoisted(() => ({
   assets: vi.fn(),
 }));
 
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ assets: { findOwned: mocks.assets }, listingAuthoring: { find: mocks.findUnique, editCover: mocks.updateMany } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({
   default: mocks.getCurrentUser,
-}));
-vi.mock("../../../../libs/prismadb", () => ({
-  default: {
-    uploadedAsset: { findMany: mocks.assets },
-    listing: {
-      findUnique: mocks.findUnique,
-      updateMany: mocks.updateMany,
-    },
-  },
 }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
 
@@ -45,7 +37,7 @@ describe("POST /api/listing/[id]/cover-image", () => {
     expect((await POST(request(), context())).status).toBe(400); expect(mocks.updateMany).not.toHaveBeenCalled();
   });
   beforeEach(() => {
-    vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ where }) => [imageUrl].filter((url) => where.url.in.includes(url)).map((url) => ({ url })));
+    vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ urls }) => [imageUrl].filter((url) => urls.includes(url)).map((url) => ({ url })));
     mocks.getCurrentUser.mockResolvedValue({ id: "seller" });
     mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", reviewRevision: 2, images: [imageUrl] });
     mocks.updateMany.mockResolvedValue({ count: 1 });
@@ -85,10 +77,7 @@ describe("POST /api/listing/[id]/cover-image", () => {
     const response = await POST(request(), context());
 
     expect(response.status).toBe(200);
-    expect(mocks.updateMany).toHaveBeenCalledWith({
-      where: { id: listingId, userId: "seller", status: "UPCOMING", reviewRevision: 2 },
-      data: { coverImage: imageUrl, reviewStatus: "PENDING", reviewRevision: 3, reviewNote: null },
-    });
+    expect(mocks.updateMany).toHaveBeenCalledWith(listingId, "seller", 2, imageUrl, [imageUrl], expect.any(Date));
   });
 
   it.each(["LIVE", "ENDED"])("freezes the cover for %s auctions", async (status) => {
@@ -100,7 +89,7 @@ describe("POST /api/listing/[id]/cover-image", () => {
   it("saves a newly uploaded cover as a reviewed gallery photo too", async () => {
     mocks.findUnique.mockResolvedValue({ userId: "seller", status: "UPCOMING", images: [], reviewRevision: 2 });
     expect((await POST(request(), context())).status).toBe(200);
-    expect(mocks.updateMany.mock.calls[0][0].data).toMatchObject({ images: { push: imageUrl }, coverImage: imageUrl, reviewStatus: "PENDING" });
+    expect(mocks.updateMany).toHaveBeenCalledWith(listingId, "seller", 2, imageUrl, [], expect.any(Date));
   });
 
   it("enforces the photo limit when uploading a new cover", async () => {

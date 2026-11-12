@@ -1,4 +1,4 @@
-import type { Listing } from "@prisma/client";
+import type { Listing } from "@/app/types/database";
 import type { BidEvent, CommentEvent } from "@/app/types/auction-events";
 import { toPublicListing, toSellerListing } from "@/app/libs/listing-payload";
 

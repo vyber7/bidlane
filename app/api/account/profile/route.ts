@@ -1,7 +1,7 @@
 import { assertOwnedAssets } from "@/app/libs/uploaded-assets";
 import { NextResponse } from "next/server";
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import prisma from "@/app/libs/prismadb";
+import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { logger } from "@/app/libs/logger";
 import { apiErrorResponse, errorResponse, parseApiInput, readJsonObject } from "@/app/libs/api-request";
 import { profileSchema } from "@/app/schemas/account";
@@ -18,11 +18,7 @@ export async function PATCH(request: Request) {
     const { name, image } = parseApiInput(profileSchema, await readJsonObject(request));
 
     await assertOwnedAssets({ userId: currentUser.id, kind: "PROFILE", urls: image ? [image] : [], existingUrls: currentUser.image ? [currentUser.image] : [] });
-    const updatedUser = await prisma.user.update({
-      where: { id: currentUser.id },
-      data: { name, image: image || null },
-      select: { name: true, email: true, image: true },
-    });
+    const updatedUser = await getNativeRepositories().users.updateProfile(currentUser.id, { name, image: image || null });
 
     return NextResponse.json(updatedUser);
   } catch (error) {

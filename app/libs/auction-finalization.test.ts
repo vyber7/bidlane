@@ -10,15 +10,9 @@ const mocks = vi.hoisted(() => ({
   loggerError: vi.fn(),
 }));
 
-vi.mock("@/app/libs/prismadb", () => ({
-  default: {
-    $transaction: async (callback: (tx: unknown) => unknown) => callback({ listing: { updateMany: mocks.updateMany }, notification: { upsert: mocks.upsert } }),
-    listing: {
-      findUnique: mocks.findUnique,
-      findMany: mocks.findMany,
-      updateMany: mocks.updateMany,
-    },
-  },
+vi.mock("@/app/libs/native-repositories", () => ({
+  getNativeRepositories: () => ({ auctions: { find: mocks.findUnique, expired: mocks.findMany } }),
+  withNativeTransaction: async (callback: (tx: unknown) => unknown) => callback({ auctions: { finish: mocks.updateMany }, notifications: { insertOnce: mocks.upsert } }),
 }));
 vi.mock("@/app/libs/pusher", () => ({
   pusherServer: { trigger: mocks.trigger },
@@ -108,15 +102,7 @@ describe("finalizeAuction", () => {
       result: "SOLD",
       auctionEndsAt: endTime,
     });
-    expect(mocks.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: listingId,
-        status: "LIVE",
-        auctionEndsAt: endTime,
-        currentBid: 12000,
-      },
-      data: { status: "ENDED", result: "SOLD" },
-    });
+    expect(mocks.updateMany).toHaveBeenCalledWith(expect.objectContaining({ id: listingId, auctionEndsAt: endTime, currentBid: 12000 }), "SOLD", now);
     expect(mocks.trigger).toHaveBeenCalledWith(
       `listing-${listingId}`,
       "auction-ended",
@@ -133,20 +119,13 @@ describe("finalizeAuction", () => {
       status: "finalized",
       result: "RESERVE_NOT_MET",
     });
-    expect(mocks.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: { status: "ENDED", result: "RESERVE_NOT_MET" },
-      })
-    );
+    expect(mocks.updateMany).toHaveBeenCalledWith(expect.objectContaining({ currentBid: null }), "RESERVE_NOT_MET", now);
   });
 
   it("saves result notifications once, alongside the successful claim", async () => {
     await finalizeAuction(listingId, now);
     expect(mocks.upsert).toHaveBeenCalledTimes(2);
-    expect(mocks.upsert).toHaveBeenCalledWith({
-      where: { userId_eventKey: { userId: "buyer", eventKey: `auction-ended:${listingId}` } },
-      create: expect.objectContaining({ title: "You won the auction", userId: "buyer", readAt: null, createdAt: endTime }), update: {},
-    });
+    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ title: "You won the auction", userId: "buyer", eventKey: `auction-ended:${listingId}`, createdAt: endTime }));
     mocks.findUnique.mockResolvedValue(listing({ status: "ENDED", result: "SOLD" }));
     await finalizeAuction(listingId, now);
     expect(mocks.upsert).toHaveBeenCalledTimes(2);
@@ -229,12 +208,7 @@ describe("finalizeExpiredAuctions", () => {
       failed: 0,
       hasMore: false,
     });
-    expect(mocks.findMany).toHaveBeenCalledWith({
-      where: { status: "LIVE", auctionEndsAt: { lte: now } },
-      orderBy: { auctionEndsAt: "asc" },
-      take: 100,
-      select: expect.any(Object),
-    });
+    expect(mocks.findMany).toHaveBeenCalledWith(now, 100);
   });
 
   it("isolates a failed auction so the rest of the batch can finish", async () => {

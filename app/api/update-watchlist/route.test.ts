@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { toPublicListing } from "@/app/libs/listing-payload";
 import { makeListing } from "@/app/test/auction-fixtures";
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   listingFindUnique: vi.fn(),
-  userUpdate: vi.fn(),
+  setWatch: vi.fn(),
+  snapshot: vi.fn(),
   trigger: vi.fn(),
   loggerWarn: vi.fn(),
   loggerError: vi.fn(),
@@ -13,11 +15,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/app/actions/getCurrentUser", () => ({
   default: mocks.getCurrentUser,
 }));
-vi.mock("@/app/libs/prismadb", () => ({
-  default: {
-    listing: { findUnique: mocks.listingFindUnique },
-    user: { update: mocks.userUpdate },
-  },
+vi.mock("@/app/libs/native-repositories", () => ({
+  getNativeRepositories: () => ({ engagement: { watchSnapshot: mocks.snapshot } }),
+  withNativeTransaction: async (callback: (tx: unknown) => unknown) => callback({ engagement: { find: mocks.listingFindUnique, setWatch: mocks.setWatch } }),
 }));
 vi.mock("@/app/libs/pusher", () => ({
   pusherServer: { trigger: mocks.trigger },
@@ -51,14 +51,15 @@ describe("POST /api/update-watchlist", () => {
   it("does not watch or broadcast the contents of an unapproved listing", async () => {
     mocks.listingFindUnique.mockResolvedValue(makeListing({ status: "UPCOMING", reviewStatus: "PENDING" }));
     expect((await POST(request({ listingId, watching: true }))).status).toBe(404);
-    expect(mocks.userUpdate).not.toHaveBeenCalled(); expect(mocks.trigger).not.toHaveBeenCalled();
+    expect(mocks.setWatch).not.toHaveBeenCalled(); expect(mocks.trigger).not.toHaveBeenCalled();
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentUser.mockResolvedValue({ id: "user-1", email: "user@test.dev" });
     mocks.listingFindUnique.mockResolvedValue(listing);
-    mocks.userUpdate.mockResolvedValue({});
+    mocks.setWatch.mockResolvedValue({ count: 1 });
+    mocks.snapshot.mockResolvedValue({ listing: toPublicListing(listing, "user-1"), reviewStatus: listing.reviewStatus });
     mocks.trigger.mockResolvedValue(undefined);
   });
 
@@ -66,14 +67,14 @@ describe("POST /api/update-watchlist", () => {
     mocks.getCurrentUser.mockResolvedValue(null);
 
     expect((await POST(request({ listingId, watching: true }))).status).toBe(401);
-    expect(mocks.userUpdate).not.toHaveBeenCalled();
+    expect(mocks.setWatch).not.toHaveBeenCalled();
   });
 
   it("requires an explicit desired watchlist state", async () => {
     const response = await POST(request({ listingId }));
 
     expect(response.status).toBe(400);
-    expect(mocks.userUpdate).not.toHaveBeenCalled();
+    expect(mocks.setWatch).not.toHaveBeenCalled();
   });
 
   it.each(["bad-id", "g".repeat(24), "a".repeat(23), 123, null])("rejects listing ID %j before querying the database", async (listingId) => {
@@ -81,11 +82,11 @@ describe("POST /api/update-watchlist", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "Invalid listing ID" });
     expect(mocks.listingFindUnique).not.toHaveBeenCalled();
-    expect(mocks.userUpdate).not.toHaveBeenCalled();
+    expect(mocks.setWatch).not.toHaveBeenCalled();
   });
 
   it("keeps unexpected database failures private and returns JSON", async () => {
-    mocks.userUpdate.mockRejectedValueOnce(new SyntaxError("private database decoding details"));
+    mocks.setWatch.mockRejectedValueOnce(new SyntaxError("private database decoding details"));
     const response = await POST(request({ listingId, watching: true }));
     expect(response.status).toBe(500);
     await expect(response.json()).resolves.toEqual({ error: "Unable to update watchlist" });
@@ -93,19 +94,14 @@ describe("POST /api/update-watchlist", () => {
   });
 
   it.each([
-    [true, "connect"],
-    [false, "disconnect"],
-  ])("persists and broadcasts watching=%s", async (watching, operation) => {
-    mocks.listingFindUnique.mockResolvedValueOnce(listing).mockResolvedValueOnce({ ...listing, watchersIds: watching ? ["user-1", "other-watcher"] : ["other-watcher"] });
+    [true],
+    [false],
+  ])("persists and broadcasts watching=%s", async (watching) => {
+    mocks.snapshot.mockResolvedValue({ listing: toPublicListing({ ...listing, watchersIds: watching ? ["user-1", "other-watcher"] : ["other-watcher"] }, "user-1"), reviewStatus: listing.reviewStatus });
     const response = await POST(request({ listingId, watching }));
 
     expect(response.status).toBe(200);
-    expect(mocks.userUpdate).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      data: {
-        watchList: { [operation]: { id: listingId } },
-      },
-    });
+    expect(mocks.setWatch).toHaveBeenCalledWith(listingId, "user-1", watching);
     await expect(response.json()).resolves.toEqual({ listingId, watching });
     expect(mocks.trigger).toHaveBeenCalledWith(
       "private-user-user-1",
@@ -131,6 +127,7 @@ describe("POST /api/update-watchlist", () => {
   it("excludes private fields from every event and publishes only a count on public channels", async () => {
     const sensitive = { ...listing, reservePrice: 98765, reviewNote: "Private feedback", watchersIds: ["user-1", "other-watcher"], seenIds: ["private-viewer"], futureSecret: "secret" };
     mocks.listingFindUnique.mockResolvedValue(sensitive);
+    mocks.snapshot.mockResolvedValue({ listing: { ...toPublicListing(sensitive, "user-1"), futureSecret: "secret" }, reviewStatus: sensitive.reviewStatus });
     expect((await POST(request({ listingId, watching: true }))).status).toBe(200);
     for (const [channel, event, payload] of mocks.trigger.mock.calls) {
       if (!channel.startsWith("private-")) {
@@ -144,17 +141,17 @@ describe("POST /api/update-watchlist", () => {
   });
 
   it("does not disclose a listing that became private while updating the relation", async () => {
-    mocks.listingFindUnique.mockResolvedValueOnce(listing).mockResolvedValueOnce({ ...listing, status: "UPCOMING", reviewStatus: "PENDING" });
+    mocks.snapshot.mockResolvedValue({ listing: toPublicListing({ ...listing, status: "UPCOMING", reviewStatus: "PENDING" }), reviewStatus: "PENDING" });
     expect((await POST(request({ listingId, watching: true }))).status).toBe(200);
     expect(mocks.trigger).not.toHaveBeenCalled();
   });
 
   it("preserves the committed response when the notification snapshot cannot be loaded", async () => {
-    mocks.listingFindUnique.mockResolvedValueOnce(listing).mockRejectedValueOnce(new Error("Database unavailable after commit"));
+    mocks.snapshot.mockRejectedValueOnce(new Error("Database unavailable after commit"));
     const response = await POST(request({ listingId, watching: true }));
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ listingId, watching: true });
-    expect(mocks.userUpdate).toHaveBeenCalled();
+    expect(mocks.setWatch).toHaveBeenCalled();
     expect(mocks.trigger).not.toHaveBeenCalled();
     expect(mocks.loggerWarn).toHaveBeenCalledWith("watchlist.notification_failed", { listingId, userId: "user-1" });
   });

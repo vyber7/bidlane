@@ -1,28 +1,10 @@
-import { Prisma } from "@prisma/client";
-import prisma from "@/app/libs/prismadb";
+import { getNativeRepositories, withNativeTransaction } from "./native-repositories";
+import { auctionTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
+import type { AuctionListing } from "@/prisma/native/auctions";
 import { logger } from "@/app/libs/logger";
 import { pusherServer } from "@/app/libs/pusher";
 import type { AuctionEndedEvent } from "@/app/types/auction-events";
 import { auctionResultNotifications, publishNotificationChanges, saveNotifications } from "./notifications";
-
-const finalizationListingSelect = {
-  id: true,
-  status: true,
-  result: true,
-  auctionEndsAt: true,
-  currentBid: true,
-  reservePrice: true,
-  highestBidderId: true,
-  biddersIds: true,
-  userId: true,
-  year: true,
-  make: true,
-  model: true,
-} satisfies Prisma.ListingSelect;
-
-type FinalizationListing = Prisma.ListingGetPayload<{
-  select: typeof finalizationListingSelect;
-}>;
 
 export type AuctionResult = "SOLD" | "RESERVE_NOT_MET";
 
@@ -78,10 +60,7 @@ async function resolveCompetingFinalization(
   now: Date,
   retriesRemaining: number
 ): Promise<AuctionFinalization> {
-  const current = await prisma.listing.findUnique({
-    where: { id: listingId },
-    select: finalizationListingSelect,
-  });
+  const current = await getNativeRepositories().auctions.find(listingId);
 
   if (!current) return { status: "not_found" };
   if (current.status !== "LIVE") {
@@ -100,7 +79,7 @@ async function resolveCompetingFinalization(
 }
 
 async function finalizeCandidate(
-  listing: FinalizationListing,
+  listing: AuctionListing,
   now: Date,
   retriesRemaining = 1
 ): Promise<AuctionFinalization> {
@@ -120,23 +99,13 @@ async function finalizeCandidate(
   // winning bid even if an in-flight bid commits after the candidate was read.
   let notificationUsers: string[] | null;
   try {
-    notificationUsers = await prisma.$transaction(async (tx) => {
-      const claimed = await tx.listing.updateMany({
-        where: {
-          id: listing.id,
-          status: "LIVE",
-          auctionEndsAt: listing.auctionEndsAt,
-          ...(listing.currentBid === null
-            ? { OR: [{ currentBid: null }, { currentBid: { isSet: false } }] }
-            : { currentBid: listing.currentBid }),
-        },
-        data: { status: "ENDED", result },
-      });
+    notificationUsers = await withNativeTransaction(async (tx) => {
+      const claimed = await tx.auctions.finish(listing, result, now);
       if (claimed.count !== 1) return null;
       return saveNotifications(tx, auctionResultNotifications(listing, result, listing.auctionEndsAt!));
-    });
+    }, auctionTransactionOptions);
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+    if (isTransactionContention(error)) {
       return resolveCompetingFinalization(listing.id, now, retriesRemaining);
     }
     throw error;
@@ -154,10 +123,7 @@ export async function finalizeAuction(
   listingId: string,
   now = new Date()
 ): Promise<AuctionFinalization> {
-  const listing = await prisma.listing.findUnique({
-    where: { id: listingId },
-    select: finalizationListingSelect,
-  });
+  const listing = await getNativeRepositories().auctions.find(listingId);
 
   if (!listing) return { status: "not_found" };
   return finalizeCandidate(listing, now);
@@ -168,15 +134,7 @@ export async function finalizeExpiredAuctions(
   batchSize = 100
 ): Promise<AuctionFinalizationBatch> {
   const safeBatchSize = Math.min(Math.max(Math.trunc(batchSize), 1), 100);
-  const candidates = await prisma.listing.findMany({
-    where: {
-      status: "LIVE",
-      auctionEndsAt: { lte: now },
-    },
-    orderBy: { auctionEndsAt: "asc" },
-    take: safeBatchSize,
-    select: finalizationListingSelect,
-  });
+  const candidates = await getNativeRepositories().auctions.expired(now, safeBatchSize);
 
   const outcomes = await Promise.allSettled(
     candidates.map((listing) => finalizeCandidate(listing, now))

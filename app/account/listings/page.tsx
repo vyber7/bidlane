@@ -2,24 +2,18 @@ import ListingDrafts from "@/app/account/components/ListingDrafts";
 import { serializeDraft } from "@/app/libs/listing-drafts";
 import ListingsDashboard from "@/app/account/components/ListingsDashboard";
 import { getAccountUser } from "@/app/account/lib/current-user";
-import prisma from "@/app/libs/prismadb";
-import { publicListingWhere } from "@/app/libs/listing-review";
-import { toPublicListing, toSellerListing } from "@/app/libs/listing-payload";
+import { getNativeRepositories } from "@/app/libs/native-repositories";
+import { getReadRepositories } from "@/app/libs/read-repositories";
+import { toSellerListing } from "@/app/libs/listing-payload";
 
 const MyListings = async () => {
   const currentUser = await getAccountUser();
   if (!currentUser) return null;
 
   const [uploaded, watching, drafts] = await Promise.all([
-    prisma.listing.findMany({
-      where: { userId: currentUser.id },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.listing.findMany({
-      where: { watchersIds: { has: currentUser.id }, AND: [publicListingWhere] },
-      orderBy: { updatedAt: "desc" },
-    }),
-    prisma.listingDraft.findMany({ where: { userId: currentUser.id, publishedListingId: null, deletedAt: null }, orderBy: { updatedAt: "desc" } }),
+    getReadRepositories().listings.owned(currentUser.id),
+    getNativeRepositories().engagement.watchlist(currentUser.id),
+    getNativeRepositories().drafts.list(currentUser.id),
   ]);
 
   return (
@@ -30,7 +24,7 @@ const MyListings = async () => {
       })} />
       <ListingsDashboard
         uploaded={uploaded.map((listing) => toSellerListing(listing, currentUser))}
-        initialWatching={watching.map((listing) => toPublicListing(listing, currentUser.id))}
+        initialWatching={watching}
         currentUserId={currentUser.id}
       />
     </div>

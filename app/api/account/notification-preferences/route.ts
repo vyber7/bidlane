@@ -1,5 +1,5 @@
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import prisma from "@/app/libs/prismadb";
+import { getNativeRepositories } from "@/app/libs/native-repositories";
 import {
   ApiRequestError,
   apiErrorResponse,
@@ -22,14 +22,7 @@ export async function PATCH(request: Request) {
     }
     if (!Object.keys(data).length)
       throw new ApiRequestError(400, "Provide an email preference");
-    const preferences = await prisma.user.update({
-      where: { id: user.id },
-      data,
-      select: {
-        ...(data.outbidEmailsEnabled !== undefined && { outbidEmailsEnabled: true }),
-        ...(data.endingSoonEmailsEnabled !== undefined && { endingSoonEmailsEnabled: true }),
-      },
-    });
+    const preferences = await getNativeRepositories().users.updatePreferences(user.id, data);
     return Response.json(preferences);
   } catch (error) {
     const response = apiErrorResponse(error);

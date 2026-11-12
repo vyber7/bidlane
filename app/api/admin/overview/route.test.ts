@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ user: vi.fn(), userCount: vi.fn(), listingCount: vi.fn() }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { user: { count: mocks.userCount }, listing: { count: mocks.listingCount } } }));
+vi.mock("@/app/libs/read-repositories", () => ({ getReadRepositories: () => ({ listings: { count: mocks.listingCount } }) }));
+vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ users: { count: mocks.userCount } }) }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
 
 import { GET } from "./route";
@@ -35,7 +36,7 @@ describe("admin overview authorization", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     await expect(response.json()).resolves.toEqual({ admin: { id: "admin-1", name: "Admin", email: "admin@example.com" }, users: 3, listings: 2, liveAuctions: 2 });
-    expect(mocks.listingCount).toHaveBeenCalledWith({ where: { status: "LIVE" } });
+    expect(mocks.listingCount).toHaveBeenCalledWith("LIVE");
   });
 
   it("checks the current role again after admin access is revoked", async () => {

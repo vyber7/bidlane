@@ -1,6 +1,6 @@
 import { z } from "zod";
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import prisma from "@/app/libs/prismadb";
+import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { ApiRequestError, apiErrorResponse, errorResponse, parseApiInput, requireListingId } from "@/app/libs/api-request";
 import { MAX_UPLOAD_BODY_BYTES, MAX_UPLOAD_BYTES, UPLOAD_KINDS } from "@/app/libs/upload-policy";
 import { uploadRetryAfter } from "@/app/libs/upload-rate-limit";
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const listingId = form.has("listingId") ? requireListingId(form.get("listingId")) : undefined;
     if (listingId && kind === "PROFILE") throw new ApiRequestError(400, "Profile uploads cannot target a listing.");
     if (listingId) {
-      const listing = await prisma.listing.findUnique({ where: { id: listingId }, select: { userId: true, status: true } });
+      const listing = await getNativeRepositories().listingAuthoring.find(listingId);
       if (!listing || listing.userId !== user.id) return errorResponse("Listing not found.", 404);
       if (listing.status !== "UPCOMING") return errorResponse("Files cannot be changed after bidding opens.", 409);
     }

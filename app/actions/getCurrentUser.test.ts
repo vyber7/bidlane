@@ -6,9 +6,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("./getSession", () => ({ getSession: mocks.getSession }));
-vi.mock("../libs/prismadb", () => ({
-  default: { user: { findUnique: mocks.findUnique } },
-}));
+vi.mock("../libs/native-repositories", () => ({ getNativeRepositories: () => ({ users: { byEmail: mocks.findUnique } }) }));
 vi.mock("../libs/logger", () => ({
   logger: { error: vi.fn() },
 }));
@@ -26,25 +24,14 @@ describe("getCurrentUser", () => {
       image: null,
       createdAt: new Date("2026-09-10T12:00:00.000Z"),
       hashedPassword: "bcrypt-secret",
+      sessionVersion: "private-version", futureSecret: "private",
     });
   });
 
   it("returns a safe DTO without the password hash", async () => {
     const user = await getCurrentUser();
 
-    expect(mocks.findUnique).toHaveBeenCalledWith({
-      where: { email: "driver@example.com" },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        emailVerified: true,
-        role: true,
-        image: true,
-        createdAt: true,
-        hashedPassword: true,
-      },
-    });
+    expect(mocks.findUnique).toHaveBeenCalledWith("driver@example.com");
     expect(user).toEqual({
       id: "user-1",
       name: "Driver",
@@ -55,6 +42,8 @@ describe("getCurrentUser", () => {
       role: "USER",
     });
     expect(user).not.toHaveProperty("hashedPassword");
+    expect(user).not.toHaveProperty("sessionVersion");
+    expect(user).not.toHaveProperty("futureSecret");
   });
 
   it("does not query the database without a session email", async () => {

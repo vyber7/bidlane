@@ -1,6 +1,7 @@
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { ApiRequestError } from "./api-request";
-import prisma from "./prismadb";
+import { getReadRepositories } from "./read-repositories";
+import { getNativeRepositories } from "./native-repositories";
 
 // Deliberately read the database on each request. A JWT or client-supplied
 // role must never preserve admin access after it has been revoked.
@@ -16,9 +17,9 @@ export async function requireAdmin() {
 export async function getAdminOverview() {
   const user = await requireAdmin();
   const [users, listings, liveAuctions] = await Promise.all([
-    prisma.user.count(),
-    prisma.listing.count(),
-    prisma.listing.count({ where: { status: "LIVE" } }),
+    getNativeRepositories().users.count(),
+    getReadRepositories().listings.count(),
+    getReadRepositories().listings.count("LIVE"),
   ]);
   return { admin: { id: user.id, name: user.name, email: user.email }, users, listings, liveAuctions };
 }

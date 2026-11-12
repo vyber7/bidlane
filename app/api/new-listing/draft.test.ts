@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeListing } from "@/app/test/auction-fixtures";
+import { TransactionRetryLimitError } from "@/prisma/native/transaction-errors";
 const mocks = vi.hoisted(() => ({ user: vi.fn(), publish: vi.fn(), create: vi.fn() }));
+vi.mock("@/app/libs/native-repositories", () => ({
+  getNativeRepositories: () => { throw new Error("Unexpected native database access in this test"); },
+  withNativeTransaction: () => { throw new Error("Unexpected native transaction in this test"); },
+}));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
 vi.mock("@/app/libs/listing-drafts", () => ({ publishListingDraft: mocks.publish }));
-vi.mock("@/app/libs/prismadb", () => ({ default: { listing: { create: mocks.create } } }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
 import { POST } from "./route";
 const draftId = "abcdef0123456789abcdef01";
@@ -25,6 +29,6 @@ describe("publish saved draft endpoint", () => {
     expect((await POST(request({ draftId, revision: 0 }))).status).toBe(400); expect(mocks.publish).not.toHaveBeenCalled();
   });
   it("returns a retryable result for transactional contention", async () => {
-    mocks.publish.mockRejectedValueOnce({ code: "P2034" }); expect((await POST(request({ draftId, revision: 3 }))).status).toBe(503);
+    mocks.publish.mockRejectedValueOnce(new TransactionRetryLimitError()); expect((await POST(request({ draftId, revision: 3 }))).status).toBe(503);
   });
 });
