@@ -38,19 +38,17 @@ changed to manufacture test data.
 | Recovery email | Real reset delivery, existing-session invalidation, changed-password sign-in, and change-notice delivery passed. All three test emails arrived; reset replay is covered by the earlier compiled-server and integration checks. |
 | Pusher | Live private-channel subscription and matching event receipt passed; anonymous and other-user channel authorization were rejected. |
 | Cloudinary photos | Real signed profile/photo uploads, public delivery, profile persistence, ownership checks, and the 4 MB rejection passed. |
-| Vehicle records | PDF upload and draft save/reload passed, but public PDF delivery returned HTTP 401 (`deny or ACL failure`). Delivery remains pending. |
-| Provider cleanup | All four created test assets, including the diagnostic PDF, were removed. |
+| Vehicle records | PDF upload and draft save/reload passed. Following the operator's manual fix, a fresh signed PDF delivery retest also passed: HTTP 200, `application/pdf`, and a valid PDF body. |
+| Provider cleanup | All created test assets were removed, including the diagnostic PDF and the successful delivery retest asset. |
 | Vercel | Read-only API inspection confirms a ready production deployment with all four one-minute schedules enabled and production `CRON_SECRET` metadata present. Pro is confirmed by the operator and dashboard. Dashboard request logs show recent HTTP 200 invocations for all four workers; no job was invoked manually. |
 | Google OAuth | Not exercised with a live account; only configuration presence and the existing automated adapter tests are covered. |
 
-The Cloudinary public product-environment identifier matches production's
-configured identifier. On 2026-11-12 the operator explicitly chose to leave
-this shared setting unchanged and keep PDF delivery pending. Do not enable
-shared PDF/ZIP delivery or change record storage as an incidental part of this
-migration. Cloudinary documents its
-[blocked PDF delivery policy](https://cloudinary.com/documentation/ts_how_to_upload_manage_and_deliver_pdf_files#delivering_pdf_files);
-any future policy change requires its own production decision and delivery
-retest.
+Earlier checks confirmed that development and production shared the Cloudinary
+product environment. Following the operator's manual fix, a fresh signed PDF
+retest on 2026-11-12 confirmed successful public delivery and test-asset cleanup.
+PDF delivery is no longer pending. Future shared delivery-policy changes still
+require production review and a delivery retest; see Cloudinary's
+[PDF delivery policy](https://cloudinary.com/documentation/ts_how_to_upload_manage_and_deliver_pdf_files#delivering_pdf_files).
 
 The repeatable metadata checker has its own failure/redaction tests and passes
 with the configured services. Those tests supplement, rather than replace, the
