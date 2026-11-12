@@ -1,27 +1,44 @@
 // Canonical database contract, authored and checked through TypeScript.
 // Emission is offline; database adoption uses the guarded management command.
-import { defineContract, enumType, field, gen, index, member, model, rel } from "@prisma/orm-mongo/contract-builder";
+import {
+  defineContract,
+  enumType,
+  field,
+  gen,
+  index,
+  member,
+  model,
+  rel,
+} from "@prisma/orm-mongo/contract-builder";
 
 const mongoString = { codecId: "mongo/string@1" } as const;
 
-const UserRole = enumType("UserRole", mongoString,
+const UserRole = enumType(
+  "UserRole",
+  mongoString,
   member("USER", "USER"),
   member("ADMIN", "ADMIN"),
 );
 
-const NotificationKind = enumType("NotificationKind", mongoString,
+const NotificationKind = enumType(
+  "NotificationKind",
+  mongoString,
   member("bid", "bid"),
   member("auction", "auction"),
   member("comment", "comment"),
 );
 
-const NotificationTone = enumType("NotificationTone", mongoString,
+const NotificationTone = enumType(
+  "NotificationTone",
+  mongoString,
   member("success", "success"),
   member("warning", "warning"),
   member("neutral", "neutral"),
 );
 
-const EmailDeliveryStatus = enumType("EmailDeliveryStatus", mongoString,
+const EmailDeliveryStatus = enumType(
+  "EmailDeliveryStatus",
+  mongoString,
   member("PENDING", "PENDING"),
   member("SENDING", "SENDING"),
   member("SENT", "SENT"),
@@ -29,7 +46,9 @@ const EmailDeliveryStatus = enumType("EmailDeliveryStatus", mongoString,
   member("FAILED", "FAILED"),
 );
 
-const ListingReviewStatus = enumType("ListingReviewStatus", mongoString,
+const ListingReviewStatus = enumType(
+  "ListingReviewStatus",
+  mongoString,
   member("PENDING", "PENDING"),
   member("APPROVED", "APPROVED"),
   member("CHANGES_REQUESTED", "CHANGES_REQUESTED"),
@@ -57,7 +76,10 @@ const Account = model("Account", {
     user: rel.belongsTo("User", { from: "userId", to: "id" }),
   },
   indexes: [
-    index({ provider: 1, providerAccountId: 1 }, { name: "Account_provider_providerAccountId_key", unique: true }),
+    index(
+      { provider: 1, providerAccountId: 1 },
+      { name: "Account_provider_providerAccountId_key", unique: true },
+    ),
   ],
 });
 
@@ -93,9 +115,7 @@ const User = model("User", {
     bids: rel.hasMany("Bid", { from: "id", to: "userId" }),
     notifications: rel.hasMany("Notification", { from: "id", to: "userId" }),
   },
-  indexes: [
-    index({ email: 1 }, { name: "User_email_key", unique: true }),
-  ],
+  indexes: [index({ email: 1 }, { name: "User_email_key", unique: true })],
 });
 
 const Notification = model("Notification", {
@@ -129,11 +149,23 @@ const Notification = model("Notification", {
     user: rel.belongsTo("User", { from: "userId", to: "id" }),
   },
   indexes: [
-    index({ userId: 1, eventKey: 1 }, { name: "Notification_userId_eventKey_key", unique: true }),
-    index({ userId: 1, createdAt: 1, id: 1 }, { name: "Notification_userId_createdAt__id_idx" }),
+    index(
+      { userId: 1, eventKey: 1 },
+      { name: "Notification_userId_eventKey_key", unique: true },
+    ),
+    index(
+      { userId: 1, createdAt: 1, id: 1 },
+      { name: "Notification_userId_createdAt__id_idx" },
+    ),
     index({ userId: 1, readAt: 1 }, { name: "Notification_userId_readAt_idx" }),
-    index({ emailStatus: 1, emailNextAttemptAt: 1 }, { name: "Notification_emailStatus_emailNextAttemptAt_idx" }),
-    index({ emailStatus: 1, emailLockedUntil: 1 }, { name: "Notification_emailStatus_emailLockedUntil_idx" }),
+    index(
+      { emailStatus: 1, emailNextAttemptAt: 1 },
+      { name: "Notification_emailStatus_emailNextAttemptAt_idx" },
+    ),
+    index(
+      { emailStatus: 1, emailLockedUntil: 1 },
+      { name: "Notification_emailStatus_emailLockedUntil_idx" },
+    ),
   ],
 });
 
@@ -184,15 +216,25 @@ const Listing = model("Listing", {
     commenterIds: field.objectId().many(),
   },
   relations: {
-    highestBidder: rel.belongsTo("User", { from: "highestBidderId", to: "id", optional: true }),
+    highestBidder: rel.belongsTo("User", {
+      from: "highestBidderId",
+      to: "id",
+      optional: true,
+    }),
     user: rel.belongsTo("User", { from: "userId", to: "id" }),
     reviews: rel.hasMany("ListingReview", { from: "id", to: "listingId" }),
     comments: rel.hasMany("Comment", { from: "id", to: "listingId" }),
     bids: rel.hasMany("Bid", { from: "id", to: "listingId" }),
   },
   indexes: [
-    index({ status: 1, auctionEndsAt: 1 }, { name: "Listing_status_auctionEndsAt_idx" }),
-    index({ status: 1, reviewStatus: 1, createdAt: 1 }, { name: "Listing_status_reviewStatus_createdAt_idx" }),
+    index(
+      { status: 1, auctionEndsAt: 1 },
+      { name: "Listing_status_auctionEndsAt_idx" },
+    ),
+    index(
+      { status: 1, reviewStatus: 1, createdAt: 1 },
+      { name: "Listing_status_reviewStatus_createdAt_idx" },
+    ),
   ],
 });
 
@@ -213,7 +255,10 @@ const ListingReview = model("ListingReview", {
     listing: rel.belongsTo("Listing", { from: "listingId", to: "id" }),
   },
   indexes: [
-    index({ listingId: 1, createdAt: 1 }, { name: "ListingReview_listingId_createdAt_idx" }),
+    index(
+      { listingId: 1, createdAt: 1 },
+      { name: "ListingReview_listingId_createdAt_idx" },
+    ),
   ],
 });
 
@@ -266,7 +311,10 @@ const BidSubmission = model("BidSubmission", {
     user: rel.belongsTo("User", { from: "userId", to: "id" }),
   },
   indexes: [
-    index({ userId: 1, key: 1 }, { name: "BidSubmission_userId_key_key", unique: true }),
+    index(
+      { userId: 1, key: 1 },
+      { name: "BidSubmission_userId_key_key", unique: true },
+    ),
   ],
 });
 
@@ -281,7 +329,10 @@ const EmailVerification = model("EmailVerification", {
     expiresAt: field.date(),
   },
   indexes: [
-    index({ tokenHash: 1 }, { name: "EmailVerification_tokenHash_key", unique: true }),
+    index(
+      { tokenHash: 1 },
+      { name: "EmailVerification_tokenHash_key", unique: true },
+    ),
   ],
 });
 
@@ -303,7 +354,12 @@ const ListingDraft = model("ListingDraft", {
     user: rel.belongsTo("User", { from: "userId", to: "id" }),
   },
   indexes: [
-    index({ userId: 1, deletedAt: 1, publishedListingId: 1, updatedAt: 1 }, { name: "ListingDraft_userId_deletedAt_publishedListingId_updatedAt_idx" }),
+    index(
+      { userId: 1, deletedAt: 1, publishedListingId: 1, updatedAt: 1 },
+      {
+        name: "ListingDraft_userId_deletedAt_publishedListingId_updatedAt_idx",
+      },
+    ),
   ],
 });
 
@@ -311,6 +367,23 @@ export const contract = defineContract({
   // Unlisted native collections are owned by our repositories/index inventory.
   // Only the ten explicitly managed ObjectId collections belong to v8 DDL.
   defaultControlPolicy: "tolerated",
-  enums: { UserRole, NotificationKind, NotificationTone, EmailDeliveryStatus, ListingReviewStatus },
-  models: { Account, User, Notification, Listing, ListingReview, Comment, Bid, BidSubmission, EmailVerification, ListingDraft },
+  enums: {
+    UserRole,
+    NotificationKind,
+    NotificationTone,
+    EmailDeliveryStatus,
+    ListingReviewStatus,
+  },
+  models: {
+    Account,
+    User,
+    Notification,
+    Listing,
+    ListingReview,
+    Comment,
+    Bid,
+    BidSubmission,
+    EmailVerification,
+    ListingDraft,
+  },
 });

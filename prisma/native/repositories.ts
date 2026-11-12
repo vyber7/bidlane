@@ -11,7 +11,10 @@ import { engagementRepositories } from "./engagement";
 import { notificationEmailRepository } from "./notification-emails";
 import { emailVerificationRepository } from "./email-verification";
 
-export function createNativeRepositories(database: Db, session?: ClientSession) {
+export function createNativeRepositories(
+  database: Db,
+  session?: ClientSession,
+) {
   return {
     ...authRepositories(database, session),
     ...auctionRepositories(database, session),
@@ -22,10 +25,22 @@ export function createNativeRepositories(database: Db, session?: ClientSession) 
     drafts: draftRepository(database, session),
     listingAuthoring: listingAuthoringRepository(database, session),
     quotas: {
-      contact: quotaRepository(database.collection<QuotaDocument>("ContactRateLimit"), session),
-      upload: quotaRepository(database.collection<QuotaDocument>("UploadQuota"), session),
-      abuse: quotaRepository(database.collection<QuotaDocument>("AbuseQuota"), session),
-      passwordReset: quotaRepository(database.collection<QuotaDocument>("PasswordResetQuota"), session),
+      contact: quotaRepository(
+        database.collection<QuotaDocument>("ContactRateLimit"),
+        session,
+      ),
+      upload: quotaRepository(
+        database.collection<QuotaDocument>("UploadQuota"),
+        session,
+      ),
+      abuse: quotaRepository(
+        database.collection<QuotaDocument>("AbuseQuota"),
+        session,
+      ),
+      passwordReset: quotaRepository(
+        database.collection<QuotaDocument>("PasswordResetQuota"),
+        session,
+      ),
     },
     assets: assetRepository(database, session),
     ...recoveryRepositories(database, session),

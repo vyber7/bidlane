@@ -6,8 +6,12 @@ export function createMongoConnection(url) {
   try {
     if (!new ConnectionString(url).pathname.slice(1)) throw new Error();
   } catch {
-    throw new Error("DATABASE_URL must be a MongoDB URL with an explicit database name.");
+    throw new Error(
+      "DATABASE_URL must be a MongoDB URL with an explicit database name.",
+    );
   }
-  const mongoClient = new MongoClient(url, { serverSelectionTimeoutMS: 10_000 });
+  const mongoClient = new MongoClient(url, {
+    serverSelectionTimeoutMS: 10_000,
+  });
   return { mongoClient, database: mongoClient.db() };
 }
