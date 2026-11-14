@@ -1,8 +1,31 @@
 # Prisma 8 production cutover
 
-Development adoption and automated release validation are complete. Production
-still runs Prisma 6. This procedure prepares and coordinates its separate move;
-development reports do not establish production data compatibility.
+Production runs Prisma 8 and database adoption is complete. The migration was
+merged into `main` and deployed through the GitHub-connected Vercel project.
+
+## Production adoption status
+
+On 2026-11-14, the operator confirmed that the local `DATABASE_URL` and Vercel's
+Production `DATABASE_URL` identify the same database. The read-only checks run
+against that connection therefore verified the production database:
+
+| Check | Result |
+| --- | --- |
+| `npm run db:audit` | Ready; all ten managed collections have zero incompatible documents and no missing required fields. Native collection ID types and indexes pass. |
+| `npm run db:native:indexes` | Ready; no missing or mismatched native indexes. |
+| `npm run db:plan` | Ready; zero planned operations, zero blocked operations, and no missing privileges reported. Nothing was applied. |
+
+Contract source/artifact validation also passed. No data, schema, indexes, or
+contract markers were changed by these checks. Backup/restore, marker signing
+and verification, and live provider flows were not repeated during this check;
+their earlier evidence remains recorded below and in the migration guide.
+Connection values and private reports remain outside Git.
+
+The remaining sections retain the original release evidence and cutover
+runbook for reference. They describe the earlier Prisma 6 transition and are
+not outstanding production adoption work. Future database changes still need
+their own reviewed plan and explicit application; `npm run build` only emits
+the contract offline and builds Next.js.
 
 ## Release baseline
 

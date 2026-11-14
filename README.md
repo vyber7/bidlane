@@ -121,9 +121,16 @@ explicit loopback test URL; see the [restored-copy procedure](docs/prisma-8-migr
 
 `db:plan` also reports missing management privileges for the planned DDL.
 Validator additions require `collMod`; see the [development adoption status](docs/prisma-8-migration.md#development-adoption-status)
-for the verified development adoption results. Production remains on Prisma 6.
+for the historical adoption results.
 
-Before production rollout, follow the [Prisma 8 cutover procedure](docs/prisma-8-production-cutover.md).
+**Production runs Prisma 8 and database adoption is complete.** On 2026-11-14,
+the operator confirmed that development and production use the same database
+connection. Read-only checks against that database passed the data audit and
+native index inventory, and the schema plan reported zero pending operations.
+See the [production adoption status](docs/prisma-8-production-cutover.md#production-adoption-status)
+for verification details and the archived cutover procedure. Vercel builds emit
+the contract and build the app; database adoption is a separate operation.
+
 `npm run services:check` checks provider credentials and the local cron inventory
 without sending mail, publishing events, uploading files, or modifying data.
 Actual OAuth, delivery, and deployed scheduler checks remain separate.
@@ -173,6 +180,24 @@ Auction views use `q` for search, `status=live|upcoming|ended` for the home page
 Tests live alongside the implementation as `*.test.ts` or `*.test.tsx` files. API and data tests run in Vitest's Node environment; React hook and component tests opt into jsdom. Coverage includes auction transitions, bid validation, finalization, API authorization, data helpers, and live auction state reconciliation after refreshes and missed events.
 
 Run `npm run lint` separately from `npm run build`; the Next.js production build does not run ESLint.
+
+## Continuous integration
+
+[GitHub Actions](.github/workflows/ci.yml) runs on pull requests, pushes to
+`main`, and manual dispatch. The **Checks** job uses Node.js 24 and `npm ci`,
+validates the committed Prisma contract, runs ESLint and unit/component tests,
+starts a disposable MongoDB 8.0.38 replica set for native integration tests,
+runs the database-adoption/defaults rehearsals separately with one worker,
+builds the production app, and checks TypeScript including generated route types.
+
+CI uses only runner-local test databases and placeholder build credentials.
+No GitHub secrets or access to the shared development/production database are
+required. Contract validation runs before generation so stale committed
+artifacts fail the check. MongoDB is removed when the job finishes.
+
+Vercel deployment remains separate. To require passing CI before merging,
+add **Checks** as a required status check in the GitHub ruleset for `main`
+after the workflow's first run.
 
 Before changing Next.js code, follow [AGENTS.md](AGENTS.md) and read the relevant guides in `node_modules/next/dist/docs/` for the installed version.
 
