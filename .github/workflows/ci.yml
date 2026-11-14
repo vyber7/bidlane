@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate committed Prisma contract
+        run: npm run db:validate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run unit and component tests
+        run: npm test -- --exclude '**/*.integration.test.ts' --maxWorkers=2
+
+      - name: Start disposable MongoDB replica set
+        id: mongodb
+        run: |
+          docker run --detach --name bidlane-ci-mongo \
+            --publish 127.0.0.1:28019:28019 \
+            mongo:8.0.38 \
+            --replSet bidlane-ci --bind_ip_all --port 28019
+          node --input-type=module <<'NODE'
+          import { MongoClient } from 'mongodb';
+          import { setTimeout } from 'node:timers/promises';
+
+          const client = new MongoClient('mongodb://127.0.0.1:28019/admin?directConnection=true', {
+            serverSelectionTimeoutMS: 30_000,
+          });
+          try {
+            await client.connect();
+            await client.db().command({
+              replSetInitiate: {
+                _id: 'bidlane-ci',
+                members: [{ _id: 0, host: 'localhost:28019' }],
+              },
+            });
+            let primary = false;
+            for (let attempt = 0; attempt < 60; attempt++) {
+              if ((await client.db().command({ hello: 1 })).isWritablePrimary) {
+                primary = true;
+                break;
+              }
+              await setTimeout(1000);
+            }
+            if (!primary) throw new Error('CI MongoDB did not elect a primary.');
+            console.log('Disposable MongoDB replica set is ready.');
+          } finally {
+            await client.close();
+          }
+          NODE
+
+      - name: Run native repository integration tests
+        env:
+          NATIVE_TEST_DATABASE_URL: mongodb://127.0.0.1:28019/bidlane_test_native_ci?replicaSet=bidlane-ci&directConnection=true
+        # Allow database I/O more time than the five-second unit-test default.
+        run: npm test -- prisma/native/*.integration.test.ts prisma/reads/*.integration.test.ts --maxWorkers=2 --testTimeout=30000
+
+      # DDL-heavy management tests run separately, with one worker.
+      - name: Rehearse database adoption and user defaults
+        env:
+          MIGRATION_TEST_DATABASE_URL: mongodb://127.0.0.1:28019/bidlane_test_migration_ci?replicaSet=bidlane-ci&directConnection=true
+        run: npm run db:rehearse
+
+      - name: Build production app
+        env:
+          DATABASE_URL: mongodb://127.0.0.1:28019/bidlane_ci_build?replicaSet=bidlane-ci&directConnection=true
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: ci-session-secret-not-for-production
+          PUSHER_APP_ID: "1"
+          NEXT_PUBLIC_PUSHER_APP_KEY: ci-pusher-key
+          PUSHER_SECRET: ci-pusher-secret
+          NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ci-cloud
+          NEXT_PUBLIC_CLOUDINARY_API_KEY: "1"
+          CLOUDINARY_API_SECRET: ci-cloudinary-secret
+          GITHUB_ID: ci-github-client
+          GITHUB_SECRET: ci-github-secret
+          GOOGLE_CLIENT_ID: ci-google-client
+          GOOGLE_CLIENT_SECRET: ci-google-secret
+        run: npm run build
+
+      # next build generates route types used by tsconfig.json.
+      - name: Check TypeScript
+        run: npx tsc --noEmit
+
+      - name: Show MongoDB logs on failure
+        if: failure() && steps.mongodb.outcome != 'skipped'
+        run: docker logs bidlane-ci-mongo
+
+      - name: Remove disposable MongoDB
+        if: always() && steps.mongodb.outcome != 'skipped'
+        run: docker rm --force --volumes bidlane-ci-mongo

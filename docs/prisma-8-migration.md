@@ -518,8 +518,9 @@ collections were restored exactly, the eleven legacy Users were repaired,
 all ten validator additions were adopted and verified, all ten ORM reads
 passed, and the repeat plan was empty. During this copy rehearsal, the source
 received no data/schema/index or marker writes. The configured source was then
-confirmed to be development; see [development adoption status](#development-adoption-status)
-for the subsequent backfill. Production remains a separate Prisma 6 deployment.
+identified as development; see [development adoption status](#development-adoption-status)
+for the subsequent backfill. On 2026-11-14, the operator confirmed that production
+uses the same database connection; see the [production adoption status](prisma-8-production-cutover.md#production-adoption-status).
 
 ## Missing User defaults
 
@@ -564,9 +565,11 @@ retain the backup until adoption and application checks are complete.
 
 ## Development adoption status
 
-The configured `DATABASE_URL` was confirmed to target development on 2026-11-10;
-production is still running Prisma 6 and was not targeted. Before development
-writes, the live raw-BSON snapshot, collection options, and indexes were
+The configured `DATABASE_URL` was identified as development on 2026-11-10.
+The operator subsequently confirmed on 2026-11-14 that production uses this
+same database connection, and production now runs Prisma 8. This section
+records the earlier adoption work. Before those writes, the live raw-BSON
+snapshot, collection options, and indexes were
 rechecked against the restored/verified archive, and the archive checksum was
 verified. The transactional backfill then added the reviewed missing defaults
 to the eleven legacy Users. All other stored values, BSON types, timestamps,
@@ -604,10 +607,11 @@ npm run db:push       # guarded validator adoption, signing and verification
 npm run db:plan       # ready with zero operations
 ```
 
-The pre-backfill and pre-validator archives and private development verification
-reports remain outside Git. Production needs its own
-backup, audit, restored-copy rehearsal, and coordinated application/validator
-cutover; the development result does not authorize or perform those operations.
+The pre-backfill and pre-validator archives and private verification reports
+remain outside Git. The subsequent production read-only audit and index check
+passed, and its schema plan was empty; see the [production adoption status](prisma-8-production-cutover.md#production-adoption-status).
+Future database changes still require a backup, reviewed plan, rehearsal, and
+coordinated application/schema rollout against the intended target.
 
 ## Client and transaction boundary
 
@@ -668,7 +672,9 @@ compatibility, indexes, and native ID types, then backed up and successfully
 rehearsed on a local restored copy. Its missing User defaults were backfilled
 and verified, and development validator adoption/signing has completed with
 live preservation, ORM, enforcement, rollback and repeat-plan checks.
-Production remains on Prisma 6 and was not changed.
+Production now runs Prisma 8 against the same database connection, confirmed
+by the operator on 2026-11-14. Its read-only audit and native index checks pass,
+and its schema plan has zero pending operations.
 
 ## Prisma 6 tooling retirement
 
@@ -680,17 +686,18 @@ validation, the regular and replica-set test suites, lint, TypeScript, and a
 production build verify this checkout without Prisma 6. This cleanup changes
 no persisted contract or database data.
 
-## Remaining migration work
+## Migration completion and ongoing maintenance
 
-Use the [production cutover procedure](prisma-8-production-cutover.md) for the
-remaining service checks, Vercel scheduler verification, release-candidate
-review, and coordinated production adoption. `npm run services:check` performs
-repeatable read-only provider checks; its result does not certify delivery.
+Production deployment and database adoption are complete. The [production
+adoption status](prisma-8-production-cutover.md#production-adoption-status)
+records the 2026-11-14 read-only verification; the original cutover procedure
+is retained for reference. `npm run services:check` performs repeatable
+read-only provider checks; its result does not certify delivery.
 
-1. Separately plan production's Prisma 6 cutover with its own backup, audit,
-   restored-copy rehearsal, and old-writer shutdown before applying production
-   changes. Development backfill, validator adoption/signing, and live checks
-   are complete; production has not been targeted.
+1. Review and rehearse future database changes against the intended target.
+   Development and production currently share a connection, so writes from
+   either environment affect the same data. CI and integration tests must use
+   their own disposable local replica-set databases.
 2. Retain explicit foreign-key/array operations, creation defaults, and native
    transaction boundaries. Many-to-many arrays remain persisted fields, not
    v8 ORM relations. Account deletion is not currently an application operation;
