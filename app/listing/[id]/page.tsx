@@ -83,6 +83,13 @@ const Listing = async (props: Params) => {
           </div>
           <p className="mt-3 text-xs text-slate-500">Vehicle details and records are seller-reported. BidLane has not independently verified ownership, history, or condition.</p>
         </header>
+        {listing.status === "ENDED" && listing.result === "SOLD" && currentUser && (owner || listing.highestBidderId === currentUser.id) && (
+          <section className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-5" aria-label="Complete your transaction">
+            <h2 className="font-bold text-gray-950">Finish the handoff together</h2>
+            <p className="mt-2 text-sm text-gray-700">Track payment, paperwork, and pickup with your {owner ? "buyer" : "seller"}.</p>
+            <Link href={`/account/shipments#transaction-${id}`} className="mt-3 inline-block text-sm font-bold underline">Open completion checklist →</Link>
+          </section>
+        )}
         {(owner || currentUser?.role === "ADMIN") && listing.status === "UPCOMING" && <section className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5" aria-label="Listing review status">
           <h2 className="font-bold">{reviewLabels[listing.reviewStatus ?? "PENDING"]}</h2>
           <p className="mt-2 text-sm text-slate-700">{listing.reviewStatus === "APPROVED" ? "Your listing is public and the seller can start the auction. Changes will require another review." : "This listing is visible only to its seller and admins. Admin approval is required before buyers can see it or bidding can open."}</p>

@@ -60,7 +60,7 @@ const storedFields = {
       "reservePrice reviewRevision startingBid currentBid bidIncrement",
     date: "createdAt",
     "date?":
-      "lastCommentAt updatedAt auctionStartsAt auctionEndsAt endingSoonReminderAt",
+      "lastCommentAt updatedAt auctionStartsAt auctionEndsAt endingSoonReminderAt paymentBuyerConfirmedAt paymentSellerConfirmedAt paperworkBuyerConfirmedAt paperworkSellerConfirmedAt pickupBuyerConfirmedAt pickupSellerConfirmedAt",
     bool: "isFeatured",
     "objectId[]": "biddersIds seenIds watchersIds commentsIds commenterIds",
     "objectId?": "highestBidderId",

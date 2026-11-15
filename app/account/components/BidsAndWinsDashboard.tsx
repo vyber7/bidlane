@@ -205,10 +205,10 @@ const BidRow = ({ bid, tab }: { bid: AuctionBid; tab: Tab }) => {
               <FiClock /> {bid.bidCount} {bid.bidCount === 1 ? "bid" : "bids"} placed
             </span>
             <Link
-              href={`/listing/${bid.id}`}
+              href={tab === "wins" ? `/account/shipments#transaction-${bid.id}` : `/listing/${bid.id}`}
               className="inline-flex items-center gap-1 text-sm font-bold text-gray-900 hover:underline"
             >
-              View auction <FiArrowUpRight />
+              {tab === "wins" ? "Complete transaction" : "View auction"} <FiArrowUpRight />
             </Link>
           </div>
         </div>

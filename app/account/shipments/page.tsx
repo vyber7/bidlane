@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "BidLane | Purchases & sales",
-  description: "View auction results and contact the buyer or seller to arrange payment, paperwork, and vehicle handoff.",
+  description: "Track payment, paperwork, and pickup with a shared checklist for buyers and sellers.",
 };
 
 const Shipments = async () => {

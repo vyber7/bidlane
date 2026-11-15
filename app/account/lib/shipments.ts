@@ -1,7 +1,8 @@
 import type { Listing } from "@/app/types/database";
 import type { ShipmentTransaction } from "@/app/types/account";
+import { transactionCompletion, type CompletionFields } from "@/app/libs/transaction-completion";
 
-export type SoldListing = Pick<Listing, "id" | "userId" | "year" | "make" | "model" | "location" | "coverImage" | "currentBid" | "startingBid" | "auctionEndsAt" | "updatedAt" | "createdAt"> & {
+export type SoldListing = Pick<Listing, "id" | "userId" | "highestBidderId" | "year" | "make" | "model" | "location" | "coverImage" | "currentBid" | "startingBid" | "auctionEndsAt" | "updatedAt" | "createdAt"> & CompletionFields & {
   user: { name: string | null; email: string | null };
   highestBidder: { name: string | null; email: string | null } | null;
 };
@@ -26,6 +27,9 @@ export function buildShipments(
       role,
       contactName: contact?.name?.split(" ")[0] ?? (role === "seller" ? "the buyer" : "the seller"),
       contactEmail: contact?.email ?? null,
+      completion: listing.highestBidderId && listing.highestBidderId !== listing.userId
+        ? transactionCompletion(listing)
+        : null,
     };
   });
 }

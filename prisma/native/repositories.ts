@@ -10,6 +10,7 @@ import { listingAuthoringRepository } from "./listing-authoring";
 import { engagementRepositories } from "./engagement";
 import { notificationEmailRepository } from "./notification-emails";
 import { emailVerificationRepository } from "./email-verification";
+import { completionRepository } from "./completion";
 
 export function createNativeRepositories(
   database: Db,
@@ -22,6 +23,7 @@ export function createNativeRepositories(
     notifications: notificationRepository(database, session),
     notificationEmails: notificationEmailRepository(database, session),
     emailVerifications: emailVerificationRepository(database, session),
+    completion: completionRepository(database, session),
     drafts: draftRepository(database, session),
     listingAuthoring: listingAuthoringRepository(database, session),
     quotas: {

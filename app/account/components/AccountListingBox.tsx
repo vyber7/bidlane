@@ -148,10 +148,10 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
               )}
             </div>
             <Link
-              href={`/listing/${listing.id}`}
+              href={uploaded && listing.status === "ENDED" && listing.result === "SOLD" ? `/account/shipments#transaction-${listing.id}` : `/listing/${listing.id}`}
               className="inline-flex items-center gap-1 text-sm font-bold text-gray-950 hover:underline"
             >
-              View listing <FiArrowUpRight />
+              {uploaded && listing.status === "ENDED" && listing.result === "SOLD" ? "Complete transaction" : "View listing"} <FiArrowUpRight />
             </Link>
           </div>
         </div>

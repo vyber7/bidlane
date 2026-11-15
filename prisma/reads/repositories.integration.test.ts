@@ -52,6 +52,7 @@ import getBids from "@/app/actions/getBids";
 import getSoldAuctions from "@/app/actions/getSoldAuctions";
 import { buildBidSummaries } from "@/app/account/lib/bids";
 import { buildShipments } from "@/app/account/lib/shipments";
+import { transactionCompletion } from "@/app/libs/transaction-completion";
 import { GET as overview } from "@/app/api/admin/overview/route";
 import { PATCH as edit } from "@/app/api/listing/[id]/route";
 import { POST as upload } from "@/app/api/uploads/route";
@@ -603,6 +604,7 @@ describe.skipIf(!url)(
             role,
             contactName: role === "seller" ? "Buyer" : "Seller",
             contactEmail: role === "seller" ? buyer.email : seller.email,
+            completion: transactionCompletion(expected),
           },
         ]);
         expect(actual.map((row) => row.id)).toEqual([id]);

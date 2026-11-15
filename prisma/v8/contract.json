@@ -825,6 +825,48 @@
                   "kind": "scalar"
                 }
               },
+              "paperworkBuyerConfirmedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "paperworkSellerConfirmedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "paymentBuyerConfirmedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "paymentSellerConfirmedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "pickupBuyerConfirmedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "pickupSellerConfirmedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
               "reservePrice": {
                 "nullable": true,
                 "type": {
@@ -1114,6 +1156,24 @@
                 },
                 "modifications": {
                   "field": "modifications"
+                },
+                "paperworkBuyerConfirmedAt": {
+                  "field": "paperworkBuyerConfirmedAt"
+                },
+                "paperworkSellerConfirmedAt": {
+                  "field": "paperworkSellerConfirmedAt"
+                },
+                "paymentBuyerConfirmedAt": {
+                  "field": "paymentBuyerConfirmedAt"
+                },
+                "paymentSellerConfirmedAt": {
+                  "field": "paymentSellerConfirmedAt"
+                },
+                "pickupBuyerConfirmedAt": {
+                  "field": "pickupBuyerConfirmedAt"
+                },
+                "pickupSellerConfirmedAt": {
+                  "field": "pickupSellerConfirmedAt"
                 },
                 "reservePrice": {
                   "field": "reservePrice"
@@ -2461,6 +2521,42 @@
                         "string"
                       ]
                     },
+                    "paperworkBuyerConfirmedAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "paperworkSellerConfirmedAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "paymentBuyerConfirmedAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "paymentSellerConfirmedAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "pickupBuyerConfirmedAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "pickupSellerConfirmedAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
                     "reservePrice": {
                       "bsonType": [
                         "null",
@@ -3167,7 +3263,7 @@
         "kind": "mongo-database"
       }
     },
-    "storageHash": "06862e19d26294690bdaddd47a215879f8da8892480db9ce666271563deafca6"
+    "storageHash": "55a32b7b0129bbcdf3a0ebe1d3b85b43bae542bc335e3ef18519e054369ea109"
   },
   "execution": {
     "executionHash": "cae9bf47fa46800937a10e07ab2b7ad0c63254bebba7fc85b4557c02a75d1df4",

@@ -9,6 +9,7 @@ import type { DatabaseV8 } from "../v8/client";
 import type { Bid, Listing } from "@/app/types/database";
 import type { BidWithListing } from "@/app/account/lib/bids";
 import type { SoldListing } from "@/app/account/lib/shipments";
+import { completionFields } from "@/app/libs/transaction-completion";
 
 const publicFilter = MongoOrExpr.of([
   field.in("status", ["LIVE", "ENDED"]),
@@ -244,6 +245,7 @@ export function createReadRepositories({
             "updatedAt",
             "createdAt",
             "highestBidderId",
+            ...Object.values(completionFields).flatMap((roles) => Object.values(roles)),
           )
           .orderBy({ auctionEndsAt: -1 })
           .all();
@@ -259,6 +261,13 @@ export function createReadRepositories({
           return {
             id: row.id,
             userId: row.userId,
+            highestBidderId: row.highestBidderId,
+            paymentBuyerConfirmedAt: row.paymentBuyerConfirmedAt,
+            paymentSellerConfirmedAt: row.paymentSellerConfirmedAt,
+            paperworkBuyerConfirmedAt: row.paperworkBuyerConfirmedAt,
+            paperworkSellerConfirmedAt: row.paperworkSellerConfirmedAt,
+            pickupBuyerConfirmedAt: row.pickupBuyerConfirmedAt,
+            pickupSellerConfirmedAt: row.pickupSellerConfirmedAt,
             year: row.year,
             make: row.make,
             model: row.model,
