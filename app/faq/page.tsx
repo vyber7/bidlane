@@ -102,7 +102,7 @@ const faqs = [
   {
     question: "What happens after an auction ends?",
     answer:
-      "Check the listing’s finalized result and your in-app Notifications. If it sold, the winning buyer and seller can open Account → Purchases & sales to find the winning amount and each other’s contact details. Contact the other party to agree payment, documents, and pickup or transport. A sold result records the auction outcome; it does not confirm payment or vehicle delivery.",
+      "Check the listing’s finalized result and your in-app Notifications. If it sold, the winning buyer and seller can open Account → Purchases & sales to find the winning amount, each other’s contact details, and a shared completion checklist. Arrange payment, documents, and pickup directly, then each confirm those steps in the checklist. A step is complete when both parties confirm it, and you can undo your own confirmation if something still needs attention. A sold result records the auction outcome; it does not confirm payment or vehicle delivery.",
   },
   {
     question: "Does BidLane arrange shipping or hold the vehicle payment?",

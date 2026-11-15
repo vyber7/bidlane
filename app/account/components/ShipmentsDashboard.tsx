@@ -14,6 +14,7 @@ import {
   FiTag,
 } from "react-icons/fi";
 import type { ShipmentTransaction } from "@/app/types/account";
+import CompletionChecklist from "./CompletionChecklist";
 import { handoffSteps } from "@/app/libs/auction-guidance";
 
 type Tab = "all" | "purchases" | "sales";
@@ -61,7 +62,7 @@ const ShipmentsDashboard = ({ shipments }: { shipments: ShipmentTransaction[] })
             </p>
             <h2 className="text-2xl font-bold text-gray-950">Purchases & sales</h2>
             <p className="mt-1 max-w-xl text-sm text-gray-500">
-              Find your sold auction results and contact the other party to arrange payment, paperwork, and pickup.
+              Work with your buyer or seller to complete payment, paperwork, and pickup.
             </p>
           </div>
           <Link
@@ -78,7 +79,7 @@ const ShipmentsDashboard = ({ shipments }: { shipments: ShipmentTransaction[] })
         <ol className="mt-3 grid gap-3 md:grid-cols-3">
           {handoffSteps.map(({ title }, index) => <li key={title} className="text-xs font-bold text-gray-900">{index + 1}. {title}</li>)}
         </ol>
-        <p className="mt-4 text-xs leading-5 text-gray-500">These are auction results. Payment and vehicle handoff are arranged directly between buyer and seller.</p>
+        <p className="mt-4 text-xs leading-5 text-gray-500">Use the shared checklist below to confirm each step together. Payment and vehicle handoff are arranged directly between buyer and seller.</p>
       </div>}
 
       <div className="grid grid-cols-3 border-b border-gray-200 bg-gray-50">
@@ -143,7 +144,7 @@ const ShipmentRow = ({ shipment }: { shipment: ShipmentTransaction }) => {
   const isBuyer = shipment.role === "buyer";
 
   return (
-    <li className="p-4 transition-colors hover:bg-gray-50 sm:p-5">
+    <li id={`transaction-${shipment.id}`} className="scroll-mt-24 p-4 transition-colors hover:bg-gray-50 sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row">
         <Link
           href={`/listing/${shipment.id}`}
@@ -218,6 +219,11 @@ const ShipmentRow = ({ shipment }: { shipment: ShipmentTransaction }) => {
           </div>
         </div>
       </div>
+      {shipment.completion ? (
+        <CompletionChecklist listingId={shipment.id} role={shipment.role} initialCompletion={shipment.completion} />
+      ) : (
+        <p className="mt-4 text-sm text-gray-500">A shared checklist is unavailable because this auction has no recorded buyer. <Link href="/contact" className="font-bold underline">Contact support</Link> for help.</p>
+      )}
     </li>
   );
 };

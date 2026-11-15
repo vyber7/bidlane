@@ -324,10 +324,19 @@ vitest.config.ts     # Test configuration
 | `/api/uploads`                  | GET, POST | Check upload policy or upload one authorized file         |
 | `/api/cloudinary-images`        | GET, POST | Read saved listing images or attach an uploaded image      |
 | `/api/listing/[id]/cover-image` | POST      | Update a listing's cover image                             |
+| `/api/listing/[id]/completion` | GET, PATCH | Read shared progress or confirm a transaction step as the current participant |
 
 Image uploads use the authenticated `/api/uploads` endpoint with a server-enforced 4 MB cap, format restrictions, shared quotas, and ownership checks. New listings include the uploaded photo URLs in `/api/new-listing`; adding photos to an existing listing saves them through `/api/cloudinary-images`. The gallery renders saved images supplied by the listing page without a second image-list request.
 
 Application-owned API failures return JSON with an `error` string and an appropriate HTTP status. Malformed JSON, non-object bodies, and invalid fields return `400`; unexpected failures return `500` with a public message while details are logged on the server. Partial cron failures retain the batch summary and add an `error` string. NextAuth's authentication endpoints use their own protocol.
+
+### Post-auction completion
+
+Account → **Purchases & sales** includes a shared payment, paperwork, and pickup checklist for each sold auction with a recorded buyer. Buyers and sellers can also open it from their win, sold listing, or the auction detail page. Each participant confirms their own side of each step; both confirmations are needed to complete a step, and all three steps must be complete for the transaction to show **Transaction complete**. Unchecking your own confirmation reopens that step. Confirmations are saved on the listing with timestamps and refresh every 20 seconds while the page is visible, and when returning to it. The checklist records the parties' agreement; it does not process payments, transfer documents, or book transport.
+
+Only the winning buyer and seller can read or change progress, and neither can change the other's confirmation. These fields are excluded from public listing payloads. Existing sold auctions start with an empty checklist; no backfill is required. Before deployment, use the [audited adoption flow](docs/prisma-8-migration.md#database-management-rehearsal) to update the Listing validator for the six optional confirmation dates, then deploy the generated contract and application together. No new collections or indexes are required.
+
+Focused checks: `npm test -- app/api/listing/'[id]'/completion app/account/components/CompletionChecklist.test.tsx`. With a guarded local MongoDB configured in `NATIVE_TEST_DATABASE_URL`, `npm test -- prisma/native/completion.integration.test.ts` also exercises authorization, concurrent confirmations, retry timestamps, and reopening against persisted data.
 
 ### Bid request retries
 

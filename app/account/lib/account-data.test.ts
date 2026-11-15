@@ -56,6 +56,17 @@ describe("account shipments", () => {
     expect(buildShipments([{ ...listing, currentBid: 0 }], "seller")[0].price).toBe(0);
     expect(buildShipments([{ ...listing, startingBid: null, updatedAt: null, user: { name: null, email: null } }], "buyer")[0]).toMatchObject({ price: 0, soldAt: auctionNow.toISOString(), contactName: "the seller", contactEmail: null });
   });
+
+  it("restores shared confirmations for both parties and handles sales without a buyer", () => {
+    const listing = { ...sold(), paymentBuyerConfirmedAt: auctionNow, paymentSellerConfirmedAt: auctionNow };
+    for (const userId of ["buyer", "seller"]) {
+      expect(buildShipments([listing], userId)[0].completion).toEqual({
+        payment: { buyer: auctionNow.toISOString(), seller: auctionNow.toISOString() },
+        paperwork: { buyer: null, seller: null }, pickup: { buyer: null, seller: null },
+      });
+    }
+    expect(buildShipments([{ ...listing, highestBidderId: null }], "seller")[0].completion).toBeNull();
+  });
 });
 
 it("returns empty account data for empty query results", () => {

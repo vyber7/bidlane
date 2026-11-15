@@ -1,3 +1,5 @@
+import type { TransactionCompletion } from "@/app/libs/transaction-completion";
+
 export type AuctionBid = {
   id: string;
   year: number;
@@ -48,4 +50,5 @@ export type ShipmentTransaction = {
   role: "buyer" | "seller";
   contactName: string;
   contactEmail: string | null;
+  completion: TransactionCompletion | null;
 };

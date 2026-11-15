@@ -22,7 +22,7 @@ import type {
 } from '@prisma/orm-mongo/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'06862e19d26294690bdaddd47a215879f8da8892480db9ce666271563deafca6'>;
+  StorageHashBase<'55a32b7b0129bbcdf3a0ebe1d3b85b43bae542bc335e3ef18519e054369ea109'>;
 export type ExecutionHash =
   ExecutionHashBase<'cae9bf47fa46800937a10e07ab2b7ad0c63254bebba7fc85b4557c02a75d1df4'>;
 export type ProfileHash =
@@ -166,6 +166,12 @@ export namespace Models {
     miles: FieldOutputTypes['__unbound__']['Listing']['miles'];
     model: FieldOutputTypes['__unbound__']['Listing']['model'];
     modifications: FieldOutputTypes['__unbound__']['Listing']['modifications'];
+    paperworkBuyerConfirmedAt: FieldOutputTypes['__unbound__']['Listing']['paperworkBuyerConfirmedAt'];
+    paperworkSellerConfirmedAt: FieldOutputTypes['__unbound__']['Listing']['paperworkSellerConfirmedAt'];
+    paymentBuyerConfirmedAt: FieldOutputTypes['__unbound__']['Listing']['paymentBuyerConfirmedAt'];
+    paymentSellerConfirmedAt: FieldOutputTypes['__unbound__']['Listing']['paymentSellerConfirmedAt'];
+    pickupBuyerConfirmedAt: FieldOutputTypes['__unbound__']['Listing']['pickupBuyerConfirmedAt'];
+    pickupSellerConfirmedAt: FieldOutputTypes['__unbound__']['Listing']['pickupSellerConfirmedAt'];
     reservePrice: FieldOutputTypes['__unbound__']['Listing']['reservePrice'];
     result: FieldOutputTypes['__unbound__']['Listing']['result'];
     reviewNote: FieldOutputTypes['__unbound__']['Listing']['reviewNote'];
@@ -546,6 +552,24 @@ type ContractBase = Omit<
                     readonly miles: { readonly bsonType: 'long' };
                     readonly model: { readonly bsonType: 'string' };
                     readonly modifications: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly paperworkBuyerConfirmedAt: {
+                      readonly bsonType: readonly ['null', 'date'];
+                    };
+                    readonly paperworkSellerConfirmedAt: {
+                      readonly bsonType: readonly ['null', 'date'];
+                    };
+                    readonly paymentBuyerConfirmedAt: {
+                      readonly bsonType: readonly ['null', 'date'];
+                    };
+                    readonly paymentSellerConfirmedAt: {
+                      readonly bsonType: readonly ['null', 'date'];
+                    };
+                    readonly pickupBuyerConfirmedAt: {
+                      readonly bsonType: readonly ['null', 'date'];
+                    };
+                    readonly pickupSellerConfirmedAt: {
+                      readonly bsonType: readonly ['null', 'date'];
+                    };
                     readonly reservePrice: { readonly bsonType: readonly ['null', 'long'] };
                     readonly result: { readonly bsonType: readonly ['null', 'string'] };
                     readonly reviewNote: { readonly bsonType: readonly ['null', 'string'] };
@@ -1359,6 +1383,30 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
+              readonly paperworkBuyerConfirmedAt: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
+              };
+              readonly paperworkSellerConfirmedAt: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
+              };
+              readonly paymentBuyerConfirmedAt: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
+              };
+              readonly paymentSellerConfirmedAt: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
+              };
+              readonly pickupBuyerConfirmedAt: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
+              };
+              readonly pickupSellerConfirmedAt: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/date@1' };
+              };
               readonly reservePrice: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/int64Number@1' };
@@ -1519,6 +1567,14 @@ type ContractBase = Omit<
                 readonly miles: { readonly field: 'miles' };
                 readonly model: { readonly field: 'model' };
                 readonly modifications: { readonly field: 'modifications' };
+                readonly paperworkBuyerConfirmedAt: { readonly field: 'paperworkBuyerConfirmedAt' };
+                readonly paperworkSellerConfirmedAt: {
+                  readonly field: 'paperworkSellerConfirmedAt';
+                };
+                readonly paymentBuyerConfirmedAt: { readonly field: 'paymentBuyerConfirmedAt' };
+                readonly paymentSellerConfirmedAt: { readonly field: 'paymentSellerConfirmedAt' };
+                readonly pickupBuyerConfirmedAt: { readonly field: 'pickupBuyerConfirmedAt' };
+                readonly pickupSellerConfirmedAt: { readonly field: 'pickupSellerConfirmedAt' };
                 readonly reservePrice: { readonly field: 'reservePrice' };
                 readonly result: { readonly field: 'result' };
                 readonly reviewNote: { readonly field: 'reviewNote' };

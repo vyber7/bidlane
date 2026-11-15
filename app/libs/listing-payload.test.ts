@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { makeListing } from "@/app/test/auction-fixtures";
 import { publicListingSnapshot, toPublicListing, toSellerListing } from "./listing-payload";
 import { deserializeListing, serializeListing } from "@/app/utils/listing-serialization";
+import { completionFields } from "./transaction-completion";
 
-const privateFields = ["reservePrice", "watchersIds", "seenIds", "biddersIds", "commenterIds", "commentsIds", "reviewNote", "reviewRevision", "reviewStatus", "endingSoonReminderAt", "futureSecret"];
+const privateFields = ["reservePrice", "watchersIds", "seenIds", "biddersIds", "commenterIds", "commentsIds", "reviewNote", "reviewRevision", "reviewStatus", "endingSoonReminderAt", "futureSecret", ...Object.values(completionFields).flatMap(Object.values)];
 const privateListing = () => ({ ...makeListing({
   reservePrice: 98765, watchersIds: ["watcher-a", "watcher-b"], seenIds: ["private-viewer"],
   biddersIds: ["private-bidder"], commenterIds: ["private-commenter"], commentsIds: ["private-comment"],
