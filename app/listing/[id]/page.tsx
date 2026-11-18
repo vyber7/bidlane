@@ -75,7 +75,7 @@ const Listing = async (props: Params) => {
             <span>{listing.miles.toLocaleString("en-US")} miles</span>
             <span>
               Listed by{" "}
-              <Link href={`/sellers/${listing.userId}`} className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">
+              <Link href={`/sellers/${listing.userId}?fromListing=${id}`} className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">
                 {seller?.name || "Seller"}
               </Link>
             </span>

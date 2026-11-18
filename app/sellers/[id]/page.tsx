@@ -9,11 +9,14 @@ export const metadata: Metadata = { title: "Seller profile | BidLane", descripti
 
 export default async function SellerPage({ params, searchParams }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; fromListing?: string | string[] }>;
 }) {
   const { id } = await params;
   if (!/^[a-f\d]{24}$/i.test(id)) notFound();
-  const requestedPage = Number((await searchParams).page ?? "1");
+  const query = await searchParams;
+  const fromListing = typeof query.fromListing === "string" && /^[a-f\d]{24}$/i.test(query.fromListing) ? query.fromListing : null;
+  const listingQuery = fromListing ? `&fromListing=${fromListing}` : "";
+  const requestedPage = Number(query.page ?? "1");
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 10000 ? requestedPage : 1;
   const profile = await getSellerProfile(id, page);
   if (!profile || (page > 1 && (page - 1) * 12 >= profile.salesCount)) notFound();
@@ -25,7 +28,7 @@ export default async function SellerPage({ params, searchParams }: {
     .map((part) => part[0]?.toUpperCase())
     .join("");
   return <main className="mx-auto max-w-6xl space-y-7 px-4 pb-16 pt-28 sm:px-6 lg:px-8">
-    <Link href="/#auctions" className="text-sm font-semibold text-slate-600 hover:underline">← Browse auctions</Link>
+    <Link href={fromListing ? `/listing/${fromListing}` : "/#auctions"} className="text-sm font-semibold text-slate-600 hover:underline">{fromListing ? "← Back to listing" : "← Browse auctions"}</Link>
     <header className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
       <div className="grid grid-cols-[minmax(0,1fr)_5rem] items-start gap-4 sm:grid-cols-[minmax(0,1fr)_10rem] sm:gap-8">
         <div>
@@ -57,8 +60,8 @@ export default async function SellerPage({ params, searchParams }: {
     <VehicleList title="Latest current listings" vehicles={active} empty="No current listings." />
     <VehicleList title="Sold at auction" vehicles={sales} empty="No sold auction results yet." />
     {(page > 1 || page * 12 < salesCount) && <nav aria-label="Seller auction result pages" className="flex justify-between text-sm font-bold underline">
-      {page > 1 ? <Link href={`/sellers/${id}?page=${page - 1}`}>← Previous results</Link> : <span />}
-      {page * 12 < salesCount && <Link href={`/sellers/${id}?page=${page + 1}`}>More results →</Link>}
+      {page > 1 ? <Link href={`/sellers/${id}?page=${page - 1}${listingQuery}`}>← Previous results</Link> : <span />}
+      {page * 12 < salesCount && <Link href={`/sellers/${id}?page=${page + 1}${listingQuery}`}>More results →</Link>}
     </nav>}
   </main>;
 }
