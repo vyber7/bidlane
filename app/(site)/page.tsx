@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FiArrowRight } from "react-icons/fi";
 import AuctionBrowser from "./components/AuctionBrowser";
 import FeaturedAuction from "./components/FeaturedAuction";
+import LatestBids from "./components/LatestBids";
 import { getHomeSpotlight } from "../libs/featured-auction";
 import WatchAuctionButton from "./components/WatchAuctionButton";
 import { toPublicListing } from "../libs/listing-payload";
@@ -11,10 +12,12 @@ import { toPublicListing } from "../libs/listing-payload";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  const repositories = getReadRepositories();
   const [publicListings, currentUser] = await Promise.all([
-    getReadRepositories().listings.public(),
+    repositories.listings.public(),
     getCurrentUser(),
   ]);
+  const latestBids = await repositories.bids.latestForListings(publicListings);
   const listings = publicListings.map((listing) => toPublicListing(listing, currentUser?.id));
   const { featured, live, upcoming } = getHomeSpotlight(listings);
   const comingNext = !live && featured?.status !== "UPCOMING" ? upcoming : null;
@@ -105,6 +108,8 @@ export default async function Home() {
           )}
         </div>
       </section>
+
+      <LatestBids bids={latestBids} />
 
       <section
         id="auctions"
