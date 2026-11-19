@@ -503,6 +503,24 @@ describe.skipIf(!url)(
       });
     });
 
+    it("returns the latest ten bids across public listings even when a hidden listing has newer activity", async () => {
+      const live = await listing({ model: "911" });
+      const ended = await listing({ model: "Cayman", status: "ENDED" });
+      const hidden = await listing({ status: "UPCOMING", reviewStatus: "PENDING" });
+      const expected = [];
+      for (let day = 12; day >= 1; day--) {
+        const listingId = day % 2 ? live : ended;
+        const user = day % 2 ? buyer : other;
+        const row = await bid(listingId, 14000 - day * 100, user, new Date(Date.UTC(2026, 0, day)));
+        expected.push({
+          id: row.id, amount: row.amount, bidderName: user.name, listingId,
+          auctionTitle: listingId === live ? "2020 Porsche 911" : "2020 Porsche Cayman",
+        });
+      }
+      await bid(hidden, 20000, buyer, new Date("2026-02-01"));
+      expect(await reads.bids.latestForListings(await reads.listings.public())).toEqual(expected.slice(0, 10));
+    });
+
     it("loads bids in amount order and publishes only author names", async () => {
       const id = await listing();
       const first = await bid(id, 1000),

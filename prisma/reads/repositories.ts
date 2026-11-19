@@ -64,12 +64,27 @@ const bid = (row: Bid): Bid => ({
   userId: row.userId,
 });
 
+export interface RecentBid {
+  id: string;
+  amount: number;
+  bidderName: string | null;
+  listingId: string;
+  auctionTitle: string;
+}
+
 // These are nontransactional reads. Native session-bound writes stay in
 // prisma/native; ORM includes and queries cannot join a native transaction.
 export function createReadRepositories({
   db,
   database,
 }: Pick<DatabaseV8, "db" | "database">) {
+  const bidAuthors = async (rows: { userId: string }[]) => {
+    const ids = [...new Set(rows.map((row) => row.userId))];
+    const users = ids.length
+      ? await db.orm.User.where(field.in("id", ids)).select("id", "name").all()
+      : [];
+    return new Map(users.map((user) => [user.id, { name: user.name }]));
+  };
   const contacts = async (ids: string[]) => {
     if (!ids.length)
       return new Map<string, { name: string | null; email: string | null }>();
@@ -129,20 +144,33 @@ export function createReadRepositories({
       },
     },
     bids: {
+      async latestForListings(
+        listings: Pick<Listing, "id" | "year" | "make" | "model">[],
+      ): Promise<RecentBid[]> {
+        if (!listings.length) return [];
+        const titles = new Map(listings.map((listing) => [
+          listing.id, `${listing.year} ${listing.make} ${listing.model}`,
+        ]));
+        const rows = await db.orm.Bid.where(field.in("listingId", [...titles.keys()]))
+          .orderBy({ createdAt: -1, id: -1 })
+          .limit(10)
+          .select("id", "amount", "listingId", "userId")
+          .all();
+        const authors = await bidAuthors(rows);
+        return rows.map((row) => ({
+          id: row.id,
+          amount: row.amount,
+          bidderName: authors.get(row.userId)?.name ?? null,
+          listingId: row.listingId,
+          auctionTitle: titles.get(row.listingId)!,
+        }));
+      },
       async forListing(listingId: string) {
         if (!ObjectId.isValid(listingId)) return [];
         const rows = await db.orm.Bid.where({ listingId })
           .orderBy({ amount: -1 })
           .all();
-        const ids = [...new Set(rows.map((row) => row.userId))];
-        const users = ids.length
-          ? await db.orm.User.where(field.in("id", ids))
-              .select("id", "name")
-              .all()
-          : [];
-        const names = new Map(
-          users.map((user) => [user.id, { name: user.name }]),
-        );
+        const names = await bidAuthors(rows);
         return rows.map((row) => {
           const user = names.get(row.userId);
           if (!user) throw new Error("Bid author not found");

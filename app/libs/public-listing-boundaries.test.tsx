@@ -3,12 +3,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { makeListing } from "@/app/test/auction-fixtures";
 import { toPublicListing, type PublicListing, type SellerListing } from "./listing-payload";
 
-const mocks = vi.hoisted(() => ({ find: vi.fn(), watchlist: vi.fn(), user: vi.fn(), drafts: vi.fn(), browser: vi.fn(), featured: vi.fn(), dashboard: vi.fn() }));
+const mocks = vi.hoisted(() => ({ find: vi.fn(), latestBids: vi.fn(), watchlist: vi.fn(), user: vi.fn(), drafts: vi.fn(), browser: vi.fn(), featured: vi.fn(), dashboard: vi.fn() }));
 vi.mock("@/app/libs/native-repositories", () => ({
   getNativeRepositories: () => ({ drafts: { list: mocks.drafts }, engagement: { watchlist: mocks.watchlist } }),
   withNativeTransaction: () => { throw new Error("Unexpected native transaction in this test"); },
 }));
-vi.mock("@/app/libs/read-repositories", () => ({ getReadRepositories: () => ({ listings: { public: mocks.find, live: mocks.find, sold: mocks.find, owned: mocks.find } }) }));
+vi.mock("@/app/libs/read-repositories", () => ({ getReadRepositories: () => ({ listings: { public: mocks.find, live: mocks.find, sold: mocks.find, owned: mocks.find }, bids: { latestForListings: mocks.latestBids } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
 vi.mock("@/app/account/lib/current-user", () => ({ getAccountUser: mocks.user }));
 vi.mock("@/app/(site)/components/AuctionBrowser", () => ({ default: ({ listings }: { listings: PublicListing[] }) => { mocks.browser(listings); return null; } }));
@@ -27,9 +27,22 @@ const expectPublic = (listing: PublicListing) => {
   expect(listing).toMatchObject({ isNoReserve: false, watcherCount: 2 });
 };
 
-beforeEach(() => { vi.clearAllMocks(); mocks.find.mockResolvedValue([record()]); mocks.watchlist.mockResolvedValue([toPublicListing(record(), "buyer")]); mocks.user.mockResolvedValue({ id: "buyer" }); mocks.drafts.mockResolvedValue([]); });
+beforeEach(() => { vi.clearAllMocks(); mocks.find.mockResolvedValue([record()]); mocks.latestBids.mockResolvedValue([]); mocks.watchlist.mockResolvedValue([toPublicListing(record(), "buyer")]); mocks.user.mockResolvedValue({ id: "buyer" }); mocks.drafts.mockResolvedValue([]); });
 
 describe("server-to-client listing boundaries", () => {
+  it("shows the latest bid and links its auction before inventory", async () => {
+    mocks.latestBids.mockResolvedValue([{
+      id: "bid-1", bidderName: "alex", amount: 12500,
+      listingId: "auction-1", auctionTitle: "2020 Porsche 911",
+    }]);
+    const html = renderToStaticMarkup(await Home());
+    const feed = html.slice(html.indexOf("Latest bids"), html.indexOf("Inventory"));
+    expect(feed).toContain("$12,500");
+    expect(feed).toContain("by Alex");
+    expect(feed).toContain('href="/listing/auction-1"');
+    expect(feed).toContain("2020 Porsche 911");
+  });
+
   it.each([null, { id: "buyer" }])("projects every homepage client payload for viewer %j", async (viewer) => {
     mocks.user.mockResolvedValue(viewer);
     renderToStaticMarkup(await Home());
