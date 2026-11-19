@@ -75,7 +75,7 @@ const Listing = async (props: Params) => {
             <span>{listing.miles.toLocaleString("en-US")} miles</span>
             <span>
               Listed by{" "}
-              <Link href={`/sellers/${listing.userId}`} className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">
+              <Link href={`/sellers/${listing.userId}?fromListing=${id}`} className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">
                 {seller?.name || "Seller"}
               </Link>
             </span>
@@ -106,7 +106,7 @@ const Listing = async (props: Params) => {
             />
           </div>
           <div
-            className="contents lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:block lg:space-y-5"
+            className="contents lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:block lg:space-y-5"
             role="complementary"
             aria-label="Auction overview"
           >
@@ -156,15 +156,7 @@ const Listing = async (props: Params) => {
               />
             </LiveAuctionsSidebar>
           </div>
-          <div className="min-w-0 lg:col-start-1 lg:row-start-2">
-            <Gallery
-              key={`${id}:${listing.reviewRevision ?? 0}`}
-              listingId={id}
-              vehicleName={title}
-              initialImages={[...listing.images]}
-            />
-          </div>
-          <div className="order-2 min-w-0 lg:order-none lg:col-start-1 lg:row-start-3">
+          <div className="order-2 min-w-0 lg:order-none lg:col-start-1 lg:row-start-2">
             <div className="space-y-6">
               {owner && listing.status === "UPCOMING" && listing.reviewStatus === "APPROVED" && (
                 <AuctionStartForm listingId={id} />
@@ -172,6 +164,12 @@ const Listing = async (props: Params) => {
               {owner && listing.status === "UPCOMING" && <ListingEditor key={listing.reviewRevision ?? 0} listing={toSellerListing(listing, currentUser)} />}
               <Description description={listing.description} />
               <VehicleHistory details={listing} id="condition" />
+              <Gallery
+                key={`${id}:${listing.reviewRevision ?? 0}`}
+                listingId={id}
+                vehicleName={title}
+                initialImages={[...listing.images]}
+              />
               <VehicleRecords records={listing.vehicleRecords} />
               {listing.status !== "UPCOMING" && (
                 <Bids
