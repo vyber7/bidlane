@@ -181,6 +181,23 @@ Tests live alongside the implementation as `*.test.ts` or `*.test.tsx` files. AP
 
 Run `npm run lint` separately from `npm run build`; the Next.js production build does not run ESLint.
 
+The Chromium smoke test covers seller submission, admin approval, bidding,
+finalization, and the buyer and seller handoff. It uses an empty local MongoDB
+replica-set database and clears the test database when it finishes. With a
+replica set named `bidlane-ci` at `127.0.0.1:28019`, run:
+
+```bash
+npx playwright install chromium
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=ci-cloud NEXT_PUBLIC_PUSHER_APP_KEY=ci-pusher-key \
+  PUSHER_APP_ID=1 PUSHER_SECRET=ci-pusher-secret npm run build
+E2E_MONGODB_URL='mongodb://127.0.0.1:28019/bidlane_test_e2e_local?replicaSet=bidlane-ci&directConnection=true' \
+  npm run test:e2e
+```
+
+The suite starts the production build on port 3100, uses a fixture for the
+photo upload, and blocks external service calls. Failure traces appear in
+`artifacts/playwright`.
+
 ## Continuous integration
 
 [GitHub Actions](.github/workflows/ci.yml) runs on pull requests, pushes to
@@ -188,7 +205,8 @@ Run `npm run lint` separately from `npm run build`; the Next.js production build
 validates the committed Prisma contract, runs ESLint and unit/component tests,
 starts a disposable MongoDB 8.0.38 replica set for native integration tests,
 runs the database-adoption/defaults rehearsals separately with one worker,
-builds the production app, and checks TypeScript including generated route types.
+builds the production app, checks TypeScript including generated route types,
+and runs the Chromium auction smoke test.
 
 CI uses only runner-local test databases and placeholder build credentials.
 No GitHub secrets or access to the shared development/production database are

@@ -116,6 +116,14 @@ jobs:
       - name: Check TypeScript
         run: npx tsc --noEmit
 
+      - name: Install browser test dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the browser auction suite
+        env:
+          E2E_MONGODB_URL: mongodb://127.0.0.1:28019/bidlane_test_e2e_ci?replicaSet=bidlane-ci&directConnection=true
+        run: npm run test:e2e
+
       - name: Show MongoDB logs on failure
         if: failure() && steps.mongodb.outcome != 'skipped'
         run: docker logs bidlane-ci-mongo
