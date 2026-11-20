@@ -175,7 +175,8 @@ test("seller submission through auction close and buyer/seller handoff", async (
       expect(response.ok()).toBe(true);
       expect(await response.json()).toMatchObject({ finalized: 1, failed: 0 });
       await winnerPage.reload();
-      await expect(winnerPage.getByText(/sold to Winning Bidder/i)).toBeVisible();
+      // The streamed page can briefly contain a hidden copy of the result.
+      await expect(winnerPage.getByText(/sold to Winning Bidder/i).filter({ visible: true })).toBeVisible();
       await winnerPage.goto("/account/shipments");
       await expect(winnerPage.getByText(/auction won/i)).toBeVisible();
       await expect(winnerPage.getByRole("heading", { name: vehicle })).toBeVisible();
