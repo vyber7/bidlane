@@ -109,8 +109,13 @@ test("seller submission through auction close and buyer/seller handoff", async (
 
     await test.step("Admin approves and seller starts the auction", async () => {
       await adminPage.goto(`/admin/listings/${id}`);
+      const approval = adminPage.waitForResponse((response) =>
+        new URL(response.url()).pathname === `/api/admin/listings/${id}/review` &&
+        response.request().method() === "POST",
+      );
       await adminPage.getByRole("button", { name: "Approve listing" }).click();
-      await expect(adminPage.getByText(/listing approved\. the seller/i)).toBeVisible();
+      expect((await approval).status(), "Admin approval response").toBe(200);
+      await expect(adminPage.getByText("Approved · UPCOMING", { exact: true })).toBeVisible();
       await sellerPage.reload();
       await sellerPage.getByLabel("End Time").fill(new Date(Date.now() + 600_000).toISOString().slice(0, 16));
       await sellerPage.getByLabel("Starting Bid").fill("10000");

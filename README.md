@@ -196,7 +196,8 @@ E2E_MONGODB_URL='mongodb://127.0.0.1:28019/bidlane_test_e2e_local?replicaSet=bid
 
 The suite starts the production build on port 3100, uses a fixture for the
 photo upload, and blocks external service calls. Failure traces appear in
-`artifacts/playwright`.
+`artifacts/playwright` and are available from failed GitHub Actions runs for
+seven days.
 
 ## Continuous integration
 
@@ -213,9 +214,8 @@ No GitHub secrets or access to the shared development/production database are
 required. Contract validation runs before generation so stale committed
 artifacts fail the check. MongoDB is removed when the job finishes.
 
-Vercel deployment remains separate. To require passing CI before merging,
-add **Checks** as a required status check in the GitHub ruleset for `main`
-after the workflow's first run.
+Vercel deployment remains separate. The GitHub ruleset for `main` requires
+pull requests to be up to date and pass **Checks** before merging.
 
 Before changing Next.js code, follow [AGENTS.md](AGENTS.md) and read the relevant guides in `node_modules/next/dist/docs/` for the installed version.
 
