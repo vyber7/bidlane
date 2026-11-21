@@ -88,6 +88,57 @@ describe("URL-driven auction browsers", () => {
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Porsche 911"]);
   });
 
+  it("moves keyboard focus between tabs without selecting them until activation", () => {
+    render(<AuctionBrowser listings={listings} />);
+    const live = screen.getByRole("tab", { name: /Live/ });
+    const upcoming = screen.getByRole("tab", { name: /Coming soon/ });
+    const results = screen.getByRole("tab", { name: /Results/ });
+
+    expect(live.tabIndex).toBe(0);
+    expect(upcoming.tabIndex).toBe(-1);
+    act(() => live.focus());
+    expect(fireEvent.keyDown(live, { key: "ArrowLeft", altKey: true })).toBe(true);
+    expect(document.activeElement).toBe(live);
+    fireEvent.keyDown(live, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(results);
+    fireEvent.keyDown(results, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(live);
+    fireEvent.keyDown(live, { key: "End" });
+    expect(document.activeElement).toBe(results);
+    fireEvent.keyDown(results, { key: "Home" });
+    expect(document.activeElement).toBe(live);
+    fireEvent.keyDown(live, { key: "ArrowRight" });
+    fireEvent.keyDown(screen.getByRole("tab", { name: /No reserve/ }), { key: "ArrowRight" });
+    expect(document.activeElement).toBe(upcoming);
+    expect(upcoming.tabIndex).toBe(0);
+    expect(live.tabIndex).toBe(-1);
+    expect(live.getAttribute("aria-selected")).toBe("true");
+    expect(navigation.push).not.toHaveBeenCalled();
+
+    act(() => screen.getByRole("searchbox").focus());
+    expect(live.tabIndex).toBe(0);
+    expect(upcoming.tabIndex).toBe(-1);
+
+    fireEvent.click(upcoming);
+    const panel = screen.getByRole("tabpanel", { name: /Coming soon/ });
+    expect(panel.id).toBe(upcoming.getAttribute("aria-controls"));
+    expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
+    expect(screen.getByRole("listitem").textContent).toBe("MINI Cooper");
+  });
+
+  it("updates the same polite status region as the search result count changes", () => {
+    render(<AuctionBrowser listings={listings} />);
+    const status = screen.getByRole("status");
+    const search = screen.getByRole("searchbox");
+
+    expect(status.getAttribute("aria-live")).toBe("polite");
+    expect(status.textContent).toBe("Live: 2 auctions found.");
+    fireEvent.change(search, { target: { value: "Porsche" } });
+    expect(status.textContent).toBe("Live: 1 auction found.");
+    fireEvent.change(search, { target: { value: "MINI" } });
+    expect(status.textContent).toBe("Live: No auctions found.");
+  });
+
   it("updates combined URL state, preserves the hash, and restores Back/Forward selections", async () => {
     window.history.replaceState(null, "", "/?utm_source=share#auctions");
     render(<AuctionBrowser listings={listings} />);
