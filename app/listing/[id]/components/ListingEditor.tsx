@@ -28,7 +28,7 @@ export default function ListingEditor({ listing }: { listing: SellerListing }) {
   const router = useRouter();
 
   return <details className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-    <summary className="cursor-pointer text-lg font-bold">Edit listing & submit for review</summary>
+    <summary id="edit-listing" className="cursor-pointer scroll-mt-28 text-lg font-bold">Edit listing & submit for review</summary>
     <p className="mt-3 text-sm leading-6 text-slate-600">Save all corrections together. Any change returns this listing to review and hides it from buyers until approved again. Photos and details cannot be changed after bidding opens.</p>
     <form className="mt-5" onSubmit={async (event) => {
       event.preventDefault();
