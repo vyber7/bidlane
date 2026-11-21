@@ -25,21 +25,24 @@ export default function AuctionSearchControls({
     <div className="flex w-full flex-col gap-4 sm:flex-row lg:w-auto xl:min-w-0 xl:flex-1">
       <label className="relative block min-w-0 flex-1 lg:w-64">
         <span className="sr-only">Search {auctionType} auctions</span>
-        <FiSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+        <FiSearch aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
         <input
           type="search"
+          name="q"
+          autoComplete="off"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder={`Search ${auctionType.toLowerCase()} auctions`}
-          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+          placeholder="e.g. Porsche 911…"
+          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-950 placeholder:text-slate-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
         />
       </label>
       <label className="block sm:w-48 sm:shrink-0">
         <span className="sr-only">Sort auctions</span>
         <select
+          name="sort"
           value={sort}
           onChange={(event) => onSortChange(event.target.value as AuctionSort)}
-          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-3 pr-8 text-sm text-slate-950 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-3 pr-8 text-sm text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
         >
           {auctionSortOptions.map(({ value, label }) => (
             <option key={value} value={value}>

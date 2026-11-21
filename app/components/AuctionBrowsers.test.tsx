@@ -6,19 +6,21 @@ import type { PublicListing } from "@/app/libs/listing-payload";
 import { makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 import AuctionBrowser from "@/app/(site)/components/AuctionBrowser";
 
-const navigation = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
-
 vi.mock("next/navigation", async () => {
-  const { useSyncExternalStore } = await import("react");
+  const { startTransition, useEffect, useState } = await import("react");
   return {
-    useRouter: () => navigation,
-    useSearchParams: () => new URLSearchParams(useSyncExternalStore(
-      (notify) => {
-        window.addEventListener("popstate", notify);
-        return () => window.removeEventListener("popstate", notify);
-      },
-      () => window.location.search,
-    )),
+    useSearchParams: function useMockSearchParams() {
+      const [search, setSearch] = useState(() => window.location.search);
+      useEffect(() => {
+        function syncSearch() {
+          const nextSearch = window.location.search;
+          startTransition(() => setSearch(nextSearch));
+        }
+        window.addEventListener("popstate", syncSearch);
+        return () => window.removeEventListener("popstate", syncSearch);
+      }, []);
+      return new URLSearchParams(search);
+    },
   };
 });
 
@@ -35,10 +37,6 @@ const listings = [
 ];
 
 beforeEach(() => {
-  navigation.push.mockReset();
-  navigation.replace.mockReset();
-  navigation.push.mockImplementation((href: string) => window.history.pushState(null, "", href));
-  navigation.replace.mockImplementation((href: string) => window.history.replaceState(null, "", href));
   window.history.replaceState(null, "", "/");
   // Emulate Next.js notifying useSearchParams after native history updates.
   for (const method of ["pushState", "replaceState"] as const) {
@@ -69,7 +67,7 @@ describe("URL-driven auction browsers", () => {
     expect(noReserve.getAttribute("aria-selected")).toBe("false");
     expect(screen.getAllByRole("listitem")).toHaveLength(3);
     fireEvent.click(noReserve);
-    expect(navigation.push).toHaveBeenLastCalledWith("/?status=no_reserve", { scroll: false });
+    expect(window.history.pushState).toHaveBeenLastCalledWith(null, "", "/?status=no_reserve");
     expect(new URLSearchParams(window.location.search).get("status")).toBe("no_reserve");
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Porsche 911"]);
 
@@ -83,8 +81,13 @@ describe("URL-driven auction browsers", () => {
     window.history.replaceState(null, "", "/?status=live&q=Porsche&sort=bid-high#auctions");
     render(<AuctionBrowser listings={listings} />);
     expect(screen.getByRole("tab", { name: /Live/ }).getAttribute("aria-selected")).toBe("true");
-    expect(screen.getByRole("searchbox")).toHaveProperty("value", "Porsche");
-    expect(screen.getByRole("combobox", { name: "Sort auctions" })).toHaveProperty("value", "bid-high");
+    const search = screen.getByRole("searchbox", { name: /search live auctions/i });
+    expect(search).toHaveProperty("value", "Porsche");
+    expect(search.getAttribute("name")).toBe("q");
+    expect(search.getAttribute("autocomplete")).toBe("off");
+    const sort = screen.getByRole("combobox", { name: "Sort auctions" });
+    expect(sort).toHaveProperty("value", "bid-high");
+    expect(sort.getAttribute("name")).toBe("sort");
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Porsche 911"]);
   });
 
@@ -113,7 +116,7 @@ describe("URL-driven auction browsers", () => {
     expect(upcoming.tabIndex).toBe(0);
     expect(live.tabIndex).toBe(-1);
     expect(live.getAttribute("aria-selected")).toBe("true");
-    expect(navigation.push).not.toHaveBeenCalled();
+    expect(window.history.pushState).not.toHaveBeenCalled();
 
     act(() => screen.getByRole("searchbox").focus());
     expect(live.tabIndex).toBe(0);
@@ -144,7 +147,7 @@ describe("URL-driven auction browsers", () => {
     render(<AuctionBrowser listings={listings} />);
     fireEvent.click(screen.getByRole("tab", { name: /Live/ }));
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "bid-low" } });
-    expect(navigation.push).toHaveBeenLastCalledWith("/?utm_source=share&status=live&sort=bid-low#auctions", { scroll: false });
+    expect(window.history.pushState).toHaveBeenLastCalledWith(null, "", "/?utm_source=share&status=live&sort=bid-low#auctions");
     expect(window.location.search).toBe("?utm_source=share&status=live&sort=bid-low");
     expect(window.location.hash).toBe("#auctions");
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(["BMW M3", "Porsche 911"]);
@@ -156,9 +159,13 @@ describe("URL-driven auction browsers", () => {
     await waitFor(() => expect(screen.getByRole("combobox")).toHaveProperty("value", "bid-low"));
 
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "BMW & MINI" } });
-    expect(navigation.replace).toHaveBeenLastCalledWith(expect.any(String), { scroll: false });
+    expect(window.history.replaceState).toHaveBeenLastCalledWith(null, "", "/?utm_source=share&status=live&sort=bid-low&q=BMW+%26+MINI#auctions");
     expect(new URLSearchParams(window.location.search).get("q")).toBe("BMW & MINI");
     expect(screen.getByText("No auctions found")).toBeDefined();
+    act(() => window.history.back());
+    await waitFor(() => expect(screen.getByRole("searchbox")).toHaveProperty("value", ""));
+    act(() => window.history.forward());
+    await waitFor(() => expect(screen.getByRole("searchbox")).toHaveProperty("value", "BMW & MINI"));
     fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
     expect(new URLSearchParams(window.location.search).has("q")).toBe(false);
     expect(screen.getByRole("combobox")).toHaveProperty("value", "bid-low");
