@@ -4,6 +4,8 @@
 
 :root {
   --preview-banner-height: 2.5rem;
+  --site-nav-height: 4rem;
+  --site-header-height: calc(var(--preview-banner-height) + var(--site-nav-height) + 1px);
 }
 
 @media (min-width: 640px) {
@@ -13,12 +15,17 @@
 }
 
 html,
-body,
-:root {
+body {
   background-color: #fafaf9;
   color: #101720;
-  scroll-behavior: smooth;
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 body {
   min-height: 100vh;
 }

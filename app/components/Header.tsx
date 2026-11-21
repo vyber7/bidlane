@@ -94,7 +94,7 @@ function Header({ auctionStatus = "LIVE" }: { auctionStatus?: AuctionStatus }) {
       className="fixed inset-x-0 top-[var(--preview-banner-height)] z-[100] border-b border-slate-200/90 bg-white/95 shadow-[0_1px_2px_rgba(15,23,42,0.04)] backdrop-blur"
     >
       <nav
-        className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8"
+        className="mx-auto flex h-[var(--site-nav-height)] max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8"
         aria-label="Primary navigation"
       >
         <Link
@@ -234,7 +234,7 @@ function Header({ auctionStatus = "LIVE" }: { auctionStatus?: AuctionStatus }) {
         id={`${id}-mobile`}
         aria-label="Mobile navigation"
         hidden={!mobileOpen}
-        className="max-h-[calc(100dvh-4rem-var(--preview-banner-height))] overflow-y-auto overscroll-y-contain border-t border-slate-200 bg-white px-4 py-4 lg:hidden"
+        className="max-h-[calc(100dvh-var(--site-header-height))] overflow-y-auto overscroll-y-contain border-t border-slate-200 bg-white px-4 py-4 lg:hidden"
       >
         {user && (
           <div className="mb-3 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
