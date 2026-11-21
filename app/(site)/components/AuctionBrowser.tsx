@@ -37,9 +37,11 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
     status,
     q: query,
     sort,
+    page,
     setQuery,
     setStatus,
     setSort,
+    setPage,
   } = useAuctionFilters();
 
   const browserId = useId();
@@ -178,7 +180,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
         >
           {id === activeTab && (
             resultCount > 0 ? (
-              <Listings listings={visibleListings} currentUserId={currentUserId} />
+              <Listings listings={visibleListings} currentUserId={currentUserId} page={page} onPageChange={setPage} />
             ) : (
               <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center">
                 <FiSearch aria-hidden="true" className="mx-auto text-2xl text-slate-400" />

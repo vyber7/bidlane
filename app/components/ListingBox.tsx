@@ -10,7 +10,7 @@ import { FaRegClock } from "react-icons/fa";
 import { useId } from "react";
 import type { PublicListing } from "@/app/libs/listing-payload";
 import useAuction from "../hooks/useAuction";
-import { capitalize, formatAmount } from "../utils/format";
+import { capitalize, formatBid } from "../utils/format";
 import { clsx } from "clsx";
 import { CldImage } from "next-cloudinary";
 import useWatchlist from "../hooks/useWatchlist";
@@ -102,11 +102,11 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
             <div>
               {listing.result === "SOLD" ? (
                 <span>
-                  Sold for <b>{bid !== null ? `$${formatAmount(bid)}` : "—"}</b>
+                  Sold for <b>{bid !== null ? formatBid(bid) : "—"}</b>
                 </span>
               ) : bid !== null ? (
                 <span>
-                  Bid to <b>${formatAmount(bid)}</b>
+                  Bid to <b>{formatBid(bid)}</b>
                 </span>
               ) : (
                 <span>No bids were placed</span>
@@ -127,11 +127,11 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
               <span aria-live="polite" aria-atomic="true">
                 <span className="sr-only">{title}: </span>
                 {bid !== null ? (
-                  <>Bid <b>${formatAmount(bid)}</b></>
+                  <>Bid <b>{formatBid(bid)}</b></>
                 ) : (
                   <>
                     Starting at{" "}
-                    <b>{listing.startingBid !== null ? `$${formatAmount(listing.startingBid)}` : "To be announced"}</b>
+                    <b>{listing.startingBid !== null ? formatBid(listing.startingBid) : "To be announced"}</b>
                   </>
                 )}
               </span>

@@ -24,10 +24,8 @@ vi.mock("next/navigation", async () => {
   };
 });
 
-vi.mock("./Listings", () => ({
-  default: ({ listings }: { listings: PublicListing[] }) => (
-    <ul>{listings.map((listing) => <li key={listing.id}>{listing.make} {listing.model}</li>)}</ul>
-  ),
+vi.mock("./ListingBox", () => ({
+  default: ({ listing }: { listing: PublicListing }) => <>{listing.make} {listing.model}</>,
 }));
 
 const listings = [
@@ -169,6 +167,26 @@ describe("URL-driven auction browsers", () => {
     fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
     expect(new URLSearchParams(window.location.search).has("q")).toBe(false);
     expect(screen.getByRole("combobox")).toHaveProperty("value", "bid-low");
+  });
+
+  it("limits mounted cards per page and keeps pagination in the shareable URL", async () => {
+    window.history.replaceState(null, "", "/?status=live&page=2#auctions");
+    render(<AuctionBrowser listings={Array.from({ length: 53 }, (_, index) =>
+      makeListing({ id: String(index), make: "BMW", model: `Car ${index}` }),
+    )} />);
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(24);
+    expect(screen.getByText("Page 2 of 3")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Next Page" }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(5);
+    expect(window.location.search).toBe("?status=live&page=3");
+    expect(window.location.hash).toBe("#auctions");
+
+    act(() => window.history.back());
+    await waitFor(() => expect(screen.getByText("Page 2 of 3")).toBeDefined());
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "bid-low" } });
+    expect(screen.getByText("Page 1 of 3")).toBeDefined();
+    expect(new URLSearchParams(window.location.search).has("page")).toBe(false);
   });
 
   it.each([
