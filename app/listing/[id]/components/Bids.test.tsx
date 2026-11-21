@@ -6,13 +6,13 @@ import { AuctionProvider } from "@/app/context/AuctionContext";
 import { auctionNow, makeBid, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 import Bids from "./Bids";
 
-const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn() }));
+const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn(), useSession: vi.fn() }));
 vi.mock("axios", async (importOriginal) => {
   const actual = await importOriginal<typeof import("axios")>();
   return { ...actual, default: { ...actual.default, post: mocks.post } };
 });
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
-vi.mock("next-auth/react", () => ({ useSession: () => ({ data: { user: { name: "Buyer" } } }) }));
+vi.mock("next-auth/react", () => ({ useSession: mocks.useSession }));
 vi.mock("react-hot-toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/app/hooks/usePusherEvent", () => ({ default: vi.fn() }));
 
@@ -20,6 +20,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(auctionNow);
   vi.clearAllMocks();
+  mocks.useSession.mockReturnValue({ data: { user: { name: "Buyer" } } });
   mocks.post.mockResolvedValue({ data: {
     bid: makeBid(), currentBid: 12000,
     auctionEndsAt: new Date(auctionNow.getTime() + 120000).toISOString(),
@@ -39,6 +40,17 @@ async function reviewBid(amount = "12000") {
 }
 
 describe("bid review", () => {
+  it("links signed-out bidders back to this auction and shows a closing time with a time zone", () => {
+    mocks.useSession.mockReturnValue({ data: null });
+    const listing = makeListing();
+    const { container } = render(view(listing));
+    const href = screen.getByRole("link", { name: "Sign In to Bid" }).getAttribute("href")!;
+    expect(new URL(href, "https://bidlane.invalid").searchParams.get("callbackUrl")).toBe(`/listing/${listing.id}#bids`);
+    const time = container.querySelector("time");
+    expect(time?.dateTime).toBe(listing.auctionEndsAt?.toISOString());
+    expect(time?.textContent).toContain("UTC");
+  });
+
   it("guides an unverified bidder to verification and disables new bids", () => {
     render(<AuctionProvider listing={makeListing()} bids={[]} comments={[]}><Bids currentUserId="buyer" emailVerified={false} /></AuctionProvider>);
     expect(screen.getByRole("link", { name: "Verify email in your profile" }).getAttribute("href")).toBe("/account/profile");

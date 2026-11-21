@@ -74,6 +74,16 @@ describe("POST /api/auction-start", () => {
     });
   });
 
+  it("rejects a closing time with no time zone before querying the listing", async () => {
+    const response = await POST(request({
+      listingId, startingBid: 0, bidIncrement: 10, endTime: "2026-09-05T12:00",
+    }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Choose an end time with a time zone." });
+    expect(mocks.findUnique).not.toHaveBeenCalled();
+  });
+
   it("allows only the seller to start an upcoming auction", async () => {
     mocks.findUnique.mockResolvedValue({ userId: "another-seller", status: "UPCOMING" });
 

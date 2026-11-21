@@ -19,18 +19,19 @@ import { validationMessage } from "@/app/schemas/common";
 
 type Variant = "LOGIN" | "REGISTER";
 
-const AuthForm = () => {
+const AuthForm = ({ callbackUrl }: { callbackUrl?: string }) => {
   const session = useSession();
   const router = useRouter();
   const [variant, setVariant] = useState<Variant>("LOGIN");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const returnOptions = callbackUrl ? { callbackUrl } : {};
 
   useEffect(() => {
     if (session?.status === "authenticated") {
-      router.push("/");
+      router.push(callbackUrl ?? "/");
     }
-  }, [session?.status, router]);
+  }, [session?.status, router, callbackUrl]);
 
   const toggleVariant = () => {
     clearErrors();
@@ -65,7 +66,7 @@ const AuthForm = () => {
       setIsLoading(true);
       axios
         .post("/api/register", result.data)
-        .then(() => signIn("credentials", { ...result.data }))
+        .then(() => signIn("credentials", { ...result.data, ...returnOptions }))
         .catch((error: unknown) => toast.error(getApiErrorMessage(error, "Unable to create account. Please try again.")))
         .finally(() => setIsLoading(false));
     }
@@ -74,6 +75,7 @@ const AuthForm = () => {
       setIsLoading(true);
       signIn("credentials", {
         ...data,
+        ...returnOptions,
         redirect: false,
       })
         .then((response) => {
@@ -91,7 +93,7 @@ const AuthForm = () => {
 
   const socialAction = (action: string) => {
     setIsLoading(true);
-    signIn(action, { redirect: false })
+    signIn(action, { redirect: false, ...returnOptions })
       .then((response) => {
         if (response?.error) {
           toast.error("Something went wrong!");

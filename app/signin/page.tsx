@@ -33,10 +33,18 @@ const features = [
   },
 ];
 
+function localCallbackPath(value: string | string[] | undefined) {
+  if (typeof value !== "string" || !value.startsWith("/")) return undefined;
+  const origin = "https://bidlane.invalid";
+  const url = URL.parse(value, origin);
+  if (!url || url.origin !== origin || url.pathname.startsWith("//") || /^\/signin\/?$/.test(url.pathname)) return undefined;
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 export default async function SignIn({ searchParams }: {
-  searchParams: Promise<{ error?: string | string[] }>;
+  searchParams: Promise<{ error?: string | string[]; callbackUrl?: string | string[] }>;
 }) {
-  const { error } = await searchParams;
+  const { error, callbackUrl } = await searchParams;
   const rateLimited = typeof error === "string" && /^RateLimited(?::\d+)?$/.test(error);
   return (
     <div className="flex min-h-screen flex-col bg-stone-50">
@@ -128,7 +136,7 @@ export default async function SignIn({ searchParams }: {
             </p>
           )}
           {(rateLimited || error === "AuthUnavailable" || error === "RequestTooLarge") && <p role="alert" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">{rateLimited ? "Too many sign-in attempts. Please wait before trying again." : error === "RequestTooLarge" ? "The sign-in request is too large." : "Sign-in is temporarily unavailable. Please try again later."}</p>}
-          <AuthForm />
+          <AuthForm callbackUrl={localCallbackPath(callbackUrl)} />
         </section>
       </div>
 

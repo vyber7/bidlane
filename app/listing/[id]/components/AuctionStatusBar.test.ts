@@ -36,6 +36,19 @@ afterEach(() => {
 });
 
 describe("auction expiry controls", () => {
+  it("announces price and status changes while leaving countdown ticks quiet", () => {
+    const listing = makeListing();
+    const { rerender } = render(auction(listing));
+    const liveRegion = screen.getByRole("status");
+    expect(liveRegion.textContent).toContain("Live auction. Starting bid $10,000.");
+    act(() => vi.advanceTimersByTime(1000));
+    expect(liveRegion.textContent).toContain("Live auction. Starting bid $10,000.");
+    rerender(auction({ ...listing, currentBid: 12000 }));
+    expect(liveRegion.textContent).toContain("Current bid $12,000.");
+    rerender(auction({ ...listing, currentBid: 12000, status: "ENDED", result: "SOLD" }));
+    expect(liveRegion.textContent).toContain("Auction ended. Sold for $12,000.");
+  });
+
   it.each([
     ["seller", "View sale details"],
     ["buyer", "View purchase details"],

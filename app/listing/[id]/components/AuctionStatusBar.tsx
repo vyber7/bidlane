@@ -103,9 +103,15 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   const label = ended
     ? listing.result === "SOLD" ? "Sold for" : bid !== null ? "Highest bid" : "No bids placed"
     : bid !== null ? "Current bid" : "Starting bid";
+  const statusLabel = ended ? "Auction ended" : live ? expired ? "Finalizing auction results" : "Live auction" : "Coming soon";
+  const amountLabel = ended && bid === null ? null : amount !== null ? `$${formatAmount(amount)}` : null;
 
   return (
     <section className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
+      <p role="status" aria-atomic="true" className="sr-only">
+        {statusLabel}. {amountLabel ? `${label} ${amountLabel}.` : ended ? "No bids placed." : "Bid amount to be announced."}
+        {ended && listing.result === "RESERVE_NOT_MET" ? " Reserve not met." : ""}
+      </p>
       {live && <ProgressBar remainingMs={remainingMs} />}
       <div className="space-y-4 p-5 sm:space-y-6 sm:p-6">
         <div className="flex items-center justify-between gap-3">
@@ -128,7 +134,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
         )}
         <div>
           <p className="mb-2 text-sm text-slate-400">{label}</p>
-          <p className="text-4xl font-bold tracking-tight tabular-nums">{ended && bid === null ? "—" : amount !== null ? `$${formatAmount(amount)}` : "To be announced"}</p>
+          <p className="text-4xl font-bold tracking-tight tabular-nums">{amountLabel ?? (ended ? "—" : "To be announced")}</p>
           {ended && listing.result === "RESERVE_NOT_MET" && <p className="mt-2 text-sm text-amber-400">Reserve not met</p>}
         </div>
         {live && <div className="flex items-center justify-between gap-3 border-y border-white/10 py-4 text-sm">
