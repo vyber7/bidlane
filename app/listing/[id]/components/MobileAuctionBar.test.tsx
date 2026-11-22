@@ -47,7 +47,8 @@ describe("mobile auction quick actions", () => {
 
     act(() => vi.advanceTimersByTime(120000));
     expect(screen.queryByRole("link")).toBeNull();
-    expect(screen.getByRole("status").textContent).toBe("Finalizing…");
+    expect(screen.getByText("Finalizing…")).toBeDefined();
+    expect(screen.queryByRole("status")).toBeNull();
 
     rerender(view({ ...updated, status: "ENDED", result: "SOLD" }));
     expect(screen.queryByRole("region", { name: "Live auction quick actions" })).toBeNull();

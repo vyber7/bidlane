@@ -4,7 +4,7 @@ import Link from "next/link";
 import { GoTrash } from "react-icons/go";
 import Image from "next/image";
 import type { PublicListing, SellerListing } from "@/app/libs/listing-payload";
-import { formatAmount } from "@/app/utils/format";
+import { formatAmount, formatBid } from "@/app/utils/format";
 import clsx from "clsx";
 import { FiArrowUpRight, FiClock, FiEye, FiMapPin } from "react-icons/fi";
 import useAuction from "@/app/hooks/useAuction";
@@ -56,7 +56,7 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
     <article className="p-4 transition-colors hover:bg-gray-50 sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row">
         <Link
-          className="relative h-48 w-full shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:h-32 sm:w-52"
+          className="relative h-48 w-full shrink-0 overflow-hidden rounded-lg bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 sm:h-32 sm:w-52"
           href={`/listing/${listing.id}`}
         >
           {listing.coverImage ? (
@@ -65,7 +65,7 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
               alt={`${listing.year} ${listing.make} ${listing.model}`}
               fill
               sizes="(min-width: 640px) 208px, calc(100vw - 64px)"
-              className="object-cover transition-transform duration-300 hover:scale-105"
+              className="object-cover hover:opacity-90 motion-safe:transition-transform motion-safe:duration-300 motion-safe:hover:scale-105"
               crop="fill"
             />
           ) : (
@@ -74,7 +74,7 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
               alt={`${listing.year} ${listing.make} ${listing.model}`}
               fill
               sizes="(min-width: 640px) 208px, calc(100vw - 64px)"
-              className="object-cover"
+              className="object-cover hover:opacity-90"
             />
           )}
         </Link>
@@ -82,13 +82,13 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="mb-1 flex items-center gap-2">
+              <div className="mb-1 flex flex-wrap items-center gap-2">
                 {uploaded && listing.status === "UPCOMING" && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">{reviewLabels[listing.reviewStatus ?? "PENDING"]}</span>}
                 <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-inset ${status.classes}`}>
                   {status.label}
                 </span>
-                <span className="flex items-center gap-1 text-xs text-gray-400">
-                  <FiEye /> {formatAmount(listing.views)}
+                <span className="flex items-center gap-1 text-xs tabular-nums text-gray-600">
+                  <FiEye aria-hidden="true" /> <span className="sr-only">Views:</span> {formatAmount(listing.views)}
                 </span>
               </div>
               <Link href={`/listing/${listing.id}`} className="hover:underline">
@@ -96,20 +96,20 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
                   {listing.year} {listing.make} {listing.model}
                 </h3>
               </Link>
-              <p className="mt-1 flex items-center gap-1 truncate text-sm text-gray-500">
-                <FiMapPin className="shrink-0" /> {listing.location}
+              <p className="mt-1 flex items-center gap-1 text-sm text-gray-500">
+                <FiMapPin aria-hidden="true" className="shrink-0" /> <span className="min-w-0 truncate">{listing.location}</span>
               </p>
             </div>
             {!uploaded && (
               <button
                 type="button"
-                className="rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-wait disabled:opacity-50"
+                className="shrink-0 rounded-lg p-2 text-gray-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:cursor-wait disabled:opacity-50"
                 onClick={toggle}
                 disabled={isUpdating}
-                aria-label="Remove from watchlist"
-                title="Remove from watchlist"
+                aria-label="Remove from Watchlist"
+                title="Remove from Watchlist"
               >
-                <GoTrash />
+                <GoTrash aria-hidden="true" />
               </button>
             )}
           </div>
@@ -120,16 +120,16 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
           {uploaded && listing.reviewNote && <p className="mt-2 whitespace-pre-wrap break-words text-sm text-amber-800">{listing.reviewNote}</p>}
 
           <div className="mt-4 flex flex-wrap items-end justify-between gap-4 border-t border-gray-100 pt-3">
-            <div className="flex gap-6">
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
               <div>
                 <p className="text-xs text-gray-500">{amountLabel}</p>
-                <p className="mt-0.5 text-sm font-bold text-gray-950">
-                  {amount !== null ? `$${formatAmount(amount)}` : "No bids yet"}
+                <p className="mt-0.5 text-sm font-bold tabular-nums text-gray-950">
+                  {amount !== null ? formatBid(amount) : "No bids yet"}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Mileage</p>
-                <p className="mt-0.5 text-sm font-bold text-gray-950">
+                <p className="mt-0.5 text-sm font-bold tabular-nums text-gray-950">
                   {formatAmount(listing.miles)} mi
                 </p>
               </div>
@@ -138,11 +138,11 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
                   <p className="text-xs text-gray-500">Time left</p>
                   <p
                     className={clsx(
-                      "mt-0.5 flex items-center gap-1 text-sm font-bold",
+                      "mt-0.5 flex items-center gap-1 text-sm font-bold tabular-nums",
                       expired ? "text-red-600" : "text-gray-950"
                     )}
                   >
-                    <FiClock /> {timeLeft || "Calculating…"}
+                    <FiClock aria-hidden="true" /> {timeLeft || "Calculating…"}
                   </p>
                 </div>
               )}
@@ -151,7 +151,7 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
               href={uploaded && listing.status === "ENDED" && listing.result === "SOLD" ? `/account/shipments#transaction-${listing.id}` : `/listing/${listing.id}`}
               className="inline-flex items-center gap-1 text-sm font-bold text-gray-950 hover:underline"
             >
-              {uploaded && listing.status === "ENDED" && listing.result === "SOLD" ? "Complete transaction" : "View listing"} <FiArrowUpRight />
+              {uploaded && listing.status === "ENDED" && listing.result === "SOLD" ? "Complete Transaction" : "View Listing"} <FiArrowUpRight aria-hidden="true" />
             </Link>
           </div>
         </div>

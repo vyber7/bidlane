@@ -3,26 +3,23 @@
 import { getApiErrorMessage } from "@/app/utils/api-error";
 
 import axios from "axios";
-import { SubmitHandler, useForm } from "react-hook-form";
-import CommentInput from "./CommentInput";
-import { MdSend } from "react-icons/md";
-
-import toast from "react-hot-toast";
-import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useForm, type SubmitHandler } from "react-hook-form";
+import { useId, useRef, useState } from "react";
+import { FiLoader } from "react-icons/fi";
 import { logger } from "@/app/libs/logger";
 import { useAuctionContext } from "@/app/context/AuctionContext";
 import type { CommentResponse } from "@/app/types/auction-events";
 import type { CommentFormValues } from "@/app/types/forms";
+import { commentRequestSchema, MAX_COMMENT_LENGTH } from "@/app/schemas/auction";
+import { validationMessage } from "@/app/schemas/common";
 
-interface FormProps {
-  listingId: string;
-}
-
-const Form: React.FC<FormProps> = ({ listingId }) => {
-  const { data } = useSession();
+export default function CommentForm({ listingId }: { listingId: string }) {
   const { acceptComment } = useAuctionContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [postError, setPostError] = useState("");
+  const [posted, setPosted] = useState(false);
+  const submitting = useRef(false);
+  const inputId = useId();
 
   const {
     register,
@@ -36,52 +33,67 @@ const Form: React.FC<FormProps> = ({ listingId }) => {
   });
 
   const onSubmit: SubmitHandler<CommentFormValues> = async (formData) => {
+    if (submitting.current) return;
+    submitting.current = true;
+    setPostError("");
+    setPosted(false);
     setIsSubmitting(true);
     try {
       const response = await axios.post<CommentResponse>("/api/comments", { ...formData, listingId });
       acceptComment(response.data.comment);
       reset({ comment: "" });
+      setPosted(true);
     } catch (error) {
       logger.error("comment.create_client_failed", error, { listingId });
-      toast.error(getApiErrorMessage(error, "The comment could not be posted. Please try again."));
+      setPostError(getApiErrorMessage(error, "The comment could not be posted. Please try again."));
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   };
 
   return (
     <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="relative border flex border-gray-300 rounded-md mb-2 md:mb-4 has-[:focus]:ring has-[:focus]:ring-blue-500 hover:ring hover:ring-blue-500"
+      onSubmit={(event) => {
+        if (submitting.current) {
+          event.preventDefault();
+          return;
+        }
+        void handleSubmit(onSubmit, () => {
+          setPostError("");
+          setPosted(false);
+        })(event);
+      }}
+      className="space-y-2"
     >
-      <CommentInput
-        id="comment"
-        register={register}
-        errors={errors}
-        required
-        placeholder="Leave a comment"
+      <label htmlFor={inputId} className="block text-sm font-semibold text-slate-950">Your Comment</label>
+      <textarea
+        id={inputId}
+        rows={3}
+        autoComplete="off"
+        maxLength={MAX_COMMENT_LENGTH}
+        readOnly={isSubmitting}
+        aria-required="true"
+        aria-invalid={Boolean(errors.comment)}
+        aria-describedby={errors.comment || postError ? `${inputId}-error` : undefined}
+        {...register("comment", {
+          validate: (value) => validationMessage(commentRequestSchema.shape.comment, value),
+        })}
+        className="block w-full scroll-mt-[calc(var(--site-header-height)+1rem)] rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 aria-[invalid=true]:border-rose-600"
       />
-      {data ? (
-        <button type="submit" className="px-2" disabled={isSubmitting}>
-          <MdSend className="text-2xl" />
-        </button>
-      ) : (
-        <>
-          <button
-            type="submit"
-            className="px-2 text-blue-500 hover:text-blue-600 peer"
-            disabled
-          >
-            <MdSend className="text-2xl" />
-          </button>
-
-          <div className="hidden absolute right-0 -top-7 md:-top-10 text-rose-500 peer-hover:block">
-            Please, log in
-          </div>
-        </>
+      {(errors.comment || postError) && (
+        <p id={`${inputId}-error`} role="alert" className="text-sm text-rose-700">
+          {errors.comment?.message || postError}
+        </p>
       )}
+      <button
+        type="submit"
+        aria-disabled={isSubmitting}
+        className="inline-flex items-center gap-2 rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 aria-disabled:cursor-wait aria-disabled:opacity-60"
+      >
+        {isSubmitting ? <><FiLoader aria-hidden="true" className="animate-spin motion-reduce:animate-none" /> Posting…</> : "Post Comment"}
+      </button>
+      <p role="status" className="sr-only">{isSubmitting ? "Posting comment…" : posted ? "Comment posted." : ""}</p>
     </form>
   );
-};
-
-export default Form;
+}

@@ -10,7 +10,12 @@ const Profile = async () => {
   return (
     <div className="space-y-5">
       <EmailVerification verified={Boolean(currentUser.emailVerified)} />
-      <Link href={`/sellers/${currentUser.id}`} className="inline-block text-sm font-bold underline">View your public seller profile</Link>
+      <Link
+        href={`/sellers/${currentUser.id}`}
+        className="inline-block rounded-sm text-sm font-bold underline underline-offset-2 hover:text-slate-700 hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+      >
+        View Your Public Seller Profile
+      </Link>
       <ProfileEditor
         user={{
           name: currentUser.name ?? "",

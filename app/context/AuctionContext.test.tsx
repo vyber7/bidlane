@@ -13,12 +13,15 @@ import ListingBox from "@/app/components/ListingBox";
 import FeaturedAuction from "@/app/(site)/components/FeaturedAuction";
 import { auctionNow, makeBid, makeComment, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 
-const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn() }));
+const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn(), search: "" }));
 vi.mock("axios", async (importOriginal) => {
   const actual = await importOriginal<typeof import("axios")>();
   return { ...actual, default: { ...actual.default, post: mocks.post } };
 });
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: mocks.refresh }),
+  useSearchParams: () => new URLSearchParams(mocks.search),
+}));
 vi.mock("next-auth/react", () => ({ useSession: () => ({ data: { user: { name: "Buyer" } } }) }));
 vi.mock("react-hot-toast", () => ({ default: { success: vi.fn(), error: vi.fn() }, toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/app/hooks/usePusherEvent", () => ({ default: vi.fn() }));
@@ -30,6 +33,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(auctionNow);
   vi.clearAllMocks();
+  mocks.search = "";
   mocks.post.mockResolvedValue({ data: {} });
 });
 
@@ -69,7 +73,7 @@ describe("shared auction views", () => {
       <AuctionProvider listing={listing} bids={[]} comments={[]}>
         <AuctionStatusBar currentUser="buyer" />
         <Bids sellerName="Seller" currentUserId="buyer" emailVerified />
-        <Comments />
+        <Comments signedIn />
       </AuctionProvider>
     );
     const input = screen.getByRole("spinbutton", { name: "Your bid amount in dollars" });
@@ -90,7 +94,7 @@ describe("shared auction views", () => {
       <AuctionProvider listing={updated} bids={bids} comments={comments}>
         <AuctionStatusBar currentUser="buyer" />
         <Bids sellerName="Seller" currentUserId="buyer" emailVerified />
-        <Comments />
+        <Comments signedIn />
       </AuctionProvider>
     );
     const { rerender } = render(view());
@@ -122,9 +126,9 @@ describe("shared auction views", () => {
   });
 
   it("lets refreshed watchlist data reach its auction cards", () => {
+    mocks.search = "tab=watching";
     const listing = makeListing({ currentBid: 12000 });
     const { rerender } = render(<ListingsDashboard uploaded={[]} initialWatching={[listing]} currentUserId="buyer" />);
-    fireEvent.click(screen.getByRole("tab", { name: /Watchlist/ }));
     expect(screen.getByText("$12,000")).toBeDefined();
     rerender(<ListingsDashboard uploaded={[]} initialWatching={[{ ...listing, currentBid: 15000 }]} currentUserId="buyer" />);
     expect(screen.getByText("$15,000")).toBeDefined();
@@ -156,7 +160,7 @@ describe("shared auction views", () => {
   it.each([null, "", "   "])("renders anonymous comments safely for a missing author name (%s)", (name) => {
     render(
       <AuctionProvider listing={makeListing()} bids={[]} comments={[makeComment({ user: { name } })]}>
-        <Comments />
+        <Comments signedIn />
       </AuctionProvider>
     );
     expect(screen.getByText("User")).toBeDefined();
@@ -166,10 +170,79 @@ describe("shared auction views", () => {
   it("renders comments whose author record has been removed", () => {
     render(
       <AuctionProvider listing={makeListing()} bids={[]} comments={[makeComment({ user: null })]}>
-        <Comments />
+        <Comments signedIn />
       </AuctionProvider>
     );
     expect(screen.getByText("User")).toBeDefined();
+  });
+
+  it("offers signed-out visitors a return link and shows an empty activity state", () => {
+    const listing = makeListing();
+    render(
+      <AuctionProvider listing={listing} bids={[]} comments={[]}>
+        <Comments signedIn={false} />
+      </AuctionProvider>
+    );
+    const href = screen.getByRole("link", { name: "Sign In to Comment" }).getAttribute("href")!;
+    expect(new URL(href, "https://bidlane.invalid").searchParams.get("callbackUrl")).toBe(`/listing/${listing.id}#comments`);
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.getByText("No comments or bids yet.")).toBeDefined();
+  });
+
+  it("validates comments inline, preserves failed drafts, and announces a successful retry", async () => {
+    render(
+      <AuctionProvider listing={makeListing()} bids={[]} comments={[]}>
+        <Comments signedIn />
+      </AuctionProvider>
+    );
+    const input = screen.getByRole("textbox", { name: "Your Comment" });
+    const form = input.closest("form")!;
+    await act(async () => { fireEvent.submit(form); });
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById(input.getAttribute("aria-describedby")!)?.textContent).toBe("Comment is required");
+    expect(document.activeElement).toBe(input);
+    expect(mocks.post).not.toHaveBeenCalled();
+
+    const body = "Do you have service records?\nThanks!";
+    fireEvent.change(input, { target: { value: body } });
+    mocks.post.mockRejectedValueOnce({ isAxiosError: true, response: { data: { error: "Please try again shortly." } } });
+    await act(async () => { fireEvent.submit(form); });
+    expect(screen.getByRole("alert").textContent).toBe("Please try again shortly.");
+    expect(input).toHaveProperty("value", body);
+
+    let finish!: (response: unknown) => void;
+    mocks.post.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+    await act(async () => { fireEvent.submit(form); });
+    expect(screen.getByRole("button", { name: "Posting…" }).getAttribute("aria-disabled")).toBe("true");
+    expect(input).toHaveProperty("readOnly", true);
+    await act(async () => { fireEvent.submit(form); });
+    expect(mocks.post).toHaveBeenCalledTimes(2);
+    expect(mocks.post).toHaveBeenLastCalledWith("/api/comments", { listingId: makeListing().id, comment: body });
+    await act(async () => { finish({ data: { comment: makeComment({ body }) } }); });
+    expect(screen.getByRole("status").textContent).toBe("Comment posted.");
+    expect(screen.getByRole("listitem").textContent).toContain(body);
+    expect(input).toHaveProperty("value", "");
+  });
+
+  it("reveals older activity in batches and moves focus to the first newly shown entry", () => {
+    const comments = Array.from({ length: 26 }, (_, index) => makeComment({
+      id: `comment-${index}`,
+      body: `Comment ${index + 1}`,
+      createdAt: new Date(Date.UTC(2026, 8, 4, 0, 10) - index * 1000).toISOString(),
+    }));
+    render(
+      <AuctionProvider listing={makeListing()} bids={[]} comments={[...comments].reverse()}>
+        <Comments signedIn={false} />
+      </AuctionProvider>
+    );
+    const entries = screen.getAllByRole("listitem");
+    expect(entries).toHaveLength(25);
+    expect(entries[0].querySelector("time")?.dateTime).toBe("2026-09-04T00:10:00.000Z");
+    expect(entries[0].querySelector("time")?.textContent).toBe("Sep 4, 2026");
+    expect(screen.queryByText("Comment 26")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show Older Activity" }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(26);
+    expect(document.activeElement?.textContent).toContain("Comment 26");
   });
 
   it.each(["startingBid", "bidIncrement", "auctionStartsAt", "auctionEndsAt"] as const)("disables bidding when %s is absent", async (field) => {

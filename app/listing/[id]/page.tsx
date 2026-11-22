@@ -23,7 +23,6 @@ import { canViewListing, isPublicListing, reviewLabels } from "@/app/libs/listin
 import { toPublicListing, toSellerListing } from "@/app/libs/listing-payload";
 import VehicleHistory from "@/app/components/VehicleHistory";
 import { vehicleSpecificationFields } from "@/app/libs/vehicle-details";
-import LiveAuctionsSidebar from "./components/LiveAuctionsSidebar";
 
 export const metadata: Metadata = {
   title: "BidLane | Vehicle Auction",
@@ -56,12 +55,12 @@ const Listing = async (props: Params) => {
 
   return (
     <AuctionProvider key={id} listing={toPublicListing(listing, currentUser?.id)} bids={bids} comments={comments}>
-      <main className="mx-auto max-w-6xl px-4 pb-16 pt-24 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 pb-16 pt-24 sm:px-6 lg:px-8">
         <Link
           href="/"
           className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-950"
         >
-          <FiArrowLeft /> All auctions
+          <FiArrowLeft aria-hidden="true" /> All auctions
         </Link>
         <header className="mb-6">
           <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
@@ -69,7 +68,7 @@ const Listing = async (props: Params) => {
           </h1>
           <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500">
             <span className="inline-flex items-center gap-1.5">
-              <FiMapPin />
+              <FiMapPin aria-hidden="true" />
               {listing.location}
             </span>
             <span>{listing.miles.toLocaleString("en-US")} miles</span>
@@ -105,58 +104,47 @@ const Listing = async (props: Params) => {
               alt={title}
             />
           </div>
-          <div
-            className="contents lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:block lg:space-y-5"
-            role="complementary"
+          <aside
+            className="space-y-5 lg:col-start-2 lg:row-start-1 lg:row-span-2"
             aria-label="Auction overview"
           >
             {isPublicListing(listing) && <AuctionStatusBar currentUser={currentUser?.id} />}
-            <div className="order-1">
-              <section className="rounded-2xl border border-slate-200 bg-white p-6">
-                <h2 className="mb-4 text-lg font-bold tracking-tight">
-                  Vehicle at a glance
-                </h2>
-                <dl className="divide-y divide-slate-100 text-sm">
-                  {[
-                    ["Year", listing.year],
-                    ["Make", listing.make],
-                    ["Model", listing.model],
-                    [
-                      "Mileage",
-                      `${listing.miles.toLocaleString("en-US")} miles`,
+            <section className="rounded-2xl border border-slate-200 bg-white p-6">
+              <h2 className="mb-4 text-lg font-bold tracking-tight">
+                Vehicle at a glance
+              </h2>
+              <dl className="divide-y divide-slate-100 text-sm">
+                {[
+                  ["Year", listing.year],
+                  ["Make", listing.make],
+                  ["Model", listing.model],
+                  [
+                    "Mileage",
+                    `${listing.miles.toLocaleString("en-US")} miles`,
+                  ],
+                  ["Location", listing.location],
+                  ["VIN / chassis", listing.vin?.trim() || "Not provided"],
+                  ...vehicleSpecificationFields.map(
+                    ({ id: field, label }) => [
+                      label,
+                      listing[field]?.trim() || "Not provided",
                     ],
-                    ["Location", listing.location],
-                    ["VIN / chassis", listing.vin?.trim() || "Not provided"],
-                    ...vehicleSpecificationFields.map(
-                      ({ id: field, label }) => [
-                        label,
-                        listing[field]?.trim() || "Not provided",
-                      ],
-                    ),
-                  ].map(([label, value]) => (
-                    <div
-                      key={label}
-                      className="flex justify-between gap-4 py-3"
-                    >
-                      <dt className="shrink-0 text-slate-500">{label}</dt>
-                      <dd className="min-w-0 break-words text-right font-semibold text-slate-900">
-                        {value}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            </div>
-            <LiveAuctionsSidebar>
-              <Aside
-                auctions={liveAuctions
-                  .filter((auction) => auction.id !== id)
-                  .slice(0, 4)}
-                variant="live"
-              />
-            </LiveAuctionsSidebar>
-          </div>
-          <div className="order-2 min-w-0 lg:order-none lg:col-start-1 lg:row-start-2">
+                  ),
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="flex justify-between gap-4 py-3"
+                  >
+                    <dt className="shrink-0 text-slate-500">{label}</dt>
+                    <dd className="min-w-0 break-words text-right font-semibold text-slate-900">
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          </aside>
+          <div className="min-w-0 lg:col-start-1 lg:row-start-2">
             <div className="space-y-6">
               {owner && listing.status === "UPCOMING" && listing.reviewStatus === "APPROVED" && (
                 <AuctionStartForm listingId={id} />
@@ -178,11 +166,25 @@ const Listing = async (props: Params) => {
                   emailVerified={Boolean(currentUser?.emailVerified)}
                 />
               )}
-              {isPublicListing(listing) && <Comments />}
+              {isPublicListing(listing) && <Comments signedIn={Boolean(currentUser)} />}
             </div>
           </div>
         </div>
-      </main>
+        <div className="mt-6 space-y-4">
+          <Aside
+            auctions={liveAuctions
+              .filter((auction) => auction.id !== id)
+              .slice(0, 4)}
+            variant="live"
+          />
+          <Link
+            href="/faq"
+            className="inline-block px-2 text-sm text-slate-500 hover:text-slate-950"
+          >
+            New to BidLane? Learn how bidding works →
+          </Link>
+        </div>
+      </div>
       <MobileAuctionBar currentUserId={currentUser?.id} />
     </AuctionProvider>
   );

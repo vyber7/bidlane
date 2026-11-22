@@ -3,12 +3,12 @@ import { TextEncoder } from "node:util";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ post: vi.fn(), signIn: vi.fn(), push: vi.fn(), error: vi.fn(), success: vi.fn() }));
+const mocks = vi.hoisted(() => ({ post: vi.fn(), signIn: vi.fn(), useSession: vi.fn(), push: vi.fn(), error: vi.fn(), success: vi.fn() }));
 vi.mock("axios", async (importOriginal) => {
   const actual = await importOriginal<typeof import("axios")>();
   return { ...actual, default: { ...actual.default, post: mocks.post } };
 });
-vi.mock("next-auth/react", () => ({ signIn: mocks.signIn, useSession: () => ({ status: "unauthenticated" }) }));
+vi.mock("next-auth/react", () => ({ signIn: mocks.signIn, useSession: mocks.useSession }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock("react-hot-toast", () => ({ toast: { error: mocks.error, success: mocks.success } }));
 
@@ -19,6 +19,7 @@ beforeEach(() => {
   vi.stubGlobal("TextEncoder", TextEncoder);
   mocks.post.mockResolvedValue({ data: { id: "user" } });
   mocks.signIn.mockResolvedValue({ ok: true });
+  mocks.useSession.mockReturnValue({ status: "unauthenticated" });
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
@@ -28,6 +29,17 @@ function fill(password: string) {
 }
 
 describe("password requirements in the authentication form", () => {
+  it("keeps the requested listing anchor through credential sign-in", async () => {
+    const callbackUrl = "/listing/abcdef0123456789abcdef01#bids";
+    const { container, rerender } = render(<AuthForm callbackUrl={callbackUrl} />);
+    fill("a");
+    await act(async () => { fireEvent.submit(container.querySelector("form")!); });
+    expect(mocks.signIn).toHaveBeenCalledWith("credentials", expect.objectContaining({ callbackUrl }));
+    mocks.useSession.mockReturnValue({ status: "authenticated" });
+    rerender(<AuthForm callbackUrl={callbackUrl} />);
+    expect(mocks.push).toHaveBeenCalledWith(callbackUrl);
+  });
+
   it.each([
     ["a", "Use at least 12 characters."],
     ["é".repeat(36) + "a", "Use no more than 72 bytes."],

@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
-vi.mock("../(site)/components/AuthForm", () => ({ default: () => <div>Sign-in form</div> }));
+vi.mock("../(site)/components/AuthForm", () => ({
+  default: ({ callbackUrl }: { callbackUrl?: string }) => <div data-callback={callbackUrl}>Sign-in form</div>,
+}));
 import SignIn from "./page";
 
 describe("sign-in account collision guidance", () => {
@@ -20,6 +22,22 @@ describe("sign-in account collision guidance", () => {
       expect(html).not.toContain('role="alert"');
       expect(html).not.toContain("untrusted error");
       expect(html).toContain("Sign-in form");
+    },
+  );
+});
+
+describe("sign-in return path", () => {
+  it("passes the bidding section through to the auth form", async () => {
+    const callbackUrl = "/listing/abcdef0123456789abcdef01#bids";
+    const html = renderToStaticMarkup(await SignIn({ searchParams: Promise.resolve({ callbackUrl }) }));
+    expect(html).toContain(`data-callback="${callbackUrl}"`);
+  });
+
+  it.each(["//external.test", "/\\external.test", "/path/..//external.test", "javascript:alert(1)"])(
+    "drops unsafe return destinations (%s)",
+    async (callbackUrl) => {
+      const html = renderToStaticMarkup(await SignIn({ searchParams: Promise.resolve({ callbackUrl }) }));
+      expect(html).not.toContain("data-callback");
     },
   );
 });

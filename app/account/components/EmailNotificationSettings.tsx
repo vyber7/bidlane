@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import axios from "axios";
+import { FiLoader } from "react-icons/fi";
+import useUnsavedChangesWarning from "@/app/hooks/useUnsavedChangesWarning";
 import { getApiErrorMessage } from "@/app/utils/api-error";
 
 export default function EmailNotificationSettings({
@@ -13,11 +15,16 @@ export default function EmailNotificationSettings({
 }) {
   const endingSoon = preference === "endingSoonEmailsEnabled";
   const titleId = `${preference}-title`;
+  const hintId = `${preference}-hint`;
+  const errorId = `${preference}-error`;
   const [enabled, setEnabled] = useState(initialEnabled);
   const [saved, setSaved] = useState(initialEnabled);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
+  const busy = useRef(false);
+  const dirty = enabled !== saved;
+  useUnsavedChangesWarning(dirty);
   return (
     <section
       className="mb-5 rounded-xl border border-slate-200 bg-white p-5 sm:p-6"
@@ -27,7 +34,7 @@ export default function EmailNotificationSettings({
         id={titleId}
         className="text-lg font-bold text-slate-950"
       >
-        {endingSoon ? "Ending-soon reminders" : "Email notifications"}
+        {endingSoon ? "Ending-Soon Reminders" : "Email Notifications"}
       </h2>
       <p className="mt-1 text-sm leading-6 text-slate-600">
         {endingSoon ? "Get a reminder in the final hour of auctions you watch or bid on." : "Get an email when another bidder takes the lead, even when you’re away from BidLane."}
@@ -36,7 +43,8 @@ export default function EmailNotificationSettings({
         className="mt-4 space-y-3"
         onSubmit={async (event) => {
           event.preventDefault();
-          if (saving || enabled === saved) return;
+          if (busy.current || !dirty) return;
+          busy.current = true;
           setSaving(true);
           setError(null);
           setConfirmation(null);
@@ -48,47 +56,41 @@ export default function EmailNotificationSettings({
             setEnabled(response.data[preference]);
             setConfirmation("Email preferences saved.");
           } catch (error) {
-            setError(
-              getApiErrorMessage(error, "Unable to save email preferences."),
-            );
+            setError(getApiErrorMessage(error, "Couldn’t save email preferences"));
           } finally {
+            busy.current = false;
             setSaving(false);
           }
         }}
       >
-        <label className="flex items-start gap-3 text-sm font-semibold text-slate-800">
+        <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-slate-800">
           <input
             type="checkbox"
+            name={preference}
             checked={enabled}
             disabled={saving}
+            aria-describedby={error ? `${hintId} ${errorId}` : hintId}
             onChange={(event) => {
               setEnabled(event.target.checked);
+              setError(null);
               setConfirmation(null);
             }}
-            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-500 text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           />
           {endingSoon ? "Email me when auctions are ending soon" : "Email me when I’m outbid"}
         </label>
-        <p className="text-xs leading-5 text-slate-500">
+        <p id={hintId} className="text-xs leading-5 text-slate-500">
           Turning this off also stops queued {endingSoon ? "ending-soon" : "outbid"} emails. Your in-app notifications stay available.
         </p>
+        {error && <p id={errorId} role="alert" className="text-sm text-rose-700">{error.replace(/\.$/, "")}. Try saving again.</p>}
         <button
           type="submit"
-          disabled={saving || enabled === saved}
-          className="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={saving || !dirty}
+          className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {saving ? "Saving…" : "Save email preferences"}
+          {saving ? <><FiLoader aria-hidden="true" className="animate-spin motion-reduce:animate-none" /> Saving…</> : "Save Email Preferences"}
         </button>
-        {error && (
-          <p role="alert" className="text-sm text-rose-700">
-            {error}
-          </p>
-        )}
-        {confirmation && (
-          <p role="status" className="text-sm text-emerald-800">
-            {confirmation}
-          </p>
-        )}
+        <p role="status" className={confirmation ? "text-sm text-emerald-800" : "sr-only"}>{confirmation}</p>
       </form>
     </section>
   );

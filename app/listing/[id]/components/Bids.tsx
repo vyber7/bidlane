@@ -1,9 +1,20 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { formatAmount, capitalize, formatDisplayName } from "@/app/utils/format";
 import { useAuctionContext } from "@/app/context/AuctionContext";
 import BidForm from "./BidForm";
+
+const closeTimeFormatter = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "UTC",
+  timeZoneName: "short",
+});
 
 interface BidsProps {
   sellerName?: string | null;
@@ -75,7 +86,9 @@ const Bids: React.FC<BidsProps> = ({
             <span className="w-1/4">Ending</span>
             <span className="font-semibold">
               {" "}
-              {listing.auctionEndsAt ? new Date(listing.auctionEndsAt).toLocaleString() : "To be announced"}
+              {listing.auctionEndsAt ? (
+                <time dateTime={listing.auctionEndsAt.toISOString()}>{closeTimeFormatter.format(listing.auctionEndsAt)}</time>
+              ) : "To be announced"}
             </span>
           </p>
           <p className="flex justify-start">
@@ -101,8 +114,13 @@ const Bids: React.FC<BidsProps> = ({
       ) : !session && listing.status === "LIVE" ? (
         <>
           <hr />
-          <div className="text-rose-500 mt-2 md:mt-4 text-center">
-            Please log in to place a bid.
+          <div className="mt-3 text-center">
+            <Link
+              href={{ pathname: "/signin", query: { callbackUrl: `/listing/${listing.id}#bids` } }}
+              className="inline-block rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
+            >
+              Sign In to Bid
+            </Link>
           </div>
         </>
       ) : null}
