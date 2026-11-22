@@ -1,7 +1,7 @@
 "use client";
 
 import type { PublicListing } from "@/app/libs/listing-payload";
-import { useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { FiCheckCircle, FiClock, FiSearch, FiTag, FiZap } from "react-icons/fi";
 import Listings from "../../components/Listings";
 import AuctionSearchControls from "@/app/components/AuctionSearchControls";
@@ -48,6 +48,31 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
   const tabRefs = useRef<Partial<Record<AuctionTab, HTMLButtonElement>>>({});
   const [focusedTab, setFocusedTab] = useState<AuctionTab | null>(null);
   const activeTab = status === "ALL" ? "LIVE" : status;
+  const scrollSpaceRef = useRef<HTMLDivElement>(null);
+  const pendingScroll = useRef<{ tab: AuctionTab; top: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const space = scrollSpaceRef.current;
+    const previous = pendingScroll.current;
+    pendingScroll.current = null;
+    if (!space) return;
+    space.style.height = "";
+    if (previous?.tab !== activeTab) return;
+
+    const root = document.documentElement;
+    const requiredHeight = Math.ceil(previous.top + root.clientHeight);
+    if (root.scrollHeight < requiredHeight) {
+      // A shorter result panel can move the bottom of the page past the old viewport.
+      // Extend from the results to the viewport bottom, then subtract the room below them.
+      const height = requiredHeight - (space.getBoundingClientRect().top + window.scrollY);
+      space.style.height = `${height}px`;
+      space.style.height = `${Math.max(0, height - (root.scrollHeight - requiredHeight))}px`;
+    }
+
+    if (window.scrollY !== previous.top) {
+      window.scrollTo({ top: previous.top, behavior: "instant" });
+    }
+  }, [activeTab]);
 
   const counts = useMemo(
     () => ({
@@ -127,7 +152,10 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
                 tabIndex={(focusedTab ?? activeTab) === id ? 0 : -1}
                 onFocus={() => setFocusedTab(id)}
                 onKeyDown={(event) => focusTab(event, index)}
-                onClick={() => setStatus(id)}
+                onClick={() => {
+                  if (id !== activeTab) pendingScroll.current = { tab: id, top: window.scrollY };
+                  setStatus(id);
+                }}
                 className={`flex min-h-11 shrink-0 snap-start items-center justify-between gap-1.5 rounded-xl border px-2 py-2.5 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-600 sm:justify-start sm:gap-3 sm:px-4 sm:text-sm xl:gap-2 xl:px-3 ${
                   active
                     ? "border-slate-950 bg-slate-950 text-white shadow-sm"
@@ -202,6 +230,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
           )}
         </div>
       ))}
+      <div ref={scrollSpaceRef} aria-hidden="true" className="[overflow-anchor:none]" />
     </>
   );
 };
