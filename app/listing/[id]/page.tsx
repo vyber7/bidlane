@@ -178,7 +178,7 @@ const Listing = async (props: Params) => {
                   emailVerified={Boolean(currentUser?.emailVerified)}
                 />
               )}
-              {isPublicListing(listing) && <Comments />}
+              {isPublicListing(listing) && <Comments signedIn={Boolean(currentUser)} />}
             </div>
           </div>
         </div>
