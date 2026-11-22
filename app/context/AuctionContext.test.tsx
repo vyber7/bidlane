@@ -13,12 +13,15 @@ import ListingBox from "@/app/components/ListingBox";
 import FeaturedAuction from "@/app/(site)/components/FeaturedAuction";
 import { auctionNow, makeBid, makeComment, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 
-const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn() }));
+const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn(), search: "" }));
 vi.mock("axios", async (importOriginal) => {
   const actual = await importOriginal<typeof import("axios")>();
   return { ...actual, default: { ...actual.default, post: mocks.post } };
 });
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: mocks.refresh }),
+  useSearchParams: () => new URLSearchParams(mocks.search),
+}));
 vi.mock("next-auth/react", () => ({ useSession: () => ({ data: { user: { name: "Buyer" } } }) }));
 vi.mock("react-hot-toast", () => ({ default: { success: vi.fn(), error: vi.fn() }, toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/app/hooks/usePusherEvent", () => ({ default: vi.fn() }));
@@ -30,6 +33,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(auctionNow);
   vi.clearAllMocks();
+  mocks.search = "";
   mocks.post.mockResolvedValue({ data: {} });
 });
 
@@ -122,9 +126,9 @@ describe("shared auction views", () => {
   });
 
   it("lets refreshed watchlist data reach its auction cards", () => {
+    mocks.search = "tab=watching";
     const listing = makeListing({ currentBid: 12000 });
     const { rerender } = render(<ListingsDashboard uploaded={[]} initialWatching={[listing]} currentUserId="buyer" />);
-    fireEvent.click(screen.getByRole("tab", { name: /Watchlist/ }));
     expect(screen.getByText("$12,000")).toBeDefined();
     rerender(<ListingsDashboard uploaded={[]} initialWatching={[{ ...listing, currentBid: 15000 }]} currentUserId="buyer" />);
     expect(screen.getByText("$15,000")).toBeDefined();
