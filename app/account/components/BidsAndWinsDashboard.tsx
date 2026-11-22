@@ -55,7 +55,7 @@ const BidsAndWinsDashboard = ({ bids }: { bids: AuctionBid[] }) => {
             <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
               Auction activity
             </p>
-            <h2 className="text-balance text-2xl font-bold text-gray-950">Bids &amp; Wins</h2>
+            <h2 className="text-2xl font-bold text-gray-950">Bids &amp; Wins</h2>
             <p className="mt-1 text-sm text-gray-500">
               Follow every vehicle you bid on, from first bid to final result.
             </p>
@@ -233,7 +233,7 @@ const EmptyTab = ({ tab }: { tab: Tab }) => {
       <div aria-hidden="true" className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-xl text-gray-700">
         {tab === "wins" ? <FiAward /> : <FiTrendingUp />}
       </div>
-      <h3 className="text-balance text-lg font-bold text-gray-950">{copy.title}</h3>
+      <h3 className="text-lg font-bold text-gray-950">{copy.title}</h3>
       <p className="mt-1 max-w-sm text-sm text-gray-500">{copy.body}</p>
       <Link
         href="/?status=live#auctions"

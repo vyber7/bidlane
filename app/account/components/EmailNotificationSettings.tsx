@@ -32,7 +32,7 @@ export default function EmailNotificationSettings({
     >
       <h2
         id={titleId}
-        className="text-balance text-lg font-bold text-slate-950"
+        className="text-lg font-bold text-slate-950"
       >
         {endingSoon ? "Ending-Soon Reminders" : "Email Notifications"}
       </h2>
@@ -75,7 +75,7 @@ export default function EmailNotificationSettings({
               setError(null);
               setConfirmation(null);
             }}
-            className="mt-0.5 h-4 w-4 shrink-0 scroll-mt-[calc(var(--site-header-height)+1rem)] rounded border-slate-500 text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-500 text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           />
           {endingSoon ? "Email me when auctions are ending soon" : "Email me when I’m outbid"}
         </label>
@@ -86,7 +86,7 @@ export default function EmailNotificationSettings({
         <button
           type="submit"
           disabled={saving || !dirty}
-          className="inline-flex scroll-mt-[calc(var(--site-header-height)+1rem)] items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? <><FiLoader aria-hidden="true" className="animate-spin motion-reduce:animate-none" /> Saving…</> : "Save Email Preferences"}
         </button>

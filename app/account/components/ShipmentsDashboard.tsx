@@ -49,7 +49,7 @@ const ShipmentsDashboard = ({ shipments }: { shipments: ShipmentTransaction[] })
             <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
               Vehicle handoff
             </p>
-            <h2 className="text-balance text-2xl font-bold text-gray-950">Purchases & Sales</h2>
+            <h2 className="text-2xl font-bold text-gray-950">Purchases & Sales</h2>
             <p className="mt-1 max-w-xl text-sm text-gray-500">
               Work with your buyer or seller to complete payment, paperwork, and pickup.
             </p>
@@ -114,7 +114,7 @@ const ShipmentRow = ({ shipment }: { shipment: ShipmentTransaction }) => {
   const isBuyer = shipment.role === "buyer";
 
   return (
-    <li id={`transaction-${shipment.id}`} className="scroll-mt-[calc(var(--site-header-height)+1rem)] p-4 transition-colors hover:bg-gray-50 [content-visibility:auto] [contain-intrinsic-size:auto_40rem] sm:p-5 sm:[contain-intrinsic-size:auto_29rem]">
+    <li id={`transaction-${shipment.id}`} className="p-4 transition-colors hover:bg-gray-50 [content-visibility:auto] [contain-intrinsic-size:auto_40rem] sm:p-5 sm:[contain-intrinsic-size:auto_29rem]">
       <div className="flex flex-col gap-4 sm:flex-row">
         <Link
           href={`/listing/${shipment.id}`}
@@ -206,7 +206,7 @@ const EmptyShipments = ({ tab }: { tab: Tab }) => {
       <div aria-hidden="true" className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-2xl text-gray-700">
         <FiShoppingBag />
       </div>
-      <h3 className="text-balance text-lg font-bold text-gray-950">No {label} Yet</h3>
+      <h3 className="text-lg font-bold text-gray-950">No {label} Yet</h3>
       <p className="mt-1 max-w-sm text-sm text-gray-500">
         Auctions marked Sold will appear here for the winning buyer and seller, with contact details for arranging the handoff.
       </p>

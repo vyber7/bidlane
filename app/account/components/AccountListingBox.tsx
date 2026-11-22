@@ -103,11 +103,11 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
             {!uploaded && (
               <button
                 type="button"
-                className="shrink-0 touch-manipulation rounded-lg p-2 text-gray-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:cursor-wait disabled:opacity-50"
+                className="shrink-0 rounded-lg p-2 text-gray-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:cursor-wait disabled:opacity-50"
                 onClick={toggle}
                 disabled={isUpdating}
-                aria-label="Remove from watchlist"
-                title="Remove from watchlist"
+                aria-label="Remove from Watchlist"
+                title="Remove from Watchlist"
               >
                 <GoTrash aria-hidden="true" />
               </button>

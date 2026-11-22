@@ -31,7 +31,7 @@ const dateTime = new Intl.DateTimeFormat("en-US", {
   timeZoneName: "short",
 });
 
-const focusRing = "scroll-mt-[calc(var(--site-header-height)+1rem)] touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900";
+const focusRing = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900";
 
 const NotificationsCenter = ({ initialFeed, initialView, userId }: {
   initialFeed: NotificationFeed;
@@ -166,7 +166,7 @@ const NotificationsCenter = ({ initialFeed, initialView, userId }: {
             <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
               Account activity
             </p>
-            <h2 className="text-balance text-2xl font-bold text-gray-950">Notifications</h2>
+            <h2 className="text-2xl font-bold text-gray-950">Notifications</h2>
             <p className="mt-1 text-sm text-gray-500">
               Auction results, bid updates, and buyer questions in one place.
             </p>
@@ -317,7 +317,7 @@ const NotificationRow = ({
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="min-w-0">
-              <h3 className="break-words text-balance font-bold text-gray-950">
+              <h3 className="break-words font-bold text-gray-950">
                 {!isRead && <><span className="sr-only">Unread:</span>{" "}</>}{notification.title}
               </h3>
               <p className="mt-1 break-words text-sm leading-6 text-gray-600">{notification.message}</p>
@@ -333,7 +333,7 @@ const NotificationRow = ({
             <Link
               href={notification.href}
               onNavigate={() => onRead()}
-              className={`${focusRing} inline-flex items-center gap-1 text-sm font-bold text-gray-900 hover:underline`}
+              className={`${focusRing} inline-flex items-center gap-1 text-sm font-bold capitalize text-gray-900 hover:underline`}
             >
               {notification.actionLabel} <FiArrowUpRight aria-hidden="true" />
             </Link>
@@ -360,7 +360,7 @@ const EmptyNotifications = ({ unreadOnly }: { unreadOnly: boolean }) => (
     <div aria-hidden="true" className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-xl text-gray-700">
       {unreadOnly ? <FiCheckCircle /> : <FiBell />}
     </div>
-    <h3 className="text-balance text-lg font-bold text-gray-950">
+    <h3 className="text-lg font-bold text-gray-950">
       {unreadOnly ? "You’re All Caught Up" : "No Notifications Yet"}
     </h3>
     <p className="mt-1 max-w-sm text-sm text-gray-500">

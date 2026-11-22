@@ -66,7 +66,7 @@ export default function AccountTabs<T extends string>({ label, tabs, selected, o
                 tabIndex={active ? 0 : -1}
                 onClick={() => onChange(tab)}
                 onKeyDown={(event) => handleKey(event, index)}
-                className={`scroll-mt-[calc(var(--site-header-height)+1rem)] touch-manipulation whitespace-nowrap border-b-2 px-1 py-4 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gray-900 ${
+                className={`whitespace-nowrap border-b-2 px-1 py-4 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gray-900 ${
                   active ? "border-gray-950 text-gray-950" : "border-transparent text-gray-500 hover:text-gray-900"
                 }`}
               >
@@ -87,7 +87,7 @@ export default function AccountTabs<T extends string>({ label, tabs, selected, o
           aria-labelledby={`${id}-${tab}-tab`}
           tabIndex={selected === tab ? 0 : undefined}
           hidden={selected !== tab}
-          className="scroll-mt-[calc(var(--site-header-height)+1rem)] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gray-900"
+          className="focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gray-900"
         >
           {selected === tab && children}
         </div>

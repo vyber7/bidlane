@@ -16,7 +16,7 @@ it("opens the Wins tab from a URL even when active bids exist", () => {
   const win: AuctionBid = {
     id: "win", year: 2020, make: "Porsche", model: "911", location: "Miami, FL",
     coverImage: null, status: "ENDED", result: "SOLD", currentBid: 50000,
-    auctionEndsAt: null, highestBid: 50000, lastBidAt: "2026-10-14T12:00:00Z",
+    auctionEndsAt: null, highestBid: 50000, lastBidAt: "2026-10-14T00:10:00Z",
     bidCount: 2, isHighestBidder: true,
   };
   const active = { ...win, id: "active", status: "LIVE", result: null, model: "Cayman" };
@@ -25,5 +25,6 @@ it("opens the Wins tab from a URL even when active bids exist", () => {
   const selected = screen.getByRole("tab", { name: "Wins 1", selected: true });
   expect(screen.getByRole("tabpanel").id).toBe(selected.getAttribute("aria-controls"));
   expect(screen.queryByRole("heading", { name: "2020 Porsche Cayman" })).toBeNull();
+  expect(screen.getByText("Oct 14, 2026")).toBeDefined();
   expect(screen.getByRole("link", { name: "Complete Transaction" }).getAttribute("href")).toBe("/account/shipments#transaction-win");
 });

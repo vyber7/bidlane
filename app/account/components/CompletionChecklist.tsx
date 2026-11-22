@@ -120,7 +120,7 @@ export default function CompletionChecklist({ listingId, role, initialCompletion
   return (
     <section ref={checklist} className="mt-5 rounded-xl border border-gray-200 bg-white p-4 sm:p-5" aria-label="Shared completion checklist">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h4 className="text-balance font-bold text-gray-950">Completion Checklist</h4>
+        <h4 className="font-bold text-gray-950">Completion Checklist</h4>
         <span className={`rounded-full px-2.5 py-1 text-xs font-bold tabular-nums ${count === 3 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
           {count === 3 ? "Transaction complete" : `${count} of 3 steps complete`}
         </span>

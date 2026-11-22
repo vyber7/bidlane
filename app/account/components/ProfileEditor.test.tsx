@@ -27,6 +27,7 @@ afterEach(cleanup);
 
 it("focuses the name field and links its inline validation error", () => {
   render(<ProfileEditor user={user} />);
+  expect(screen.getByText("November 2026")).toBeDefined();
   fireEvent.click(screen.getByRole("button", { name: "Edit Profile" }));
   const name = screen.getByRole("textbox", { name: "Full name" });
   expect(document.activeElement).toBe(name);

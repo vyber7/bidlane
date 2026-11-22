@@ -9,7 +9,7 @@ import { formatAmount } from "@/app/utils/format";
 
 export type DraftSummary = { id: string; revision: number; title: string; photoCount: number; updatedAt: string };
 
-const focusRing = "scroll-mt-[calc(var(--site-header-height)+1rem)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900";
+const focusRing = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900";
 
 export default function ListingDrafts({ drafts: initialDrafts }: { drafts: DraftSummary[] }) {
   const [removed, setRemoved] = useState<ReadonlySet<string>>(() => new Set());
@@ -71,12 +71,12 @@ export default function ListingDrafts({ drafts: initialDrafts }: { drafts: Draft
     <section className="mb-6 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-balance text-xl font-bold">
+          <h2 className="text-xl font-bold">
             Saved Drafts <span className="tabular-nums text-slate-500">({formatAmount(drafts.length)})</span>
           </h2>
           <p className="mt-1 text-sm text-slate-500">Only you can see these drafts. Continue where you left off before submitting a vehicle.</p>
         </div>
-        <Link ref={startDraftLink} href="/submit-listing" className={`${focusRing} touch-manipulation rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100`}>
+        <Link ref={startDraftLink} href="/submit-listing" className={`${focusRing} rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100`}>
           Start a New Draft
         </Link>
       </div>
@@ -94,13 +94,13 @@ export default function ListingDrafts({ drafts: initialDrafts }: { drafts: Draft
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <Link href={`/submit-listing?draft=${draft.id}`} className={`${focusRing} touch-manipulation rounded-lg bg-slate-950 px-3 py-2 text-sm font-bold text-white hover:bg-slate-800`}>
+                <Link href={`/submit-listing?draft=${draft.id}`} className={`${focusRing} rounded-lg bg-slate-950 px-3 py-2 text-sm font-bold text-white hover:bg-slate-800`}>
                   Resume Draft
                 </Link>
                 <button
                   type="button"
                   onClick={(event) => openConfirmation(draft, event.currentTarget)}
-                  className={`${focusRing} touch-manipulation rounded-sm text-sm font-semibold text-slate-600 underline hover:text-rose-800`}
+                  className={`${focusRing} rounded-sm text-sm font-semibold text-slate-600 underline hover:text-rose-800`}
                 >
                   Delete Draft<span className="sr-only">: {draft.title}</span>
                 </button>
@@ -122,7 +122,7 @@ export default function ListingDrafts({ drafts: initialDrafts }: { drafts: Draft
         }}
         className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-sm overflow-y-auto overscroll-contain rounded-xl bg-white p-5 text-slate-950 shadow-xl backdrop:bg-black/60 sm:p-6"
       >
-        <h3 id={`${id}-title`} className="text-balance text-lg font-bold">Delete This Draft?</h3>
+        <h3 id={`${id}-title`} className="text-lg font-bold">Delete This Draft?</h3>
         <p id={`${id}-description`} className="mt-2 break-words text-sm text-slate-600">
           You’ll lose all saved changes to <strong>{selected?.title}</strong>.
         </p>
@@ -133,7 +133,7 @@ export default function ListingDrafts({ drafts: initialDrafts }: { drafts: Draft
             type="button"
             aria-disabled={deleting}
             onClick={() => { if (!busy.current) closeConfirmation(); }}
-            className={`${focusRing} touch-manipulation rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100 aria-disabled:opacity-50`}
+            className={`${focusRing} rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100 aria-disabled:opacity-50`}
           >
             Cancel
           </button>
@@ -141,7 +141,7 @@ export default function ListingDrafts({ drafts: initialDrafts }: { drafts: Draft
             type="button"
             aria-disabled={deleting}
             onClick={() => void deleteDraft()}
-            className={`${focusRing} inline-flex touch-manipulation items-center gap-2 rounded-lg bg-rose-700 px-3 py-2 text-sm font-bold text-white hover:bg-rose-800 aria-disabled:opacity-50`}
+            className={`${focusRing} inline-flex items-center gap-2 rounded-lg bg-rose-700 px-3 py-2 text-sm font-bold text-white hover:bg-rose-800 aria-disabled:opacity-50`}
           >
             {deleting ? <><FiLoader aria-hidden="true" className="animate-spin motion-reduce:animate-none" /> Deleting…</> : "Delete Draft"}
           </button>

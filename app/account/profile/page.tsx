@@ -12,7 +12,7 @@ const Profile = async () => {
       <EmailVerification verified={Boolean(currentUser.emailVerified)} />
       <Link
         href={`/sellers/${currentUser.id}`}
-        className="inline-block scroll-mt-[calc(var(--site-header-height)+1rem)] rounded-sm text-sm font-bold underline underline-offset-2 hover:text-slate-700 hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+        className="inline-block rounded-sm text-sm font-bold underline underline-offset-2 hover:text-slate-700 hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
       >
         View Your Public Seller Profile
       </Link>

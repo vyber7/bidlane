@@ -31,7 +31,7 @@ const filters = [
   { id: "upcoming", label: "Upcoming" },
   { id: "ended", label: "Ended" },
 ] as const;
-const focusRing = "scroll-mt-[calc(var(--site-header-height)+1rem)] touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900";
+const focusRing = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900";
 
 const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
   uploaded,
@@ -225,7 +225,7 @@ const EmptyState = ({
     <div aria-hidden="true" className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-xl text-gray-500">
       {tab === "uploaded" ? <FiGrid /> : <FiEye />}
     </div>
-    <h3 className="mt-4 text-balance text-base font-bold text-gray-950">
+    <h3 className="mt-4 text-base font-bold text-gray-950">
       {filtered
         ? "No Listings Match Your Filters"
         : tab === "uploaded"

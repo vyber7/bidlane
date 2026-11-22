@@ -132,7 +132,7 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
               Personal details
             </p>
-            <h2 className="mt-1 text-balance text-2xl font-bold tracking-tight text-gray-950">Profile</h2>
+            <h2 className="mt-1 text-2xl font-bold tracking-tight text-gray-950">Profile</h2>
             <p className="mt-1 text-sm text-gray-500">
               Keep your public name and profile photo up to date.
             </p>
@@ -146,7 +146,7 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
                 setNotice("");
                 setEditing(true);
               }}
-              className="inline-flex shrink-0 scroll-mt-[calc(var(--site-header-height)+1rem)] items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-bold text-gray-800 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
+              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-bold text-gray-800 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
             >
               <FiEdit2 aria-hidden="true" /> Edit Profile
             </button>
@@ -182,7 +182,7 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
                   disabled={saving}
                   onUpload={changeImage}
                   onUploadingChange={setUploading}
-                  className="inline-flex scroll-mt-[calc(var(--site-header-height)+1rem)] items-center gap-2 text-sm font-bold text-gray-900 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 text-sm font-bold text-gray-900 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:opacity-50"
                 >
                   <FiCamera aria-hidden="true" /> {image ? "Change Photo" : "Add Photo"}
                 </AuthorizedUploadButton>
@@ -191,7 +191,7 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
                     type="button"
                     onClick={() => changeImage("")}
                     disabled={saving || uploading}
-                    className="scroll-mt-[calc(var(--site-header-height)+1rem)] text-xs font-semibold text-gray-500 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:opacity-50"
+                    className="text-xs font-semibold text-gray-500 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:opacity-50"
                   >
                     Remove Photo
                   </button>
@@ -220,7 +220,7 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
                     readOnly={saving}
                     aria-invalid={Boolean(nameError)}
                     aria-describedby={nameError ? "profile-name-error" : undefined}
-                    className="mt-1.5 block w-full scroll-mt-[calc(var(--site-header-height)+1rem)] rounded-lg border-gray-300 text-sm text-gray-950 shadow-sm focus-visible:border-gray-900 focus-visible:ring-gray-900 aria-[invalid=true]:border-rose-600"
+                    className="mt-1.5 block w-full rounded-lg border-gray-300 text-sm text-gray-950 shadow-sm focus-visible:border-gray-900 focus-visible:ring-gray-900 aria-[invalid=true]:border-rose-600"
                   />
                   {nameError && <p id="profile-name-error" role="alert" className="mt-1 text-sm text-rose-700">{nameError}</p>}
                 </>
@@ -256,14 +256,14 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
               type="button"
               onClick={cancel}
               disabled={saving || uploading}
-              className="inline-flex scroll-mt-[calc(var(--site-header-height)+1rem)] items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:opacity-50"
             >
               <FiX aria-hidden="true" /> Cancel
             </button>
             <button
               type="submit"
               disabled={saving || uploading}
-              className="inline-flex scroll-mt-[calc(var(--site-header-height)+1rem)] items-center justify-center gap-2 rounded-lg bg-gray-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? <><FiLoader aria-hidden="true" className="animate-spin motion-reduce:animate-none" /> Saving…</> : <><FiCheck aria-hidden="true" /> Save Changes</>}
             </button>

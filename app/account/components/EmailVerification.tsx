@@ -48,7 +48,7 @@ export default function EmailVerification({ verified }: { verified: boolean }) {
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-      <h2 ref={heading} tabIndex={-1} className="scroll-mt-[calc(var(--site-header-height)+1rem)] text-balance text-lg font-bold">
+      <h2 ref={heading} tabIndex={-1} className="text-lg font-bold">
         {isVerified ? "Email Verified" : "Verify Your Email"}
       </h2>
       <p className="mt-2 text-sm text-slate-600">
@@ -62,7 +62,7 @@ export default function EmailVerification({ verified }: { verified: boolean }) {
           type="button"
           aria-disabled={sending}
           onClick={() => void sendVerification()}
-          className="mt-4 inline-flex scroll-mt-[calc(var(--site-header-height)+1rem)] items-center gap-2 rounded-lg bg-slate-950 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 aria-disabled:cursor-wait aria-disabled:opacity-50"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 aria-disabled:cursor-wait aria-disabled:opacity-50"
         >
           {sending ? <><FiLoader aria-hidden="true" className="animate-spin motion-reduce:animate-none" /> Sending…</> : "Send Verification Email"}
         </button>
