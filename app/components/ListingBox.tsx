@@ -7,9 +7,10 @@ import Title from "./Title";
 import NoReserveBadge from "./NoReserveBadge";
 import { GrEdit } from "react-icons/gr";
 import { FaRegClock } from "react-icons/fa";
+import { useId } from "react";
 import type { PublicListing } from "@/app/libs/listing-payload";
 import useAuction from "../hooks/useAuction";
-import { formatAmount } from "../utils/format";
+import { capitalize, formatBid } from "../utils/format";
 import { clsx } from "clsx";
 import { CldImage } from "next-cloudinary";
 import useWatchlist from "../hooks/useWatchlist";
@@ -21,6 +22,10 @@ interface ListingBoxProps {
 
 const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, currentUserId }) => {
   const { listing, remainingMs, timeLeft } = useAuction(initialListing);
+  const titleId = useId();
+  const title = `${listing.year} ${capitalize(listing.make)} ${capitalize(listing.model)}`;
+  const href = `/listing/${listing.id}`;
+  const isOwner = listing.userId === currentUserId;
   const bid = listing.currentBid;
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
@@ -29,57 +34,67 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
   });
 
   return (
-    <div className="flex h-full flex-wrap justify-between transition-all">
-      <Link className="min-w-0 flex-1" href={`/listing/${listing.id}`}>
-        <Title year={listing.year} make={listing.make} model={listing.model} />
+    <div className="flex h-full flex-wrap justify-between">
+      <Link className="min-w-0 flex-1" href={href}>
+        <Title id={titleId}>{title}</Title>
       </Link>
-      {listing.userId == currentUserId ? (
-        <button className="flex items-center text-sm px-2">
-          <GrEdit />
-        </button>
-      ) : (
+      {isOwner && listing.status === "UPCOMING" && (
+        <Link
+          href={`${href}#edit-listing`}
+          aria-label={`Edit listing for ${title}`}
+          className="flex items-center px-3 text-sm hover:bg-slate-100"
+        >
+          <GrEdit aria-hidden="true" />
+        </Link>
+      )}
+      {!isOwner && (
         <button
-          className="flex items-center px-3 text-xl transition hover:scale-110"
+          type="button"
+          className="flex items-center px-3 text-xl motion-safe:transition-transform motion-safe:hover:scale-110"
           onClick={toggle}
           disabled={isUpdating}
           aria-label={watching ? "Remove from watchlist" : "Add to watchlist"}
         >
           {watching ? (
-            <GoStarFill className="text-yellow-500" />
+            <GoStarFill aria-hidden="true" className="text-yellow-500" />
           ) : (
-            <GoStar className="text-yellow-500" />
+            <GoStar aria-hidden="true" className="text-yellow-500" />
           )}
         </button>
       )}
 
       <div className="flex flex-col w-full">
-        <Link className="relative block w-full" href={`/listing/${listing.id}`}>
-          <span className="absolute left-3 top-3 z-10">
-            <NoReserveBadge isNoReserve={listing.isNoReserve} />
-          </span>
-          {listing.coverImage && (
-            <CldImage
-              src={listing.coverImage}
-              width={400}
-              height={250}
-              alt="listing Image"
-              className="aspect-[16/10] w-full object-cover"
-              loading="lazy"
-              sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw"
-              crop="fill"
-            />
+        <div className="relative">
+          <Link className="block w-full" href={href} aria-labelledby={titleId}>
+            {listing.coverImage ? (
+              <CldImage
+                src={listing.coverImage}
+                width={400}
+                height={250}
+                alt=""
+                className="aspect-[16/10] w-full object-cover"
+                loading="lazy"
+                sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw"
+                crop="fill"
+              />
+            ) : (
+              <Image
+                src="/images/default-vehicle-image.png"
+                alt=""
+                width={400}
+                height={250}
+                className="aspect-[16/10] w-full object-cover"
+                loading="lazy"
+                sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw"
+              />
+            )}
+          </Link>
+          {listing.isNoReserve && (
+            <span className="pointer-events-none absolute left-3 top-3 z-10">
+              <NoReserveBadge isNoReserve={listing.isNoReserve} />
+            </span>
           )}
-          {!listing.coverImage && (
-            <Image
-              src="/images/default-vehicle-image.png"
-              alt="listing Image"
-              width={400}
-              height={250}
-              className="aspect-[16/10] w-full object-cover"
-              priority={true}
-            />
-          )}
-        </Link>
+        </div>
         <div className="flex min-h-10 items-center justify-between bg-slate-950 px-3 py-2 text-xs font-medium text-white">
           {listing.status === "UPCOMING" ? (
             <div>Upcoming</div>
@@ -87,11 +102,11 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
             <div>
               {listing.result === "SOLD" ? (
                 <span>
-                  Sold for <b>{bid !== null ? `$${formatAmount(bid)}` : "—"}</b>
+                  Sold for <b>{bid !== null ? formatBid(bid) : "—"}</b>
                 </span>
               ) : bid !== null ? (
                 <span>
-                  Bid to <b>${formatAmount(bid)}</b>
+                  Bid to <b>{formatBid(bid)}</b>
                 </span>
               ) : (
                 <span>No bids were placed</span>
@@ -100,32 +115,33 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
           ) : (
             <>
               <div className="flex items-center gap-2">
-                <FaRegClock />{" "}
+                <FaRegClock aria-hidden="true" />
                 <span
                   className={clsx(
-                    remainingMs !== null && remainingMs < 3 * 60 * 60 * 1000 ? "text-red-600" : "",
+                    remainingMs !== null && remainingMs < 3 * 60 * 60 * 1000 ? "text-red-400" : "",
                   )}
                 >
                   {timeLeft}
                 </span>
               </div>
-              {bid !== null ? (
-                <span>
-                  Bid <b>${formatAmount(bid)}</b>
-                </span>
-              ) : (
-                <span>
-                  Starting at{" "}
-                  <b>{listing.startingBid !== null ? `$${formatAmount(listing.startingBid)}` : "To be announced"}</b>
-                </span>
-              )}
+              <span aria-live="polite" aria-atomic="true">
+                <span className="sr-only">{title}: </span>
+                {bid !== null ? (
+                  <>Bid <b>{formatBid(bid)}</b></>
+                ) : (
+                  <>
+                    Starting at{" "}
+                    <b>{listing.startingBid !== null ? formatBid(listing.startingBid) : "To be announced"}</b>
+                  </>
+                )}
+              </span>
             </>
           )}
         </div>
       </div>
       <div className="flex w-full flex-col px-3 py-3 text-sm leading-5 text-slate-600">
         <p className="line-clamp-2">{listing.description}</p>
-        <span className="mt-2 block text-xs font-medium text-slate-400">{listing.miles.toLocaleString()} miles · {listing.location}</span>
+        <span className="mt-2 block break-words text-xs font-medium text-slate-600">{listing.miles.toLocaleString()} miles · {listing.location}</span>
       </div>
       {/* <div className="relative px-3 pb-8 lg:w-1/2">
         <p className="relative h-48 overflow-hidden after:absolute after:bottom-0 after:left-0 after:h-20 after:w-full after:bg-gradient-to-t after:from-white ">

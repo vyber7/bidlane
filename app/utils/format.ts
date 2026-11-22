@@ -1,6 +1,16 @@
-//insert comma after 1000s in bid amounts
+const numberFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 20 });
+const bidFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+
 export function formatAmount(amount: number) {
-  return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return numberFormatter.format(amount);
+}
+
+export function formatBid(amount: number) {
+  return bidFormatter.format(amount);
 }
 
 //capitalize first letter of string

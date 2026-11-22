@@ -10,6 +10,7 @@ import Comments from "@/app/listing/[id]/components/Comments";
 import AccountListingBox from "@/app/account/components/AccountListingBox";
 import ListingsDashboard from "@/app/account/components/ListingsDashboard";
 import ListingBox from "@/app/components/ListingBox";
+import FeaturedAuction from "@/app/(site)/components/FeaturedAuction";
 import { auctionNow, makeBid, makeComment, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 
 const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn() }));
@@ -210,5 +211,51 @@ describe("shared auction views", () => {
   it("renders listing cards safely before a starting price has been configured", () => {
     render(<ListingBox listing={makeListing({ startingBid: null })} />);
     expect(screen.getByText("To be announced")).toBeDefined();
+  });
+
+  it("names the fallback photo link from the card heading and offers editing only before bidding", () => {
+    const listing = makeListing({ status: "UPCOMING", coverImage: null });
+    const { rerender } = render(<ListingBox listing={listing} currentUserId={listing.userId} />);
+    const title = screen.getByRole("heading", { level: 3 }).textContent!;
+    const photoLink = screen.getAllByRole("link", { name: title }).find((link) => link.querySelector("img"));
+    expect(photoLink?.querySelector("img")?.getAttribute("loading")).toBe("lazy");
+    expect(screen.getByRole("link", { name: `Edit listing for ${title}` }).getAttribute("href"))
+      .toBe(`/listing/${listing.id}#edit-listing`);
+
+    rerender(<ListingBox listing={{ ...listing, status: "LIVE" }} currentUserId={listing.userId} />);
+    expect(screen.queryByRole("link", { name: /Edit listing/ })).toBeNull();
+  });
+
+  it("updates the polite bid region independently of the countdown", () => {
+    const listing = makeListing({ currentBid: 12000, coverImage: null });
+    const { rerender } = render(<ListingBox listing={listing} />);
+    const bidRegion = screen.getByText("$12,000").closest("[aria-live]");
+    expect(bidRegion?.getAttribute("aria-live")).toBe("polite");
+    const initialAnnouncement = bidRegion?.textContent;
+
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.getByText("59s").closest("[aria-live]")).toBeNull();
+    expect(bidRegion?.textContent).toBe(initialAnnouncement);
+
+    rerender(<ListingBox listing={{ ...listing, currentBid: 15000 }} />);
+    expect(screen.getByText("$15,000").closest("[aria-live]")).toBe(bidRegion);
+  });
+
+  it("uses one featured listing link and announces bid and status changes", () => {
+    const listing = makeListing({ currentBid: 12000, coverImage: null, images: [] });
+    const { rerender } = render(<FeaturedAuction listing={listing} />);
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+
+    const status = screen.getByText("Live auction").closest("[aria-live]");
+    const bid = screen.getByText("$12,000").closest("[aria-live]");
+    expect(status?.getAttribute("aria-live")).toBe("polite");
+    expect(bid?.getAttribute("aria-live")).toBe("polite");
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.getByText("59s left").closest("[aria-live]")).toBeNull();
+
+    rerender(<FeaturedAuction listing={{ ...listing, currentBid: 15000, status: "ENDED", result: "SOLD" }} />);
+    expect(screen.getByText("Recent result").closest("[aria-live]")).toBe(status);
+    expect(screen.getByText("$15,000").closest("[aria-live]")).toBe(bid);
+    expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 });

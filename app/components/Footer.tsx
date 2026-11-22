@@ -7,12 +7,6 @@ import {
   FiTag,
   FiZap,
 } from "react-icons/fi";
-import {
-  FaFacebookF,
-  FaInstagram,
-  FaXTwitter,
-  FaYoutube,
-} from "react-icons/fa6";
 
 const auctionLinks = [
   { label: "Live auctions", href: "/?status=live#auctions", icon: FiZap },
@@ -25,13 +19,6 @@ const companyLinks = [
   { label: "About Bidlane", href: "/about" },
   { label: "How it works", href: "/faq" },
   { label: "Contact us", href: "/contact" },
-];
-
-const socialLinks = [
-  { label: "Facebook", href: "https://www.facebook.com", icon: FaFacebookF },
-  { label: "X", href: "https://www.x.com", icon: FaXTwitter },
-  { label: "Instagram", href: "https://www.instagram.com", icon: FaInstagram },
-  { label: "YouTube", href: "https://www.youtube.com", icon: FaYoutube },
 ];
 
 const Footer = () => {
@@ -62,20 +49,6 @@ const Footer = () => {
             <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-slate-300">
               <FiShield className="text-amber-400" aria-hidden="true" />
               Built for confident buyers and sellers
-            </div>
-            <div className="mt-7 flex gap-2">
-              {socialLinks.map(({ label, href, icon: Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`Follow BidLane on ${label}`}
-                  className="grid h-10 w-10 place-items-center rounded-full border border-white/10 text-slate-400 transition hover:border-amber-400/60 hover:bg-amber-400 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-                >
-                  <Icon aria-hidden="true" />
-                </a>
-              ))}
             </div>
           </div>
 
@@ -134,7 +107,7 @@ const Footer = () => {
           </nav>
         </div>
 
-        <div className="flex flex-col gap-4 pt-7 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 pt-7 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <p>&copy; {new Date().getFullYear()} Bidlane. All rights reserved.</p>
           <div className="flex items-center gap-5">
             <Link href="/terms" className="transition hover:text-slate-300">

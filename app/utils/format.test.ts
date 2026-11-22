@@ -4,6 +4,7 @@ import {
   canEndAuction,
   capitalize,
   formatAmount,
+  formatBid,
   formatTimeLeft,
   formatTimeLeftShort,
 } from "./format";
@@ -16,6 +17,11 @@ describe("display formatting", () => {
     [1_234_567, "1,234,567"],
   ])("formats %i as %s", (amount, expected) => {
     expect(formatAmount(amount)).toBe(expected);
+  });
+
+  it("formats whole-dollar bids separately from plain numbers", () => {
+    expect(formatBid(12500)).toBe("$12,500");
+    expect(formatBid(0)).toBe("$0");
   });
 
   it("capitalizes the first character", () => {
