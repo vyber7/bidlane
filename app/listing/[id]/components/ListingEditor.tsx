@@ -11,6 +11,7 @@ import { readVehicleRecords } from "@/app/schemas/vehicle-trust";
 import { vehicleDisclosureFields, vehicleSpecificationFields } from "@/app/libs/vehicle-details";
 import RecordUploads from "@/app/submit-listing/components/RecordUploads";
 import { getApiErrorMessage } from "@/app/utils/api-error";
+import useUnsavedChangesWarning from "@/app/hooks/useUnsavedChangesWarning";
 
 const textFields = [
   ["make", "Make"], ["model", "Model"], ["year", "Year"], ["miles", "Mileage"],
@@ -54,31 +55,7 @@ export default function ListingEditor({ listing }: { listing: SellerListing }) {
     }
   }, [fieldErrors]);
 
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    const guardLink = (event: MouseEvent) => {
-      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
-      if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
-      const destination = new URL(link.href);
-      const current = window.location;
-      if (destination.origin !== current.origin ||
-        (destination.pathname === current.pathname && destination.search === current.search)) return;
-      if (!window.confirm("Leave this listing and discard your unsaved changes?")) {
-        event.preventDefault();
-      }
-    };
-    window.addEventListener("beforeunload", warn);
-    document.addEventListener("click", guardLink, true);
-    return () => {
-      window.removeEventListener("beforeunload", warn);
-      document.removeEventListener("click", guardLink, true);
-    };
-  }, [dirty]);
+  useUnsavedChangesWarning(dirty);
 
   const errorId = (name: string) => `${id}-${name}-error`;
   const fieldProps = (name: string) => ({
