@@ -128,6 +128,25 @@ describe("gallery preview loading", () => {
     expect(within(dialog).getByRole("status").textContent).toContain("Showing thumbnail");
     expect(dialog.querySelector('img[alt=""]')!.getAttribute("src")).toBe(savedUrl);
   });
+
+  it("updates the live photo counter and keeps focus on the navigation button at the end", () => {
+    const { dialog } = setup();
+    fireEvent.click(photos()[2]);
+    const counter = within(dialog).getByText("Photo 3 of 4");
+    const next = within(dialog).getByRole("button", { name: "Next →" });
+    expect(counter.getAttribute("aria-live")).toBe("polite");
+    expect(counter.getAttribute("aria-atomic")).toBe("true");
+    next.focus();
+
+    fireEvent.click(next);
+    expect(counter.textContent).toBe("Photo 4 of 4");
+    expect(next.getAttribute("aria-disabled")).toBe("true");
+    expect(document.activeElement).toBe(next);
+    fireEvent.click(next);
+    expect(counter.textContent).toBe("Photo 4 of 4");
+    fireEvent.click(within(dialog).getByRole("button", { name: "← Previous" }));
+    expect(counter.textContent).toBe("Photo 3 of 4");
+  });
 });
 
 const photos = () => screen.queryAllByRole("button", { name: /^View photo/ });

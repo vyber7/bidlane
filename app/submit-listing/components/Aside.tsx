@@ -11,14 +11,15 @@ interface AsideProps {
 
 const Aside: React.FC<AsideProps> = ({ auctions, variant = "sold" }) => {
   const live = variant === "live";
+  const heading = live ? "Live auctions" : "Recently sold";
   return (
-    <aside className={`h-fit rounded-2xl border border-slate-200 bg-slate-50 p-5${live ? "" : " lg:sticky lg:top-20"}`}>
+    <aside aria-label={heading} className={`h-fit rounded-2xl border border-slate-200 bg-slate-50 p-5${live ? "" : " lg:sticky lg:top-20"}`}>
       <h2 className="mt-2 text-xl font-bold text-slate-950">
-        {live ? "Live auctions" : "Recently sold"}
+        {heading}
       </h2>
 
       {auctions.length > 0 ? (
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+        <div className={`mt-5 grid gap-3 sm:grid-cols-2 ${live ? "xl:grid-cols-4" : "lg:grid-cols-1"}`}>
           {auctions.map((auction) => (
             <SideListingBox
               key={auction.id}
