@@ -4,12 +4,22 @@ import { getNotificationFeed } from "@/app/account/lib/notifications";
 import { getNativeRepositories } from "@/app/libs/native-repositories";
 import EmailNotificationSettings from "@/app/account/components/EmailNotificationSettings";
 
-export default async function Notifications() {
+export default async function Notifications({ searchParams }: {
+  searchParams: Promise<{ view?: string | string[] }>;
+}) {
   const currentUser = await getAccountUser();
   if (!currentUser) return null;
+  const { view } = await searchParams;
+  const initialView = (Array.isArray(view) ? view[0] : view) === "unread" ? "unread" : "all";
   const [initialFeed, preferences] = await Promise.all([
-    getNotificationFeed(currentUser.id),
+    getNotificationFeed(currentUser.id, { unreadOnly: initialView === "unread" }),
     getNativeRepositories().users.preferences(currentUser.id),
   ]);
-  return <div key={currentUser.id}><EmailNotificationSettings initialEnabled={preferences?.outbidEmailsEnabled ?? true} /><EmailNotificationSettings preference="endingSoonEmailsEnabled" initialEnabled={preferences?.endingSoonEmailsEnabled ?? true} /><NotificationsCenter initialFeed={initialFeed} userId={currentUser.id} /></div>;
+  return (
+    <div key={currentUser.id}>
+      <EmailNotificationSettings initialEnabled={preferences?.outbidEmailsEnabled ?? true} />
+      <EmailNotificationSettings preference="endingSoonEmailsEnabled" initialEnabled={preferences?.endingSoonEmailsEnabled ?? true} />
+      <NotificationsCenter initialFeed={initialFeed} initialView={initialView} userId={currentUser.id} />
+    </div>
+  );
 }

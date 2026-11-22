@@ -5,7 +5,7 @@ import axios from "axios";
 import { MAX_UPLOAD_BYTES, uploadAccept, type UploadKind } from "@/app/libs/upload-policy";
 import { getApiErrorMessage } from "@/app/utils/api-error";
 
-export default function AuthorizedUploadButton({ kind, listingId, maxFiles = 1, disabled, className, children, onUpload }: {
+export default function AuthorizedUploadButton({ kind, listingId, maxFiles = 1, disabled, className, children, onUpload, onUploadingChange }: {
   kind: UploadKind;
   listingId?: string;
   maxFiles?: number;
@@ -13,6 +13,7 @@ export default function AuthorizedUploadButton({ kind, listingId, maxFiles = 1, 
   className?: string;
   children: ReactNode;
   onUpload: (url: string) => void | Promise<void>;
+  onUploadingChange?: (uploading: boolean) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
@@ -26,6 +27,7 @@ export default function AuthorizedUploadButton({ kind, listingId, maxFiles = 1, 
       if (files.length > maxFiles) { setError(`Choose at most ${maxFiles} file${maxFiles === 1 ? "" : "s"}.`); return; }
       if (files.some((file) => !file.size || file.size > MAX_UPLOAD_BYTES)) { setError("Choose nonempty files no larger than 4 MB each."); return; }
       busy.current = true; setUploading(true); setError("");
+      onUploadingChange?.(true);
       try {
         for (const file of files) {
           const body = new FormData();
@@ -35,7 +37,7 @@ export default function AuthorizedUploadButton({ kind, listingId, maxFiles = 1, 
           await onUpload(data.url);
         }
       } catch (error) { setError(getApiErrorMessage(error, "The file could not be uploaded. Please try again.")); }
-      finally { busy.current = false; setUploading(false); }
+      finally { busy.current = false; setUploading(false); onUploadingChange?.(false); }
     }} />
     <button type="button" disabled={disabled || uploading || maxFiles < 1} aria-busy={uploading} className={className} onClick={() => input.current?.click()}>{uploading ? "Uploading…" : children}</button>
     {error && <p role="alert" className="mt-2 text-sm text-rose-700">{error}</p>}

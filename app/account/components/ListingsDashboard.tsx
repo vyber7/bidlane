@@ -2,7 +2,8 @@
 
 import type { PublicListing, SellerListing } from "@/app/libs/listing-payload";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { startTransition, useMemo, useOptimistic, useRef, useState } from "react";
 import {
   FiArrowUpRight,
   FiEye,
@@ -15,6 +16,7 @@ import usePusherEvent from "@/app/hooks/usePusherEvent";
 import type { WatchingUpdateEvent } from "@/app/types/auction-events";
 import { deserializeListing } from "@/app/utils/listing-serialization";
 import AccountListingBox from "./AccountListingBox";
+import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 
 interface ListingsDashboardProps {
   uploaded: SellerListing[];
@@ -23,21 +25,30 @@ interface ListingsDashboardProps {
 }
 
 type Tab = "uploaded" | "watching";
-type StatusFilter = "ALL" | "LIVE" | "UPCOMING" | "ENDED";
+const filters = [
+  { id: "all", label: "All" },
+  { id: "live", label: "Live" },
+  { id: "upcoming", label: "Upcoming" },
+  { id: "ended", label: "Ended" },
+] as const;
+const focusRing = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900";
 
 const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
   uploaded,
   initialWatching,
   currentUserId,
 }) => {
-  const [tab, setTab] = useState<Tab>("uploaded");
-  const [status, setStatus] = useState<StatusFilter>("ALL");
-  const [query, setQuery] = useState("");
+  const searchInput = useRef<HTMLInputElement>(null);
+  const params = useSearchParams();
+  const tab: Tab = params.get("tab") === "watching" ? "watching" : "uploaded";
+  const status = filters.find((filter) => filter.id === params.get("status"))?.id ?? "all";
+  const [query, setOptimisticQuery] = useOptimistic(params.get("q") ?? "");
   const [watchlist, setWatchlist] = useState({ source: initialWatching, listings: initialWatching });
   if (watchlist.source !== initialWatching) {
     setWatchlist({ source: initialWatching, listings: initialWatching });
   }
   const watching = watchlist.listings;
+  const watchingIds = useMemo(() => new Set(watching.map((listing) => listing.id)), [watching]);
 
   usePusherEvent<WatchingUpdateEvent>(
     currentUserId ? `private-user-${currentUserId}` : null,
@@ -60,24 +71,16 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
     const normalizedQuery = query.trim().toLowerCase();
 
     return source.filter((listing) => {
-      const matchesStatus = status === "ALL" || listing.status === status;
+      const matchesStatus = status === "all" || listing.status.toLowerCase() === status;
       const searchable = `${listing.year} ${listing.make} ${listing.model} ${listing.location}`.toLowerCase();
       return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
     });
   }, [query, source, status]);
 
   const liveCount = uploaded.filter((listing) => listing.status === "LIVE").length;
-  const filters: { id: StatusFilter; label: string }[] = [
-    { id: "ALL", label: "All" },
-    { id: "LIVE", label: "Live" },
-    { id: "UPCOMING", label: "Upcoming" },
-    { id: "ENDED", label: "Ended" },
-  ];
-
   const changeTab = (nextTab: Tab) => {
-    setTab(nextTab);
-    setStatus("ALL");
-    setQuery("");
+    if (nextTab === tab) return;
+    updateAccountUrl({ tab: nextTab === "watching" ? nextTab : "", status: "", q: "" });
   };
 
   return (
@@ -97,9 +100,9 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
           </div>
           <Link
             href="/submit-listing"
-            className="inline-flex w-fit items-center gap-2 rounded-lg bg-gray-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gray-800"
+            className={`${focusRing} inline-flex w-fit items-center gap-2 rounded-lg bg-gray-950 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-gray-800`}
           >
-            <FiPlus className="text-base" /> Sell a vehicle
+            <FiPlus aria-hidden="true" className="text-base" /> Sell a Vehicle
           </Link>
         </div>
       </div>
@@ -110,79 +113,83 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
         <Stat icon={<FiEye />} label="Watching" value={watching.length} />
       </div>
 
-      <div className="border-b border-gray-200 px-4 sm:px-6">
-        <div className="flex gap-6" role="tablist" aria-label="Your listings">
-          <TabButton
-            active={tab === "uploaded"}
-            count={uploaded.length}
-            onClick={() => changeTab("uploaded")}
-          >
-            My vehicles
-          </TabButton>
-          <TabButton
-            active={tab === "watching"}
-            count={watching.length}
-            onClick={() => changeTab("watching")}
-          >
-            Watchlist
-          </TabButton>
-        </div>
-      </div>
+      <AccountTabs<Tab>
+        label="Your listings"
+        tabs={[
+          { id: "uploaded", label: "My Vehicles", count: uploaded.length },
+          { id: "watching", label: "Watchlist", count: watching.length },
+        ]}
+        selected={tab}
+        onChange={changeTab}
+      >
+        <div className="flex flex-col gap-3 border-b border-gray-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex flex-wrap gap-1" role="group" aria-label="Filter listings by status">
+            {filters.map((filter) => (
+              <button
+                key={filter.id}
+                type="button"
+                aria-pressed={status === filter.id}
+                onClick={() => updateAccountUrl({ status: filter.id === "all" ? "" : filter.id })}
+                className={`${focusRing} whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+                  status === filter.id
+                    ? "bg-gray-950 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-950"
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
 
-      <div className="flex flex-col gap-3 border-b border-gray-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <div className="flex gap-1 overflow-x-auto" aria-label="Filter listings by status">
-          {filters.map((filter) => (
-            <button
-              key={filter.id}
-              type="button"
-              onClick={() => setStatus(filter.id)}
-              className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-                status === filter.id
-                  ? "bg-gray-950 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-950"
-              }`}
-            >
-              {filter.label}
-            </button>
-          ))}
+          <label className="relative block w-full sm:w-64">
+            <span className="sr-only">Search listings</span>
+            <FiSearch aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input
+              ref={searchInput}
+              type="search"
+              name="q"
+              autoComplete="off"
+              value={query}
+              onChange={(event) => {
+                const value = event.target.value;
+                startTransition(() => {
+                  setOptimisticQuery(value);
+                  updateAccountUrl({ q: value }, true);
+                });
+              }}
+              placeholder="e.g. Porsche 911…"
+              className={`${focusRing} w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-500 focus-visible:bg-white`}
+            />
+          </label>
         </div>
 
-        <label className="relative block w-full sm:w-64">
-          <span className="sr-only">Search listings</span>
-          <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search make, model, location"
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-400 focus:bg-white focus:ring-2 focus:ring-gray-200"
+        <p role="status" className="sr-only">
+          {visibleListings.length} {visibleListings.length === 1 ? "listing" : "listings"} found
+        </p>
+        {visibleListings.length ? (
+          <ul className="divide-y divide-gray-200">
+            {visibleListings.map((listing) => (
+              <li key={listing.id} className="[content-visibility:auto] [contain-intrinsic-size:auto_24rem] sm:[contain-intrinsic-size:auto_13rem]">
+                <AccountListingBox
+                  listing={listing}
+                  currentUserId={currentUserId}
+                  watching={watchingIds.has(listing.id)}
+                  uploaded={tab === "uploaded"}
+                />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyState
+            tab={tab}
+            filtered={Boolean(query) || status !== "all"}
+            onClear={() => {
+              searchInput.current?.focus();
+              updateAccountUrl({ status: "", q: "" });
+            }}
           />
-        </label>
-      </div>
-
-      {visibleListings.length ? (
-        <ul className="divide-y divide-gray-200">
-          {visibleListings.map((listing) => (
-            <li key={listing.id}>
-              <AccountListingBox
-                listing={listing}
-                currentUserId={currentUserId}
-                watching={watching.some((item) => item.id === listing.id)}
-                uploaded={tab === "uploaded"}
-              />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyState
-          tab={tab}
-          filtered={Boolean(query) || status !== "ALL"}
-          onClear={() => {
-            setQuery("");
-            setStatus("ALL");
-          }}
-        />
-      )}
+        )}
+      </AccountTabs>
     </section>
   );
 };
@@ -198,44 +205,11 @@ const Stat = ({
 }) => (
   <div className="border-r border-gray-200 px-3 py-4 last:border-r-0 sm:px-6">
     <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-gray-500 sm:text-xs">
-      <span className="hidden text-base sm:inline">{icon}</span>
+      <span aria-hidden="true" className="hidden text-base sm:inline">{icon}</span>
       {label}
     </div>
-    <p className="mt-1 text-2xl font-bold tracking-tight text-gray-950">{value}</p>
+    <p className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-gray-950">{value}</p>
   </div>
-);
-
-const TabButton = ({
-  active,
-  count,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  count: number;
-  onClick: () => void;
-  children: React.ReactNode;
-}) => (
-  <button
-    type="button"
-    role="tab"
-    aria-selected={active}
-    onClick={onClick}
-    className={`border-b-2 py-4 text-sm font-bold transition-colors ${
-      active
-        ? "border-gray-950 text-gray-950"
-        : "border-transparent text-gray-500 hover:text-gray-900"
-    }`}
-  >
-    {children}
-    <span
-      className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
-        active ? "bg-gray-950 text-white" : "bg-gray-100 text-gray-600"
-      }`}
-    >
-      {count}
-    </span>
-  </button>
 );
 
 const EmptyState = ({
@@ -248,15 +222,15 @@ const EmptyState = ({
   onClear: () => void;
 }) => (
   <div className="px-6 py-16 text-center">
-    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-xl text-gray-500">
+    <div aria-hidden="true" className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-xl text-gray-500">
       {tab === "uploaded" ? <FiGrid /> : <FiEye />}
     </div>
     <h3 className="mt-4 text-base font-bold text-gray-950">
       {filtered
-        ? "No listings match your filters"
+        ? "No Listings Match Your Filters"
         : tab === "uploaded"
-          ? "Your garage is empty"
-          : "Nothing on your watchlist yet"}
+          ? "Your Garage Is Empty"
+          : "Nothing on Your Watchlist Yet"}
     </h3>
     <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500">
       {filtered
@@ -269,16 +243,16 @@ const EmptyState = ({
       <button
         type="button"
         onClick={onClear}
-        className="mt-5 text-sm font-bold text-gray-950 hover:underline"
+        className={`${focusRing} mt-5 text-sm font-bold text-gray-950 hover:underline`}
       >
-        Clear filters
+        Clear Filters
       </button>
     ) : (
       <Link
         href={tab === "uploaded" ? "/submit-listing" : "/?status=live#auctions"}
-        className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-gray-950 hover:underline"
+        className={`${focusRing} mt-5 inline-flex items-center gap-1 text-sm font-bold text-gray-950 hover:underline`}
       >
-        {tab === "uploaded" ? "Submit a vehicle" : "Browse auctions"} <FiArrowUpRight />
+        {tab === "uploaded" ? "Submit a Vehicle" : "Browse Auctions"} <FiArrowUpRight aria-hidden="true" />
       </Link>
     )}
   </div>
