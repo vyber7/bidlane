@@ -27,6 +27,8 @@ export default function CompletionChecklist({ listingId, role, initialCompletion
   const [saving, setSaving] = useState<CompletionStep | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const checklist = useRef<HTMLElement>(null);
+  const latestCompletion = useRef(initialCompletion);
   const busy = useRef(false);
   const sequence = useRef(0);
   const endpoint = `/api/listing/${listingId}/completion`;
@@ -36,31 +38,58 @@ export default function CompletionChecklist({ listingId, role, initialCompletion
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
+    let timer: number | undefined;
     const refresh = async () => {
       if (busy.current || document.visibilityState === "hidden") return;
       const version = ++sequence.current;
       try {
         const result = await readResponse(await fetch(endpoint, { cache: "no-store", signal: controller.signal }));
         if (active && version === sequence.current) {
+          const updates = completionSteps.flatMap(({ id, title }) => {
+            const confirmed = Boolean(result[id][counterparty]);
+            if (confirmed === Boolean(latestCompletion.current[id][counterparty])) return [];
+            return [confirmed ? `Your ${counterparty} confirmed ${title.toLowerCase()}.` : `Your ${counterparty} reopened ${title.toLowerCase()}.`];
+          });
+          latestCompletion.current = result;
           setCompletion(result);
           setError(null);
+          if (updates.length) setNotice(updates.join(" "));
         }
       } catch {
         if (active && version === sequence.current) setError("Unable to refresh shared progress. Your last loaded checklist is shown. Refresh the page to try again.");
       }
     };
-    void refresh();
-    const timer = window.setInterval(() => void refresh(), 20_000);
-    window.addEventListener("focus", refresh);
-    document.addEventListener("visibilitychange", refresh);
-    return () => {
-      active = false;
-      controller.abort();
+    const startPolling = () => {
+      if (timer !== undefined) return;
+      void refresh();
+      timer = window.setInterval(() => void refresh(), 20_000);
+      window.addEventListener("focus", refresh);
+      document.addEventListener("visibilitychange", refresh);
+    };
+    const stopPolling = () => {
       window.clearInterval(timer);
+      timer = undefined;
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, [endpoint]);
+    let observer: IntersectionObserver | undefined;
+    if (checklist.current && typeof IntersectionObserver !== "undefined") {
+      observer = new IntersectionObserver(([entry]) => {
+        if (!active || !entry) return;
+        if (entry.isIntersecting) startPolling();
+        else stopPolling();
+      });
+      observer.observe(checklist.current);
+    } else {
+      startPolling();
+    }
+    return () => {
+      active = false;
+      controller.abort();
+      observer?.disconnect();
+      stopPolling();
+    };
+  }, [counterparty, endpoint]);
 
   async function confirm(step: CompletionStep, completed: boolean) {
     if (busy.current) return;
@@ -76,6 +105,7 @@ export default function CompletionChecklist({ listingId, role, initialCompletion
         body: JSON.stringify({ step, completed }),
       }));
       if (version === sequence.current) {
+        latestCompletion.current = result;
         setCompletion(result);
         setNotice(completed ? "Your confirmation was saved and shared." : "Your confirmation was removed.");
       }
@@ -88,10 +118,10 @@ export default function CompletionChecklist({ listingId, role, initialCompletion
   }
 
   return (
-    <section className="mt-5 rounded-xl border border-gray-200 bg-white p-4 sm:p-5" aria-label="Shared completion checklist">
+    <section ref={checklist} className="mt-5 rounded-xl border border-gray-200 bg-white p-4 sm:p-5" aria-label="Shared completion checklist">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h4 className="font-bold text-gray-950">Completion checklist</h4>
-        <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${count === 3 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
+        <h4 className="text-balance font-bold text-gray-950">Completion Checklist</h4>
+        <span className={`rounded-full px-2.5 py-1 text-xs font-bold tabular-nums ${count === 3 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
           {count === 3 ? "Transaction complete" : `${count} of 3 steps complete`}
         </span>
       </div>

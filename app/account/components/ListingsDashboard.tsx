@@ -3,7 +3,7 @@
 import type { PublicListing, SellerListing } from "@/app/libs/listing-payload";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { startTransition, useId, useMemo, useOptimistic, useRef, useState, type KeyboardEvent } from "react";
+import { startTransition, useMemo, useOptimistic, useRef, useState } from "react";
 import {
   FiArrowUpRight,
   FiEye,
@@ -16,6 +16,7 @@ import usePusherEvent from "@/app/hooks/usePusherEvent";
 import type { WatchingUpdateEvent } from "@/app/types/auction-events";
 import { deserializeListing } from "@/app/utils/listing-serialization";
 import AccountListingBox from "./AccountListingBox";
+import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 
 interface ListingsDashboardProps {
   uploaded: SellerListing[];
@@ -30,29 +31,13 @@ const filters = [
   { id: "upcoming", label: "Upcoming" },
   { id: "ended", label: "Ended" },
 ] as const;
-const tabs = [
-  { id: "uploaded", label: "My Vehicles" },
-  { id: "watching", label: "Watchlist" },
-] as const;
 const focusRing = "scroll-mt-[calc(var(--site-header-height)+1rem)] touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900";
-
-function updateListingsUrl(updates: Partial<Record<"tab" | "status" | "q", string>>, replace = false) {
-  const url = new URL(window.location.href);
-  for (const [key, value] of Object.entries(updates)) {
-    if (value) url.searchParams.set(key, value);
-    else url.searchParams.delete(key);
-  }
-  if (url.href === window.location.href) return;
-  if (replace) window.history.replaceState(null, "", url);
-  else window.history.pushState(null, "", url);
-}
 
 const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
   uploaded,
   initialWatching,
   currentUserId,
 }) => {
-  const id = useId();
   const searchInput = useRef<HTMLInputElement>(null);
   const params = useSearchParams();
   const tab: Tab = params.get("tab") === "watching" ? "watching" : "uploaded";
@@ -95,29 +80,8 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
   const liveCount = uploaded.filter((listing) => listing.status === "LIVE").length;
   const changeTab = (nextTab: Tab) => {
     if (nextTab === tab) return;
-    updateListingsUrl({ tab: nextTab === "watching" ? nextTab : "", status: "", q: "" });
+    updateAccountUrl({ tab: nextTab === "watching" ? nextTab : "", status: "", q: "" });
   };
-
-  function handleTabKey(event: KeyboardEvent<HTMLButtonElement>, current: Tab) {
-    let next: Tab;
-    switch (event.key) {
-      case "ArrowLeft":
-      case "ArrowRight":
-        next = current === "uploaded" ? "watching" : "uploaded";
-        break;
-      case "Home":
-        next = "uploaded";
-        break;
-      case "End":
-        next = "watching";
-        break;
-      default:
-        return;
-    }
-    event.preventDefault();
-    document.getElementById(`${id}-${next}-tab`)?.focus();
-    changeTab(next);
-  }
 
   return (
     <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -149,110 +113,83 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
         <Stat icon={<FiEye />} label="Watching" value={watching.length} />
       </div>
 
-      <div className="border-b border-gray-200 px-4 sm:px-6">
-        <div className="flex gap-6" role="tablist" aria-label="Your listings">
-          {tabs.map(({ id: tabId, label }) => {
-            const active = tab === tabId;
-            return (
+      <AccountTabs<Tab>
+        label="Your listings"
+        tabs={[
+          { id: "uploaded", label: "My Vehicles", count: uploaded.length },
+          { id: "watching", label: "Watchlist", count: watching.length },
+        ]}
+        selected={tab}
+        onChange={changeTab}
+      >
+        <div className="flex flex-col gap-3 border-b border-gray-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex flex-wrap gap-1" role="group" aria-label="Filter listings by status">
+            {filters.map((filter) => (
               <button
-                key={tabId}
-                id={`${id}-${tabId}-tab`}
+                key={filter.id}
                 type="button"
-                role="tab"
-                aria-selected={active}
-                aria-controls={`${id}-${tabId}-panel`}
-                tabIndex={active ? 0 : -1}
-                onClick={() => changeTab(tabId)}
-                onKeyDown={(event) => handleTabKey(event, tabId)}
-                className={`${focusRing} border-b-2 py-4 text-sm font-bold transition-colors ${
-                  active ? "border-gray-950 text-gray-950" : "border-transparent text-gray-500 hover:text-gray-900"
+                aria-pressed={status === filter.id}
+                onClick={() => updateAccountUrl({ status: filter.id === "all" ? "" : filter.id })}
+                className={`${focusRing} whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+                  status === filter.id
+                    ? "bg-gray-950 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-950"
                 }`}
               >
-                {label}
-                <span className={`ml-2 rounded-full px-2 py-0.5 text-xs tabular-nums ${active ? "bg-gray-950 text-white" : "bg-gray-100 text-gray-600"}`}>
-                  {tabId === "uploaded" ? uploaded.length : watching.length}
-                </span>
+                {filter.label}
               </button>
-            );
-          })}
+            ))}
+          </div>
+
+          <label className="relative block w-full sm:w-64">
+            <span className="sr-only">Search listings</span>
+            <FiSearch aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input
+              ref={searchInput}
+              type="search"
+              name="q"
+              autoComplete="off"
+              value={query}
+              onChange={(event) => {
+                const value = event.target.value;
+                startTransition(() => {
+                  setOptimisticQuery(value);
+                  updateAccountUrl({ q: value }, true);
+                });
+              }}
+              placeholder="e.g. Porsche 911…"
+              className={`${focusRing} w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-500 focus-visible:bg-white`}
+            />
+          </label>
         </div>
-      </div>
 
-      {tabs.map(({ id: tabId }) => (
-        <div key={tabId} id={`${id}-${tabId}-panel`} role="tabpanel" aria-labelledby={`${id}-${tabId}-tab`} hidden={tab !== tabId}>
-          {tab === tabId && (
-            <>
-              <div className="flex flex-col gap-3 border-b border-gray-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                <div className="flex flex-wrap gap-1" role="group" aria-label="Filter listings by status">
-                  {filters.map((filter) => (
-                    <button
-                      key={filter.id}
-                      type="button"
-                      aria-pressed={status === filter.id}
-                      onClick={() => updateListingsUrl({ status: filter.id === "all" ? "" : filter.id })}
-                      className={`${focusRing} whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-                        status === filter.id
-                          ? "bg-gray-950 text-white"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-950"
-                      }`}
-                    >
-                      {filter.label}
-                    </button>
-                  ))}
-                </div>
-
-                <label className="relative block w-full sm:w-64">
-                  <span className="sr-only">Search listings</span>
-                  <FiSearch aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                  <input
-                    ref={searchInput}
-                    type="search"
-                    name="q"
-                    autoComplete="off"
-                    value={query}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      startTransition(() => {
-                        setOptimisticQuery(value);
-                        updateListingsUrl({ q: value }, true);
-                      });
-                    }}
-                    placeholder="e.g. Porsche 911…"
-                    className={`${focusRing} w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-500 focus-visible:bg-white`}
-                  />
-                </label>
-              </div>
-
-              <p role="status" className="sr-only">
-                {visibleListings.length} {visibleListings.length === 1 ? "listing" : "listings"} found
-              </p>
-              {visibleListings.length ? (
-                <ul className="divide-y divide-gray-200">
-                  {visibleListings.map((listing) => (
-                    <li key={listing.id} className="[content-visibility:auto] [contain-intrinsic-size:auto_24rem] sm:[contain-intrinsic-size:auto_13rem]">
-                      <AccountListingBox
-                        listing={listing}
-                        currentUserId={currentUserId}
-                        watching={watchingIds.has(listing.id)}
-                        uploaded={tab === "uploaded"}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <EmptyState
-                  tab={tab}
-                  filtered={Boolean(query) || status !== "all"}
-                  onClear={() => {
-                    searchInput.current?.focus();
-                    updateListingsUrl({ status: "", q: "" });
-                  }}
+        <p role="status" className="sr-only">
+          {visibleListings.length} {visibleListings.length === 1 ? "listing" : "listings"} found
+        </p>
+        {visibleListings.length ? (
+          <ul className="divide-y divide-gray-200">
+            {visibleListings.map((listing) => (
+              <li key={listing.id} className="[content-visibility:auto] [contain-intrinsic-size:auto_24rem] sm:[contain-intrinsic-size:auto_13rem]">
+                <AccountListingBox
+                  listing={listing}
+                  currentUserId={currentUserId}
+                  watching={watchingIds.has(listing.id)}
+                  uploaded={tab === "uploaded"}
                 />
-              )}
-            </>
-          )}
-        </div>
-      ))}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyState
+            tab={tab}
+            filtered={Boolean(query) || status !== "all"}
+            onClear={() => {
+              searchInput.current?.focus();
+              updateAccountUrl({ status: "", q: "" });
+            }}
+          />
+        )}
+      </AccountTabs>
     </section>
   );
 };
