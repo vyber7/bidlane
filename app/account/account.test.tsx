@@ -81,7 +81,7 @@ describe("account page authentication", () => {
     ["profile", Profile],
     ["listings", Listings],
     ["bids and wins", BidsAndWins],
-    ["notifications", Notifications],
+    ["notifications", () => Notifications({ searchParams: Promise.resolve({}) })],
     ["shipments", Shipments],
   ])("checks the user independently on %s", async (_name, page) => {
     mocks.getAccountUser.mockResolvedValue(null);

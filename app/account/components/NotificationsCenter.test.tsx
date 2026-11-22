@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AccountNotification, NotificationFeed } from "@/app/types/account";
 
@@ -9,33 +10,54 @@ vi.mock("axios", async (importOriginal) => {
   return { ...actual, default: { ...actual.default, get: mocks.get, patch: mocks.patch } };
 });
 vi.mock("@/app/context/NotificationContext", () => ({ useNotifications: () => ({ version: mocks.version, summary: { userId: "buyer", unreadCount: 1 }, refresh: mocks.refresh }) }));
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(useSyncExternalStore(subscribe, () => window.location.search)),
+}));
+
+function subscribe(notify: () => void) {
+  window.addEventListener("popstate", notify);
+  return () => window.removeEventListener("popstate", notify);
+}
+
 import NotificationsCenter from "./NotificationsCenter";
 const item: AccountNotification = { id: "abcdef0123456789abcdef01", title: "You’ve been outbid", message: "Another buyer is leading.", kind: "bid", tone: "warning", createdAt: "2026-10-14T12:00:00.000Z", readAt: null, href: "/listing/car", actionLabel: "Bid again" };
 const feed: NotificationFeed = { items: [item], total: 1, unreadCount: 1, nextCursor: null };
-const view = (initialFeed = feed) => <NotificationsCenter initialFeed={initialFeed} userId="buyer" />;
+const view = (initialFeed = feed, initialView: "all" | "unread" = "all") => (
+  <NotificationsCenter initialFeed={initialFeed} initialView={initialView} userId="buyer" />
+);
 beforeEach(() => {
   vi.clearAllMocks(); mocks.version = 0;
+  window.history.replaceState(null, "", "/account/notifications");
+  const push = window.history.pushState.bind(window.history);
+  vi.spyOn(window.history, "pushState").mockImplementation((...args) => {
+    push(...args);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
   mocks.get.mockResolvedValue({ data: feed });
   mocks.patch.mockResolvedValue({ data: { updated: 1 } });
   mocks.refresh.mockResolvedValue(undefined);
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("persistent notification inbox", () => {
   it("saves read state on the server and refreshes the shared header count", async () => {
     await act(async () => { render(view()); });
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Mark as read" })); });
+    const mark = screen.getByRole("button", { name: "Mark as Read" });
+    mark.focus();
+    await act(async () => { fireEvent.click(mark); });
     expect(mocks.patch).toHaveBeenCalledExactlyOnceWith("/api/notifications", { ids: [item.id] });
-    expect(screen.queryByRole("button", { name: "Mark as read" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Mark as Read" })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole("link", { name: "Bid again" }));
+    expect(screen.getByRole("status").textContent).toBe("Notification marked as read.");
     expect(mocks.refresh).toHaveBeenCalled();
   });
 
   it("does not show a successful read if the server write fails", async () => {
     mocks.patch.mockRejectedValueOnce({ isAxiosError: true, response: { data: { error: "Unable to save read status" } } });
     await act(async () => { render(view()); });
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Mark as read" })); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Mark as Read" })); });
     expect(screen.getByRole("alert").textContent).toContain("Unable to save read status");
-    expect(screen.getByRole("button", { name: "Mark as read" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Mark as Read" })).toBeDefined();
     expect(mocks.refresh).not.toHaveBeenCalled();
   });
 
@@ -44,9 +66,13 @@ describe("persistent notification inbox", () => {
     mocks.get.mockResolvedValueOnce({ data: initial });
     mocks.patch.mockResolvedValueOnce({ data: { updated: 100 } });
     await act(async () => { render(view(initial)); });
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Mark all as read" })); });
+    const markAll = screen.getByRole("button", { name: "Mark All as Read" });
+    markAll.focus();
+    await act(async () => { fireEvent.click(markAll); });
     expect(mocks.patch).toHaveBeenCalledWith("/api/notifications", { all: true, before: item.createdAt });
-    expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveProperty("disabled", true);
+    expect(markAll).toHaveProperty("disabled", true);
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "All 100" }));
+    expect(screen.getByRole("status").textContent).toBe("100 notifications marked as read.");
   });
 
   it("reflects read state changed on another device when the live version updates", async () => {
@@ -55,7 +81,7 @@ describe("persistent notification inbox", () => {
     mocks.get.mockResolvedValueOnce({ data: { ...feed, unreadCount: 0, items: [{ ...item, readAt: "2026-10-14T13:00:00Z" }] } });
     mocks.version += 1;
     await act(async () => { rerender(view()); });
-    expect(screen.queryByRole("button", { name: "Mark as read" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Mark as Read" })).toBeNull();
   });
 
   it("discards a stale inbox response that arrives after a successful read", async () => {
@@ -65,9 +91,9 @@ describe("persistent notification inbox", () => {
     mocks.get.mockReturnValueOnce(new Promise((done) => { resolve = done; }));
     mocks.version += 1;
     await act(async () => { rerender(view()); });
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Mark as read" })); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Mark as Read" })); });
     await act(async () => { resolve({ data: feed }); });
-    expect(screen.queryByRole("button", { name: "Mark as read" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Mark as Read" })).toBeNull();
   });
 
   it("loads older events without duplicating rows and requests unread records separately", async () => {
@@ -75,11 +101,25 @@ describe("persistent notification inbox", () => {
     mocks.get.mockResolvedValueOnce({ data: initial });
     await act(async () => { render(view(initial)); });
     mocks.get.mockResolvedValueOnce({ data: { ...feed, total: 2, items: [{ ...item, id: "older", title: "You won the auction" }] } });
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Load more" })); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Load More" })); });
     expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(2);
     expect(screen.getByText("You won the auction")).toBeDefined();
     expect(mocks.get).toHaveBeenLastCalledWith(`/api/notifications?view=all&cursor=${item.id}`);
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: /Unread 1/ })); });
+    expect(window.location.search).toBe("?view=unread");
     expect(mocks.get).toHaveBeenLastCalledWith("/api/notifications?view=unread");
+  });
+
+  it("opens the Unread URL and moves focus to the filter when the last row is read", async () => {
+    window.history.replaceState(null, "", "/account/notifications?view=unread");
+    await act(async () => { render(view(feed, "unread")); });
+    expect(mocks.get).toHaveBeenLastCalledWith("/api/notifications?view=unread");
+    expect(screen.getByRole("heading", { name: "Unread: You’ve been outbid" })).toBeDefined();
+    const mark = screen.getByRole("button", { name: "Mark as Read" });
+    mark.focus();
+    await act(async () => { fireEvent.click(mark); });
+    const filter = screen.getByRole("button", { name: "Unread 0", pressed: true });
+    expect(document.activeElement).toBe(filter);
+    expect(screen.getByRole("heading", { name: "You’re All Caught Up" })).toBeDefined();
   });
 });
