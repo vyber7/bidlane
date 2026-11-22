@@ -5,16 +5,16 @@ const mocks = vi.hoisted(() => ({ patch: vi.fn() }));
 vi.mock("axios", async (importOriginal) => { const actual = await importOriginal<typeof import("axios")>(); return { ...actual, default: { ...actual.default, patch: mocks.patch } }; });
 import EmailNotificationSettings from "./EmailNotificationSettings";
 beforeEach(() => { vi.clearAllMocks(); mocks.patch.mockResolvedValue({ data: { outbidEmailsEnabled: false } }); });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 describe("email notification settings", () => {
   it("saves an opt-out and confirms only after the server accepts it", async () => {
     render(<EmailNotificationSettings initialEnabled={true} />);
     fireEvent.click(screen.getByRole("checkbox", { name: "Email me when I’m outbid" }));
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Save email preferences" })); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Save Email Preferences" })); });
     expect(mocks.patch).toHaveBeenCalledExactlyOnceWith("/api/account/notification-preferences", { outbidEmailsEnabled: false });
     expect(screen.getByRole("status").textContent).toBe("Email preferences saved.");
     expect(screen.getByRole("checkbox")).toHaveProperty("checked", false);
-    expect(screen.getByRole("button", { name: "Save email preferences" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "Save Email Preferences" })).toHaveProperty("disabled", true);
   });
   it("saves ending-soon emails separately", async () => {
     mocks.patch.mockResolvedValue({ data: { endingSoonEmailsEnabled: false } });
@@ -28,9 +28,28 @@ describe("email notification settings", () => {
     mocks.patch.mockRejectedValueOnce({ isAxiosError: true, response: { data: { error: "Could not save" } } });
     render(<EmailNotificationSettings initialEnabled={true} />);
     fireEvent.click(screen.getByRole("checkbox"));
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Save email preferences" })); });
-    expect(screen.getByRole("alert").textContent).toBe("Could not save");
-    expect(screen.queryByRole("status")).toBeNull();
-    expect(screen.getByRole("button", { name: "Save email preferences" })).toHaveProperty("disabled", false);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Save Email Preferences" })); });
+    expect(screen.getByRole("alert").textContent).toBe("Could not save. Try saving again.");
+    expect(screen.getByRole("status").textContent).toBe("");
+    expect(screen.getByRole("button", { name: "Save Email Preferences" })).toHaveProperty("disabled", false);
+  });
+
+  it("warns once when both preferences have unsaved changes", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<>
+      <a href="/account/profile">Profile</a>
+      <EmailNotificationSettings initialEnabled />
+      <EmailNotificationSettings initialEnabled preference="endingSoonEmailsEnabled" />
+    </>);
+    const [outbid, endingSoon] = screen.getAllByRole("checkbox");
+    fireEvent.click(outbid);
+    fireEvent.click(endingSoon);
+    const link = screen.getByRole("link", { name: "Profile" });
+    expect(fireEvent.click(link)).toBe(false);
+    expect(confirm).toHaveBeenCalledOnce();
+    fireEvent.click(outbid);
+    expect(window.dispatchEvent(new Event("beforeunload", { cancelable: true }))).toBe(false);
+    fireEvent.click(endingSoon);
+    expect(window.dispatchEvent(new Event("beforeunload", { cancelable: true }))).toBe(true);
   });
 });

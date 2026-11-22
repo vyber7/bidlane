@@ -31,7 +31,7 @@ export default function MobileAuctionBar({ currentUserId }: { currentUserId?: st
           <p className="text-xs tabular-nums text-amber-400">{expired ? "Finalizing results…" : `Time left: ${timeLeft || "Syncing…"}`}</p>
         </div>
         {expired ? (
-          <span role="status" className="text-sm font-semibold text-slate-300">Finalizing…</span>
+          <span className="text-sm font-semibold text-slate-300">Finalizing…</span>
         ) : owner || canBid ? (
           <a href="#bids" className="rounded-xl bg-amber-400 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400">
             {owner ? "View bids" : "Place a bid"}

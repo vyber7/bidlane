@@ -30,6 +30,30 @@ describe("shared completion checklist", () => {
     fireEvent.focus(window);
     await screen.findByText("1 of 3 steps complete");
     expect(screen.getByText("Seller confirmed")).toBeDefined();
+    expect(screen.getByRole("status").textContent).toBe("Your seller confirmed payment.");
+  });
+
+  it("refreshes on entry and stops polling when the checklist leaves the viewport", async () => {
+    let notify!: (isIntersecting: boolean) => void;
+    const disconnect = vi.fn();
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(callback: (entries: { isIntersecting: boolean }[]) => void) {
+        notify = (isIntersecting) => callback([{ isIntersecting }]);
+      }
+      observe = vi.fn();
+      disconnect = disconnect;
+    });
+
+    const { unmount } = mount();
+    expect(fetchMock).not.toHaveBeenCalled();
+    await act(async () => { notify(true); });
+    expect(fetchMock).toHaveBeenCalledOnce();
+
+    act(() => { notify(false); });
+    fireEvent.focus(window);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    unmount();
+    expect(disconnect).toHaveBeenCalledOnce();
   });
 
   it("lets a seller reopen their own confirmation and reopens the transaction", async () => {

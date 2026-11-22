@@ -5,7 +5,7 @@ import { buildShipments } from "@/app/account/lib/shipments";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "BidLane | Purchases & sales",
+  title: "BidLane | Purchases & Sales",
   description: "Track payment, paperwork, and pickup with a shared checklist for buyers and sellers.",
 };
 

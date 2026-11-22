@@ -14,6 +14,9 @@ import { logger } from "@/app/libs/logger";
 import { pusherServer } from "@/app/libs/pusher";
 import { auctionLiveNotifications, publishNotificationChanges, saveNotifications } from "@/app/libs/notifications";
 import type { AuctionStartedEvent } from "@/app/types/auction-events";
+import { z } from "zod";
+
+const explicitEndTime = z.union([z.iso.datetime({ offset: true }), z.number()]);
 
 export async function POST(req: Request) {
   try {
@@ -31,13 +34,14 @@ export async function POST(req: Request) {
     if (startingBid + bidIncrement > 2_147_483_647) {
       throw new ApiRequestError(400, "Starting bid plus increment is too large");
     }
-    const endTime =
-      typeof body.endTime === "string" || typeof body.endTime === "number"
-        ? new Date(body.endTime)
-        : null;
+    const endTimeValue = explicitEndTime.safeParse(body.endTime);
+    if (!endTimeValue.success) {
+      throw new ApiRequestError(400, "Choose an end time with a time zone.");
+    }
+    const endTime = new Date(endTimeValue.data);
     const startTime = new Date();
 
-    if (!endTime || Number.isNaN(endTime.getTime()) || endTime <= startTime) {
+    if (Number.isNaN(endTime.getTime()) || endTime <= startTime) {
       throw new ApiRequestError(400, "End time must be in the future");
     }
 

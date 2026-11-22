@@ -26,6 +26,8 @@ const previewOptions = {
   sizes: "(min-width: 1024px) 992px, calc(100vw - 64px)",
 } as const;
 
+const dialogButtonClass = "rounded-lg px-4 py-2 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 aria-disabled:cursor-default aria-disabled:opacity-30 aria-disabled:hover:bg-transparent";
+
 const Gallery: React.FC<GalleryProps> = ({
   listingId,
   owner,
@@ -137,21 +139,21 @@ const Gallery: React.FC<GalleryProps> = ({
           setPreparedImage(null);
         }}
         aria-label={`${vehicleName} photos`}
-        className="w-[calc(100%-2rem)] max-w-5xl rounded-2xl bg-slate-950 p-4 text-white backdrop:bg-black/80"
+        className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-5xl overflow-y-auto overscroll-contain rounded-2xl bg-slate-950 p-4 text-white backdrop:bg-black/80"
       >
         <div className="mb-4 flex items-center justify-between gap-4">
-          <p className="text-sm">
+          <p aria-live="polite" aria-atomic="true" className="text-sm">
             Photo {selectedImage + 1} of {images.length}
           </p>
           <button
             type="button"
             onClick={() => dialogRef.current?.close()}
-            className="rounded-lg px-4 py-2 hover:bg-white/10"
+            className={dialogButtonClass}
           >
             Close ×
           </button>
         </div>
-        <div className="relative h-[min(70vh,700px)]">
+        <div className="relative h-[min(70dvh,700px)]">
           {previewImages.map((imageUrl) => (
             <GalleryPreview
               key={imageUrl}
@@ -165,17 +167,17 @@ const Gallery: React.FC<GalleryProps> = ({
         <div className="mt-4 flex justify-between">
           <button
             type="button"
-            disabled={selectedImage === 0}
-            onClick={() => setSelectedImage((i) => i - 1)}
-            className="rounded-lg px-4 py-2 hover:bg-white/10 disabled:opacity-30"
+            aria-disabled={selectedImage === 0}
+            onClick={() => setSelectedImage((i) => Math.max(0, i - 1))}
+            className={dialogButtonClass}
           >
             ← Previous
           </button>
           <button
             type="button"
-            disabled={selectedImage >= images.length - 1}
-            onClick={() => setSelectedImage((i) => i + 1)}
-            className="rounded-lg px-4 py-2 hover:bg-white/10 disabled:opacity-30"
+            aria-disabled={selectedImage >= images.length - 1}
+            onClick={() => setSelectedImage((i) => i < images.length - 1 ? i + 1 : i)}
+            className={dialogButtonClass}
           >
             Next →
           </button>

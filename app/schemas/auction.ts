@@ -9,9 +9,11 @@ export const bidRequestSchema = z.object({
   bidAmount: safeIntegerSchema("Bid amount"),
 });
 
+export const MAX_COMMENT_LENGTH = 4000;
+
 export const commentRequestSchema = z.object({
   listingId: listingIdSchema,
-  comment: requiredTextSchema("Comment is required").max(4000, "Comments must be 4,000 characters or fewer"),
+  comment: requiredTextSchema("Comment is required").max(MAX_COMMENT_LENGTH, "Comments must be 4,000 characters or fewer"),
   // Preserve the existing API's treatment of non-string images as absent.
   image: z.preprocess((value) => typeof value === "string" ? value : undefined, z.string().max(2048).optional()),
 });

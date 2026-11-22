@@ -15,15 +15,19 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-it("submits numeric bid settings and a native datetime string", async () => {
+it("submits numeric bid settings and converts local closing time to an ISO timestamp", async () => {
+  const endTime = "2026-10-16T12:30";
   render(<AuctionStartForm listingId="listing-1" />);
-  fireEvent.change(screen.getByLabelText("End Time"), { target: { value: "2026-10-16T12:30" } });
+  const input = screen.getByLabelText("End Time");
+  expect(document.getElementById(input.getAttribute("aria-describedby")!)?.textContent)
+    .toContain(Intl.DateTimeFormat().resolvedOptions().timeZone.replaceAll("_", " "));
+  fireEvent.change(input, { target: { value: endTime } });
   fireEvent.change(screen.getByLabelText("Starting Bid"), { target: { value: "0" } });
   fireEvent.change(screen.getByLabelText("Bid Increment"), { target: { value: "25" } });
   await act(async () => { fireEvent.submit(screen.getByRole("button", { name: "Start an Auction" }).closest("form")!); });
 
   expect(mocks.post).toHaveBeenCalledWith("/api/auction-start", {
-    listingId: "listing-1", endTime: "2026-10-16T12:30", startingBid: 0, bidIncrement: 25,
+    listingId: "listing-1", endTime: new Date(endTime).toISOString(), startingBid: 0, bidIncrement: 25,
   });
 });
 

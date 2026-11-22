@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeListing } from "@/app/test/auction-fixtures";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 const mocks = vi.hoisted(() => ({ listing: vi.fn(), user: vi.fn(), comments: vi.fn(), bids: vi.fn(), live: vi.fn(), seller: vi.fn(), editor: vi.fn() }));
 vi.mock("../../libs/read-repositories", () => ({ getReadRepositories: () => ({ listings: { find: mocks.listing }, sellers: { identity: mocks.seller } }) }));
@@ -10,7 +11,7 @@ vi.mock("@/app/actions/getComments", () => ({ default: mocks.comments }));
 vi.mock("@/app/actions/getBids", () => ({ default: mocks.bids }));
 vi.mock("@/app/actions/getLiveAuctions", () => ({ default: mocks.live }));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("not-found"); } }));
-vi.mock("./components/Comments", () => ({ default: () => null }));
+vi.mock("./components/Comments", () => ({ default: () => <section id="comments">Comments</section> }));
 vi.mock("./components/AuctionStatusBar", () => ({ default: () => <div>Public auction actions</div> }));
 vi.mock("./components/MobileAuctionBar", () => ({ default: () => null }));
 vi.mock("./components/AuctionStartForm", () => ({ default: () => null }));
@@ -18,7 +19,7 @@ vi.mock("./components/Bids", () => ({ default: () => null }));
 vi.mock("./components/Gallery", () => ({ default: () => null }));
 vi.mock("./components/CoverImage", () => ({ default: () => null }));
 vi.mock("./components/ListingEditor", () => ({ default: ({ listing }: { listing: unknown }) => { mocks.editor(listing); return null; } }));
-vi.mock("@/app/submit-listing/components/Aside", () => ({ default: () => null }));
+vi.mock("@/app/submit-listing/components/Aside", () => ({ default: () => <Link href="/?status=live#auctions">View other live auctions</Link> }));
 vi.mock("@/app/context/AuctionContext", () => ({ AuctionProvider: ({ children }: { children: ReactNode }) => children }));
 import ListingPage from "./page";
 const id = "abcdef0123456789abcdef01";
@@ -28,6 +29,15 @@ beforeEach(() => {
   mocks.listing.mockResolvedValue(makeListing({ status: "UPCOMING", reviewStatus: "PENDING" }));
   mocks.user.mockResolvedValue(null);
   mocks.comments.mockResolvedValue([]); mocks.bids.mockResolvedValue([]); mocks.live.mockResolvedValue([]); mocks.seller.mockResolvedValue({ name: "Seller" });
+});
+
+it("uses the shared main landmark and puts related auction links after the listing content", async () => {
+  mocks.listing.mockResolvedValue(makeListing({ status: "LIVE" }));
+  const html = renderToStaticMarkup(<main id="main-content">{await visit()}</main>);
+  expect(html.match(/<main\b/g)).toEqual(["<main"]);
+  expect(html).toContain('id="comments"');
+  expect(html).toContain("View other live auctions");
+  expect(html.indexOf('id="comments"')).toBeLessThan(html.indexOf("View other live auctions"));
 });
 
 describe("private listing pages", () => {

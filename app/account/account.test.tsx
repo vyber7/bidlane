@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import AccountLayout from "./layout";
 import AccountLinks from "./components/AccountLinks";
 import Profile from "./profile/page";
@@ -45,8 +45,9 @@ describe("shared account layout", () => {
     render(await AccountLayout({ children: <h2>Account content</h2> }));
 
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole("heading", { name: "Welcome back, Alex." })).toBeTruthy();
-    expect(screen.getAllByRole("link")).toHaveLength(5);
+    expect(screen.getByRole("heading", { name: "Welcome Back, Alex." })).toBeTruthy();
+    const navigation = screen.getByRole("navigation", { name: "Account" });
+    expect(within(navigation).getAllByRole("link")).toHaveLength(5);
     expect(screen.getByRole("heading", { name: "Account content" })).toBeTruthy();
   });
 
@@ -61,7 +62,7 @@ describe("shared account layout", () => {
     expect(screen.getByRole("link", { name: "Notifications" }).getAttribute("aria-current")).toBe("page");
     mocks.pathname = "/account/shipments";
     rerender(<AccountLinks />);
-    const purchases = screen.getByRole("link", { name: "Purchases & sales" });
+    const purchases = screen.getByRole("link", { name: "Purchases & Sales" });
     expect(purchases.getAttribute("aria-current")).toBe("page");
     expect(purchases.getAttribute("href")).toBe("/account/shipments");
   });
@@ -70,7 +71,7 @@ describe("shared account layout", () => {
     mocks.getAccountUser.mockResolvedValue(null);
     render(await AccountLayout({ children: <h2>Private account data</h2> }));
 
-    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/signin");
+    expect(screen.getByRole("link", { name: "Sign In" }).getAttribute("href")).toBe("/signin");
     expect(screen.queryByText("Private account data")).toBeNull();
   });
 });
@@ -81,7 +82,7 @@ describe("account page authentication", () => {
     ["profile", Profile],
     ["listings", Listings],
     ["bids and wins", BidsAndWins],
-    ["notifications", Notifications],
+    ["notifications", () => Notifications({ searchParams: Promise.resolve({}) })],
     ["shipments", Shipments],
   ])("checks the user independently on %s", async (_name, page) => {
     mocks.getAccountUser.mockResolvedValue(null);
