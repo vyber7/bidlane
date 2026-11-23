@@ -21,6 +21,7 @@ import { GoStar, GoStarFill } from "react-icons/go";
 import toast from "react-hot-toast";
 import useWatchlist from "@/app/hooks/useWatchlist";
 import { logger } from "@/app/libs/logger";
+import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
 
 interface AuctionStatusBarProps {
   currentUser?: string | null;
@@ -31,7 +32,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [autoFinalizingDeadline, setAutoFinalizingDeadline] = useState<string | null>(null);
-  const { listing, bids, comments, remainingMs, expired, timeLeft } = useAuctionContext();
+  const { listing, bids, comments, remainingMs, expired, timeLeft, bidding } = useAuctionContext();
   const bid = listing.currentBid;
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
@@ -99,6 +100,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
 
   const live = listing.status === "LIVE";
   const ended = listing.status === "ENDED";
+  const transaction = transactionAccess(listing, currentUser);
   const amount = bid ?? listing.startingBid;
   const label = ended
     ? listing.result === "SOLD" ? "Sold for" : bid !== null ? "Highest bid" : "No bids placed"
@@ -149,15 +151,17 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
           )
         ) : live ? currentUser === listing.userId ? (
           <Button onClick={endAuction} disabled={isLoading || !expired}>{isLoading ? "Ending auction…" : "End auction"}</Button>
-        ) : (
+        ) : bidding.state === "open" ? (
           <Link href="#bids" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">Place a bid</Link>
+        ) : (
+          <p className="text-sm leading-6 text-slate-400">{bidding.state === "syncing" ? "Syncing auction…" : "Bidding unavailable"}</p>
         ) : !ended ? (
           <p className="text-sm leading-6 text-slate-400">Bidding hasn’t opened yet. {currentUser === listing.userId ? "Set up your auction below when you’re ready." : "Add this vehicle to your watchlist to find it again easily."}</p>
         ) : null}
-        {ended && listing.result === "SOLD" && currentUser && (currentUser === listing.userId || currentUser === listing.highestBidderId) && (
+        {transaction?.canComplete && (
           <div className="space-y-3">
-            <Link href="/account/shipments" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">{currentUser === listing.userId ? "View sale details" : "View purchase details"}</Link>
-            <p className="text-xs leading-5 text-slate-400">Contact the {currentUser === listing.userId ? "buyer" : "seller"} to agree payment, paperwork, and pickup.</p>
+            <Link href={transactionHref(listing.id)} className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">{transaction.role === "seller" ? "View sale details" : "View purchase details"}</Link>
+            <p className="text-xs leading-5 text-slate-400">Contact the {transaction.role === "seller" ? "buyer" : "seller"} to agree payment, paperwork, and pickup.</p>
           </div>
         )}
         <div className="flex flex-wrap gap-5 text-sm text-slate-400">

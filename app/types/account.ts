@@ -15,6 +15,7 @@ export type AuctionBid = {
   lastBidAt: string;
   bidCount: number;
   isHighestBidder: boolean;
+  completionHref: string | null;
 };
 
 export type AccountNotification = {

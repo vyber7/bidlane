@@ -23,11 +23,18 @@ describe("account bid summaries", () => {
         id: latest.listingId, year: 2020, make: "Porsche", model: "911", location: "New York",
         coverImage: null, status: "LIVE", result: null, currentBid: 15000,
         auctionEndsAt: latest.listing.auctionEndsAt!.toISOString(),
-        highestBid: 15000, lastBidAt: auctionNow.toISOString(), bidCount: 2, isHighestBidder: true,
+        highestBid: 15000, lastBidAt: auctionNow.toISOString(), bidCount: 2, isHighestBidder: true, completionHref: null,
       },
       expect.objectContaining({ id: "other", auctionEndsAt: null, bidCount: 1, isHighestBidder: false }),
     ]);
     expect(input).toEqual(before);
+  });
+
+  it("adds a completion destination only for a distinct winning buyer", () => {
+    const listing = makeListing({ status: "ENDED", result: "SOLD", highestBidderId: "buyer" });
+    expect(buildBidSummaries([bid(listing)], "buyer")[0].completionHref).toBe(`/account/shipments#transaction-${listing.id}`);
+    expect(buildBidSummaries([bid(listing)], "seller")[0].completionHref).toBeNull();
+    expect(buildBidSummaries([bid({ ...listing, userId: "buyer" })], "buyer")[0].completionHref).toBeNull();
   });
 });
 
@@ -66,6 +73,20 @@ describe("account shipments", () => {
       });
     }
     expect(buildShipments([{ ...listing, highestBidderId: null }], "seller")[0].completion).toBeNull();
+  });
+
+  it.each([null, "seller"])("keeps a legacy sale in seller history without a counterparty or checklist (%s)", (highestBidderId) => {
+    const listing = { ...sold(), highestBidderId, highestBidder: sold().user };
+    expect(buildShipments([listing], "seller")).toEqual([
+      expect.objectContaining({ role: "seller", contactEmail: null, completion: null }),
+    ]);
+    expect(buildShipments([listing], "buyer")).toEqual([]);
+  });
+
+  it("omits unrelated sales and reserve-missed auctions from account history", () => {
+    const listing = sold();
+    expect(buildShipments([listing], "stranger")).toEqual([]);
+    expect(buildShipments([{ ...listing, result: "RESERVE_NOT_MET" }], "seller")).toEqual([]);
   });
 });
 

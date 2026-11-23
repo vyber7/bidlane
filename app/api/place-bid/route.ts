@@ -16,6 +16,7 @@ import type { AcceptedBidResponse, AuctionEndTimeEvent } from "@/app/types/aucti
 import { bidIdempotencyKeySchema, bidRequestSchema } from "@/app/schemas/auction";
 import { enforceAbuseLimit } from "@/app/libs/abuse-limits";
 import { requireVerifiedEmail } from "@/app/libs/verified-email";
+import { auctionBiddingState } from "@/app/libs/auction-bidding-rules";
 
 export async function POST(req: Request) {
   try {
@@ -51,28 +52,15 @@ export async function POST(req: Request) {
       if (listing.userId === currentUser.id) {
         throw new ApiRequestError(403, "Sellers cannot bid on their listing");
       }
-      if (
-        listing.status !== "LIVE" ||
-        !listing.auctionStartsAt ||
-        !listing.auctionEndsAt ||
-        listing.auctionStartsAt > bidTime ||
-        listing.auctionEndsAt <= bidTime
-      ) {
-        throw new ApiRequestError(409, "Auction is not open for bidding");
-      }
-      if (listing.startingBid === null || listing.bidIncrement === null) {
-        throw new ApiRequestError(409, "Auction bidding is not configured");
+      const bidding = auctionBiddingState(listing, bidTime.getTime());
+      if (bidding.state !== "open") {
+        const message = bidding.state === "unconfigured" ? "Auction bidding is not configured"
+          : bidding.state === "limit-reached" ? "Auction cannot accept a higher bid"
+          : "Auction is not open for bidding";
+        throw new ApiRequestError(409, message);
       }
 
-      const minimumBid =
-        listing.currentBid === null
-          ? listing.startingBid
-          : listing.currentBid + listing.bidIncrement;
-
-      if (!Number.isSafeInteger(minimumBid) || minimumBid > 2_147_483_647) {
-        throw new ApiRequestError(409, "Auction cannot accept a higher bid");
-      }
-
+      const { minimumBid, endsAt } = bidding;
       if (bidAmount < minimumBid) {
         throw new ApiRequestError(
           400,
@@ -81,10 +69,10 @@ export async function POST(req: Request) {
       }
 
       const shouldExtend =
-        listing.auctionEndsAt.getTime() - bidTime.getTime() <= 2 * 60 * 1000;
+        endsAt.getTime() - bidTime.getTime() <= 2 * 60 * 1000;
       const auctionEndsAt = shouldExtend
         ? new Date(bidTime.getTime() + 2 * 60 * 1000)
-        : listing.auctionEndsAt;
+        : endsAt;
 
       // Optimistic locking on the previous price and end time prevents two
       // concurrent requests from both becoming the accepted highest bid.

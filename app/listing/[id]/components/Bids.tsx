@@ -28,15 +28,9 @@ const Bids: React.FC<BidsProps> = ({
   emailVerified = false,
 }) => {
   const { data: session } = useSession();
-  const { listing, bids, expired } = useAuctionContext();
+  const { listing, bids, bidding } = useAuctionContext();
   const bid = listing.currentBid;
   const amount = bid ?? listing.startingBid;
-  const minimumBid = listing.startingBid !== null && listing.bidIncrement !== null &&
-    listing.auctionStartsAt !== null && listing.auctionEndsAt !== null
-    ? bid === null ? listing.startingBid : bid + listing.bidIncrement
-    : null;
-  const canBid = listing.status === "LIVE" && !expired && minimumBid !== null &&
-    Number.isSafeInteger(minimumBid) && minimumBid <= 2_147_483_647;
   const highestBidderName = formatDisplayName(
     bids.find((item) => item.userId === listing.highestBidderId)?.user.name,
     "Bidder"
@@ -105,13 +99,17 @@ const Bids: React.FC<BidsProps> = ({
           </p>
         </div>
       </div>
-      {listing.status === "LIVE" && minimumBid === null && (
-        <p className="mt-2 text-sm text-slate-500">Bidding is unavailable until the auction is configured.</p>
+      {listing.status === "LIVE" && bidding.state !== "open" && (
+        <p className="mt-2 text-sm text-slate-500">
+          {bidding.state === "syncing" ? "Syncing auction…"
+            : bidding.state === "unconfigured" || bidding.state === "missing-schedule" ? "Bidding is unavailable until the auction is configured."
+            : "Bidding unavailable"}
+        </p>
       )}
       {session &&
         listing.userId !== currentUserId ? (
-        <BidForm key={`${listing.id}:${currentUserId ?? ""}`} minimumBid={minimumBid} canBid={canBid} currentUserId={currentUserId} emailVerified={emailVerified} />
-      ) : !session && listing.status === "LIVE" ? (
+        <BidForm key={`${listing.id}:${currentUserId ?? ""}`} currentUserId={currentUserId} emailVerified={emailVerified} />
+      ) : !session && bidding.state === "open" ? (
         <>
           <hr />
           <div className="mt-3 text-center">

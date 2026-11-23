@@ -1,6 +1,7 @@
 "use client";
 
 import type { PublicListing } from "@/app/libs/listing-payload";
+import { auctionBiddingState } from "@/app/libs/auction-bidding-rules";
 import { useState } from "react";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 import type {
@@ -153,9 +154,13 @@ export default function useAuction<T extends PublicListing>(
     refresh();
   });
 
+  const currentListing = state.current.listing;
+  const { currentTime, ...countdown } = useCountDown(currentListing.status === "LIVE" ? currentListing.auctionEndsAt : null);
+
   return {
     ...state.current,
-    ...useCountDown(state.current.listing.status === "LIVE" ? state.current.listing.auctionEndsAt : null),
+    ...countdown,
+    bidding: auctionBiddingState(currentListing, currentTime),
     acceptBid: ({ bid, auctionEndsAt }: AcceptedBidResponse) => receiveBid(bid, auctionEndsAt),
     acceptComment: receiveComment,
   };

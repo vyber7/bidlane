@@ -54,7 +54,7 @@ describe("auction expiry controls", () => {
     ["buyer", "View purchase details"],
   ])("takes the sold vehicle's %s to the handoff details", (user, label) => {
     render(auction(makeListing({ status: "ENDED", result: "SOLD", currentBid: 10000, highestBidderId: "buyer" }), user));
-    expect(screen.getByRole("link", { name: label }).getAttribute("href")).toBe("/account/shipments");
+    expect(screen.getByRole("link", { name: label }).getAttribute("href")).toBe(`/account/shipments#transaction-${makeListing().id}`);
   });
 
   it.each(["visitor", ""])("does not offer contact details to an uninvolved visitor (%s)", (user) => {

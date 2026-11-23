@@ -2,11 +2,12 @@ import getCurrentUser from "@/app/actions/getCurrentUser";
 import { apiErrorResponse, errorResponse, parseApiInput, readJsonObject, requireListingId } from "@/app/libs/api-request";
 import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { logger } from "@/app/libs/logger";
+import { completionSteps } from "@/app/libs/transaction-completion";
 import { z } from "zod";
 
 type Context = { params: Promise<{ id: string }> };
 const confirmationSchema = z.object({
-  step: z.enum(["payment", "paperwork", "pickup"]),
+  step: z.enum(completionSteps.map(({ id }) => id)),
   completed: z.boolean(),
 }).strict();
 

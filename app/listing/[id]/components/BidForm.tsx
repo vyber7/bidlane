@@ -16,13 +16,13 @@ import Link from "next/link";
 
 const primaryButton = "rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:cursor-not-allowed disabled:opacity-50";
 
-export default function BidForm({ minimumBid, canBid, currentUserId, emailVerified = false }: {
-  minimumBid: number | null;
-  canBid: boolean;
+export default function BidForm({ currentUserId, emailVerified = false }: {
   currentUserId?: string | null;
   emailVerified?: boolean;
 }) {
-  const { listing, acceptBid } = useAuctionContext();
+  const { listing, bidding, acceptBid } = useAuctionContext();
+  const canBid = bidding.state === "open";
+  const minimumBid = canBid ? bidding.minimumBid : null;
   const router = useRouter();
   const [review, setReview] = useState<{ amount: number; minimumBid: number } | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export default function BidForm({ minimumBid, canBid, currentUserId, emailVerifi
   const reviewHeading = useRef<HTMLHeadingElement>(null);
   const restoreFocus = useRef(false);
   const { register, handleSubmit, reset, setFocus, setValue, formState: { errors } } = useForm<BidFormValues>();
-  const minimumChanged = review !== null && review.minimumBid !== minimumBid;
+  const minimumChanged = canBid && review !== null && review.minimumBid !== minimumBid;
   const leading = !!currentUserId && listing.highestBidderId === currentUserId;
 
   useEffect(() => {
@@ -113,14 +113,14 @@ export default function BidForm({ minimumBid, canBid, currentUserId, emailVerifi
         })(event);
       }}>
         <label htmlFor="bidAmount" className="block text-sm font-semibold text-slate-950">Your bid amount in dollars</label>
-        <p id="bid-minimum" className="mb-2 mt-1 text-sm text-slate-600">
-          {minimumBid !== null ? `Minimum next bid: $${formatAmount(minimumBid)}` : "The minimum bid has not been set."}
-        </p>
+        {minimumBid !== null && (
+          <p id="bid-minimum" className="mb-2 mt-1 text-sm text-slate-600">{`Minimum next bid: $${formatAmount(minimumBid)}`}</p>
+        )}
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
             id="bidAmount" type="number" inputMode="numeric" placeholder="Your bid ($)"
             min={minimumBid ?? undefined} max={MAX_INTEGER} step={1}
-            aria-invalid={!!errors.bidAmount} aria-describedby={`bid-minimum${errors.bidAmount ? " bid-error" : ""}`}
+            aria-invalid={!!errors.bidAmount} aria-describedby={[minimumBid !== null && "bid-minimum", errors.bidAmount && "bid-error"].filter(Boolean).join(" ") || undefined}
             {...register("bidAmount", {
               valueAsNumber: true,
               required: "Enter your bid amount.",
@@ -145,7 +145,7 @@ export default function BidForm({ minimumBid, canBid, currentUserId, emailVerifi
           {pendingKey ? null : !canBid ? (
             <p role="alert" className="text-sm font-semibold text-rose-700">This auction is no longer accepting bids.</p>
           ) : minimumChanged && (
-            <p role="alert" className="text-sm font-semibold text-amber-950">The minimum bid changed while you were reviewing. The minimum is now ${formatAmount(minimumBid!)}. Review the updated bid before confirming.</p>
+            <p role="alert" className="text-sm font-semibold text-amber-950">The minimum bid changed while you were reviewing. The minimum is now ${formatAmount(bidding.minimumBid)}. Review the updated bid before confirming.</p>
           )}
           <div className="flex flex-col gap-2 sm:flex-row">
             {pendingKey ? (

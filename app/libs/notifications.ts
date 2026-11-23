@@ -2,6 +2,7 @@ import type { Listing } from "@/app/types/database";
 import type { AccountNotification } from "@/app/types/account";
 import { pusherServer } from "./pusher";
 import { logger } from "./logger";
+import { soldAuction, transactionAccess, transactionHref } from "./transaction-completion";
 import type { NativeRepositories } from "@/prisma/native/repositories";
 
 type Vehicle = Pick<Listing, "id" | "year" | "make" | "model" | "userId">;
@@ -45,6 +46,9 @@ export function auctionResultNotifications(
   createdAt: Date,
 ): NotificationDraft[] {
   const sold = result === "SOLD";
+  const transaction = { ...listing, status: soldAuction.status, result };
+  const sellerCanComplete = transactionAccess(transaction, listing.userId)?.canComplete;
+  const completionHref = transactionHref(listing.id);
   const base = {
     eventKey: `auction-ended:${listing.id}`,
     kind: "auction" as const,
@@ -56,11 +60,12 @@ export function auctionResultNotifications(
       ...base,
       userId: listing.userId,
       title: sold ? "Your vehicle sold" : "Your auction ended",
-      message: sold
+      message: sellerCanComplete
         ? `The ${vehicleName(listing)} has sold. Contact the buyer to arrange the next steps.`
+        : sold ? `The ${vehicleName(listing)} has sold.`
         : `The auction for your ${vehicleName(listing)} closed without a sale.`,
-      href: sold ? "/account/shipments" : base.href,
-      actionLabel: sold ? "Contact buyer" : "View result",
+      href: sellerCanComplete ? completionHref : base.href,
+      actionLabel: sellerCanComplete ? "Contact buyer" : "View result",
       tone: sold ? "success" : "neutral",
     },
   ];
@@ -70,7 +75,7 @@ export function auctionResultNotifications(
   ]);
   bidders.delete(listing.userId);
   for (const userId of bidders) {
-    const won = sold && userId === listing.highestBidderId;
+    const won = transactionAccess(transaction, userId)?.role === "buyer";
     notifications.push({
       ...base,
       userId,
@@ -78,7 +83,7 @@ export function auctionResultNotifications(
       message: won
         ? `Your bid won the ${vehicleName(listing)}. Contact the seller to arrange the next steps.`
         : `The auction for the ${vehicleName(listing)} has ended${sold ? "." : " without a sale."}`,
-      href: won ? "/account/shipments" : base.href,
+      href: won ? completionHref : base.href,
       actionLabel: won ? "Contact seller" : "View result",
       tone: won ? "success" : "neutral",
     });

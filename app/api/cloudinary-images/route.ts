@@ -1,4 +1,3 @@
-import { assertOwnedAssets } from "@/app/libs/uploaded-assets";
 import { NextResponse } from "next/server";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { getNativeRepositories } from "@/app/libs/native-repositories";
@@ -11,10 +10,7 @@ import {
   errorResponse,
   requireListingId,
 } from "@/app/libs/api-request";
-import {
-  isCloudinaryImageUrl,
-  MAX_LISTING_PHOTOS,
-} from "@/app/libs/listing-validation";
+import { addGalleryPhoto } from "@/app/libs/seller-listing-corrections";
 
 export async function GET(req: Request) {
   const folder = new URL(req.url).searchParams.get("folder");
@@ -50,38 +46,9 @@ export async function POST(req: Request) {
     const body = await readJsonObject(req);
 
     const listingId = requireListingId(body.listingId);
-    const imageUrl = body.imageUrl;
-    if (!isCloudinaryImageUrl(imageUrl)) {
-      throw new ApiRequestError(400, "Invalid listing image URL");
-    }
-
-    const listing = await getNativeRepositories().listingAuthoring.find(listingId);
-    if (!listing) throw new ApiRequestError(404, "Listing not found");
-    if (listing.userId !== currentUser.id) {
-      throw new ApiRequestError(403, "Only the seller can update this listing");
-    }
-    if (listing.status !== "UPCOMING") throw new ApiRequestError(409, "Photos cannot be changed after bidding opens.");
-    if (listing.images.includes(imageUrl)) {
-      return NextResponse.json({ message: "Image already saved", imageUrl });
-    }
-    if (listing.images.length >= MAX_LISTING_PHOTOS) {
-      throw new ApiRequestError(
-        409,
-        "This listing already has the maximum number of images"
-      );
-    }
-
-    await assertOwnedAssets({ userId: currentUser.id, kind: "PHOTO", urls: [imageUrl], listingId });
-    const updated = await getNativeRepositories().listingAuthoring.addPhoto(listingId, currentUser.id, listing.reviewRevision ?? 0, listing.images, imageUrl, new Date());
-    if (updated.count !== 1) {
-      throw new ApiRequestError(
-        409,
-        "Listing images changed; please try again"
-      );
-    }
-
+    const { alreadySaved, imageUrl } = await addGalleryPhoto({ listingId, sellerId: currentUser.id }, body.imageUrl);
     return NextResponse.json({
-      message: "Image uploaded successfully",
+      message: alreadySaved ? "Image already saved" : "Image uploaded successfully",
       imageUrl,
     });
   } catch (error) {

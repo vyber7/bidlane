@@ -1,5 +1,6 @@
 import type { Bid, Listing } from "@/app/types/database";
 import type { AuctionBid } from "@/app/types/account";
+import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
 
 export type BidWithListing = Bid & { listing: Listing };
 
@@ -38,21 +39,25 @@ export function buildBidSummaries(
   }
 
   return Array.from(bidsByListing.values()).map(
-    ({ listing, highestBid, lastBidAt, bidCount }) => ({
-      id: listing.id,
-      year: listing.year,
-      make: listing.make,
-      model: listing.model,
-      location: listing.location,
-      coverImage: listing.coverImage,
-      status: listing.status,
-      result: listing.result,
-      currentBid: listing.currentBid,
-      auctionEndsAt: listing.auctionEndsAt?.toISOString() ?? null,
-      highestBid,
-      lastBidAt: lastBidAt.toISOString(),
-      bidCount,
-      isHighestBidder: listing.highestBidderId === userId,
-    })
+    ({ listing, highestBid, lastBidAt, bidCount }) => {
+      const transaction = transactionAccess(listing, userId);
+      return {
+        id: listing.id,
+        year: listing.year,
+        make: listing.make,
+        model: listing.model,
+        location: listing.location,
+        coverImage: listing.coverImage,
+        status: listing.status,
+        result: listing.result,
+        currentBid: listing.currentBid,
+        auctionEndsAt: listing.auctionEndsAt?.toISOString() ?? null,
+        highestBid,
+        lastBidAt: lastBidAt.toISOString(),
+        bidCount,
+        isHighestBidder: listing.highestBidderId === userId,
+        completionHref: transaction?.role === "buyer" ? transactionHref(listing.id) : null,
+      };
+    }
   );
 }

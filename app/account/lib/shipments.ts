@@ -1,8 +1,8 @@
 import type { Listing } from "@/app/types/database";
 import type { ShipmentTransaction } from "@/app/types/account";
-import { transactionCompletion, type CompletionFields } from "@/app/libs/transaction-completion";
+import { transactionAccess, transactionCompletion, type CompletionFields } from "@/app/libs/transaction-completion";
 
-export type SoldListing = Pick<Listing, "id" | "userId" | "highestBidderId" | "year" | "make" | "model" | "location" | "coverImage" | "currentBid" | "startingBid" | "auctionEndsAt" | "updatedAt" | "createdAt"> & CompletionFields & {
+export type SoldListing = Pick<Listing, "id" | "status" | "result" | "userId" | "highestBidderId" | "year" | "make" | "model" | "location" | "coverImage" | "currentBid" | "startingBid" | "auctionEndsAt" | "updatedAt" | "createdAt"> & CompletionFields & {
   user: { name: string | null; email: string | null };
   highestBidder: { name: string | null; email: string | null } | null;
 };
@@ -11,9 +11,11 @@ export function buildShipments(
   soldListings: readonly SoldListing[],
   userId: string
 ): ShipmentTransaction[] {
-  return soldListings.map((listing) => {
-    const role = listing.userId === userId ? "seller" : "buyer";
-    const contact = role === "seller" ? listing.highestBidder : listing.user;
+  return soldListings.flatMap((listing) => {
+    const access = transactionAccess(listing, userId);
+    if (!access) return [];
+    const { role, canComplete } = access;
+    const contact = role === "buyer" ? listing.user : canComplete ? listing.highestBidder : null;
 
     return {
       id: listing.id,
@@ -27,9 +29,7 @@ export function buildShipments(
       role,
       contactName: contact?.name?.split(" ")[0] ?? (role === "seller" ? "the buyer" : "the seller"),
       contactEmail: contact?.email ?? null,
-      completion: listing.highestBidderId && listing.highestBidderId !== listing.userId
-        ? transactionCompletion(listing)
-        : null,
+      completion: canComplete ? transactionCompletion(listing) : null,
     };
   });
 }

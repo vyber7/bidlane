@@ -108,6 +108,26 @@ describe("/api/cloudinary-images", () => {
     expect(mocks.updateMany).toHaveBeenCalledOnce();
   });
 
+  it("acknowledges a saved photo at capacity without reopening review", async () => {
+    mocks.findUnique.mockResolvedValue({
+      userId: "seller", status: "UPCOMING", reviewRevision: 2,
+      images: [imageUrl, ...Array.from({ length: 19 }, (_, index) => `image-${index}`)],
+    });
+
+    const response = await POST(post({ listingId, imageUrl }));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ message: "Image already saved", imageUrl });
+    expect(mocks.assets).not.toHaveBeenCalled();
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("returns a conflict when the guarded gallery write no longer matches", async () => {
+    mocks.updateMany.mockResolvedValue({ count: 0 });
+    const response = await POST(post({ listingId, imageUrl }));
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({ error: "Listing images changed; please try again" });
+  });
+
   it("scopes an optimistic gallery write to the owner", async () => {
     const response = await POST(post({ listingId, imageUrl }));
 

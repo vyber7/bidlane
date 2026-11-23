@@ -33,7 +33,7 @@ describe("auction countdown", () => {
   it.each([null, "invalid"])("does not treat %s as an expired deadline", (end) => {
     const { result } = renderHook(() => useCountDown(end));
     act(() => vi.advanceTimersByTime(1000));
-    expect(result.current).toEqual({ remainingMs: null, expired: false, timeLeft: "" });
+    expect(result.current).toEqual({ currentTime: null, remainingMs: null, expired: false, timeLeft: "" });
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -52,7 +52,7 @@ describe("auction countdown", () => {
     const { result } = renderHook(() => useCountDown(new Date(auctionNow.getTime() + 1000)));
     expect(result.current.expired).toBe(false);
     act(() => vi.advanceTimersByTime(1000));
-    expect(result.current).toEqual({ remainingMs: 0, expired: true, timeLeft: "Ending..." });
+    expect(result.current).toEqual({ currentTime: auctionNow.getTime() + 1000, remainingMs: 0, expired: true, timeLeft: "Ending..." });
     act(() => vi.advanceTimersByTime(5000));
     expect(result.current.remainingMs).toBe(0);
   });

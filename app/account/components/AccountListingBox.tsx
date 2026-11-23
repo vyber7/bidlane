@@ -11,6 +11,7 @@ import useAuction from "@/app/hooks/useAuction";
 import { CldImage } from "next-cloudinary";
 import useWatchlist from "@/app/hooks/useWatchlist";
 import { reviewLabels } from "@/app/libs/listing-review";
+import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
 
 interface AccountListingBoxProps {
   listing: PublicListing & Partial<Pick<SellerListing, "reviewStatus" | "reviewNote">>;
@@ -26,6 +27,7 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
   uploaded,
 }) => {
   const { listing, expired, timeLeft } = useAuction(initialListing);
+  const transaction = uploaded ? transactionAccess(listing, currentUserId) : null;
   const bid = listing.currentBid;
   const { isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
@@ -148,10 +150,10 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
               )}
             </div>
             <Link
-              href={uploaded && listing.status === "ENDED" && listing.result === "SOLD" ? `/account/shipments#transaction-${listing.id}` : `/listing/${listing.id}`}
+              href={transaction?.canComplete ? transactionHref(listing.id) : `/listing/${listing.id}`}
               className="inline-flex items-center gap-1 text-sm font-bold text-gray-950 hover:underline"
             >
-              {uploaded && listing.status === "ENDED" && listing.result === "SOLD" ? "Complete Transaction" : "View Listing"} <FiArrowUpRight aria-hidden="true" />
+              {transaction?.canComplete ? "Complete Transaction" : "View Listing"} <FiArrowUpRight aria-hidden="true" />
             </Link>
           </div>
         </div>

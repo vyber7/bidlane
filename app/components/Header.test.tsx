@@ -5,17 +5,32 @@ import { afterEach, expect, it, vi } from "vitest";
 import Header from "./Header";
 
 const useSession = vi.hoisted(() => vi.fn());
+const searchParams = vi.hoisted(() => ({ value: "" }));
 
 vi.mock("next-auth/react", () => ({ useSession, signOut: vi.fn() }));
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(searchParams.value),
 }));
 vi.mock("./NotificationBell", () => ({ default: () => null }));
 
 afterEach(() => {
   cleanup();
   useSession.mockReset();
+  searchParams.value = "";
+});
+
+it.each([
+  ["status=NO_RESERVE&page=2", "No reserve", "/?status=no_reserve#auctions"],
+  ["status=unrecognized", "Live auctions", "/?status=live#auctions"],
+])("marks the inventory tab for a shared URL (%s)", (search, label, href) => {
+  searchParams.value = search;
+  useSession.mockReturnValue({ data: null });
+  render(<Header />);
+  fireEvent.click(screen.getByRole("button", { name: "Auctions" }));
+  const link = screen.getByRole("link", { name: label });
+  expect(link.getAttribute("href")).toBe(href);
+  expect(link.getAttribute("aria-current")).toBe("location");
 });
 
 it("exposes desktop disclosure links and returns focus to each trigger on Escape", () => {

@@ -4,7 +4,7 @@ import { FiSearch } from "react-icons/fi";
 import {
   auctionSortOptions,
   type AuctionSort,
-} from "@/app/libs/auction-filters";
+} from "@/app/libs/auction-inventory";
 
 interface AuctionSearchControlsProps {
   auctionType: string;
