@@ -1,55 +1,47 @@
 "use client";
 
 import type { PublicListing } from "@/app/libs/listing-payload";
-import { useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { FiCheckCircle, FiClock, FiSearch, FiTag, FiZap } from "react-icons/fi";
 import Listings from "../../components/Listings";
 import AuctionSearchControls from "@/app/components/AuctionSearchControls";
-import useAuctionFilters from "@/app/hooks/useAuctionFilters";
-import {
-  filterAndSortAuctions,
-  type AuctionStatus,
-} from "@/app/libs/auction-filters";
+import useAuctionInventory from "@/app/hooks/useAuctionInventory";
+import { inventoryTabs, type InventoryTab } from "@/app/libs/auction-inventory";
 
 interface AuctionBrowserProps {
   listings: PublicListing[];
   currentUserId?: string | null;
 }
 
-type AuctionTab = Exclude<AuctionStatus, "ALL">;
-
-const tabs: {
-  id: AuctionTab;
-  label: string;
-  icon: typeof FiCheckCircle;
-}[] = [
-  { id: "LIVE", label: "Live", icon: FiZap },
-  { id: "NO_RESERVE", label: "No reserve", icon: FiTag },
-  { id: "UPCOMING", label: "Coming soon", icon: FiClock },
-  { id: "ENDED", label: "Results", icon: FiCheckCircle },
-];
+const tabDisplay = {
+  LIVE: { label: "Live", icon: FiZap },
+  NO_RESERVE: { label: "No reserve", icon: FiTag },
+  UPCOMING: { label: "Coming soon", icon: FiClock },
+  ENDED: { label: "Results", icon: FiCheckCircle },
+};
 
 const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
   listings,
   currentUserId,
 }) => {
   const {
-    status,
-    q: query,
+    activeTab,
+    counts,
+    query,
     sort,
-    page,
+    resultCount,
+    resultsPage,
     setQuery,
     setStatus,
     setSort,
     setPage,
-  } = useAuctionFilters();
+  } = useAuctionInventory(listings);
 
   const browserId = useId();
-  const tabRefs = useRef<Partial<Record<AuctionTab, HTMLButtonElement>>>({});
-  const [focusedTab, setFocusedTab] = useState<AuctionTab | null>(null);
-  const activeTab = status === "ALL" ? "LIVE" : status;
+  const tabRefs = useRef<Partial<Record<InventoryTab, HTMLButtonElement>>>({});
+  const [focusedTab, setFocusedTab] = useState<InventoryTab | null>(null);
   const scrollSpaceRef = useRef<HTMLDivElement>(null);
-  const pendingScroll = useRef<{ tab: AuctionTab; top: number } | null>(null);
+  const pendingScroll = useRef<{ tab: InventoryTab; top: number } | null>(null);
 
   useLayoutEffect(() => {
     const space = scrollSpaceRef.current;
@@ -74,25 +66,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
     }
   }, [activeTab]);
 
-  const counts = useMemo(
-    () => ({
-      NO_RESERVE: listings.filter((listing) => listing.isNoReserve).length,
-      LIVE: listings.filter((listing) => listing.status === "LIVE").length,
-      UPCOMING: listings.filter((listing) => listing.status === "UPCOMING")
-        .length,
-      ENDED: listings.filter((listing) => listing.status === "ENDED").length,
-    }),
-    [listings],
-  );
-
-  const visibleListings = useMemo(
-    () =>
-      filterAndSortAuctions(listings, { status: activeTab, q: query, sort }),
-    [activeTab, listings, query, sort],
-  );
-
-  const activeLabel = tabs.find((tab) => tab.id === activeTab)?.label;
-  const resultCount = visibleListings.length;
+  const activeLabel = tabDisplay[activeTab].label;
   const resultMessage = resultCount === 0
     ? "No auctions found"
     : `${resultCount} ${resultCount === 1 ? "auction" : "auctions"} found`;
@@ -104,23 +78,23 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
 
     switch (event.key) {
       case "ArrowLeft":
-        nextIndex = (index - 1 + tabs.length) % tabs.length;
+        nextIndex = (index - 1 + inventoryTabs.length) % inventoryTabs.length;
         break;
       case "ArrowRight":
-        nextIndex = (index + 1) % tabs.length;
+        nextIndex = (index + 1) % inventoryTabs.length;
         break;
       case "Home":
         nextIndex = 0;
         break;
       case "End":
-        nextIndex = tabs.length - 1;
+        nextIndex = inventoryTabs.length - 1;
         break;
       default:
         return;
     }
 
     event.preventDefault();
-    tabRefs.current[tabs[nextIndex].id]?.focus();
+    tabRefs.current[inventoryTabs[nextIndex]]?.focus();
   }
 
   return (
@@ -134,7 +108,8 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
             if (!event.currentTarget.contains(event.relatedTarget)) setFocusedTab(null);
           }}
         >
-          {tabs.map(({ id, label, icon: Icon }, index) => {
+          {inventoryTabs.map((id, index) => {
+            const { label, icon: Icon } = tabDisplay[id];
             const active = id === activeTab;
 
             return (
@@ -184,7 +159,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
         </div>
 
         <AuctionSearchControls
-          auctionType={activeLabel ?? "all"}
+          auctionType={activeLabel}
           query={query}
           sort={sort}
           onQueryChange={setQuery}
@@ -196,7 +171,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
         {activeLabel}: {resultMessage}.
       </p>
 
-      {tabs.map(({ id }) => (
+      {inventoryTabs.map((id) => (
         <div
           key={id}
           id={`${browserId}-panel-${id}`}
@@ -208,7 +183,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
         >
           {id === activeTab && (
             resultCount > 0 ? (
-              <Listings listings={visibleListings} currentUserId={currentUserId} page={page} onPageChange={setPage} />
+              <Listings resultsPage={resultsPage} currentUserId={currentUserId} onPageChange={setPage} />
             ) : (
               <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center">
                 <FiSearch aria-hidden="true" className="mx-auto text-2xl text-slate-400" />

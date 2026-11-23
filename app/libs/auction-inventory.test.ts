@@ -1,23 +1,41 @@
 import { describe, expect, it } from "vitest";
 import { makePublicListing as makeListing } from "@/app/test/auction-fixtures";
-import { filterAndSortAuctions, readAuctionFilters, updateAuctionParams, type AuctionSort } from "./auction-filters";
+import {
+  countInventoryTabs,
+  filterAndSortAuctions,
+  inventoryHref,
+  inventoryPage,
+  readAuctionInventory,
+  updateInventoryParams,
+  type AuctionSort,
+} from "./auction-inventory";
 
-const defaults = { q: "", status: "ALL", sort: "newest" } as const;
+const liveDefaults = { q: "", status: "LIVE", sort: "newest", page: 1 } as const;
+const defaults = { q: "", status: "NO_RESERVE", sort: "newest" } as const;
 
 describe("auction URL filters", () => {
   it("reads shared links and safely falls back for unsupported values", () => {
-    expect(readAuctionFilters(new URLSearchParams("status=live&q=911+%26+Carrera&sort=bid-high")))
-      .toEqual({ q: "911 & Carrera", status: "LIVE", sort: "bid-high" });
-    expect(readAuctionFilters(new URLSearchParams("status=unknown&sort=constructor"))).toEqual(defaults);
-    expect(readAuctionFilters(new URLSearchParams())).toEqual(defaults);
+    expect(readAuctionInventory(new URLSearchParams("status=live&q=911+%26+Carrera&sort=bid-high&page=2")))
+      .toEqual({ q: "911 & Carrera", status: "LIVE", sort: "bid-high", page: 2 });
+    expect(readAuctionInventory(new URLSearchParams("status=unknown&sort=constructor&page=-2"))).toEqual(liveDefaults);
+    expect(readAuctionInventory(new URLSearchParams())).toEqual(liveDefaults);
   });
 
-  it("combines filters without dropping unrelated params and removes defaults", () => {
-    const original = new URLSearchParams("utm_source=share&status=live&sort=bid-high&q=Porsche");
-    const updated = updateAuctionParams(original, { status: "ALL", sort: "newest", q: "" });
-    expect(updated.toString()).toBe("utm_source=share");
+  it("resets the page only when a filter changes and preserves unrelated params", () => {
+    const original = new URLSearchParams("utm_source=share&status=live&sort=bid-high&q=Porsche&page=3");
+    expect(updateInventoryParams(original, { q: "Porsche" }).toString()).toBe(original.toString());
+    const updated = updateInventoryParams(original, { sort: "newest", q: "" });
+    expect(updated.toString()).toBe("utm_source=share&status=live");
     expect(original.get("q")).toBe("Porsche");
-    expect(updateAuctionParams(updated, { status: "UPCOMING", q: "BMW & MINI" }).get("q")).toBe("BMW & MINI");
+    expect(updateInventoryParams(updated, { status: "UPCOMING", q: "BMW & MINI" }).get("q")).toBe("BMW & MINI");
+    expect(updateInventoryParams(original, { page: 1 }).get("page")).toBeNull();
+    expect(updateInventoryParams(original, { page: 2 }).get("sort")).toBe("bid-high");
+  });
+
+  it("builds inventory links that resolve to the same tab", () => {
+    const url = new URL(inventoryHref("NO_RESERVE"), "https://bidlane.invalid");
+    expect(url.hash).toBe("#auctions");
+    expect(readAuctionInventory(url.searchParams).status).toBe("NO_RESERVE");
   });
 
   it("combines status and case-insensitive search across vehicle details", () => {
@@ -29,7 +47,7 @@ describe("auction URL filters", () => {
       expect(filterAndSortAuctions(listings, { ...defaults, q, status: "LIVE" }).map((listing) => listing.id))
         .toEqual(q.trim().toLowerCase() === "2020" || q === "test vehicle" ? [live.id, other.id].sort() : [live.id]);
     }
-    expect(filterAndSortAuctions(listings, { ...defaults, q: "no match" })).toEqual([]);
+    expect(filterAndSortAuctions(listings, { ...liveDefaults, q: "no match" })).toEqual([]);
   });
 
   it.each<[AuctionSort, string[]]>([
@@ -66,5 +84,24 @@ describe("auction URL filters", () => {
     const listings = [makeListing({ id: "b" }), makeListing({ id: "a" })];
     const serialized = JSON.parse(JSON.stringify(listings));
     expect(filterAndSortAuctions(serialized, defaults).map((listing) => listing.id)).toEqual(["a", "b"]);
+  });
+
+  it("counts no-reserve inventory across statuses before applying a search", () => {
+    const reserved = makeListing({ id: "reserved", reservePrice: 10000 });
+    const live = makeListing({ id: "live" });
+    const ended = makeListing({ id: "ended", status: "ENDED", make: "BMW" });
+    const listings = [reserved, live, ended];
+    expect(countInventoryTabs(listings)).toEqual({ LIVE: 2, NO_RESERVE: 2, UPCOMING: 0, ENDED: 1 });
+    expect(filterAndSortAuctions(listings, { ...defaults, q: "BMW" })).toEqual([ended]);
+  });
+
+  it("clamps a shared page to the available results", () => {
+    const listings = Array.from({ length: 25 }, (_, index) => makeListing({ id: String(index) }));
+    expect(inventoryPage(listings, 99)).toEqual({
+      listings: [listings[24]], page: 2, pageCount: 2, previousPage: 1, nextPage: null,
+    });
+    expect(inventoryPage([], 99)).toEqual({
+      listings: [], page: 1, pageCount: 0, previousPage: null, nextPage: null,
+    });
   });
 });

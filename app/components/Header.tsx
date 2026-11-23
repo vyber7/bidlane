@@ -15,16 +15,17 @@ import {
   FiZap,
 } from "react-icons/fi";
 
-import { readAuctionFilters, type AuctionStatus } from "@/app/libs/auction-filters";
+import { defaultInventoryTab, inventoryHref, inventoryTabs, readAuctionInventory, type InventoryTab } from "@/app/libs/auction-inventory";
 import Avatar from "./Avatar";
 import NotificationBell from "./NotificationBell";
 
-const auctionLinks = [
-  { name: "Live auctions", href: "/?status=live#auctions", icon: FiZap },
-  { name: "No reserve", href: "/?status=no_reserve#auctions", icon: FiTag },
-  { name: "Coming soon", href: "/?status=upcoming#auctions", icon: FiClock },
-  { name: "Results", href: "/?status=ended#auctions", icon: FiCheckCircle },
-];
+const auctionLinkDisplay = {
+  LIVE: { name: "Live auctions", icon: FiZap },
+  NO_RESERVE: { name: "No reserve", icon: FiTag },
+  UPCOMING: { name: "Coming soon", icon: FiClock },
+  ENDED: { name: "Results", icon: FiCheckCircle },
+};
+const auctionLinks = inventoryTabs.map((tab) => ({ tab, href: inventoryHref(tab), ...auctionLinkDisplay[tab] }));
 
 const navLinks = [
   { name: "How it works", href: "/faq" },
@@ -40,7 +41,7 @@ const profileLinks = [
   { name: "Purchases & sales", href: "/account/shipments" },
 ];
 
-function Header({ auctionStatus = "LIVE" }: { auctionStatus?: AuctionStatus }) {
+function Header({ auctionStatus = defaultInventoryTab }: { auctionStatus?: InventoryTab }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const user = session?.user;
@@ -68,8 +69,7 @@ function Header({ auctionStatus = "LIVE" }: { auctionStatus?: AuctionStatus }) {
   }, [openPanel]);
 
   const auctionsActive = pathname === "/";
-  const auctionLinkActive = (href: string) => auctionsActive &&
-    new URLSearchParams(href.split("?")[1]?.split("#")[0]).get("status") === auctionStatus.toLowerCase();
+  const auctionLinkActive = (tab: InventoryTab) => auctionsActive && tab === auctionStatus;
   const linkClass = (active: boolean) =>
     `rounded-lg px-3 py-2 text-sm font-semibold transition ${
       active
@@ -128,18 +128,19 @@ function Header({ auctionStatus = "LIVE" }: { auctionStatus?: AuctionStatus }) {
               hidden={!auctionsOpen}
               className="absolute left-0 top-[calc(100%+0.65rem)] w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10"
             >
-              {auctionLinks.map(({ name, href, icon: Icon }) => (
+              {auctionLinks.map(({ tab, name, href, icon: Icon }) => (
                 <Link
                   href={href}
                   key={href}
+                  aria-current={auctionLinkActive(tab) ? "location" : undefined}
                   onNavigate={() => setOpenPanel(null)}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
-                    auctionLinkActive(href)
+                    auctionLinkActive(tab)
                       ? "bg-slate-100 text-slate-950"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
                   }`}
                 >
-                  <Icon aria-hidden="true" className={href === "/?status=live#auctions" ? "text-amber-500" : "text-slate-400"} />
+                  <Icon aria-hidden="true" className={tab === "LIVE" ? "text-amber-500" : "text-slate-400"} />
                   {name}
                 </Link>
               ))}
@@ -248,9 +249,9 @@ function Header({ auctionStatus = "LIVE" }: { auctionStatus?: AuctionStatus }) {
 
         <div className="grid gap-1">
           <p className="px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600">Auctions</p>
-          {auctionLinks.map(({ name, href, icon: Icon }) => (
-            <Link href={href} key={href} onNavigate={() => setOpenPanel(null)} className={`${linkClass(auctionLinkActive(href))} flex items-center gap-3`}>
-              <Icon aria-hidden="true" className={href === "/?status=live#auctions" ? "text-amber-500" : "text-slate-400"} />
+          {auctionLinks.map(({ tab, name, href, icon: Icon }) => (
+            <Link href={href} key={href} aria-current={auctionLinkActive(tab) ? "location" : undefined} onNavigate={() => setOpenPanel(null)} className={`${linkClass(auctionLinkActive(tab))} flex items-center gap-3`}>
+              <Icon aria-hidden="true" className={tab === "LIVE" ? "text-amber-500" : "text-slate-400"} />
               {name}
             </Link>
           ))}
@@ -288,8 +289,8 @@ function Header({ auctionStatus = "LIVE" }: { auctionStatus?: AuctionStatus }) {
 }
 
 function HeaderWithFilters() {
-  const filters = readAuctionFilters(useSearchParams());
-  return <Header auctionStatus={filters.status === "ALL" ? "LIVE" : filters.status} />;
+  const { status } = readAuctionInventory(useSearchParams());
+  return <Header auctionStatus={status} />;
 }
 
 export default function HeaderNavigation() {

@@ -8,6 +8,7 @@ import LatestBids from "./components/LatestBids";
 import { getHomeSpotlight } from "../libs/featured-auction";
 import WatchAuctionButton from "./components/WatchAuctionButton";
 import { toPublicListing } from "../libs/listing-payload";
+import { inventoryHref } from "../libs/auction-inventory";
 
 export const dynamic = "force-dynamic";
 
@@ -22,11 +23,11 @@ export default async function Home() {
   const { featured, live, upcoming } = getHomeSpotlight(listings);
   const comingNext = !live && featured?.status !== "UPCOMING" ? upcoming : null;
   const browse = live
-    ? { href: "/?status=live#auctions", label: "Browse live auctions" }
+    ? { href: inventoryHref("LIVE"), label: "Browse live auctions" }
     : upcoming
-      ? { href: "/?status=upcoming#auctions", label: "Explore coming soon" }
+      ? { href: inventoryHref("UPCOMING"), label: "Explore coming soon" }
       : featured?.status === "ENDED"
-        ? { href: "/?status=ended#auctions", label: "Explore auction results" }
+        ? { href: inventoryHref("ENDED"), label: "Explore auction results" }
         : { href: "#auctions", label: "Browse auctions" };
 
   return (

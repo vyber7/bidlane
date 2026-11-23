@@ -189,6 +189,24 @@ describe("URL-driven auction browsers", () => {
     expect(new URLSearchParams(window.location.search).has("page")).toBe(false);
   });
 
+  it("uses the last available page of a shared link and navigates from that page", () => {
+    window.history.replaceState(null, "", "/?status=live&page=99#auctions");
+    render(<AuctionBrowser listings={Array.from({ length: 25 }, (_, index) =>
+      makeListing({ id: String(index), model: `Car ${index}` }),
+    )} />);
+
+    expect(screen.getByText("Page 2 of 2")).toBeDefined();
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    const nextPage = screen.getByRole("button", { name: "Next Page" });
+    expect(nextPage.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(nextPage);
+    expect(window.location.search).toBe("?status=live&page=99");
+    fireEvent.click(screen.getByRole("button", { name: "Previous Page" }));
+    expect(screen.getByText("Page 1 of 2")).toBeDefined();
+    expect(window.location.search).toBe("?status=live");
+    expect(window.location.hash).toBe("#auctions");
+  });
+
   it.each([
     ["live", "Live", "Porsche", "Porsche 911"],
     ["upcoming", "Coming soon", "MINI", "MINI Cooper"],
