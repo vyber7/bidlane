@@ -1,8 +1,9 @@
 import { defineConfig } from "@playwright/test";
 import ConnectionString from "mongodb-connection-string-url";
 
-const databaseUrl = process.env.E2E_MONGODB_URL;
-if (!databaseUrl) throw new Error("Set E2E_MONGODB_URL to an empty local test database.");
+const databaseUrl =
+  process.env.E2E_MONGODB_URL ??
+  "mongodb://127.0.0.1:27017/bidlane_test_e2e_local?replicaSet=rs0";
 const database = new ConnectionString(databaseUrl);
 if (
   database.hosts.length !== 1 ||
@@ -12,6 +13,8 @@ if (
 ) {
   throw new Error("Browser tests require a loopback replica set and a bidlane_test_e2e_ database.");
 }
+
+process.env.E2E_MONGODB_URL = databaseUrl;
 
 const baseURL = "http://127.0.0.1:3100";
 
