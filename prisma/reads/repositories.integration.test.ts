@@ -472,6 +472,8 @@ describe.skipIf(!url)(
           model: row.model,
           location: row.location,
           status: row.status,
+          result: row.result ?? null,
+          startingBid: row.startingBid ?? null,
           currentBid: row.currentBid,
           coverImage: row.coverImage,
           auctionEndsAt: row.auctionEndsAt,
