@@ -622,9 +622,13 @@ describe.skipIf(!url)(
         start(listing.id),
         start(listing.id),
       ]);
-      expect(
-        responses.map((item) => (item.ok ? "started" : item.reason)).sort(),
-      ).toEqual(["already-started", "started"]);
+      // The loser is refused at the claim, or on reread if the driver retried
+      // its transaction after the winner committed. Both map to 409.
+      const [loser, winner] = responses
+        .map((item) => (item.ok ? "started" : item.reason))
+        .sort();
+      expect(winner).toBe("started");
+      expect(["already-started", "not-upcoming"]).toContain(loser);
       expect(
         await connection.database.collection("Notification").countDocuments({}),
       ).toBe(1);
