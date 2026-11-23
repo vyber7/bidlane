@@ -3,13 +3,15 @@
 import { useAuctionContext } from "@/app/context/AuctionContext";
 import NoReserveBadge from "@/app/components/NoReserveBadge";
 import { formatAmount } from "@/app/utils/format";
+import { acceptedBid, auctionPrice, phaseLabel } from "@/app/libs/auction-lifecycle";
 
 export default function MobileAuctionBar({ currentUserId }: { currentUserId?: string | null }) {
-  const { listing, timeLeft, expired, bidding } = useAuctionContext();
+  const { listing, timeLeft, phase } = useAuctionContext();
 
   if (listing.status !== "LIVE") return null;
 
-  const amount = listing.currentBid ?? listing.startingBid;
+  const { label, amount } = auctionPrice(listing);
+  const closing = phase?.phase === "closing";
   const owner = currentUserId === listing.userId;
 
   return (
@@ -17,20 +19,20 @@ export default function MobileAuctionBar({ currentUserId }: { currentUserId?: st
       <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:px-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs text-slate-400">{listing.currentBid === null ? "Starting bid" : "Current bid"}</p>
+            <p className="text-xs text-slate-400">{label}</p>
             <NoReserveBadge isNoReserve={listing.isNoReserve} />
           </div>
           <p className="text-lg font-bold tabular-nums sm:text-xl">{amount === null ? "To be announced" : `$${formatAmount(amount)}`}</p>
-          <p className="text-xs tabular-nums text-amber-400">{expired ? "Finalizing results…" : `Time left: ${timeLeft || "Syncing…"}`}</p>
+          <p className="text-xs tabular-nums text-amber-400">{closing ? "Finalizing results…" : `Time left: ${timeLeft || "Syncing…"}`}</p>
         </div>
-        {expired ? (
-          <span className="text-sm font-semibold text-slate-300">Finalizing…</span>
-        ) : owner || bidding.state === "open" ? (
+        {phase && closing ? (
+          <span className="text-sm font-semibold text-slate-300">{phaseLabel(phase)}</span>
+        ) : owner || acceptedBid(phase) ? (
           <a href="#bids" className="rounded-xl bg-amber-400 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400">
             {owner ? "View bids" : "Place a bid"}
           </a>
         ) : (
-          <span role="status" className="max-w-28 text-right text-xs text-slate-400">{bidding.state === "syncing" ? "Syncing auction…" : "Bidding unavailable"}</span>
+          <span role="status" className="max-w-28 text-right text-xs text-slate-400">{phase === null ? "Syncing auction…" : "Bidding unavailable"}</span>
         )}
       </div>
     </section>

@@ -22,7 +22,6 @@ vi.mock("@/app/libs/logger", () => ({
 }));
 
 import {
-  determineAuctionResult,
   finalizeAuction,
   finalizeExpiredAuctions,
 } from "./auction-finalization";
@@ -44,17 +43,6 @@ function listing(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
-
-describe("determineAuctionResult", () => {
-  it.each([
-    [null, 10_000, "RESERVE_NOT_MET"],
-    [9_999, 10_000, "RESERVE_NOT_MET"],
-    [10_000, 10_000, "SOLD"],
-    [100, null, "SOLD"],
-  ])("maps bid %s and reserve %s to %s", (bid, reserve, expected) => {
-    expect(determineAuctionResult(bid, reserve)).toBe(expected);
-  });
-});
 
 describe("finalizeAuction", () => {
   beforeEach(() => {

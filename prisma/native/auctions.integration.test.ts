@@ -43,7 +43,7 @@ vi.mock("@/app/libs/logger", () => ({
 
 import { POST as placeBid } from "@/app/api/place-bid/route";
 import { POST as startAuction } from "@/app/api/auction-start/route";
-import { POST as endAuction } from "@/app/api/auction-end/route";
+import { POST as retryFinalization } from "@/app/api/auction-finalize/route";
 import {
   finalizeAuction,
   finalizeExpiredAuctions,
@@ -634,9 +634,8 @@ describe.skipIf(!url)(
           ([, event]) => event === "auction-ended",
         ),
       ).toHaveLength(1);
-      state.currentUser.mockResolvedValueOnce(seller);
       expect(
-        (await endAuction(request({ listingId: listing.id }))).status,
+        (await retryFinalization(request({ listingId: listing.id }))).status,
       ).toBe(200);
       expect(
         await connection.database.collection("Notification").countDocuments({}),

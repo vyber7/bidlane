@@ -1,6 +1,7 @@
 // This component will display a bar indicating the ending time of an auction.
 "use client";
 import clsx from "clsx";
+import { EXTENSION_WINDOW_MS } from "@/app/libs/auction-lifecycle";
 
 interface ProgressBarProps {
   remainingMs: number | null;
@@ -8,8 +9,8 @@ interface ProgressBarProps {
 
 const ProgressBar: React.FC<ProgressBarProps> = ({ remainingMs }) => {
   const distance = remainingMs ?? 0;
-  const isVisible = distance <= 2 * 60 * 1000 && distance > 0;
-  const width = Math.max(0, Math.min(100, (distance / (2 * 60 * 1000)) * 100));
+  const isVisible = distance <= EXTENSION_WINDOW_MS && distance > 0;
+  const width = Math.max(0, Math.min(100, (distance / EXTENSION_WINDOW_MS) * 100));
 
   return (
     <div

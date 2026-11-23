@@ -1,4 +1,5 @@
 import type { PublicListing } from "@/app/libs/listing-payload";
+import { auctionPrice } from "@/app/libs/auction-lifecycle";
 
 export const inventoryTabs = ["LIVE", "NO_RESERVE", "UPCOMING", "ENDED"] as const;
 export type InventoryTab = (typeof inventoryTabs)[number];
@@ -92,7 +93,7 @@ function compareOptionalNumbers(a: number | null, b: number | null, descending =
 }
 
 function bidAmount(listing: PublicListing) {
-  return listing.status === "ENDED" ? listing.currentBid : listing.currentBid ?? listing.startingBid;
+  return auctionPrice(listing).amount;
 }
 
 export function filterAndSortAuctions(listings: PublicListing[], filters: InventoryFilters) {

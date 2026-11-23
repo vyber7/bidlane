@@ -4,6 +4,12 @@ import { FiUser } from "react-icons/fi";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSellerProfile } from "@/app/libs/seller-profile";
+import { auctionPrice } from "@/app/libs/auction-lifecycle";
+
+function sellerCardPrice(vehicle: Parameters<typeof auctionPrice>[0]) {
+  const { label, amount } = auctionPrice(vehicle);
+  return amount === null ? label : `${label} · $${amount.toLocaleString("en-US")}`;
+}
 
 export const metadata: Metadata = { title: "Seller profile | BidLane", description: "View a seller’s public profile, listings, and auction results on BidLane." };
 
@@ -73,7 +79,7 @@ function VehicleList({ title, vehicles, empty }: { title: string; vehicles: NonN
         <Image src={vehicle.coverImage || "/images/default-vehicle-image.png"} alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} width={600} height={400} unoptimized className="aspect-[3/2] w-full object-cover" />
         <div className="p-4"><h3 className="font-bold">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
           <p className="mt-1 text-sm text-slate-500">{vehicle.location}</p>
-          <p className="mt-3 text-sm font-semibold">{vehicle.status === "ENDED" ? "Winning bid" : vehicle.status === "LIVE" ? "Current bid" : "Coming soon"}{vehicle.currentBid !== null && vehicle.status !== "UPCOMING" ? ` · $${vehicle.currentBid.toLocaleString("en-US")}` : ""}</p>
+          <p className="mt-3 text-sm font-semibold">{vehicle.status === "UPCOMING" ? "Coming soon" : sellerCardPrice(vehicle)}</p>
         </div>
       </Link>
     </li>)}</ul> : <p className="rounded-xl border border-slate-200 p-6 text-sm text-slate-600">{empty}</p>}

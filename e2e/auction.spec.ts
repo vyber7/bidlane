@@ -178,11 +178,11 @@ test("seller submission through auction close and buyer/seller handoff", async (
       // The streamed page can briefly contain a hidden copy of the result.
       await expect(winnerPage.getByText(/sold to Winning Bidder/i).filter({ visible: true })).toBeVisible();
       await winnerPage.goto("/account/shipments");
-      await expect(winnerPage.getByText(/auction won/i)).toBeVisible();
+      await expect(winnerPage.getByText(/auction won/i).filter({ visible: true })).toBeVisible();
       await expect(winnerPage.getByRole("heading", { name: vehicle })).toBeVisible();
       await sellerPage.goto("/account/shipments");
       await sellerPage.getByRole("tab", { name: /sales/i }).click();
-      await expect(sellerPage.getByText(/sold at auction/i)).toBeVisible();
+      await expect(sellerPage.getByText(/sold at auction/i).filter({ visible: true })).toBeVisible();
       await expect(sellerPage.getByRole("heading", { name: vehicle })).toBeVisible();
     });
   } finally {

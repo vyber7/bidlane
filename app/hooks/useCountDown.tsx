@@ -46,6 +46,7 @@ export default function useCountDown(targetDate: Date | string | null) {
 
   return {
     currentTime,
+    ticking: active,
     remainingMs,
     expired: remainingMs !== null && remainingMs === 0,
     timeLeft: remainingMs === null ? "" : formatAuctionCountdown(remainingMs),

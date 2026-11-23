@@ -8,6 +8,7 @@ import { formatAmount, formatBid } from "@/app/utils/format";
 import clsx from "clsx";
 import { FiArrowUpRight, FiClock, FiEye, FiMapPin } from "react-icons/fi";
 import useAuction from "@/app/hooks/useAuction";
+import { auctionPrice, phaseLabel } from "@/app/libs/auction-lifecycle";
 import { CldImage } from "next-cloudinary";
 import useWatchlist from "@/app/hooks/useWatchlist";
 import { reviewLabels } from "@/app/libs/listing-review";
@@ -26,33 +27,26 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
   watching,
   uploaded,
 }) => {
-  const { listing, expired, timeLeft } = useAuction(initialListing);
+  const { listing, phase, timeLeft } = useAuction(initialListing);
+  const closing = phase?.phase === "closing";
   const transaction = uploaded ? transactionAccess(listing, currentUserId) : null;
-  const bid = listing.currentBid;
   const { isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
     userId: currentUserId,
     initialWatching: watching,
   });
 
-  const status =
-    listing.status === "LIVE"
-      ? { label: "Live", classes: "bg-red-50 text-red-700 ring-red-100" }
+  const status = {
+    label: phase ? phaseLabel(phase) : "Live auction",
+    classes: listing.status === "LIVE"
+      ? "bg-red-50 text-red-700 ring-red-100"
       : listing.status === "UPCOMING"
-        ? { label: "Upcoming", classes: "bg-blue-50 text-blue-700 ring-blue-100" }
-        : listing.result === "SOLD"
-          ? { label: "Sold", classes: "bg-emerald-50 text-emerald-700 ring-emerald-100" }
-          : { label: "Ended", classes: "bg-gray-100 text-gray-600 ring-gray-200" };
-
-  const amountLabel =
-    listing.status === "UPCOMING"
-      ? "Starting bid"
-      : listing.result === "SOLD"
-        ? "Sold for"
-        : listing.status === "ENDED"
-          ? "Final bid"
-          : "Current bid";
-  const amount = bid ?? listing.startingBid;
+        ? "bg-blue-50 text-blue-700 ring-blue-100"
+        : phase?.phase === "sold"
+          ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
+          : "bg-gray-100 text-gray-600 ring-gray-200",
+  };
+  const { label: amountLabel, amount } = auctionPrice(listing);
 
   return (
     <article className="p-4 transition-colors hover:bg-gray-50 sm:p-5">
@@ -141,7 +135,7 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
                   <p
                     className={clsx(
                       "mt-0.5 flex items-center gap-1 text-sm font-bold tabular-nums",
-                      expired ? "text-red-600" : "text-gray-950"
+                      closing ? "text-red-600" : "text-gray-950"
                     )}
                   >
                     <FiClock aria-hidden="true" /> {timeLeft || "Calculating…"}
