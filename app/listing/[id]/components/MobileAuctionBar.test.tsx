@@ -47,7 +47,7 @@ describe("mobile auction quick actions", () => {
 
     act(() => vi.advanceTimersByTime(120000));
     expect(screen.queryByRole("link")).toBeNull();
-    expect(screen.getByText("Finalizing…")).toBeDefined();
+    expect(screen.getByText("Closing")).toBeDefined();
     expect(screen.queryByRole("status")).toBeNull();
 
     rerender(view({ ...updated, status: "ENDED", result: "SOLD" }));

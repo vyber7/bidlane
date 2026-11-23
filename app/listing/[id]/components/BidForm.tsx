@@ -13,6 +13,9 @@ import type { BidFormValues } from "@/app/types/forms";
 import { bidRequestSchema } from "@/app/schemas/auction";
 import { MAX_INTEGER, validationMessage } from "@/app/schemas/common";
 import Link from "next/link";
+import { acceptedBid, EXTENSION_WINDOW_MS } from "@/app/libs/auction-lifecycle";
+
+const extensionMinutes = EXTENSION_WINDOW_MS / 60_000;
 
 const primaryButton = "rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -20,9 +23,10 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
   currentUserId?: string | null;
   emailVerified?: boolean;
 }) {
-  const { listing, bidding, acceptBid } = useAuctionContext();
-  const canBid = bidding.state === "open";
-  const minimumBid = canBid ? bidding.minimumBid : null;
+  const { listing, phase, acceptBid } = useAuctionContext();
+  const bidding = acceptedBid(phase);
+  const canBid = bidding !== null;
+  const minimumBid = bidding?.minimumBid ?? null;
   const router = useRouter();
   const [review, setReview] = useState<{ amount: number; minimumBid: number } | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -134,7 +138,7 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
         </div>
         {errors.bidAmount && <p id="bid-error" role="alert" className="mt-2 text-sm text-rose-700">{errors.bidAmount.message}</p>}
       </form>
-      <p className="text-xs leading-5 text-slate-500">BidLane currently charges no platform fees. Accepted bids in the final two minutes reset the timer to two minutes. A sale requires any reserve to be met. <Link href="/faq#auction-rules" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">Read the auction rules</Link> · <Link href="/faq#fees" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">Payment & costs</Link></p>
+      <p className="text-xs leading-5 text-slate-500">BidLane currently charges no platform fees. Accepted bids in the final {extensionMinutes} minutes reset the timer to {extensionMinutes} minutes. A sale requires any reserve to be met. <Link href="/faq#auction-rules" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">Read the auction rules</Link> · <Link href="/faq#fees" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">Payment & costs</Link></p>
       {requestError && <p role="alert" className="text-sm text-rose-700">{requestError}</p>}
       {review && (
         <section aria-labelledby="bid-review-title" aria-busy={isLoading} className="space-y-4 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
@@ -145,7 +149,7 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
           {pendingKey ? null : !canBid ? (
             <p role="alert" className="text-sm font-semibold text-rose-700">This auction is no longer accepting bids.</p>
           ) : minimumChanged && (
-            <p role="alert" className="text-sm font-semibold text-amber-950">The minimum bid changed while you were reviewing. The minimum is now ${formatAmount(bidding.minimumBid)}. Review the updated bid before confirming.</p>
+            <p role="alert" className="text-sm font-semibold text-amber-950">The minimum bid changed while you were reviewing. The minimum is now ${formatAmount(minimumBid ?? 0)}. Review the updated bid before confirming.</p>
           )}
           <div className="flex flex-col gap-2 sm:flex-row">
             {pendingKey ? (

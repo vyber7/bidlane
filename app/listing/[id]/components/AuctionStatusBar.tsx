@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import useWatchlist from "@/app/hooks/useWatchlist";
 import { logger } from "@/app/libs/logger";
 import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
+import { acceptedBid, auctionPrice, phaseLabel } from "@/app/libs/auction-lifecycle";
 
 interface AuctionStatusBarProps {
   currentUser?: string | null;
@@ -32,8 +33,8 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [autoFinalizingDeadline, setAutoFinalizingDeadline] = useState<string | null>(null);
-  const { listing, bids, comments, remainingMs, expired, timeLeft, bidding } = useAuctionContext();
-  const bid = listing.currentBid;
+  const { listing, bids, comments, remainingMs, timeLeft, phase } = useAuctionContext();
+  const closing = phase?.phase === "closing";
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
     userId: currentUser,
@@ -61,11 +62,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   }, [listing.id, router]);
 
   useEffect(() => {
-    if (
-      listing.status !== "LIVE" ||
-      !expired ||
-      finalizationRequested.current === finalizationKey
-    ) {
+    if (!closing || finalizationRequested.current === finalizationKey) {
       return;
     }
 
@@ -85,7 +82,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
         router.refresh();
       })
       .finally(() => setAutoFinalizingDeadline((current) => current === finalizationKey ? null : current));
-  }, [expired, finalizationKey, listing.id, listing.status, router]);
+  }, [closing, finalizationKey, listing.id, router]);
 
   useEffect(() => {
     axios
@@ -101,24 +98,22 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   const live = listing.status === "LIVE";
   const ended = listing.status === "ENDED";
   const transaction = transactionAccess(listing, currentUser);
-  const amount = bid ?? listing.startingBid;
-  const label = ended
-    ? listing.result === "SOLD" ? "Sold for" : bid !== null ? "Highest bid" : "No bids placed"
-    : bid !== null ? "Current bid" : "Starting bid";
-  const statusLabel = ended ? "Auction ended" : live ? expired ? "Finalizing auction results" : "Live auction" : "Coming soon";
-  const amountLabel = ended && bid === null ? null : amount !== null ? `$${formatAmount(amount)}` : null;
+  const owner = currentUser === listing.userId;
+  const price = auctionPrice(listing);
+  const statusLabel = phase ? phaseLabel(phase) : "Live auction";
+  const amountLabel = price.amount !== null ? `$${formatAmount(price.amount)}` : null;
 
   return (
     <section className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
       <p role="status" aria-atomic="true" className="sr-only">
-        {statusLabel}. {amountLabel ? `${label} ${amountLabel}.` : ended ? "No bids placed." : "Bid amount to be announced."}
+        {statusLabel}. {amountLabel ? `${price.label} ${amountLabel}.` : ended ? "No bids placed." : "Bid amount to be announced."}
         {ended && listing.result === "RESERVE_NOT_MET" ? " Reserve not met." : ""}
       </p>
       {live && <ProgressBar remainingMs={remainingMs} />}
       <div className="space-y-4 p-5 sm:space-y-6 sm:p-6">
         <div className="flex items-center justify-between gap-3">
           <span className={clsx("rounded-full px-3 py-1 text-xs font-bold", live ? "bg-amber-400 text-slate-950" : "bg-white/10 text-slate-200")}>
-            {live ? "● Live auction" : ended ? "Auction ended" : "Coming soon"}
+            {live && !closing ? `● ${statusLabel}` : statusLabel}
           </span>
           {currentUser !== listing.userId && !ended && (
             <button type="button" onClick={toggle} disabled={isUpdating} aria-pressed={watching}
@@ -135,7 +130,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
           </div>
         )}
         <div>
-          <p className="mb-2 text-sm text-slate-400">{label}</p>
+          <p className="mb-2 text-sm text-slate-400">{price.label}</p>
           <p className="text-4xl font-bold tracking-tight tabular-nums">{amountLabel ?? (ended ? "—" : "To be announced")}</p>
           {ended && listing.result === "RESERVE_NOT_MET" && <p className="mt-2 text-sm text-amber-400">Reserve not met</p>}
         </div>
@@ -143,20 +138,20 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
           <span className="flex items-center gap-2 text-slate-400"><FaRegClock /> Time left</span>
           <span className="font-semibold tabular-nums">{timeLeft || "Calculating…"}</span>
         </div>}
-        {live && expired ? (
-          currentUser === listing.userId ? (
+        {closing ? (
+          owner ? (
             <Button onClick={retryFinalization} disabled={isLoading || isAutoFinalizing}>{isLoading || isAutoFinalizing ? "Finalizing auction…" : "Retry finalization"}</Button>
           ) : (
             <p className="text-sm leading-6 text-slate-400">Finalizing auction results…</p>
           )
-        ) : live ? currentUser === listing.userId ? (
+        ) : live ? owner ? (
           <p className="text-sm leading-6 text-slate-400">Your auction is live. Results are finalized automatically when the timer ends.</p>
-        ) : bidding.state === "open" ? (
+        ) : acceptedBid(phase) ? (
           <Link href="#bids" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">Place a bid</Link>
         ) : (
-          <p className="text-sm leading-6 text-slate-400">{bidding.state === "syncing" ? "Syncing auction…" : "Bidding unavailable"}</p>
+          <p className="text-sm leading-6 text-slate-400">{phase === null ? "Syncing auction…" : "Bidding unavailable"}</p>
         ) : !ended ? (
-          <p className="text-sm leading-6 text-slate-400">Bidding hasn’t opened yet. {currentUser === listing.userId ? "Set up your auction below when you’re ready." : "Add this vehicle to your watchlist to find it again easily."}</p>
+          <p className="text-sm leading-6 text-slate-400">Bidding hasn’t opened yet. {owner ? "Set up your auction below when you’re ready." : "Add this vehicle to your watchlist to find it again easily."}</p>
         ) : null}
         {transaction?.canComplete && (
           <div className="space-y-3">

@@ -5,8 +5,9 @@ import { logger } from "@/app/libs/logger";
 import { pusherServer } from "@/app/libs/pusher";
 import type { AuctionEndedEvent } from "@/app/types/auction-events";
 import { auctionResultNotifications, publishNotificationChanges, saveNotifications } from "./notifications";
+import { isDue, settle, type AuctionResult } from "./auction-lifecycle";
 
-export type AuctionResult = "SOLD" | "RESERVE_NOT_MET";
+export type { AuctionResult };
 
 export type AuctionFinalization =
   | {
@@ -24,16 +25,6 @@ export interface AuctionFinalizationBatch {
   skipped: number;
   failed: number;
   hasMore: boolean;
-}
-
-export function determineAuctionResult(
-  currentBid: number | null,
-  reservePrice: number | null
-): AuctionResult {
-  return currentBid === null ||
-    (reservePrice !== null && currentBid < reservePrice)
-    ? "RESERVE_NOT_MET"
-    : "SOLD";
 }
 
 async function notifyAuctionEnded(
@@ -67,7 +58,7 @@ async function resolveCompetingFinalization(
     return { status: "already_finalized", result: current.result };
   }
 
-  if (!current.auctionEndsAt || current.auctionEndsAt > now) {
+  if (!isDue(current, now)) {
     return { status: "not_due", auctionEndsAt: current.auctionEndsAt };
   }
 
@@ -86,14 +77,11 @@ async function finalizeCandidate(
   if (listing.status !== "LIVE") {
     return { status: "already_finalized", result: listing.result };
   }
-  if (!listing.auctionEndsAt || listing.auctionEndsAt > now) {
+  if (!isDue(listing, now)) {
     return { status: "not_due", auctionEndsAt: listing.auctionEndsAt };
   }
 
-  const result = determineAuctionResult(
-    listing.currentBid,
-    listing.reservePrice
-  );
+  const result = settle(listing.currentBid, listing.reservePrice);
 
   // Match the price as well as the deadline so notifications describe the
   // winning bid even if an in-flight bid commits after the candidate was read.
@@ -102,7 +90,7 @@ async function finalizeCandidate(
     notificationUsers = await withNativeTransaction(async (tx) => {
       const claimed = await tx.auctions.finish(listing, result, now);
       if (claimed.count !== 1) return null;
-      return saveNotifications(tx, auctionResultNotifications(listing, result, listing.auctionEndsAt!));
+      return saveNotifications(tx, auctionResultNotifications(listing, result, listing.auctionEndsAt));
     }, auctionTransactionOptions);
   } catch (error) {
     if (isTransactionContention(error)) {

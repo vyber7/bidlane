@@ -46,7 +46,7 @@ describe("auction expiry controls", () => {
     rerender(auction({ ...listing, currentBid: 12000 }));
     expect(liveRegion.textContent).toContain("Current bid $12,000.");
     rerender(auction({ ...listing, currentBid: 12000, status: "ENDED", result: "SOLD" }));
-    expect(liveRegion.textContent).toContain("Auction ended. Sold for $12,000.");
+    expect(liveRegion.textContent).toContain("Sold. Sold for $12,000.");
   });
 
   it.each([
@@ -71,7 +71,7 @@ describe("auction expiry controls", () => {
     await act(async () => {
       render(auction(makeListing({ auctionEndsAt: auctionNow })));
     });
-    expect(screen.getByRole("button", { name: "Retry finalization" })).toHaveProperty("disabled", false);
+    expect(screen.getByText("Closing")).toBeDefined();
     mocks.post.mockClear();
     await act(async () => {
       screen.getByRole("button", { name: "Retry finalization" }).click();

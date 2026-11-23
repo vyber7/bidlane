@@ -16,7 +16,7 @@ import type { AcceptedBidResponse, AuctionEndTimeEvent } from "@/app/types/aucti
 import { bidIdempotencyKeySchema, bidRequestSchema } from "@/app/schemas/auction";
 import { enforceAbuseLimit } from "@/app/libs/abuse-limits";
 import { requireVerifiedEmail } from "@/app/libs/verified-email";
-import { auctionBiddingState } from "@/app/libs/auction-bidding-rules";
+import { auctionPhase, extendedDeadline } from "@/app/libs/auction-lifecycle";
 
 export async function POST(req: Request) {
   try {
@@ -52,15 +52,16 @@ export async function POST(req: Request) {
       if (listing.userId === currentUser.id) {
         throw new ApiRequestError(403, "Sellers cannot bid on their listing");
       }
-      const bidding = auctionBiddingState(listing, bidTime.getTime());
-      if (bidding.state !== "open") {
-        const message = bidding.state === "unconfigured" ? "Auction bidding is not configured"
-          : bidding.state === "limit-reached" ? "Auction cannot accept a higher bid"
+      const phase = auctionPhase(listing, bidTime.getTime());
+      if (phase.phase !== "open" || !phase.bidding.accepting) {
+        const reason = phase.phase === "open" && !phase.bidding.accepting ? phase.bidding.reason : null;
+        const message = reason === "unconfigured" ? "Auction bidding is not configured"
+          : reason === "limit-reached" ? "Auction cannot accept a higher bid"
           : "Auction is not open for bidding";
         throw new ApiRequestError(409, message);
       }
 
-      const { minimumBid, endsAt } = bidding;
+      const { minimumBid, endsAt } = phase.bidding;
       if (bidAmount < minimumBid) {
         throw new ApiRequestError(
           400,
@@ -68,11 +69,7 @@ export async function POST(req: Request) {
         );
       }
 
-      const shouldExtend =
-        endsAt.getTime() - bidTime.getTime() <= 2 * 60 * 1000;
-      const auctionEndsAt = shouldExtend
-        ? new Date(bidTime.getTime() + 2 * 60 * 1000)
-        : endsAt;
+      const { extended: shouldExtend, endsAt: auctionEndsAt } = extendedDeadline(endsAt, bidTime);
 
       // Optimistic locking on the previous price and end time prevents two
       // concurrent requests from both becoming the accepted highest bid.

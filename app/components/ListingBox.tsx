@@ -14,6 +14,7 @@ import { capitalize, formatBid } from "../utils/format";
 import { clsx } from "clsx";
 import { CldImage } from "next-cloudinary";
 import useWatchlist from "../hooks/useWatchlist";
+import { auctionPrice } from "@/app/libs/auction-lifecycle";
 
 interface ListingBoxProps {
   listing: PublicListing;
@@ -26,7 +27,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
   const title = `${listing.year} ${capitalize(listing.make)} ${capitalize(listing.model)}`;
   const href = `/listing/${listing.id}`;
   const isOwner = listing.userId === currentUserId;
-  const bid = listing.currentBid;
+  const price = auctionPrice(listing);
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
     userId: currentUserId,
@@ -100,17 +101,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
             <div>Upcoming</div>
           ) : listing.status === "ENDED" ? (
             <div>
-              {listing.result === "SOLD" ? (
-                <span>
-                  Sold for <b>{bid !== null ? formatBid(bid) : "—"}</b>
-                </span>
-              ) : bid !== null ? (
-                <span>
-                  Bid to <b>{formatBid(bid)}</b>
-                </span>
-              ) : (
-                <span>No bids were placed</span>
-              )}
+              {price.label}{price.amount !== null && <> <b>{formatBid(price.amount)}</b></>}
             </div>
           ) : (
             <>
@@ -126,14 +117,8 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
               </div>
               <span aria-live="polite" aria-atomic="true">
                 <span className="sr-only">{title}: </span>
-                {bid !== null ? (
-                  <>Bid <b>{formatBid(bid)}</b></>
-                ) : (
-                  <>
-                    Starting at{" "}
-                    <b>{listing.startingBid !== null ? formatBid(listing.startingBid) : "To be announced"}</b>
-                  </>
-                )}
+                {price.label}{" "}
+                <b>{price.amount !== null ? formatBid(price.amount) : "To be announced"}</b>
               </span>
             </>
           )}

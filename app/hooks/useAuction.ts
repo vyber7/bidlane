@@ -1,7 +1,7 @@
 "use client";
 
 import type { PublicListing } from "@/app/libs/listing-payload";
-import { auctionBiddingState } from "@/app/libs/auction-bidding-rules";
+import { auctionPhase, auctionStatusOrder, type AuctionPhase } from "@/app/libs/auction-lifecycle";
 import { useState } from "react";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 import type {
@@ -25,7 +25,7 @@ interface AuctionSnapshot<T extends PublicListing> {
 
 const emptyBids: BidWithAuthor[] = [];
 const emptyComments: CommentWithAuthor[] = [];
-const statusOrder = ["UPCOMING", "LIVE", "ENDED"];
+const statusRank = (status: string) => auctionStatusOrder.indexOf(status as (typeof auctionStatusOrder)[number]);
 
 function mergeListing<T extends PublicListing>(previous: T, incoming: T): T {
   if (previous.id !== incoming.id) return incoming;
@@ -34,7 +34,7 @@ function mergeListing<T extends PublicListing>(previous: T, incoming: T): T {
   // started before a live event must not roll that newer event back.
   const keepBid = previous.currentBid !== null &&
     (incoming.currentBid === null || previous.currentBid > incoming.currentBid);
-  const keepStatus = statusOrder.indexOf(previous.status) > statusOrder.indexOf(incoming.status);
+  const keepStatus = statusRank(previous.status) > statusRank(incoming.status);
   const keepEnd = previous.auctionEndsAt !== null &&
     (incoming.auctionEndsAt === null ||
       new Date(previous.auctionEndsAt).getTime() > new Date(incoming.auctionEndsAt).getTime());
@@ -155,12 +155,17 @@ export default function useAuction<T extends PublicListing>(
   });
 
   const currentListing = state.current.listing;
-  const { currentTime, ...countdown } = useCountDown(currentListing.status === "LIVE" ? currentListing.auctionEndsAt : null);
+  const { currentTime, ticking, ...countdown } = useCountDown(currentListing.status === "LIVE" ? currentListing.auctionEndsAt : null);
+  // A ticking countdown means the phase depends on the clock; until the first
+  // reading arrives the auction is syncing (null). Otherwise time is irrelevant.
+  const phase: AuctionPhase | null = ticking && currentTime === null
+    ? null
+    : auctionPhase(currentListing, currentTime ?? 0);
 
   return {
     ...state.current,
     ...countdown,
-    bidding: auctionBiddingState(currentListing, currentTime),
+    phase,
     acceptBid: ({ bid, auctionEndsAt }: AcceptedBidResponse) => receiveBid(bid, auctionEndsAt),
     acceptComment: receiveComment,
   };
