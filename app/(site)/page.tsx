@@ -8,9 +8,16 @@ import LatestBids from "./components/LatestBids";
 import { getHomeSpotlight } from "../libs/featured-auction";
 import WatchAuctionButton from "./components/WatchAuctionButton";
 import { toPublicListing } from "../libs/listing-payload";
-import { inventoryHref } from "../libs/auction-inventory";
+import { countInventoryTabs, inventoryHref, type InventoryTab } from "../libs/auction-inventory";
 
 export const dynamic = "force-dynamic";
+
+const heroStats: { tab: InventoryTab; label: string }[] = [
+  { tab: "LIVE", label: "Live now" },
+  { tab: "NO_RESERVE", label: "No reserve" },
+  { tab: "UPCOMING", label: "Coming soon" },
+  { tab: "ENDED", label: "Results" },
+];
 
 export default async function Home() {
   const repositories = getReadRepositories();
@@ -21,7 +28,8 @@ export default async function Home() {
   const latestBids = await repositories.bids.latestForListings(publicListings);
   const listings = publicListings.map((listing) => toPublicListing(listing, currentUser?.id));
   const { featured, live, upcoming } = getHomeSpotlight(listings);
-  const comingNext = !live && featured?.status !== "UPCOMING" ? upcoming : null;
+  const counts = countInventoryTabs(listings);
+  const comingNext = featured?.status === "UPCOMING" ? null : upcoming;
   const browse = live
     ? { href: inventoryHref("LIVE"), label: "Browse live auctions" }
     : upcoming
@@ -34,7 +42,7 @@ export default async function Home() {
     <div className="bg-stone-50 pb-16 pt-[var(--site-nav-height)]">
       <section className="relative overflow-hidden bg-slate-950 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_15%,rgba(245,158,11,0.18),transparent_34%)]" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-7 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-12 lg:px-8">
+        <div className="relative mx-auto grid max-w-6xl items-center gap-8 px-4 py-10 sm:px-6 sm:py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:gap-12 lg:px-8">
           <div>
             <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-amber-400">
               <span className="h-px w-8 bg-amber-400" /> Enthusiast car auctions
@@ -60,8 +68,29 @@ export default async function Home() {
                 Sell your vehicle
               </Link>
             </div>
+          </div>
+          <div className="rounded-2xl border border-white/15 bg-white/[0.06] p-2">
+            <nav aria-label="Auctions by status">
+              <ul className="grid grid-cols-2 gap-2">
+                {heroStats.map(({ tab, label }) => (
+                  <li key={tab}>
+                    <Link
+                      href={inventoryHref(tab)}
+                      className="group flex min-h-11 flex-col rounded-xl px-3 py-3 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
+                    >
+                      <span className="text-3xl font-black tabular-nums tracking-tight">
+                        {counts[tab]}
+                      </span>
+                      <span className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-slate-300 group-hover:text-amber-400 sm:text-sm">
+                        {label} <FiArrowRight aria-hidden="true" />
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
             {comingNext && (
-              <div className="mt-5 flex items-center justify-between gap-3 border-t border-white/15 pt-4">
+              <div className="mt-2 flex items-center justify-between gap-3 border-t border-white/15 px-3 pb-2 pt-4">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-amber-400">
                     Coming next
@@ -81,65 +110,52 @@ export default async function Home() {
               </div>
             )}
           </div>
-          {featured ? (
-            <FeaturedAuction
-              key={featured.id}
-              listing={featured}
-              currentUserId={currentUser?.id}
-            />
-          ) : (
-            <div className="rounded-2xl border border-white/15 bg-white/[0.06] p-6 sm:p-8">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">
-                The next chapter
-              </p>
-              <h2 className="mt-3 text-2xl font-bold tracking-tight">
-                Have a car worth sharing?
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                Bring your vehicle to BidLane and help build the next lineup of
-                enthusiast favorites.
-              </p>
-              <Link
-                href="/submit-listing"
-                className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-amber-400 hover:text-amber-300"
-              >
-                List your vehicle <FiArrowRight aria-hidden="true" />
-              </Link>
-            </div>
-          )}
         </div>
       </section>
 
-      <LatestBids bids={latestBids} />
-
-      <section
-        id="auctions"
-        tabIndex={-1}
-        aria-labelledby="inventory-title"
-        className="mx-auto max-w-6xl scroll-mt-[var(--site-header-height)] px-4 pt-8 sm:px-6 lg:px-8"
-      >
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">
-              The lineup
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 pt-8 sm:px-6 lg:px-8">
+        {featured ? (
+          <FeaturedAuction
+            key={featured.id}
+            listing={featured}
+            currentUserId={currentUser?.id}
+          />
+        ) : (
+          <div className="rounded-2xl bg-slate-950 p-6 text-white sm:p-8">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">
+              The next chapter
             </p>
-            <h2 id="inventory-title" className="mt-1 text-3xl font-black tracking-tight text-slate-950">
-              Inventory
+            <h2 className="mt-3 text-2xl font-bold tracking-tight">
+              Have a car worth sharing?
             </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              Fresh listings, live bids, and recently completed sales.
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              Bring your vehicle to BidLane and help build the next lineup of
+              enthusiast favorites.
             </p>
+            <Link
+              href="/submit-listing"
+              className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-amber-400 hover:text-amber-300"
+            >
+              List your vehicle <FiArrowRight aria-hidden="true" />
+            </Link>
           </div>
-          <Link
-            href="/submit-listing"
-            className="hidden items-center gap-2 text-sm font-bold text-slate-700 hover:text-amber-700 sm:flex"
-          >
-            Have a great car? List it <FiArrowRight aria-hidden="true" />
-          </Link>
-        </div>
+        )}
 
-        <AuctionBrowser listings={listings} currentUserId={currentUser?.id} />
-      </section>
+        <LatestBids bids={latestBids} />
+
+        <section
+          id="auctions"
+          tabIndex={-1}
+          aria-labelledby="inventory-title"
+          className="scroll-mt-[calc(var(--site-header-height)+2rem)]"
+        >
+          <h2 id="inventory-title" className="text-lg font-bold tracking-tight text-slate-950">
+            Inventory
+          </h2>
+
+          <AuctionBrowser listings={listings} currentUserId={currentUser?.id} />
+        </section>
+      </div>
     </div>
   );
 }
