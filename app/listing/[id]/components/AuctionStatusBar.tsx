@@ -31,7 +31,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [autoFinalizingDeadline, setAutoFinalizingDeadline] = useState<string | null>(null);
-  const { listing, bids, comments, remainingMs, expired, timeLeft } = useAuctionContext();
+  const { listing, bids, comments, remainingMs, expired, timeLeft, bidding } = useAuctionContext();
   const bid = listing.currentBid;
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
@@ -149,8 +149,10 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
           )
         ) : live ? currentUser === listing.userId ? (
           <Button onClick={endAuction} disabled={isLoading || !expired}>{isLoading ? "Ending auction…" : "End auction"}</Button>
-        ) : (
+        ) : bidding.state === "open" ? (
           <Link href="#bids" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">Place a bid</Link>
+        ) : (
+          <p className="text-sm leading-6 text-slate-400">{bidding.state === "syncing" ? "Syncing auction…" : "Bidding unavailable"}</p>
         ) : !ended ? (
           <p className="text-sm leading-6 text-slate-400">Bidding hasn’t opened yet. {currentUser === listing.userId ? "Set up your auction below when you’re ready." : "Add this vehicle to your watchlist to find it again easily."}</p>
         ) : null}

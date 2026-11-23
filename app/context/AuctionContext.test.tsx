@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { toast } from "react-hot-toast";
 import { AuctionProvider } from "./AuctionContext";
 import AuctionStatusBar from "@/app/listing/[id]/components/AuctionStatusBar";
 import Bids from "@/app/listing/[id]/components/Bids";
+import MobileAuctionBar from "@/app/listing/[id]/components/MobileAuctionBar";
 import Comments from "@/app/listing/[id]/components/Comments";
 import AccountListingBox from "@/app/account/components/AccountListingBox";
 import ListingsDashboard from "@/app/account/components/ListingsDashboard";
@@ -43,6 +45,39 @@ afterEach(() => {
 });
 
 describe("shared auction views", () => {
+  function biddingViews(listing = makeListing()) {
+    return (
+      <AuctionProvider listing={listing} bids={[]} comments={[]}>
+        <AuctionStatusBar currentUser="buyer" />
+        <MobileAuctionBar currentUserId="buyer" />
+        <Bids currentUserId="buyer" emailVerified />
+      </AuctionProvider>
+    );
+  }
+
+  it("waits for the browser clock before the listing views invite a bid", () => {
+    const view = biddingViews();
+    const initial = document.createElement("div");
+    initial.innerHTML = renderToString(view);
+    expect(initial.textContent?.match(/Syncing auction…/g)).toHaveLength(3);
+    expect(within(initial).queryByRole("link", { name: "Place a bid" })).toBeNull();
+    expect(within(initial).getByRole("button", { name: "Review bid" })).toHaveProperty("disabled", true);
+
+    render(view);
+    expect(screen.getAllByRole("link", { name: "Place a bid" })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Review bid" })).toHaveProperty("disabled", false);
+  });
+
+  it("opens both bidding links and the form when the scheduled start arrives", () => {
+    render(biddingViews(makeListing({ auctionStartsAt: new Date(auctionNow.getTime() + 1000) })));
+    expect(screen.queryByRole("link", { name: "Place a bid" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Review bid" })).toHaveProperty("disabled", true);
+
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.getAllByRole("link", { name: "Place a bid" })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Review bid" })).toHaveProperty("disabled", false);
+  });
+
   it("shows a rejected bid's API message while preserving the bid input", async () => {
     mocks.post.mockRejectedValueOnce({
       isAxiosError: true,
