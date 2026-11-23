@@ -4,8 +4,8 @@ import type { RecentBid } from "@/prisma/reads/repositories";
 
 export default function LatestBids({ bids }: { bids: RecentBid[] }) {
   return (
-    <section aria-labelledby="latest-bids-title" className="border-b border-stone-200 bg-white">
-      <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
+    <section aria-labelledby="latest-bids-title" className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 lg:px-8">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
         <h2 id="latest-bids-title" className="text-lg font-bold tracking-tight text-slate-950">
           Latest bids
         </h2>
