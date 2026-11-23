@@ -25,7 +25,7 @@ export default function FeaturedAuction({ listing: initialListing, currentUserId
   const showWatchButton = upcoming && currentUserId !== listing.userId;
 
   return (
-    <article aria-label={`Featured vehicle: ${title}`} className="group relative isolate grid min-w-0 overflow-hidden rounded-2xl bg-slate-950 text-white shadow-xl shadow-black/10 lg:grid-cols-[3fr_2fr]">
+    <article aria-label={`Featured vehicle: ${title}`} className="group relative isolate grid min-w-0 overflow-hidden rounded-2xl bg-slate-950 text-white lg:grid-cols-[3fr_2fr]">
       <div className="relative aspect-[16/10] bg-slate-900">
         {image ? (
           <CldImage src={image} alt="" fill sizes="(min-width: 1152px) 662px, (min-width: 1024px) 58vw, 100vw" crop="fill" loading="eager" fetchPriority="high" className="object-cover motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-[1.02]" />
