@@ -26,10 +26,7 @@ const shortDate = new Intl.DateTimeFormat("en-US", {
 
 const BidsAndWinsDashboard = ({ bids }: { bids: AuctionBid[] }) => {
   const active = bids.filter((bid) => bid.status === "LIVE");
-  const wins = bids.filter(
-    (bid) =>
-      bid.status === "ENDED" && bid.result === "SOLD" && bid.isHighestBidder
-  );
+  const wins = bids.filter((bid) => bid.completionHref !== null);
   const wonIds = new Set(wins.map((win) => win.id));
   const past = bids.filter((bid) => bid.status === "ENDED" && !wonIds.has(bid.id));
   const requestedTab = useSearchParams().get("tab");
@@ -185,10 +182,10 @@ const BidRow = ({ bid, tab }: { bid: AuctionBid; tab: Tab }) => {
               <FiClock aria-hidden="true" /> {formatAmount(bid.bidCount)} {bid.bidCount === 1 ? "bid" : "bids"} placed
             </span>
             <Link
-              href={tab === "wins" ? `/account/shipments#transaction-${bid.id}` : `/listing/${bid.id}`}
+              href={bid.completionHref ?? `/listing/${bid.id}`}
               className="inline-flex items-center gap-1 text-sm font-bold text-gray-900 hover:underline"
             >
-              {tab === "wins" ? "Complete Transaction" : "View Auction"} <FiArrowUpRight aria-hidden="true" />
+              {bid.completionHref ? "Complete Transaction" : "View Auction"} <FiArrowUpRight aria-hidden="true" />
             </Link>
           </div>
         </div>

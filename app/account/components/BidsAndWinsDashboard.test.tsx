@@ -17,9 +17,9 @@ it("opens the Wins tab from a URL even when active bids exist", () => {
     id: "win", year: 2020, make: "Porsche", model: "911", location: "Miami, FL",
     coverImage: null, status: "ENDED", result: "SOLD", currentBid: 50000,
     auctionEndsAt: null, highestBid: 50000, lastBidAt: "2026-10-14T00:10:00Z",
-    bidCount: 2, isHighestBidder: true,
+    bidCount: 2, isHighestBidder: true, completionHref: "/account/shipments#transaction-win",
   };
-  const active = { ...win, id: "active", status: "LIVE", result: null, model: "Cayman" };
+  const active = { ...win, id: "active", status: "LIVE", result: null, model: "Cayman", completionHref: null };
   render(<BidsAndWinsDashboard bids={[active, win]} />);
 
   const selected = screen.getByRole("tab", { name: "Wins 1", selected: true });

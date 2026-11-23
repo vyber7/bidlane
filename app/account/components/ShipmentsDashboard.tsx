@@ -15,6 +15,7 @@ import {
 } from "react-icons/fi";
 import type { ShipmentTransaction } from "@/app/types/account";
 import { handoffSteps } from "@/app/libs/auction-guidance";
+import { transactionAnchor } from "@/app/libs/transaction-completion";
 import { formatAmount, formatBid } from "@/app/utils/format";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 import CompletionChecklist from "./CompletionChecklist";
@@ -114,7 +115,7 @@ const ShipmentRow = ({ shipment }: { shipment: ShipmentTransaction }) => {
   const isBuyer = shipment.role === "buyer";
 
   return (
-    <li id={`transaction-${shipment.id}`} className="p-4 transition-colors hover:bg-gray-50 [content-visibility:auto] [contain-intrinsic-size:auto_40rem] sm:p-5 sm:[contain-intrinsic-size:auto_29rem]">
+    <li id={transactionAnchor(shipment.id)} className="p-4 transition-colors hover:bg-gray-50 [content-visibility:auto] [contain-intrinsic-size:auto_40rem] sm:p-5 sm:[contain-intrinsic-size:auto_29rem]">
       <div className="flex flex-col gap-4 sm:flex-row">
         <Link
           href={`/listing/${shipment.id}`}

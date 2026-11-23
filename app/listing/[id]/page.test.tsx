@@ -47,6 +47,11 @@ describe("private listing pages", () => {
     const html = renderToStaticMarkup(await visit());
     expect(html.includes(`/account/shipments#transaction-${id}`)).toBe(userId === "buyer" || userId === "seller");
   });
+  it.each([null, "seller"])("skips the completion checklist for a sale without a distinct buyer (%s)", async (highestBidderId) => {
+    mocks.listing.mockResolvedValue(makeListing({ status: "ENDED", result: "SOLD", highestBidderId }));
+    mocks.user.mockResolvedValue({ id: "seller" });
+    expect(renderToStaticMarkup(await visit())).not.toContain("Open completion checklist");
+  });
   it("never passes reserve amounts or private activity lists into the auction provider", async () => {
     mocks.listing.mockResolvedValue(makeListing({
       status: "LIVE", reservePrice: 98765, watchersIds: ["private-watcher"], seenIds: ["private-viewer"],

@@ -63,11 +63,12 @@ describe("notification events", () => {
     expect(items[0]).toMatchObject({
       title: "Your vehicle sold",
       actionLabel: "Contact buyer",
-      href: "/account/shipments",
+      href: `/account/shipments#transaction-${listing.id}`,
     });
     expect(items[1]).toMatchObject({
       title: "You won the auction",
       actionLabel: "Contact seller",
+      href: `/account/shipments#transaction-${listing.id}`,
       tone: "success",
     });
     expect(items[2]).toMatchObject({ title: "Auction ended", tone: "neutral" });

@@ -9,7 +9,7 @@ import type { DatabaseV8 } from "../v8/client";
 import type { Bid, Listing } from "@/app/types/database";
 import type { BidWithListing } from "@/app/account/lib/bids";
 import type { SoldListing } from "@/app/account/lib/shipments";
-import { completionFields } from "@/app/libs/transaction-completion";
+import { completionFields, soldAuction } from "@/app/libs/transaction-completion";
 
 const publicFilter = MongoOrExpr.of([
   field.in("status", ["LIVE", "ENDED"]),
@@ -249,10 +249,7 @@ export function createReadRepositories({
     },
     shipments: {
       async forUser(userId: string): Promise<SoldListing[]> {
-        const rows = await db.orm.Listing.where({
-          status: "ENDED",
-          result: "SOLD",
-        })
+        const rows = await db.orm.Listing.where(soldAuction)
           .where(
             MongoOrExpr.of([
               field.eq("userId", userId),
@@ -261,6 +258,8 @@ export function createReadRepositories({
           )
           .select(
             "id",
+            "status",
+            "result",
             "userId",
             "year",
             "make",
@@ -288,6 +287,8 @@ export function createReadRepositories({
           if (!user) throw new Error("Listing seller not found");
           return {
             id: row.id,
+            status: row.status,
+            result: row.result,
             userId: row.userId,
             highestBidderId: row.highestBidderId,
             paymentBuyerConfirmedAt: row.paymentBuyerConfirmedAt,
