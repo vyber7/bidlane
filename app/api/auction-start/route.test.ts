@@ -1,25 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { StartOutcome } from "@/app/libs/auction-commands";
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  findUnique: vi.fn(),
-  updateMany: vi.fn(),
-  trigger: vi.fn(),
-  upsert: vi.fn(),
-}));
+const mocks = vi.hoisted(() => ({ getCurrentUser: vi.fn(), startAuction: vi.fn() }));
 
-vi.mock("@/app/actions/getCurrentUser", () => ({
-  default: mocks.getCurrentUser,
-}));
-vi.mock("@/app/libs/native-repositories", () => ({ withNativeTransaction: async (callback: (tx: unknown) => unknown) => callback({ auctions: { find: mocks.findUnique, start: mocks.updateMany }, notifications: { insertOnce: mocks.upsert } }) }));
-vi.mock("@/app/libs/pusher", () => ({
-  pusherServer: { trigger: mocks.trigger },
-}));
+vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.getCurrentUser }));
+vi.mock("@/app/libs/auction-commands", () => ({ startAuction: mocks.startAuction }));
 
 import { POST } from "./route";
 
 const listingId = "abcdef0123456789abcdef01";
 const now = new Date("2026-09-04T12:00:00.000Z");
+const endTime = "2026-09-05T12:00:00.000Z";
 
 function request(body: unknown) {
   return new Request("http://localhost/api/auction-start", {
@@ -32,125 +23,54 @@ function request(body: unknown) {
 describe("POST /api/auction-start", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
     mocks.getCurrentUser.mockResolvedValue({ id: "seller", email: "seller@test.dev" });
-    mocks.findUnique.mockResolvedValue({
-      id: listingId,
-      userId: "seller", year: 2020, make: "Porsche", model: "911", watchersIds: ["watcher"],
-      status: "UPCOMING", reviewStatus: "APPROVED", reviewRevision: 2,
-    });
-    mocks.updateMany.mockResolvedValue({ count: 1 });
-    mocks.trigger.mockResolvedValue(undefined);
+    mocks.startAuction.mockResolvedValue({ ok: true, auctionStartsAt: now, auctionEndsAt: new Date(endTime) } satisfies StartOutcome);
   });
 
   it("requires an authenticated user", async () => {
     mocks.getCurrentUser.mockResolvedValue(null);
-
-    const response = await POST(request({}));
-
-    expect(response.status).toBe(401);
-    expect(mocks.findUnique).not.toHaveBeenCalled();
+    expect((await POST(request({}))).status).toBe(401);
+    expect(mocks.startAuction).not.toHaveBeenCalled();
   });
 
-  it("validates the request before querying the listing", async () => {
-    const response = await POST(
-      request({ listingId: "bad", startingBid: 100, bidIncrement: 10, endTime: now })
-    );
-
+  it("validates the request before starting the auction", async () => {
+    const response = await POST(request({ listingId: "bad", startingBid: 100, bidIncrement: 10, endTime }));
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "Invalid listing ID" });
-    expect(mocks.findUnique).not.toHaveBeenCalled();
+    expect(mocks.startAuction).not.toHaveBeenCalled();
   });
 
-  it("rejects an end time that is not in the future", async () => {
-    const response = await POST(
-      request({ listingId, startingBid: 0, bidIncrement: 10, endTime: now.toISOString() })
-    );
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "End time must be in the future",
-    });
-  });
-
-  it("rejects a closing time with no time zone before querying the listing", async () => {
-    const response = await POST(request({
-      listingId, startingBid: 0, bidIncrement: 10, endTime: "2026-09-05T12:00",
-    }));
-
+  it("rejects a closing time with no time zone before starting the auction", async () => {
+    const response = await POST(request({ listingId, startingBid: 0, bidIncrement: 10, endTime: "2026-09-05T12:00" }));
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "Choose an end time with a time zone." });
-    expect(mocks.findUnique).not.toHaveBeenCalled();
+    expect(mocks.startAuction).not.toHaveBeenCalled();
   });
 
-  it("allows only the seller to start an upcoming auction", async () => {
-    mocks.findUnique.mockResolvedValue({ userId: "another-seller", status: "UPCOMING" });
-
-    const response = await POST(
-      request({
-        listingId,
-        startingBid: 100,
-        bidIncrement: 10,
-        endTime: "2026-09-05T12:00:00.000Z",
-      })
-    );
-
-    expect(response.status).toBe(403);
-    expect(mocks.updateMany).not.toHaveBeenCalled();
-  });
-
-  it("starts an auction atomically", async () => {
-    const endTime = "2026-09-05T12:00:00.000Z";
-
-    const response = await POST(
-      request({ listingId, startingBid: "0", bidIncrement: "25", endTime })
-    );
-
+  it("starts the parsed auction for the signed-in seller", async () => {
+    const response = await POST(request({ listingId, startingBid: "0", bidIncrement: "25", endTime }));
     expect(response.status).toBe(201);
-    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ userId: "watcher", title: "A watched auction is live" }));
-    expect(mocks.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ id: listingId, userId: "seller", reviewRevision: 2 }),
-      { auctionStartsAt: now, auctionEndsAt: new Date(endTime), startingBid: 0, bidIncrement: 25 },
-    );
-    await expect(response.json()).resolves.toMatchObject({
-      message: "Auction started",
-      auctionStartsAt: now.toISOString(),
-      auctionEndsAt: endTime,
+    expect(mocks.startAuction).toHaveBeenCalledWith({
+      sellerId: "seller", listingId, startingBid: 0, bidIncrement: 25, endsAt: new Date(endTime),
     });
-    expect(mocks.trigger).toHaveBeenCalledWith(
-      `listing-${listingId}`,
-      "auction-started",
-      expect.objectContaining({
-        auctionStartsAt: now.toISOString(),
-        auctionEndsAt: endTime,
-      })
-    );
-  });
-
-  it.each([null, undefined, "PENDING", "CHANGES_REQUESTED"])("blocks auction start without approval (%s)", async (reviewStatus) => {
-    mocks.findUnique.mockResolvedValue({ id: listingId, userId: "seller", status: "UPCOMING", reviewStatus });
-    const response = await POST(request({ listingId, startingBid: 100, bidIncrement: 10, endTime: "2026-09-05T12:00:00.000Z" }));
-    expect(response.status).toBe(409);
-    expect(mocks.updateMany).not.toHaveBeenCalled();
-    expect(mocks.trigger).not.toHaveBeenCalled();
-  });
-
-  it("reports a competing start request as a conflict", async () => {
-    mocks.updateMany.mockResolvedValue({ count: 0 });
-
-    const response = await POST(
-      request({
-        listingId,
-        startingBid: 100,
-        bidIncrement: 10,
-        endTime: "2026-09-05T12:00:00.000Z",
-      })
-    );
-
-    expect(response.status).toBe(409);
     await expect(response.json()).resolves.toEqual({
-      error: "Auction has already been started",
+      message: "Auction started", auctionStartsAt: now.toISOString(), auctionEndsAt: endTime,
     });
+  });
+
+  it.each([
+    ["ends-in-past", 400, "End time must be in the future"],
+    ["ladder-too-large", 400, "Starting bid plus increment is too large"],
+    ["not-found", 404, "Listing not found"],
+    ["not-seller", 403, "Only the seller can start this auction"],
+    ["not-upcoming", 409, "Only an upcoming auction can be started"],
+    ["not-approved", 409, "This listing must be approved by an admin before the auction can start."],
+    ["already-started", 409, "Auction has already been started"],
+    ["busy", 503, "The auction is busy. Please try again."],
+  ] as const)("maps the %s rejection to %i", async (reason, status, error) => {
+    mocks.startAuction.mockResolvedValue({ ok: false, reason });
+    const response = await POST(request({ listingId, startingBid: 100, bidIncrement: 10, endTime }));
+    expect(response.status).toBe(status);
+    await expect(response.json()).resolves.toEqual({ error });
   });
 });

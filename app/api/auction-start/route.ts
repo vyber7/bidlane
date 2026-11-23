@@ -1,7 +1,5 @@
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
-import { withNativeTransaction } from "@/app/libs/native-repositories";
-import { auctionTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
 import {
   ApiRequestError,
   apiErrorResponse,
@@ -11,12 +9,21 @@ import {
   requireSafeInteger,
 } from "@/app/libs/api-request";
 import { logger } from "@/app/libs/logger";
-import { pusherServer } from "@/app/libs/pusher";
-import { auctionLiveNotifications, publishNotificationChanges, saveNotifications } from "@/app/libs/notifications";
-import type { AuctionStartedEvent } from "@/app/types/auction-events";
+import { startAuction, type StartRejection } from "@/app/libs/auction-commands";
 import { z } from "zod";
 
 const explicitEndTime = z.union([z.iso.datetime({ offset: true }), z.number()]);
+
+const rejections = {
+  "ends-in-past": [400, "End time must be in the future"],
+  "ladder-too-large": [400, "Starting bid plus increment is too large"],
+  "not-found": [404, "Listing not found"],
+  "not-seller": [403, "Only the seller can start this auction"],
+  "not-upcoming": [409, "Only an upcoming auction can be started"],
+  "not-approved": [409, "This listing must be approved by an admin before the auction can start."],
+  "already-started": [409, "Auction has already been started"],
+  busy: [503, "The auction is busy. Please try again."],
+} as const satisfies Record<StartRejection, readonly [number, string]>;
 
 export async function POST(req: Request) {
   try {
@@ -31,63 +38,25 @@ export async function POST(req: Request) {
       allowZero: true,
     });
     const bidIncrement = requireSafeInteger(body.bidIncrement, "Bid increment");
-    if (startingBid + bidIncrement > 2_147_483_647) {
-      throw new ApiRequestError(400, "Starting bid plus increment is too large");
-    }
     const endTimeValue = explicitEndTime.safeParse(body.endTime);
-    if (!endTimeValue.success) {
+    const endsAt = endTimeValue.success ? new Date(endTimeValue.data) : null;
+    if (!endsAt || Number.isNaN(endsAt.getTime())) {
       throw new ApiRequestError(400, "Choose an end time with a time zone.");
     }
-    const endTime = new Date(endTimeValue.data);
-    const startTime = new Date();
 
-    if (Number.isNaN(endTime.getTime()) || endTime <= startTime) {
-      throw new ApiRequestError(400, "End time must be in the future");
-    }
-
-    const notificationUsers = await withNativeTransaction(async (tx) => {
-      const listing = await tx.auctions.find(listingId);
-      if (!listing) throw new ApiRequestError(404, "Listing not found");
-      if (listing.userId !== currentUser.id) {
-        throw new ApiRequestError(403, "Only the seller can start this auction");
-      }
-      if (listing.status !== "UPCOMING") {
-        throw new ApiRequestError(409, "Only an upcoming auction can be started");
-      }
-      if (listing.reviewStatus !== "APPROVED") {
-        throw new ApiRequestError(409, "This listing must be approved by an admin before the auction can start.");
-      }
-
-      const updated = await tx.auctions.start(listing, { auctionStartsAt: startTime, auctionEndsAt: endTime, startingBid, bidIncrement });
-
-      if (updated.count !== 1) {
-        throw new ApiRequestError(409, "Auction has already been started");
-      }
-
-      return saveNotifications(tx, auctionLiveNotifications(listing, startTime));
-    }, auctionTransactionOptions);
-
-    const notification = await Promise.allSettled([
-      publishNotificationChanges(notificationUsers),
-      pusherServer.trigger(`listing-${listingId}`, "auction-started", {
-        auctionStartsAt: startTime.toISOString(),
-        auctionEndsAt: endTime.toISOString(),
-        startingBid,
-        bidIncrement,
-      } satisfies AuctionStartedEvent),
-    ]);
-    if (notification.some((item) => item.status === "rejected")) {
-      logger.warn("auction.start_notification_failed", { listingId });
+    const outcome = await startAuction({ sellerId: currentUser.id, listingId, startingBid, bidIncrement, endsAt });
+    if (!outcome.ok) {
+      const [status, message] = rejections[outcome.reason];
+      return errorResponse(message, status);
     }
 
     return NextResponse.json(
-      { message: "Auction started", auctionStartsAt: startTime, auctionEndsAt: endTime },
+      { message: "Auction started", auctionStartsAt: outcome.auctionStartsAt, auctionEndsAt: outcome.auctionEndsAt },
       { status: 201 }
     );
   } catch (error) {
     const response = apiErrorResponse(error);
     if (response) return response;
-    if (isTransactionContention(error)) return errorResponse("The listing changed. Refresh before starting the auction.", 409);
     logger.error("auction.start_failed", error);
     return errorResponse("Failed to create auction", 500);
   }
