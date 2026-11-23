@@ -1,16 +1,13 @@
-import { assertOwnedAssets } from "@/app/libs/uploaded-assets";
 import { NextResponse } from "next/server";
-import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { logger } from "@/app/libs/logger";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import {
-  ApiRequestError,
   apiErrorResponse,
   readJsonObject,
   errorResponse,
   requireListingId,
 } from "@/app/libs/api-request";
-import { isCloudinaryImageUrl, MAX_LISTING_PHOTOS } from "@/app/libs/listing-validation";
+import { correctCoverImage } from "@/app/libs/seller-listing-corrections";
 
 export async function POST(
   request: Request,
@@ -27,28 +24,7 @@ export async function POST(
     listingId = requireListingId(id);
     const body = await readJsonObject(request);
 
-    const coverImageUrl = body.url;
-    if (!isCloudinaryImageUrl(coverImageUrl)) {
-      throw new ApiRequestError(400, "Invalid cover image URL");
-    }
-
-    const listing = await getNativeRepositories().listingAuthoring.find(listingId);
-    if (!listing) throw new ApiRequestError(404, "Listing not found");
-    if (listing.userId !== currentUser.id) {
-      throw new ApiRequestError(403, "Only the seller can update this listing");
-    }
-    if (listing.status !== "UPCOMING") throw new ApiRequestError(409, "Photos cannot be changed after bidding opens.");
-    await assertOwnedAssets({ userId: currentUser.id, kind: "PHOTO", urls: [coverImageUrl], existingUrls: [...listing.images, ...(listing.coverImage ? [listing.coverImage] : [])], listingId });
-    const addPhoto = !listing.images.includes(coverImageUrl);
-    if (addPhoto && listing.images.length >= MAX_LISTING_PHOTOS) throw new ApiRequestError(409, "This listing already has the maximum number of images");
-
-    const updated = await getNativeRepositories().listingAuthoring.editCover(listingId, currentUser.id, listing.reviewRevision ?? 0, coverImageUrl, listing.images, new Date());
-    if (updated.count !== 1) {
-      throw new ApiRequestError(
-        409,
-        "Listing changed while updating the cover image"
-      );
-    }
+    const { coverImageUrl } = await correctCoverImage({ listingId, sellerId: currentUser.id }, body.url);
 
     return NextResponse.json(
       {
