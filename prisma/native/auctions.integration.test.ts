@@ -22,7 +22,6 @@ import { makeListing } from "@/app/test/auction-fixtures";
 
 const state = vi.hoisted(() => ({
   connection: undefined as DatabaseV8 | undefined,
-  currentUser: vi.fn(),
   trigger: vi.fn(),
   log: vi.fn(),
 }));
@@ -33,7 +32,6 @@ vi.mock("@/app/libs/prismadb-v8", () => ({
     return state.connection;
   },
 }));
-vi.mock("@/app/actions/getCurrentUser", () => ({ default: state.currentUser }));
 vi.mock("@/app/libs/pusher", () => ({
   pusherServer: { trigger: state.trigger },
 }));
@@ -41,8 +39,11 @@ vi.mock("@/app/libs/logger", () => ({
   logger: { error: state.log, warn: state.log },
 }));
 
-import { POST as placeBid } from "@/app/api/place-bid/route";
-import { POST as startAuction } from "@/app/api/auction-start/route";
+import {
+  placeBid,
+  startAuction,
+  type BidOutcome,
+} from "@/app/libs/auction-commands";
 import { POST as retryFinalization } from "@/app/api/auction-finalize/route";
 import {
   finalizeAuction,
@@ -180,21 +181,20 @@ describe.skipIf(!url)(
       amount = 1000,
       key = "bid-request-00000001",
     ) {
-      // Each invocation captures its own actor before its first await, including
-      // concurrent requests from different users.
-      state.currentUser.mockResolvedValueOnce(user);
-      return placeBid(request({ listingId, bidAmount: amount }, key));
+      return placeBid({ bidder: user, listingId, amount, key });
+    }
+    function accepted(outcome: BidOutcome) {
+      if (!outcome.ok) throw new Error(`Bid rejected: ${outcome.reason}`);
+      return outcome.response;
     }
     function start(listingId: string) {
-      state.currentUser.mockResolvedValueOnce(seller);
-      return startAuction(
-        request({
-          listingId,
-          startingBid: 1000,
-          bidIncrement: 100,
-          endTime: new Date(Date.now() + 3600000).toISOString(),
-        }),
-      );
+      return startAuction({
+        sellerId: seller.id,
+        listingId,
+        startingBid: 1000,
+        bidIncrement: 100,
+        endsAt: new Date(Date.now() + 3600000),
+      });
     }
     async function rejectWrites(
       collection: string,
@@ -232,9 +232,7 @@ describe.skipIf(!url)(
             ).not.toBeNull();
         },
       );
-      const response = await bid(buyer, listing.id);
-      expect(response.status).toBe(201);
-      const body = await response.json();
+      const body = accepted(await bid(buyer, listing.id));
       expect(Object.keys(body.bid).sort()).toEqual([
         "amount",
         "createdAt",
@@ -307,9 +305,7 @@ describe.skipIf(!url)(
               { _id: new ObjectId(listing.id) },
               { $unset: { currentBid: "" } },
             );
-        const response = await bid(buyer, listing.id);
-        expect(response.status).toBe(201);
-        const body = await response.json();
+        const body = accepted(await bid(buyer, listing.id));
         expect(
           new Date(body.auctionEndsAt).getTime() -
             new Date(body.bid.createdAt).getTime(),
@@ -327,13 +323,24 @@ describe.skipIf(!url)(
         currentBid: 900,
         highestBidderId: other.id,
       });
-      const responses = await Promise.all([
+      const outcomes = await Promise.all([
         bid(buyer, listing.id),
         bid(buyer, listing.id),
       ]);
-      expect(responses.map((item) => item.status)).toEqual([201, 201]);
-      const bodies = await Promise.all(responses.map((item) => item.json()));
+      expect(outcomes.map((item) => item.ok && item.replayed).sort()).toEqual([
+        false,
+        true,
+      ]);
+      const bodies = outcomes.map(accepted);
       expect(bodies[0]).toEqual(bodies[1]);
+      // A request is admitted at most once, however many times its
+      // transaction retries before it reads the committed winner.
+      const buckets = await connection.database
+        .collection("AbuseQuota")
+        .find({})
+        .toArray();
+      expect(buckets).toHaveLength(2);
+      expect(buckets.every((item) => item.count <= 2)).toBe(true);
       expect(await connection.database.collection("Bid").countDocuments()).toBe(
         1,
       );
@@ -354,32 +361,37 @@ describe.skipIf(!url)(
         );
       const broadcasts = state.trigger.mock.calls.length;
       const replay = await bid({ ...buyer, emailVerified: null }, listing.id);
-      expect(replay.status).toBe(201);
-      expect(await replay.json()).toEqual(bodies[0]);
+      expect(replay).toEqual({ ok: true, replayed: true, response: bodies[0] });
       expect(state.trigger).toHaveBeenCalledTimes(broadcasts);
-      expect((await bid(buyer, listing.id, 1100)).status).toBe(409);
+      expect(await bid(buyer, listing.id, 1100)).toEqual({
+        ok: false,
+        reason: "key-reused",
+      });
     });
 
     it("permits only one of two equal competing bids and retains the correct leader and arrays", async () => {
       const listing = await seed();
-      const responses = await Promise.all([
+      const outcomes = await Promise.all([
         bid(buyer, listing.id),
         bid(other, listing.id),
       ]);
-      expect(responses.filter((item) => item.status === 201)).toHaveLength(1);
+      const winners = outcomes.filter((item) => item.ok).map(accepted);
+      expect(winners).toHaveLength(1);
       expect(
-        responses.filter((item) => [400, 409, 503].includes(item.status)),
+        outcomes.filter(
+          (item) =>
+            !item.ok &&
+            ["below-minimum", "outpaced", "busy"].includes(item.reason),
+        ),
       ).toHaveLength(1);
-      const accepted = await responses
-        .find((item) => item.status === 201)!
-        .json();
+      const [winner] = winners;
       const current = await connection.database
         .collection("Listing")
         .findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false });
       expect(current).toMatchObject({
         currentBid: Long.fromNumber(1000),
-        highestBidderId: new ObjectId(accepted.bid.userId),
-        biddersIds: [new ObjectId(accepted.bid.userId)],
+        highestBidderId: new ObjectId(winner.bid.userId),
+        biddersIds: [new ObjectId(winner.bid.userId)],
       });
       expect(await connection.database.collection("Bid").countDocuments()).toBe(
         1,
@@ -391,16 +403,12 @@ describe.skipIf(!url)(
 
     it("keeps higher bids ordered under contention and never loses the final highest bid", async () => {
       const listing = await seed();
-      const responses = await Promise.all([
+      const outcomes = await Promise.all([
         bid(buyer, listing.id, 1000),
         bid(other, listing.id, 1100),
       ]);
-      const accepted = await Promise.all(
-        responses
-          .filter((item) => item.status === 201)
-          .map((item) => item.json()),
-      );
-      expect(accepted.length).toBeGreaterThan(0);
+      const winners = outcomes.filter((item) => item.ok);
+      expect(winners.length).toBeGreaterThan(0);
       expect(
         await connection.database
           .collection("Listing")
@@ -410,11 +418,65 @@ describe.skipIf(!url)(
         highestBidderId: new ObjectId(other.id),
       });
       expect(await connection.database.collection("Bid").countDocuments()).toBe(
-        accepted.length,
+        winners.length,
       );
       expect(
         await connection.database.collection("BidSubmission").countDocuments(),
-      ).toBe(accepted.length);
+      ).toBe(winners.length);
+    });
+
+    it.each([
+      ["the bidder's own listing", () => ({ userId: buyer.id }), { reason: "own-listing" }],
+      ["an upcoming auction", () => ({ status: "UPCOMING" as const }), { reason: "not-open" }],
+      ["an auction that has not started", () => ({ auctionStartsAt: new Date(Date.now() + 60000) }), { reason: "not-open" }],
+      ["an auction past its deadline", () => ({ auctionEndsAt: new Date(Date.now() - 1000) }), { reason: "not-open" }],
+      ["an unconfigured auction", () => ({ bidIncrement: null }), { reason: "unconfigured" }],
+      ["a bid under the next increment", () => ({ currentBid: 1500, highestBidderId: other.id }), { reason: "below-minimum", minimumBid: 1600 }],
+    ] as const)(
+      "rejects a bid on %s without writing or reserving its key",
+      async (_scenario, overrides, rejection) => {
+        const listing = await seed(overrides());
+        expect(await bid(buyer, listing.id, 1000)).toEqual({ ok: false, ...rejection });
+        for (const name of ["Bid", "BidSubmission", "Notification"])
+          expect(await connection.database.collection(name).countDocuments()).toBe(0);
+        expect(state.trigger).not.toHaveBeenCalled();
+        if (rejection.reason === "below-minimum")
+          expect((await bid(buyer, listing.id, 1600)).ok).toBe(true);
+      },
+    );
+
+    it("rejects an unverified bidder before charging the bid quota", async () => {
+      const listing = await seed();
+      expect(await bid({ ...buyer, emailVerified: null }, listing.id)).toEqual({
+        ok: false,
+        reason: "unverified",
+      });
+      expect(
+        await connection.database.collection("AbuseQuota").countDocuments(),
+      ).toBe(0);
+    });
+
+    it("loses the optimistic claim to a bid committed after the auction was read", async () => {
+      const listing = await seed();
+      const stale = (await repositories.auctions.find(listing.id))!;
+      expect((await bid(other, listing.id, 1000)).ok).toBe(true);
+      const bidTime = new Date();
+      expect(
+        await withNativeTransaction(
+          (tx) =>
+            tx.auctions.claimBid(
+              stale,
+              { amount: 1000, userId: buyer.id, auctionEndsAt: stale.auctionEndsAt! },
+              bidTime,
+            ),
+          auctionTransactionOptions,
+        ),
+      ).toEqual({ count: 0 });
+      expect(
+        await connection.database
+          .collection("Listing")
+          .findOne({ _id: new ObjectId(listing.id) }),
+      ).toMatchObject({ highestBidderId: new ObjectId(other.id) });
     });
 
     it.each(["Notification", "BidSubmission"])(
@@ -425,7 +487,9 @@ describe.skipIf(!url)(
           highestBidderId: other.id,
         });
         await rejectWrites(collection, async () => {
-          expect((await bid(buyer, listing.id)).status).toBe(500);
+          await expect(bid(buyer, listing.id)).rejects.toMatchObject({
+            code: 121,
+          });
           expect(
             await connection.database
               .collection("Listing")
@@ -460,7 +524,7 @@ describe.skipIf(!url)(
           expect(buckets).toHaveLength(2);
           expect(buckets.every((item) => item.count === 1)).toBe(true);
         });
-        expect((await bid(buyer, listing.id)).status).toBe(201);
+        expect((await bid(buyer, listing.id)).ok).toBe(true);
       },
     );
 
@@ -489,9 +553,11 @@ describe.skipIf(!url)(
           response,
           createdAt: new Date(),
         });
-      const replay = await bid(buyer, listing.id);
-      expect(replay.status).toBe(201);
-      expect(await replay.json()).toEqual(response);
+      expect(await bid(buyer, listing.id)).toEqual({
+        ok: true,
+        replayed: true,
+        response,
+      });
       expect(await connection.database.collection("Bid").countDocuments()).toBe(
         0,
       );
@@ -517,7 +583,7 @@ describe.skipIf(!url)(
               { _id: new ObjectId(listing.id) },
               { $unset: { reviewRevision: "" } },
             );
-        expect((await start(listing.id)).status).toBe(201);
+        expect((await start(listing.id)).ok).toBe(true);
         const raw = await connection.database
           .collection("Listing")
           .findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false });
@@ -546,7 +612,7 @@ describe.skipIf(!url)(
         watchersIds: [buyer.id],
       });
       await rejectWrites("Notification", async () => {
-        expect((await start(listing.id)).status).toBe(500);
+        await expect(start(listing.id)).rejects.toMatchObject({ code: 121 });
         expect((await repositories.auctions.find(listing.id))?.status).toBe(
           "UPCOMING",
         );
@@ -556,7 +622,13 @@ describe.skipIf(!url)(
         start(listing.id),
         start(listing.id),
       ]);
-      expect(responses.map((item) => item.status).sort()).toEqual([201, 409]);
+      // The loser is refused at the claim, or on reread if the driver retried
+      // its transaction after the winner committed. Both map to 409.
+      const [loser, winner] = responses
+        .map((item) => (item.ok ? "started" : item.reason))
+        .sort();
+      expect(winner).toBe("started");
+      expect(["already-started", "not-upcoming"]).toContain(loser);
       expect(
         await connection.database.collection("Notification").countDocuments({}),
       ).toBe(1);
@@ -567,12 +639,34 @@ describe.skipIf(!url)(
       ).toHaveLength(1);
     });
 
+    it("lets only the seller start an auction, and only with a future deadline", async () => {
+      const listing = await seed({ status: "UPCOMING", reviewStatus: "APPROVED" });
+      const request = {
+        listingId: listing.id,
+        startingBid: 1000,
+        bidIncrement: 100,
+        endsAt: new Date(Date.now() + 3600000),
+      };
+      expect(await startAuction({ ...request, sellerId: buyer.id })).toEqual({
+        ok: false,
+        reason: "not-seller",
+      });
+      expect(
+        await startAuction({ ...request, sellerId: seller.id, endsAt: new Date(Date.now() - 1) }),
+      ).toEqual({ ok: false, reason: "ends-in-past" });
+      expect((await repositories.auctions.find(listing.id))?.status).toBe("UPCOMING");
+      expect(state.trigger).not.toHaveBeenCalled();
+    });
+
     it("rejects an unapproved listing and a stale approval revision at the native claim", async () => {
       const listing = await seed({
         status: "UPCOMING",
         reviewStatus: "PENDING",
       });
-      expect((await start(listing.id)).status).toBe(409);
+      expect(await start(listing.id)).toEqual({
+        ok: false,
+        reason: "not-approved",
+      });
       await connection.database
         .collection("Listing")
         .updateOne(
@@ -696,7 +790,7 @@ describe.skipIf(!url)(
         auctionEndsAt: new Date(Date.now() + 30000),
       });
       const stale = (await repositories.auctions.find(listing.id))!;
-      expect((await bid(buyer, listing.id)).status).toBe(201);
+      expect((await bid(buyer, listing.id)).ok).toBe(true);
       expect(
         await withNativeTransaction(
           (tx) => tx.auctions.finish(stale, "RESERVE_NOT_MET", new Date()),
