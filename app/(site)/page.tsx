@@ -34,7 +34,7 @@ export default async function Home() {
     <div className="bg-stone-50 pb-16 pt-[var(--site-nav-height)]">
       <section className="relative overflow-hidden bg-slate-950 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_15%,rgba(245,158,11,0.18),transparent_34%)]" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-7 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-12 lg:px-8">
+        <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
           <div>
             <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-amber-400">
               <span className="h-px w-8 bg-amber-400" /> Enthusiast car auctions
@@ -81,34 +81,37 @@ export default async function Home() {
               </div>
             )}
           </div>
-          {featured ? (
-            <FeaturedAuction
-              key={featured.id}
-              listing={featured}
-              currentUserId={currentUser?.id}
-            />
-          ) : (
-            <div className="rounded-2xl border border-white/15 bg-white/[0.06] p-6 sm:p-8">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">
-                The next chapter
-              </p>
-              <h2 className="mt-3 text-2xl font-bold tracking-tight">
-                Have a car worth sharing?
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                Bring your vehicle to BidLane and help build the next lineup of
-                enthusiast favorites.
-              </p>
-              <Link
-                href="/submit-listing"
-                className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-amber-400 hover:text-amber-300"
-              >
-                List your vehicle <FiArrowRight aria-hidden="true" />
-              </Link>
-            </div>
-          )}
         </div>
       </section>
+
+      <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 lg:px-8">
+        {featured ? (
+          <FeaturedAuction
+            key={featured.id}
+            listing={featured}
+            currentUserId={currentUser?.id}
+          />
+        ) : (
+          <div className="rounded-2xl bg-slate-950 p-6 text-white sm:p-8">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">
+              The next chapter
+            </p>
+            <h2 className="mt-3 text-2xl font-bold tracking-tight">
+              Have a car worth sharing?
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              Bring your vehicle to BidLane and help build the next lineup of
+              enthusiast favorites.
+            </p>
+            <Link
+              href="/submit-listing"
+              className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-amber-400 hover:text-amber-300"
+            >
+              List your vehicle <FiArrowRight aria-hidden="true" />
+            </Link>
+          </div>
+        )}
+      </div>
 
       <LatestBids bids={latestBids} />
 
