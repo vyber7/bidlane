@@ -45,16 +45,16 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   const finalizationKey = `${listing.id}:${deadline}`;
   const isAutoFinalizing = autoFinalizingDeadline === finalizationKey;
 
-  const endAuction = useCallback(async () => {
+  const retryFinalization = useCallback(async () => {
     setIsLoading(true);
     try {
-      await axios.post("/api/auction-end", { listingId: listing.id });
+      await axios.post("/api/auction-finalize", { listingId: listing.id });
       router.refresh();
     } catch (error) {
-      logger.error("auction.end.client_failed", error, {
+      logger.error("auction.finalize.client_failed", error, {
         listingId: listing.id,
       });
-      toast.error(getApiErrorMessage(error, "The auction could not be ended. Please try again."));
+      toast.error(getApiErrorMessage(error, "The auction results could not be finalized. Please try again."));
     } finally {
       setIsLoading(false);
     }
@@ -145,12 +145,12 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
         </div>}
         {live && expired ? (
           currentUser === listing.userId ? (
-            <Button onClick={endAuction} disabled={isLoading || isAutoFinalizing}>{isLoading || isAutoFinalizing ? "Finalizing auction…" : "Retry finalization"}</Button>
+            <Button onClick={retryFinalization} disabled={isLoading || isAutoFinalizing}>{isLoading || isAutoFinalizing ? "Finalizing auction…" : "Retry finalization"}</Button>
           ) : (
             <p className="text-sm leading-6 text-slate-400">Finalizing auction results…</p>
           )
         ) : live ? currentUser === listing.userId ? (
-          <Button onClick={endAuction} disabled={isLoading || !expired}>{isLoading ? "Ending auction…" : "End auction"}</Button>
+          <p className="text-sm leading-6 text-slate-400">Your auction is live. Results are finalized automatically when the timer ends.</p>
         ) : bidding.state === "open" ? (
           <Link href="#bids" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">Place a bid</Link>
         ) : (

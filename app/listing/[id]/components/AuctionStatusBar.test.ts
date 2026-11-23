@@ -72,6 +72,11 @@ describe("auction expiry controls", () => {
       render(auction(makeListing({ auctionEndsAt: auctionNow })));
     });
     expect(screen.getByRole("button", { name: "Retry finalization" })).toHaveProperty("disabled", false);
+    mocks.post.mockClear();
+    await act(async () => {
+      screen.getByRole("button", { name: "Retry finalization" }).click();
+    });
+    expect(mocks.post).toHaveBeenCalledWith("/api/auction-finalize", { listingId: makeListing().id });
   });
 
   it.each(["seller", "visitor"])("requests finalization on expiry for %s", async (user) => {
@@ -82,9 +87,10 @@ describe("auction expiry controls", () => {
     expect(mocks.refresh).toHaveBeenCalled();
   });
 
-  it("keeps the seller button disabled and skips finalization before expiry", () => {
+  it("offers the seller no ending control and skips finalization before expiry", () => {
     render(auction(makeListing()));
-    expect(screen.getByRole("button", { name: "End auction" })).toHaveProperty("disabled", true);
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.getByText(/Your auction is live/)).toBeDefined();
     expect(mocks.post).not.toHaveBeenCalledWith("/api/auction-finalize", expect.anything());
   });
 

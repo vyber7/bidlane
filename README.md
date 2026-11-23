@@ -358,8 +358,7 @@ vitest.config.ts     # Test configuration
 | `/api/new-listing`              | POST      | Create a vehicle listing                                   |
 | `/api/auction-start`            | POST      | Start a seller's upcoming auction                          |
 | `/api/place-bid`                | POST      | Place a bid on a live auction (requires `Idempotency-Key`) |
-| `/api/auction-end`              | POST      | Seller-triggered finalization after the scheduled end time |
-| `/api/auction-finalize`         | POST      | Finalize an expired auction                                |
+| `/api/auction-finalize`         | POST      | Finalize an expired auction (client expiry, seller retry)  |
 | `/api/cron/finalize-auctions`   | GET       | Finalize expired auctions in a batch                       |
 | `/api/comments`                 | POST      | Add a listing comment                                      |
 | `/api/update-watchlist`         | POST      | Update the current user's watchlist                        |

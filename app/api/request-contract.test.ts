@@ -13,7 +13,6 @@ vi.mock("bcrypt", () => ({ default: { hash: mocks.hash } }));
 
 import { POST as bid } from "./place-bid/route";
 import { POST as start } from "./auction-start/route";
-import { POST as end } from "./auction-end/route";
 import { POST as finalize } from "./auction-finalize/route";
 import { POST as comments } from "./comments/route";
 import { POST as watchlist } from "./update-watchlist/route";
@@ -27,7 +26,6 @@ import { POST as cover } from "./listing/[id]/cover-image/route";
 const endpoints: { name: string; handler: (request: Request) => Promise<Response>; authenticated?: boolean }[] = [
   { name: "bidding", handler: bid, authenticated: true },
   { name: "auction start", handler: start, authenticated: true },
-  { name: "auction end", handler: end, authenticated: true },
   { name: "auction finalization", handler: finalize },
   { name: "comments", handler: comments, authenticated: true },
   { name: "watchlists", handler: watchlist, authenticated: true },
