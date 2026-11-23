@@ -118,25 +118,9 @@ export default async function Home() {
         aria-labelledby="inventory-title"
         className="mx-auto max-w-6xl scroll-mt-[var(--site-header-height)] px-4 pt-8 sm:px-6 lg:px-8"
       >
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">
-              The lineup
-            </p>
-            <h2 id="inventory-title" className="mt-1 text-3xl font-black tracking-tight text-slate-950">
-              Inventory
-            </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              Fresh listings, live bids, and recently completed sales.
-            </p>
-          </div>
-          <Link
-            href="/submit-listing"
-            className="hidden items-center gap-2 text-sm font-bold text-slate-700 hover:text-amber-700 sm:flex"
-          >
-            Have a great car? List it <FiArrowRight aria-hidden="true" />
-          </Link>
-        </div>
+        <h2 id="inventory-title" className="text-lg font-bold tracking-tight text-slate-950">
+          Inventory
+        </h2>
 
         <AuctionBrowser listings={listings} currentUserId={currentUser?.id} />
       </section>
