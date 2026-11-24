@@ -75,7 +75,7 @@ const Gallery: React.FC<GalleryProps> = ({
   };
 
   return (
-    <section id="photos" className="scroll-mt-24 rounded-2xl">
+    <section id="photos" className="rounded-2xl">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold">Photo Gallery</h2>
         <span className="text-xs text-slate-500">{formatCount(images.length, "photo")}</span>

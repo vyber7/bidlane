@@ -155,7 +155,6 @@ export default async function Home() {
           id="auctions"
           tabIndex={-1}
           aria-labelledby="inventory-title"
-          className="scroll-mt-[calc(var(--site-header-height)+2rem)]"
         >
           <h2 id="inventory-title" className="text-lg font-bold tracking-tight text-slate-950">
             Inventory

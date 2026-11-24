@@ -152,7 +152,7 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
 
       <form onSubmit={submit}>
         <div className="grid gap-8 p-5 sm:p-6 md:grid-cols-[180px_minmax(0,1fr)]">
-          <div ref={photoField} role="group" aria-labelledby="profile-photo-label" aria-describedby={imageError ? "profile-photo-error" : undefined} tabIndex={-1} className="scroll-mt-[calc(var(--site-header-height)+1rem)]">
+          <div ref={photoField} role="group" aria-labelledby="profile-photo-label" aria-describedby={imageError ? "profile-photo-error" : undefined} tabIndex={-1}>
             <p id="profile-photo-label" className="mb-3 text-sm font-bold text-gray-900">Profile photo</p>
             <div className="relative h-32 w-32 overflow-hidden rounded-2xl bg-gradient-to-br from-gray-800 to-gray-950 shadow-sm ring-4 ring-gray-100">
               {image ? (

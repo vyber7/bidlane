@@ -17,7 +17,7 @@ export default function RecordUploads({ records, onChange, listingId, validation
     data-listing-error={groupError ? "" : undefined}
     tabIndex={groupError ? -1 : undefined}
     aria-describedby={groupError ? `${id}-error` : undefined}
-    className="mt-6 scroll-mt-[calc(var(--site-header-height)+1rem)] rounded-xl border border-slate-200 p-5"
+    className="mt-6 rounded-xl border border-slate-200 p-5"
   >
     <h3 className="font-bold">Vehicle Records (Optional)</h3>
     <p className="mt-2 text-sm leading-6 text-slate-600">Share service receipts, inspection reports, or vehicle history as PDFs or images. These files will be public. Redact addresses, phone numbers, signatures, and other personal details before uploading.</p>
@@ -36,10 +36,10 @@ export default function RecordUploads({ records, onChange, listingId, validation
       return <li key={`${record.url}-${index}`} className="flex flex-wrap items-end gap-3">
         <div className="min-w-0 flex-1">
           <label htmlFor={fieldId} className="text-sm font-semibold">Record {index + 1} name</label>
-          <input id={fieldId} name={`vehicleRecords.${index}.label`} autoComplete="off" spellCheck={false} value={record.label} maxLength={100} aria-invalid={!!labelError} aria-describedby={labelError ? `${fieldId}-error` : undefined} onChange={(event) => onChange(records.map((item, i) => i === index ? { ...item, label: event.target.value } : item))} className="mt-1 block w-full scroll-mt-[calc(var(--site-header-height)+1rem)] rounded-lg border border-slate-300 px-3 py-2 aria-[invalid=true]:border-rose-600" />
+          <input id={fieldId} name={`vehicleRecords.${index}.label`} autoComplete="off" spellCheck={false} value={record.label} maxLength={100} aria-invalid={!!labelError} aria-describedby={labelError ? `${fieldId}-error` : undefined} onChange={(event) => onChange(records.map((item, i) => i === index ? { ...item, label: event.target.value } : item))} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 aria-[invalid=true]:border-rose-600" />
         </div>
         <a href={record.url} target="_blank" rel="noopener noreferrer" className="py-2 text-sm underline">View<span className="sr-only"> record {index + 1} (opens in a new tab)</span></a>
-        <button type="button" data-listing-error={fileError ? "" : undefined} aria-describedby={fileError ? `${fieldId}-file-error` : undefined} onClick={() => onChange(records.filter((_, i) => i !== index))} className="scroll-mt-[calc(var(--site-header-height)+1rem)] py-2 text-sm text-rose-700 underline">Remove<span className="sr-only"> record {index + 1}</span></button>
+        <button type="button" data-listing-error={fileError ? "" : undefined} aria-describedby={fileError ? `${fieldId}-file-error` : undefined} onClick={() => onChange(records.filter((_, i) => i !== index))} className="py-2 text-sm text-rose-700 underline">Remove<span className="sr-only"> record {index + 1}</span></button>
         {labelError && <p id={`${fieldId}-error`} role="alert" className="mt-1 w-full text-sm text-rose-700">{labelError}</p>}
         {fileError && <p id={`${fieldId}-file-error`} role="alert" className="mt-1 w-full text-sm text-rose-700">{fileError}</p>}
       </li>;

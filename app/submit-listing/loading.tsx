@@ -22,7 +22,7 @@ export default function Loading() {
       aria-busy="true"
     >
       <LoadingStatus label="Loading listing form" />
-      <main className="w-full rounded-md lg:p-0">
+      <div className="w-full rounded-md lg:p-0">
         <h1 className="pb-2 text-3xl font-bold">Submit Your Vehicle</h1>
         <p className="mb-6 text-sm text-slate-500">Add your details and photos, then preview your listing before submitting. Your draft saves as you work. Submitted listings need admin approval before they appear publicly or bidding can open.</p>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-8">
@@ -63,8 +63,8 @@ export default function Loading() {
             ))}
           </div>
         </div>
-      </main>
-      <aside className="h-fit rounded-2xl border border-slate-200 bg-slate-50 p-5 lg:sticky lg:top-20">
+      </div>
+      <aside className="h-fit rounded-2xl border border-slate-200 bg-slate-50 p-5 lg:sticky lg:top-[calc(var(--site-header-height)+1rem)]">
         <h2 className="mt-2 text-xl font-bold text-slate-950">Recently Sold</h2>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
           {Array.from({ length: 4 }, (_, index) => (

@@ -79,7 +79,7 @@ export default function CommentForm({ listingId }: { listingId: string }) {
         {...register("comment", {
           validate: (value) => validationMessage(commentRequestSchema.shape.comment, value),
         })}
-        className="block w-full scroll-mt-[calc(var(--site-header-height)+1rem)] rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 aria-[invalid=true]:border-rose-600"
+        className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 aria-[invalid=true]:border-rose-600"
       />
       {(errors.comment || postError) && (
         <p id={`${inputId}-error`} role="alert" className="text-sm text-rose-700">

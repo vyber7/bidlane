@@ -20,25 +20,32 @@ body {
   color: #101720;
 }
 
-html:has(.account-page) {
+/*
+ * One source for offsets under fixed chrome: the document scroll padding.
+ * Anchor targets, skip-link targets, and focused elements all land clear of
+ * the fixed site header (or, on sign-in, the preview banner) without their
+ * own scroll margins. Sticky elements use the same tokens for their top.
+ */
+:root {
   scroll-padding-block-start: calc(var(--site-header-height) + 1rem);
+  /* MobileAuctionBar publishes its rendered height while it is shown. */
+  scroll-padding-block-end: calc(var(--mobile-auction-bar-height, 0px) + 0.5rem);
 }
 
-/* The document scroll padding already offsets the account skip link's target. */
-html:has(.account-page) #main-content {
-  scroll-margin-block-start: 0;
+:root:has(.auth-page) {
+  scroll-padding-block-start: calc(var(--preview-banner-height) + 1rem);
 }
 
 .account-page :where(h1, h2, h3, h4, h5, h6) {
   text-wrap: balance;
 }
 
-.account-page :where(a[href], button, input, select, textarea, summary) {
+:where(a[href], button, input, select, textarea, summary) {
   touch-action: manipulation;
   -webkit-tap-highlight-color: rgb(71 85 105 / 25%);
 }
 
-:where(.account-page) :where(a[href], button, input, select, textarea, summary):focus-visible {
+:where(a[href], button, input, select, textarea, summary):focus-visible {
   outline: 2px solid #0f172a;
   outline-offset: 2px;
 }

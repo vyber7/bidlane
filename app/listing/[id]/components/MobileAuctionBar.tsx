@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useAuctionContext } from "@/app/context/AuctionContext";
 import NoReserveBadge from "@/app/components/NoReserveBadge";
 import { formatPrice } from "@/app/utils/format";
@@ -8,15 +9,33 @@ import { describeAuction } from "@/app/libs/auction-display";
 export default function MobileAuctionBar({ currentUserId }: { currentUserId?: string | null }) {
   const { listing, timeLeft, phase } = useAuctionContext();
   const display = describeAuction(listing, phase, currentUserId);
+  const bar = useRef<HTMLElement>(null);
+  const shown = display.bucket === "live";
 
-  if (display.bucket !== "live") return null;
+  // Keep focused elements and anchor targets clear of the sticky bar: the
+  // document's bottom scroll padding reads its measured height.
+  useEffect(() => {
+    const element = bar.current;
+    if (!shown || !element) return;
+    const root = document.documentElement;
+    const publish = () => root.style.setProperty("--mobile-auction-bar-height", `${element.offsetHeight}px`);
+    publish();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(publish);
+    observer?.observe(element);
+    return () => {
+      observer?.disconnect();
+      root.style.removeProperty("--mobile-auction-bar-height");
+    };
+  }, [shown]);
+
+  if (!shown) return null;
 
   const { headline, price: { label, amount }, action } = display;
   const closing = display.timer === "closing";
   const link = action === "view-bids" ? "View Bids" : action === "place-bid" ? "Place a Bid" : null;
 
   return (
-    <section aria-label="Live auction quick actions" className="sticky bottom-0 z-40 border-t border-white/10 bg-slate-950 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-white shadow-[0_-4px_20px_rgba(2,6,23,0.15)] lg:hidden">
+    <section ref={bar} aria-label="Live auction quick actions" className="sticky bottom-0 z-40 border-t border-white/10 bg-slate-950 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-white shadow-[0_-4px_20px_rgba(2,6,23,0.15)] lg:hidden">
       <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:px-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">

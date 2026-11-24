@@ -8,7 +8,7 @@ const sections = ["Latest current listings", "Sold at auction"];
 
 export default function Loading() {
   return (
-    <main
+    <div
       className="mx-auto max-w-6xl space-y-7 px-4 pb-16 pt-28 sm:px-6 lg:px-8"
       aria-busy="true"
     >
@@ -61,6 +61,6 @@ export default function Loading() {
           </ul>
         </section>
       ))}
-    </main>
+    </div>
   );
 }

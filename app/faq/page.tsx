@@ -113,7 +113,7 @@ const faqs = [
 
 export default function FAQPage() {
   return (
-    <main className="overflow-hidden bg-stone-50 pt-16">
+    <div className="overflow-hidden bg-stone-50 pt-16">
       <section className="relative bg-slate-950 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,rgba(245,158,11,0.22),transparent_30%)]" />
         <div className="relative mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8 lg:py-24">
@@ -165,7 +165,7 @@ export default function FAQPage() {
         </ol>
       </section>
 
-      <section id="auction-rules" className="mx-auto max-w-6xl scroll-mt-24 px-5 pb-16 sm:px-6 lg:px-8 lg:pb-24">
+      <section id="auction-rules" className="mx-auto max-w-6xl px-5 pb-16 sm:px-6 lg:px-8 lg:pb-24">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Before you bid</p>
         <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Know how the auction closes.</h2>
         <div className="mt-8 grid gap-5 lg:grid-cols-3">
@@ -204,7 +204,7 @@ export default function FAQPage() {
         </div>
       </section>
 
-      <section id="after-auction" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-16 sm:px-6 lg:px-8 lg:py-24">
+      <section id="after-auction" className="mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8 lg:py-24">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">After the auction</p>
         <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Turn a winning bid into a handoff.</h2>
         <p className="mt-5 max-w-3xl text-sm leading-7 text-slate-600">Once a sale is finalized, sign in and open <Link href="/account/shipments" className="font-bold text-slate-950 underline decoration-amber-400 underline-offset-4">Account → Purchases & sales</Link>. The winning buyer and seller can see the winning bid and each other’s contact details there. Check your in-app Notifications for the result.</p>
@@ -214,7 +214,7 @@ export default function FAQPage() {
         <p className="mt-5 text-sm leading-6 text-slate-500">If the reserve was not met or there were no bids, there is no sale to coordinate. If contact details are missing after a sold result, <Link href="/contact" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">contact BidLane support</Link>.</p>
       </section>
 
-      <section id="fees" className="scroll-mt-24 border-y border-slate-200 bg-white">
+      <section id="fees" className="border-y border-slate-200 bg-white">
         <div className="mx-auto max-w-6xl px-5 py-12 sm:px-6 lg:px-8">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Payment & costs</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Know what you’re agreeing to.</h2>
@@ -257,6 +257,6 @@ export default function FAQPage() {
           </Link>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

@@ -60,7 +60,7 @@ const journey = [
 
 export default function AboutPage() {
   return (
-    <main className="overflow-hidden bg-stone-50 pt-16">
+    <div className="overflow-hidden bg-stone-50 pt-16">
       <section className="relative bg-slate-950 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_18%,rgba(245,158,11,0.20),transparent_31%)]" />
         <div className="absolute -bottom-32 -left-32 h-72 w-72 rounded-full border border-white/[0.06]" />
@@ -207,6 +207,6 @@ export default function AboutPage() {
           </Link>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

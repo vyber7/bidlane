@@ -33,7 +33,7 @@ const Bids: React.FC<BidsProps> = ({
   return (
     <div
       id="bids"
-      className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
+      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
     >
       <h2 className="pb-2 md:pb-4 text-lg font-bold">
         {listing.year} {capitalize(listing.make)} {capitalize(listing.model)}

@@ -26,7 +26,7 @@ async function signIn(browser: Browser, email: string) {
   await page.goto("/signin");
   await page.getByLabel(/email/i).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   return page;
 }
@@ -53,7 +53,7 @@ async function submitListing(seller: Page) {
   await seller.getByRole("button", { name: /continue to photos/i }).click();
   await seller.route("**/api/uploads", (route) => route.fulfill({ status: 201, json: { url: photo } }));
   const choosingPhoto = seller.waitForEvent("filechooser");
-  await seller.getByRole("button", { name: "Add photos", exact: true }).click();
+  await seller.getByRole("button", { name: "Add Photos", exact: true }).click();
   await (await choosingPhoto).setFiles({
     name: "cayman.png",
     mimeType: "image/png",
@@ -62,7 +62,7 @@ async function submitListing(seller: Page) {
   await expect(seller.getByText(/1 \/ 20 photos/)).toBeVisible();
   await seller.getByRole("button", { name: /preview listing/i }).click();
   await expect(seller.getByRole("heading", { name: vehicle })).toBeVisible();
-  await seller.getByRole("button", { name: "Submit listing", exact: true }).click();
+  await seller.getByRole("button", { name: "Submit Listing", exact: true }).click();
   await expect(seller).toHaveURL(/\/listing\/[a-f0-9]{24}$/);
   await expect(seller.getByText("Awaiting review", { exact: true })).toBeVisible();
   return new URL(seller.url()).pathname;
@@ -70,8 +70,8 @@ async function submitListing(seller: Page) {
 
 async function confirmBid(page: Page, amount: number) {
   await page.getByLabel("Your bid amount in dollars").fill(String(amount));
-  await page.getByRole("button", { name: "Review bid", exact: true }).click();
-  await page.getByRole("button", { name: `Confirm bid of $${amount.toLocaleString("en-US")}` }).click();
+  await page.getByRole("button", { name: "Review Bid", exact: true }).click();
+  await page.getByRole("button", { name: `Confirm Bid of $${amount.toLocaleString("en-US")}` }).click();
 }
 
 test("seller submission through auction close and buyer/seller handoff", async ({ browser, request }) => {
@@ -113,9 +113,9 @@ test("seller submission through auction close and buyer/seller handoff", async (
         new URL(response.url()).pathname === `/api/admin/listings/${id}/review` &&
         response.request().method() === "POST",
       );
-      await adminPage.getByRole("button", { name: "Approve listing" }).click();
+      await adminPage.getByRole("button", { name: "Approve Listing" }).click();
       expect((await approval).status(), "Admin approval response").toBe(200);
-      await expect(adminPage.getByText("Approved · UPCOMING", { exact: true })).toBeVisible();
+      await expect(adminPage.getByText("Approved · Upcoming", { exact: true })).toBeVisible();
       await sellerPage.reload();
       await sellerPage.getByLabel("End Time").fill(new Date(Date.now() + 600_000).toISOString().slice(0, 16));
       await sellerPage.getByLabel("Starting Bid").fill("10000");
@@ -142,8 +142,8 @@ test("seller submission through auction close and buyer/seller handoff", async (
         }
       });
       await confirmBid(firstPage, 10_000);
-      await expect(firstPage.getByRole("button", { name: "Retry same bid" })).toBeVisible();
-      await firstPage.getByRole("button", { name: "Retry same bid" }).click();
+      await expect(firstPage.getByRole("button", { name: "Retry Same Bid" })).toBeVisible();
+      await firstPage.getByRole("button", { name: "Retry Same Bid" }).click();
       await expect(firstPage.getByText("Your bid of $10,000 was accepted.")).toBeVisible();
       expect(keys[0]).toBeTruthy();
       expect(keys).toEqual([keys[0], keys[0]]);

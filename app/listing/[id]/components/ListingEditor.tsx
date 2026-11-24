@@ -20,7 +20,7 @@ const textFields = [
   ["make", "Make"], ["model", "Model"], ["year", "Year"], ["miles", "Mileage"],
   ["location", "Location"], ["reservePrice", "Reserve price in USD (optional)"], ["vin", "VIN or chassis number (optional)"],
 ] as const;
-const inputClass = "mt-2 block w-full scroll-mt-[calc(var(--site-header-height)+1rem)] rounded-lg border border-slate-300 px-3 py-2 font-normal aria-[invalid=true]:border-rose-600";
+const inputClass = "mt-2 block w-full rounded-lg border border-slate-300 px-3 py-2 font-normal aria-[invalid=true]:border-rose-600";
 
 function listingFields(form: HTMLFormElement) {
   const fields = new FormData(form);
@@ -81,7 +81,7 @@ export default function ListingEditor({ listing }: { listing: SellerListing }) {
   }
 
   return <details className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-    <summary id="edit-listing" className="cursor-pointer scroll-mt-28 text-lg font-bold">Edit Listing & Submit for Review</summary>
+    <summary id="edit-listing" className="cursor-pointer text-lg font-bold">Edit Listing & Submit for Review</summary>
     <p className="mt-3 text-sm leading-6 text-slate-600">Save all corrections together. Any change returns this listing to review and hides it from buyers until approved again. Photos and details cannot be changed after bidding opens.</p>
     <form ref={formRef} className="mt-5" noValidate onChange={(event) => {
       setFieldsChanged(JSON.stringify(listingFields(event.currentTarget)) !== savedFields.current);
@@ -149,7 +149,6 @@ export default function ListingEditor({ listing }: { listing: SellerListing }) {
           data-listing-error={fieldErrors.images ? "" : undefined}
           tabIndex={fieldErrors.images ? -1 : undefined}
           aria-describedby={fieldErrors.images ? errorId("images") : undefined}
-          className="scroll-mt-[calc(var(--site-header-height)+1rem)]"
         >
           <h3 className="text-sm font-bold">Photos ({images.length}/{MAX_LISTING_PHOTOS})</h3>
           <p className="mt-1 text-xs text-slate-600">Choose a cover photo or remove photos before saving.</p>

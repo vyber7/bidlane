@@ -10,7 +10,7 @@ const Description: React.FC<DescriptionProps> = ({ description }) => {
   return (
     <section
       id="overview"
-      className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
+      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
     >
       <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
         From the seller
