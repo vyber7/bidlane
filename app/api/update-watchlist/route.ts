@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     }, engagementTransactionOptions);
 
     // Read after the relation update so aggregates and the viewer's state
-    // reflect persisted data. Never broadcast a listing removed from public view.
+    // reflect persisted data. Never send real-time updates for a listing removed from public view.
     const updatedListing = await getNativeRepositories().engagement.watchSnapshot(listingId, currentUser.id).catch(() => {
       // The watch change is committed; a failed snapshot for its real-time updates must
       // not make the client roll back a successful write.
@@ -45,10 +45,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ listingId, watching } satisfies WatchlistResponse);
     }
     const publicListing = updatedListing.listing;
-    const personal = userChannel(currentUser.id);
+    const viewerChannel = userChannel(currentUser.id);
     await publish("watchlist.realtime_update_failed", [
-      { channel: personal, event: "watchlist-update", payload: { listingId, userId: currentUser.id, watching } },
-      { channel: personal, event: "watching-update", payload: { listing: serializeListing(publicListing), watching } },
+      { channel: viewerChannel, event: "watchlist-update", payload: { listingId, userId: currentUser.id, watching } },
+      { channel: viewerChannel, event: "watching-update", payload: { listing: serializeListing(publicListing), watching } },
       { channel: listingChannel(listingId), event: "watcher-count-update", payload: { listingId, watcherCount: publicListing.watcherCount } },
     ], { listingId, userId: currentUser.id });
 

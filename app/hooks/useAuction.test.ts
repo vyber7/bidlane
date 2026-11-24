@@ -154,8 +154,8 @@ describe("auction state reconciliation", () => {
     const bids: BidWithAuthor[] = [];
     const comments: CommentWithAuthor[] = [];
     const page = renderHook(() => useAuction(listing, bids, comments));
-    emit("new-comment", { ...makeComment({ id: "live-comment" }), createdAt: auctionNow.toISOString() });
-    expect(page.result.current.comments.map((comment) => comment.id)).toEqual(["live-comment"]);
+    emit("new-comment", { ...makeComment({ id: "realtime-comment" }), createdAt: auctionNow.toISOString() });
+    expect(page.result.current.comments.map((comment) => comment.id)).toEqual(["realtime-comment"]);
     expect(card.result.current.comments).toEqual([]);
   });
 

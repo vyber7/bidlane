@@ -35,9 +35,6 @@ vi.mock("@/app/libs/prismadb-v8", () => ({
 vi.mock("@/app/actions/getSession", () => ({
   getSession: async () => sessions.getStore() ?? null,
 }));
-vi.mock("@/app/libs/pusher", () => ({
-  pusherServer: { trigger: state.trigger },
-}));
 vi.mock("@/app/libs/logger", () => ({
   logger: { error: vi.fn(), warn: vi.fn() },
 }));
@@ -52,6 +49,14 @@ import { sendNotificationEmails } from "@/app/libs/notification-email-delivery";
 import { buildOutbidEmail, EmailProviderError } from "@/app/libs/outbid-email";
 import * as provider from "@/app/libs/native-repositories";
 import { makeListing } from "@/app/test/auction-fixtures";
+import { installServerTransport } from "@/app/libs/realtime/server";
+
+// Real-time updates reach the spy through the event channel's transport,
+// with the same wire arguments Pusher receives.
+installServerTransport({
+  send: (channel, event, payload) => state.trigger(channel.name, event, payload),
+  authorize: () => ({}),
+});
 
 const url = process.env.NATIVE_TEST_DATABASE_URL;
 describe.skipIf(!url)(

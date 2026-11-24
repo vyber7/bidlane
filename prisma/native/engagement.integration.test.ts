@@ -35,9 +35,6 @@ vi.mock("@/app/libs/prismadb-v8", () => ({
 vi.mock("@/app/actions/getSession", () => ({
   getSession: async () => sessions.getStore() ?? null,
 }));
-vi.mock("@/app/libs/pusher", () => ({
-  pusherServer: { trigger: state.trigger },
-}));
 vi.mock("@/app/libs/logger", () => ({
   logger: { error: vi.fn(), warn: vi.fn() },
 }));
@@ -51,6 +48,14 @@ import { makeListing } from "@/app/test/auction-fixtures";
 import { parseListing } from "@/app/libs/listing-validation";
 import { toPublicListing } from "@/app/libs/listing-payload";
 import { TransactionRetryLimitError } from "./transaction-errors";
+import { installServerTransport } from "@/app/libs/realtime/server";
+
+// Real-time updates reach the spy through the event channel's transport,
+// with the same wire arguments Pusher receives.
+installServerTransport({
+  send: (channel, event, payload) => state.trigger(channel.name, event, payload),
+  authorize: () => ({}),
+});
 
 const image = "https://res.cloudinary.com/demo/image/upload/comment.jpg";
 const request = (body: unknown) =>

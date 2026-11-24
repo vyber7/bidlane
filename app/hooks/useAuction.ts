@@ -114,18 +114,18 @@ export default function useAuction<T extends PublicListing>(
     }));
   }
 
-  const listingUpdates = listingChannel(listing.id);
-  useRealtimeEvent(listingUpdates, "watcher-count-update", (event) => {
+  const listingUpdatesChannel = listingChannel(listing.id);
+  useRealtimeEvent(listingUpdatesChannel, "watcher-count-update", (event) => {
     if (event.listingId === listing.id) updateListing({ watcherCount: event.watcherCount });
   });
-  useRealtimeEvent(listingUpdates, "new-bid", (bid) => {
+  useRealtimeEvent(listingUpdatesChannel, "new-bid", (bid) => {
     receiveBid(bid);
     refresh();
   });
-  useRealtimeEvent(listingUpdates, "new-end-time", ({ newEndTime }) => {
+  useRealtimeEvent(listingUpdatesChannel, "new-end-time", ({ newEndTime }) => {
     updateListing({ auctionEndsAt: new Date(newEndTime) });
   });
-  useRealtimeEvent(listingUpdates, "auction-started", (event) => {
+  useRealtimeEvent(listingUpdatesChannel, "auction-started", (event) => {
     updateListing({
       ...event,
       status: "LIVE",
@@ -134,16 +134,16 @@ export default function useAuction<T extends PublicListing>(
     });
     refresh();
   });
-  useRealtimeEvent(listingUpdates, "auction-ended", (event) => {
+  useRealtimeEvent(listingUpdatesChannel, "auction-ended", (event) => {
     updateListing({ status: "ENDED", result: event.result, auctionEndsAt: new Date(event.auctionEndsAt) });
     refresh();
   });
   // Only views that show activity (bids or comments) follow new comments.
-  useRealtimeEvent(bids === emptyBids && comments === emptyComments ? null : listingUpdates, "new-comment", (comment) => {
+  useRealtimeEvent(bids === emptyBids && comments === emptyComments ? null : listingUpdatesChannel, "new-comment", (comment) => {
     receiveComment(comment);
     refresh();
   });
-  useRealtimeReady(listingUpdates, () => {
+  useRealtimeReady(listingUpdatesChannel, () => {
     // Recover events missed before subscribing or while disconnected.
     refresh();
   });
