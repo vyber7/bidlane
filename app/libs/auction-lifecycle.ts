@@ -85,21 +85,10 @@ export function extendedDeadline(endsAt: Date, bidTime: Date) {
   return { extended, endsAt: extended ? new Date(bidTime.getTime() + EXTENSION_WINDOW_MS) : endsAt };
 }
 
-const phaseLabels = {
-  upcoming: "Coming soon",
-  open: "Live auction",
-  closing: "Closing",
-  sold: "Sold",
-  unsold: "Ended",
-} as const satisfies Record<AuctionPhase["phase"], string>;
-
-export function phaseLabel(phase: AuctionPhase) {
-  return phaseLabels[phase.phase];
-}
-
 /**
  * The price an auction shows and what to call it. It depends only on stored
- * state, so lists without a clock (inventory sorting, server pages) can use it.
+ * state: the auction display module uses it for every view, and server pages
+ * without a clock (the seller profile) use it directly.
  */
 export function auctionPrice(auction: Pick<Listing, "status" | "result" | "startingBid" | "currentBid">) {
   const { status, result, startingBid, currentBid } = auction;
@@ -109,9 +98,4 @@ export function auctionPrice(auction: Pick<Listing, "status" | "result" | "start
   }
   if (status === "LIVE" && currentBid !== null) return { label: "Current bid", amount: currentBid };
   return { label: "Starting bid", amount: startingBid };
-}
-
-/** The bid an open auction will accept right now, or null when it is not accepting bids. */
-export function acceptedBid(phase: AuctionPhase | null) {
-  return phase?.phase === "open" && phase.bidding.accepting ? phase.bidding : null;
 }

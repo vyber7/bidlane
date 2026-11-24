@@ -1,4 +1,4 @@
-import type { AuctionPhase, BiddingBlock } from "./auction-lifecycle";
+import { auctionPrice, type AuctionPhase, type BiddingBlock } from "./auction-lifecycle";
 import type { PublicListing } from "./listing-payload";
 
 // The auction display: what any view shows for an Auction, given its phase and
@@ -22,9 +22,11 @@ export interface AuctionDisplay {
   /** The outcome of an ended Auction. */
   result: "Auction complete" | "No bids placed" | "Reserve not met" | null;
   noReserveNote: string | null;
+  /** The lowest bid the Auction accepts right now, or null when it is not accepting bids. */
+  minimumBid: number | null;
 }
 
-type DisplayedAuction = Pick<PublicListing, "userId" | "startingBid" | "currentBid" | "isNoReserve">;
+type DisplayedAuction = Pick<PublicListing, "userId" | "status" | "result" | "startingBid" | "currentBid" | "isNoReserve">;
 
 /**
  * Describes an Auction to a viewer. A null phase means a live Auction whose
@@ -35,23 +37,21 @@ export function describeAuction(
   phase: AuctionPhase | null,
   viewerId: string | null | undefined,
 ): AuctionDisplay {
-  const display = describePhase(listing, phase, viewerId === listing.userId);
+  const display = describePhase(phase, viewerId === listing.userId);
   return {
     ...display,
+    price: auctionPrice(listing),
     noReserveNote: !listing.isNoReserve ? null
       : display.bucket === "results" ? "This auction had no reserve."
       : "No minimum sale price. The highest accepted bid wins.",
+    minimumBid: phase?.phase === "open" && phase.bidding.accepting ? phase.bidding.minimumBid : null,
   };
 }
 
 function describePhase(
-  { currentBid, startingBid }: DisplayedAuction,
   phase: AuctionPhase | null,
   owner: boolean,
-): Omit<AuctionDisplay, "noReserveNote"> {
-  const livePrice = currentBid === null
-    ? { label: "Starting bid", amount: startingBid }
-    : { label: "Current bid", amount: currentBid };
+): Omit<AuctionDisplay, "price" | "noReserveNote" | "minimumBid"> {
   const ended = { timer: "none", action: null, message: null } as const;
 
   switch (phase?.phase) {
@@ -60,7 +60,6 @@ function describePhase(
         headline: "Coming soon",
         tone: "upcoming",
         bucket: "upcoming",
-        price: { label: "Starting bid", amount: startingBid },
         timer: "none",
         action: owner ? "edit-listing" : "watch",
         message: `Bidding hasn’t opened yet. ${owner
@@ -74,7 +73,6 @@ function describePhase(
         headline: "Sold",
         tone: "sold",
         bucket: "results",
-        price: { label: "Sold for", amount: phase.price },
         result: "Auction complete",
       };
     case "unsold":
@@ -83,9 +81,6 @@ function describePhase(
         headline: "Ended",
         tone: "neutral",
         bucket: "results",
-        price: phase.reason === "no-bids"
-          ? { label: "No bids", amount: null }
-          : { label: "Highest bid", amount: phase.highestBid },
         result: phase.reason === "no-bids" ? "No bids placed" : "Reserve not met",
       };
     case "closing":
@@ -93,7 +88,6 @@ function describePhase(
         headline: "Closing",
         tone: "live",
         bucket: "live",
-        price: livePrice,
         timer: "closing",
         action: owner ? "retry-finalization" : null,
         message: "Finalizing results…",
@@ -108,7 +102,6 @@ function describePhase(
         headline: "Live auction",
         tone: "live",
         bucket: "live",
-        price: livePrice,
         timer: "countdown",
         action: owner ? "view-bids" : bidding?.accepting ? "place-bid" : null,
         message: owner ? "Your auction is live. Results are finalized automatically when the timer ends."

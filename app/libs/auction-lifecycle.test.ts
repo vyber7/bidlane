@@ -7,7 +7,6 @@ import {
   EXTENSION_WINDOW_MS,
   extendedDeadline,
   isDue,
-  phaseLabel,
   settle,
 } from "./auction-lifecycle";
 
@@ -87,18 +86,17 @@ describe("extendedDeadline", () => {
   });
 });
 
-describe("display", () => {
+describe("auctionPrice", () => {
   it.each([
-    [{ status: "UPCOMING" }, "Coming soon", "Starting bid", 10000],
-    [{}, "Live auction", "Starting bid", 10000],
-    [{ currentBid: 12000 }, "Live auction", "Current bid", 12000],
-    [{ currentBid: 12000, auctionEndsAt: auctionNow }, "Closing", "Current bid", 12000],
-    [{ status: "ENDED", result: "SOLD", currentBid: 12000 }, "Sold", "Sold for", 12000],
-    [{ status: "ENDED", result: "RESERVE_NOT_MET", currentBid: 9000 }, "Ended", "Highest bid", 9000],
-    [{ status: "ENDED", result: "RESERVE_NOT_MET", currentBid: null }, "Ended", "No bids", null],
-  ] as const)("%j shows %s · %s %s", (overrides, status, label, amount) => {
+    [{ status: "UPCOMING" }, "Starting bid", 10000],
+    [{}, "Starting bid", 10000],
+    [{ currentBid: 12000 }, "Current bid", 12000],
+    [{ currentBid: 12000, auctionEndsAt: auctionNow }, "Current bid", 12000],
+    [{ status: "ENDED", result: "SOLD", currentBid: 12000 }, "Sold for", 12000],
+    [{ status: "ENDED", result: "RESERVE_NOT_MET", currentBid: 9000 }, "Highest bid", 9000],
+    [{ status: "ENDED", result: "RESERVE_NOT_MET", currentBid: null }, "No bids", null],
+  ] as const)("%j shows %s %s", (overrides, label, amount) => {
     const listing = makeListing(overrides);
-    expect(phaseLabel(auctionPhase(listing, now))).toBe(status);
     expect(auctionPrice(listing)).toEqual({ label, amount });
   });
 });

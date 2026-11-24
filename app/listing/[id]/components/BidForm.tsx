@@ -13,7 +13,7 @@ import type { BidFormValues } from "@/app/types/forms";
 import { bidRequestSchema } from "@/app/schemas/auction";
 import { MAX_INTEGER, validationMessage } from "@/app/schemas/common";
 import Link from "next/link";
-import { acceptedBid, EXTENSION_WINDOW_MS } from "@/app/libs/auction-lifecycle";
+import { EXTENSION_WINDOW_MS } from "@/app/libs/auction-lifecycle";
 import { describeAuction } from "@/app/libs/auction-display";
 
 const extensionMinutes = EXTENSION_WINDOW_MS / 60_000;
@@ -25,9 +25,9 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
   emailVerified?: boolean;
 }) {
   const { listing, phase, acceptBid } = useAuctionContext();
-  const bidding = acceptedBid(phase);
-  const canBid = bidding !== null;
-  const minimumBid = bidding?.minimumBid ?? null;
+  const display = describeAuction(listing, phase, currentUserId);
+  const minimumBid = display.minimumBid;
+  const canBid = minimumBid !== null;
   const router = useRouter();
   const [review, setReview] = useState<{ amount: number; minimumBid: number } | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -98,7 +98,7 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
     }
   }
 
-  if (describeAuction(listing, phase, currentUserId).bucket !== "live" && !pendingKey && acceptedAmount === null) return null;
+  if (display.bucket !== "live" && !pendingKey && acceptedAmount === null) return null;
 
   return (
     <div className="mt-3 space-y-4">
