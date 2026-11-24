@@ -14,7 +14,7 @@ export interface PublishedEvent {
 const channelLabel = (channel: RealtimeChannel) => `${channel.kind}:${channel.key}` as ChannelLabel;
 
 /**
- * Installs a fake transport that records published live updates. Call
+ * Installs a fake transport that records published real-time updates. Call
  * `uninstall` after each test.
  */
 export function installFakeRealtime() {

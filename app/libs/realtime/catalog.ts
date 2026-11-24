@@ -10,7 +10,7 @@ import type {
 } from "@/app/types/auction-events";
 
 /**
- * Every live update Bidlane sends, by channel kind. The keys are the wire
+ * Every real-time update Bidlane sends, by channel kind. The keys are the wire
  * event names: browsers running an earlier deploy still listen for them, so
  * they never change.
  */
@@ -53,7 +53,7 @@ export function userChannel(userId: string): RealtimeChannel<"user"> {
   return { kind: "user", key: userId, name: `private-user-${userId}` };
 }
 
-/** One live update: an event from the catalog, on a channel that carries it. */
+/** One real-time update: an event from the catalog, on a channel that carries it. */
 export type RealtimeEvent = {
   [K in ChannelKind]: {
     [E in RealtimeEventName<K>]: { channel: RealtimeChannel<K>; event: E; payload: RealtimePayload<K, E> };

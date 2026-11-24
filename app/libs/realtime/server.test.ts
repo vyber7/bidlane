@@ -13,9 +13,9 @@ afterEach(() => realtime.uninstall());
 
 const bid = { id: "bid-1", amount: 1200 } as never;
 
-describe("publishing live updates", () => {
+describe("publishing real-time updates", () => {
   it("sends every event to its channel", async () => {
-    await publish("bid.notification_failed", [
+    await publish("bid.realtime_update_failed", [
       { channel: listingChannel("listing-1"), event: "new-bid", payload: bid },
       { channel: listingChannel("listing-1"), event: "new-end-time", payload: { newEndTime: "2026-11-24T12:00:00.000Z" } },
       ...notificationsChanged(["buyer"]),
@@ -30,7 +30,7 @@ describe("publishing live updates", () => {
   });
 
   it("tells each affected user once that their notifications changed", async () => {
-    await publish("notification.live_update_failed", notificationsChanged(["buyer", "seller", "buyer"]));
+    await publish("notification.realtime_update_failed", notificationsChanged(["buyer", "seller", "buyer"]));
 
     expect(realtime.sent("user:buyer", "notifications-changed")).toEqual([{}]);
     expect(realtime.sent("user:seller", "notifications-changed")).toEqual([{}]);
@@ -39,14 +39,14 @@ describe("publishing live updates", () => {
   it("logs one warning naming the failed events and never rejects", async () => {
     realtime.failSends((event) => event !== "new-bid");
 
-    await expect(publish("bid.notification_failed", [
+    await expect(publish("bid.realtime_update_failed", [
       { channel: listingChannel("listing-1"), event: "new-bid", payload: bid },
       { channel: listingChannel("listing-1"), event: "new-end-time", payload: { newEndTime: "2026-11-24T12:00:00.000Z" } },
       ...notificationsChanged(["buyer"]),
     ], { listingId: "listing-1" })).resolves.toBeUndefined();
 
     expect(realtime.sent("listing:listing-1", "new-bid")).toEqual([bid]);
-    expect(mocks.warn).toHaveBeenCalledExactlyOnceWith("bid.notification_failed", {
+    expect(mocks.warn).toHaveBeenCalledExactlyOnceWith("bid.realtime_update_failed", {
       listingId: "listing-1",
       failed: [
         { channel: "listing", event: "new-end-time" },
@@ -56,7 +56,7 @@ describe("publishing live updates", () => {
   });
 
   it("publishes nothing and logs nothing for an empty batch", async () => {
-    await publish("notification.live_update_failed", notificationsChanged([]));
+    await publish("notification.realtime_update_failed", notificationsChanged([]));
     expect(realtime.published).toEqual([]);
     expect(mocks.warn).not.toHaveBeenCalled();
   });

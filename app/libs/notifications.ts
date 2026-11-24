@@ -169,5 +169,5 @@ export async function saveNotifications(
 }
 
 export async function publishNotificationChanges(userIds: string[]) {
-  await publish("notification.live_update_failed", notificationsChanged(userIds));
+  await publish("notification.realtime_update_failed", notificationsChanged(userIds));
 }

@@ -145,7 +145,7 @@ describe("notification events", () => {
       publishNotificationChanges(["buyer", "buyer"]),
     ).resolves.toBeUndefined();
     expect(mocks.warn).toHaveBeenCalledExactlyOnceWith(
-      "notification.live_update_failed",
+      "notification.realtime_update_failed",
       { failed: [{ channel: "user", event: "notifications-changed" }] },
     );
   });

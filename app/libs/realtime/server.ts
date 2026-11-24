@@ -24,8 +24,8 @@ async function transport(): Promise<RealtimeServerTransport> {
 }
 
 /**
- * Sends live updates best-effort, after the caller's write has committed.
- * Failures are logged once under `label` and never reject: a live update
+ * Sends real-time updates best-effort, after the caller's write has committed.
+ * Failures are logged once under `label` and never reject: a real-time update
  * must not undo a bid, comment or watch that was already saved.
  */
 export async function publish(label: string, events: RealtimeEvent[], context: Record<string, unknown> = {}) {
