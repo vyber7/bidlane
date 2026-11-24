@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { capitalize, formatAmount, formatBid, formatDateTime, formatDisplayName } from "@/app/utils/format";
+import { capitalize, formatAmount, formatPrice, formatDateTime, formatDisplayName } from "@/app/utils/format";
 import { useAuctionContext } from "@/app/context/AuctionContext";
 import BidForm from "./BidForm";
 import { describeAuction } from "@/app/libs/auction-display";
@@ -56,7 +56,7 @@ const Bids: React.FC<BidsProps> = ({
             </p>
           )}
           <div className="font-bold text-4xl sm:text-5xl tracking-tight">
-            {price.amount !== null ? <span>{formatBid(price.amount)}</span> : <span>—</span>}
+            {price.amount !== null ? <span>{formatPrice(price.amount)}</span> : <span>—</span>}
           </div>
         </div>
 

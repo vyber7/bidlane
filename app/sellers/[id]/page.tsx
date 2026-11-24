@@ -5,11 +5,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSellerProfile } from "@/app/libs/seller-profile";
 import { auctionPrice } from "@/app/libs/auction-lifecycle";
-import { formatBid, formatCount, formatMonthYear } from "@/app/utils/format";
+import { formatPrice, formatCount, formatMonthYear } from "@/app/utils/format";
 
 function sellerCardPrice(vehicle: Parameters<typeof auctionPrice>[0]) {
   const { label, amount } = auctionPrice(vehicle);
-  return amount === null ? label : `${label} · ${formatBid(amount)}`;
+  return amount === null ? label : `${label} · ${formatPrice(amount)}`;
 }
 
 export const metadata: Metadata = { title: "Seller profile | BidLane", description: "View a seller’s public profile, listings, and auction results on BidLane." };

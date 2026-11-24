@@ -16,7 +16,7 @@ import {
 import type { ShipmentTransaction } from "@/app/types/account";
 import { handoffSteps } from "@/app/libs/auction-guidance";
 import { transactionAnchor } from "@/app/libs/transaction-completion";
-import { formatAmount, formatBid, formatDate } from "@/app/utils/format";
+import { formatAmount, formatPrice, formatDate } from "@/app/utils/format";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 import CompletionChecklist from "./CompletionChecklist";
 
@@ -150,7 +150,7 @@ const ShipmentRow = ({ shipment }: { shipment: ShipmentTransaction }) => {
             <span className="flex items-center gap-1.5 text-gray-600">
               <FiMapPin aria-hidden="true" className="shrink-0 text-gray-500" /> <span className="min-w-0 break-words">{shipment.location}</span>
             </span>
-            <span className="font-bold tabular-nums text-gray-950">Winning bid {formatBid(shipment.price)}</span>
+            <span className="font-bold tabular-nums text-gray-950">Winning bid {formatPrice(shipment.price)}</span>
           </div>
 
           <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between">

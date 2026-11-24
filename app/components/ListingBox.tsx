@@ -10,7 +10,7 @@ import { FaRegClock } from "react-icons/fa";
 import { useId } from "react";
 import type { PublicListing } from "@/app/libs/listing-payload";
 import useAuction from "../hooks/useAuction";
-import { capitalize, formatAmount, formatBid } from "../utils/format";
+import { capitalize, formatAmount, formatPrice } from "../utils/format";
 import { clsx } from "clsx";
 import { CldImage } from "next-cloudinary";
 import useWatchlist from "../hooks/useWatchlist";
@@ -102,7 +102,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
             <div>{display.headline}</div>
           ) : display.bucket === "results" ? (
             <div>
-              {price.label}{price.amount !== null && <> <b>{formatBid(price.amount)}</b></>}
+              {price.label}{price.amount !== null && <> <b>{formatPrice(price.amount)}</b></>}
             </div>
           ) : (
             <>
@@ -123,7 +123,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
               <span aria-live="polite" aria-atomic="true">
                 <span className="sr-only">{title}: </span>
                 {price.label}{" "}
-                <b>{price.amount !== null ? formatBid(price.amount) : "To be announced"}</b>
+                <b>{price.amount !== null ? formatPrice(price.amount) : "To be announced"}</b>
               </span>
             </>
           )}

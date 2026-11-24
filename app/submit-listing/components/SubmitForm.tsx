@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MAX_LISTING_NUMBER, MAX_LISTING_PHOTOS, validateListing } from "@/app/libs/listing-validation";
 import { MAX_UPLOAD_SIZE_LABEL } from "@/app/libs/upload-policy";
-import { formatAmount, formatBid } from "@/app/utils/format";
+import { formatAmount, formatPrice } from "@/app/utils/format";
 import { listingSchema } from "@/app/schemas/listing";
 import { validationMessage } from "@/app/schemas/common";
 import type { ListingDetailsFormValues } from "@/app/types/forms";
@@ -212,7 +212,7 @@ export default function SubmitForm({ initialDraft, emailVerified = false }: { in
           <div className="p-5">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-700">Listing preview · Not submitted</p>
             <h3 className="break-words text-2xl font-bold">{title}</h3>
-            <dl className="my-5 grid grid-cols-2 gap-4 text-sm"><div><dt className="text-slate-500">Mileage</dt><dd className="font-semibold">{formatAmount(Number(details.miles))} miles</dd></div><div><dt className="text-slate-500">Location</dt><dd className="break-words font-semibold">{details.location}</dd></div><div><dt className="text-slate-500">Reserve price</dt><dd className="font-semibold">{details.reservePrice === "" ? "No reserve" : formatBid(Number(details.reservePrice))}</dd></div></dl>
+            <dl className="my-5 grid grid-cols-2 gap-4 text-sm"><div><dt className="text-slate-500">Mileage</dt><dd className="font-semibold">{formatAmount(Number(details.miles))} miles</dd></div><div><dt className="text-slate-500">Location</dt><dd className="break-words font-semibold">{details.location}</dd></div><div><dt className="text-slate-500">Reserve price</dt><dd className="font-semibold">{details.reservePrice === "" ? "No reserve" : formatPrice(Number(details.reservePrice))}</dd></div></dl>
             <dl className="mb-5 grid grid-cols-2 gap-4 text-sm">{vehicleSpecificationFields.map(({ id, label }) => <div key={id}><dt className="text-slate-500">{label}</dt><dd className="font-semibold">{details[id]}</dd></div>)}</dl>
             <p className="mb-4 text-sm"><strong>VIN / chassis (seller-reported):</strong> {details.vin || "Not provided"}</p>
             <VehicleRecords records={records} headingLevel={4} />

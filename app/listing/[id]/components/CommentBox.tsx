@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { formatBid, formatDate, formatDisplayName } from "@/app/utils/format";
+import { formatPrice, formatDate, formatDisplayName } from "@/app/utils/format";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 
 interface CommentBoxProps {
@@ -60,7 +60,7 @@ const CommentBox = memo(function CommentBox({ comments, bids }: CommentBoxProps)
                 {isComment ? item.body?.trim() || "Comment text unavailable." : (
                   <>
                     <span className="font-normal">Bid</span>{" "}
-                    {formatBid(item.amount)}
+                    {formatPrice(item.amount)}
                   </>
                 )}
               </div>

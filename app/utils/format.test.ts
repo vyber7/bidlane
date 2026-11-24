@@ -4,7 +4,7 @@ import {
   capitalize,
   formatAmount,
   formatAuctionCountdown,
-  formatBid,
+  formatPrice,
   formatCount,
   formatDate,
   formatDateTime,
@@ -22,8 +22,8 @@ describe("display formatting", () => {
   });
 
   it("formats whole-dollar bids separately from plain numbers", () => {
-    expect(formatBid(12500)).toBe("$12,500");
-    expect(formatBid(0)).toBe("$0");
+    expect(formatPrice(12500)).toBe("$12,500");
+    expect(formatPrice(0)).toBe("$0");
   });
 
   it("formats calendar dates the same in every time zone", () => {

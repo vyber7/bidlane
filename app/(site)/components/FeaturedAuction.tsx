@@ -7,7 +7,7 @@ import { FiArrowUpRight, FiCamera } from "react-icons/fi";
 import useAuction from "@/app/hooks/useAuction";
 import WatchAuctionButton from "./WatchAuctionButton";
 import NoReserveBadge from "@/app/components/NoReserveBadge";
-import { formatAmount, formatBid } from "@/app/utils/format";
+import { formatAmount, formatPrice } from "@/app/utils/format";
 import { describeAuction } from "@/app/libs/auction-display";
 
 export default function FeaturedAuction({ listing: initialListing, currentUserId }: {
@@ -55,7 +55,7 @@ export default function FeaturedAuction({ listing: initialListing, currentUserId
             <p aria-live="polite" aria-atomic="true">
               {!upcoming && <>
                 <span className="sr-only">{title}: </span>
-                {bidLabel} <strong className="text-xl tabular-nums text-white">{amount === null ? "—" : formatBid(amount)}</strong>
+                {bidLabel} <strong className="text-xl tabular-nums text-white">{amount === null ? "—" : formatPrice(amount)}</strong>
               </>}
             </p>
             {upcoming

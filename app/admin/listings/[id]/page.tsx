@@ -9,7 +9,7 @@ import VehicleRecords from "@/app/components/VehicleRecords";
 import Gallery from "@/app/listing/[id]/components/Gallery";
 import CoverImage from "@/app/listing/[id]/components/CoverImage";
 import ReviewForm from "./ReviewForm";
-import { formatAmount, formatBid, formatDateTime } from "@/app/utils/format";
+import { formatAmount, formatPrice, formatDateTime } from "@/app/utils/format";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
       <h2 className="text-xl font-bold">Vehicle details</h2>
       <dl className="mt-4 grid gap-4 sm:grid-cols-2">{[
         ["Mileage", `${formatAmount(listing.miles)} miles`], ["Location", listing.location],
-        ["VIN / chassis", listing.vin || "Not provided"], ["Reserve", listing.reservePrice == null ? "No reserve" : formatBid(listing.reservePrice)],
+        ["VIN / chassis", listing.vin || "Not provided"], ["Reserve", listing.reservePrice == null ? "No reserve" : formatPrice(listing.reservePrice)],
         ...vehicleSpecificationFields.map(({ id, label }) => [label, listing[id] || "Not provided"]),
       ].map(([label, value]) => <div key={label}><dt className="text-xs text-slate-500">{label}</dt><dd className="mt-1 font-semibold">{value}</dd></div>)}</dl>
       <h3 className="mt-5 font-bold">Description</h3><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{listing.description}</p>

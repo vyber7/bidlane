@@ -4,7 +4,7 @@ import Link from "next/link";
 import { GoTrash } from "react-icons/go";
 import Image from "next/image";
 import type { PublicListing, SellerListing } from "@/app/libs/listing-payload";
-import { formatAmount, formatBid } from "@/app/utils/format";
+import { formatAmount, formatPrice } from "@/app/utils/format";
 import clsx from "clsx";
 import { FiArrowUpRight, FiClock, FiEye, FiMapPin } from "react-icons/fi";
 import useAuction from "@/app/hooks/useAuction";
@@ -117,7 +117,7 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
               <div>
                 <p className="text-xs text-gray-500">{amountLabel}</p>
                 <p className="mt-0.5 text-sm font-bold tabular-nums text-gray-950">
-                  {amount !== null ? formatBid(amount) : "No bids yet"}
+                  {amount !== null ? formatPrice(amount) : "No bids yet"}
                 </p>
               </div>
               <div>

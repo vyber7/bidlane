@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatBid, formatDisplayName } from "@/app/utils/format";
+import { formatPrice, formatDisplayName } from "@/app/utils/format";
 import type { RecentBid } from "@/prisma/reads/repositories";
 
 export default function LatestBids({ bids }: { bids: RecentBid[] }) {
@@ -14,7 +14,7 @@ export default function LatestBids({ bids }: { bids: RecentBid[] }) {
             {bids.map((bid) => (
               <li key={bid.id} className="min-w-0 break-words border-l-2 border-amber-400 pl-3">
                 <p className="text-xs text-slate-600">
-                  <strong className="text-sm tabular-nums text-slate-950">{formatBid(bid.amount)}</strong>
+                  <strong className="text-sm tabular-nums text-slate-950">{formatPrice(bid.amount)}</strong>
                   {" by "}{formatDisplayName(bid.bidderName, "Bidder")}
                 </p>
                 <Link

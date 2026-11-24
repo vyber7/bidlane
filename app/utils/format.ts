@@ -1,5 +1,5 @@
 const numberFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 20 });
-const bidFormatter = new Intl.NumberFormat("en-US", {
+const priceFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
   maximumFractionDigits: 0,
@@ -9,8 +9,8 @@ export function formatAmount(amount: number) {
   return numberFormatter.format(amount);
 }
 
-export function formatBid(amount: number) {
-  return bidFormatter.format(amount);
+export function formatPrice(amount: number) {
+  return priceFormatter.format(amount);
 }
 
 export function formatCount(count: number, singular: string, plural = `${singular}s`) {
