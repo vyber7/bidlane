@@ -11,7 +11,7 @@ export interface PublishedEvent {
   payload: unknown;
 }
 
-const label = (channel: RealtimeChannel) => `${channel.kind}:${channel.key}` as ChannelLabel;
+const channelLabel = (channel: RealtimeChannel) => `${channel.kind}:${channel.key}` as ChannelLabel;
 
 /**
  * Installs a fake transport that records published live updates. Call
@@ -24,11 +24,11 @@ export function installFakeRealtime() {
 
   const restoreServer = installServerTransport({
     async send(channel, event, payload) {
-      if (shouldFail(event, label(channel))) throw new Error("Fake realtime send failed");
-      published.push({ channel: label(channel), event, payload });
+      if (shouldFail(event, channelLabel(channel))) throw new Error("Fake realtime send failed");
+      published.push({ channel: channelLabel(channel), event, payload });
     },
     authorize(socketId, channel) {
-      authorized.push({ socketId, channel: label(channel) });
+      authorized.push({ socketId, channel: channelLabel(channel) });
       return { auth: `signed:${socketId}:${channel.name}` };
     },
   });
@@ -37,7 +37,7 @@ export function installFakeRealtime() {
   const everSubscribed = new Set<ChannelLabel>();
   const restoreClient = installClientTransport({
     acquire(channel) {
-      const name = label(channel);
+      const name = channelLabel(channel);
       everSubscribed.add(name);
       const entry = subscriptions.get(name) ?? { consumers: 0, listeners: new Map() };
       entry.consumers += 1;
@@ -54,7 +54,7 @@ export function installFakeRealtime() {
       };
     },
     release(channel) {
-      const name = label(channel);
+      const name = channelLabel(channel);
       const entry = subscriptions.get(name);
       if (!entry) return;
       entry.consumers -= 1;

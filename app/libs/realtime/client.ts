@@ -21,7 +21,7 @@ export interface RealtimeClientTransport {
 }
 
 let installed: RealtimeClientTransport | null = null;
-let pusher: RealtimeClientTransport | null = null;
+let pusherTransport: RealtimeClientTransport | null = null;
 
 /** Replaces the transport, for tests. Returns a function that restores the default. */
 export function installClientTransport(transport: RealtimeClientTransport) {
@@ -31,18 +31,18 @@ export function installClientTransport(transport: RealtimeClientTransport) {
 
 function transport() {
   if (installed) return installed;
-  pusher ??= createPusherClientTransport();
-  return pusher;
+  pusherTransport ??= createPusherClientTransport();
+  return pusherTransport;
 }
 
 function createPusherClientTransport(): RealtimeClientTransport {
-  const wire = (event: Binding) => (event === subscriptionReady ? "pusher:subscription_succeeded" : event);
+  const pusherEventName = (event: Binding) => (event === subscriptionReady ? "pusher:subscription_succeeded" : event);
   return {
     acquire(channel) {
       const subscription = acquirePusherChannel(channel.name);
       return {
-        bind: (event, listener) => { subscription.bind(wire(event), listener); },
-        unbind: (event, listener) => { subscription.unbind(wire(event), listener); },
+        bind: (event, listener) => { subscription.bind(pusherEventName(event), listener); },
+        unbind: (event, listener) => { subscription.unbind(pusherEventName(event), listener); },
       };
     },
     release: (channel) => releasePusherChannel(channel.name),

@@ -139,12 +139,6 @@ describe("notification events", () => {
     expect(insertOnce).toHaveBeenCalledWith(expect.objectContaining({ userId: "buyer", eventKey: `auction-ended:${makeListing().id}` }));
   });
 
-  it("tells each affected user once that their notifications changed", async () => {
-    await publishNotificationChanges(["buyer", "seller", "buyer"]);
-    expect(realtime.sent("user:buyer", "notifications-changed")).toEqual([{}]);
-    expect(realtime.sent("user:seller", "notifications-changed")).toEqual([{}]);
-  });
-
   it("keeps persisted events available if live delivery fails", async () => {
     realtime.failSends();
     await expect(

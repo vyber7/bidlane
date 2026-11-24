@@ -1,3 +1,5 @@
+import "server-only";
+
 import { logger } from "@/app/libs/logger";
 import { userChannel, type RealtimeChannel, type RealtimeEvent } from "./catalog";
 
@@ -32,17 +34,17 @@ export async function publish(label: string, events: RealtimeEvent[], context: R
   try {
     sender = await transport();
   } catch {
-    logger.warn(label, { ...context, failed: events.map(describe) });
+    logger.warn(label, { ...context, failed: events.map(failureSummary) });
     return;
   }
   const results = await Promise.allSettled(
     events.map((item) => Promise.resolve().then(() => sender.send(item.channel, item.event, item.payload))),
   );
-  const failed = events.filter((_, index) => results[index].status === "rejected").map(describe);
+  const failed = events.filter((_, index) => results[index].status === "rejected").map(failureSummary);
   if (failed.length > 0) logger.warn(label, { ...context, failed });
 }
 
-function describe(item: RealtimeEvent) {
+function failureSummary(item: RealtimeEvent) {
   return { channel: item.channel.kind, event: item.event };
 }
 
