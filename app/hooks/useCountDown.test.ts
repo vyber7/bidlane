@@ -52,7 +52,7 @@ describe("auction countdown", () => {
     const { result } = renderHook(() => useCountDown(new Date(auctionNow.getTime() + 1000)));
     expect(result.current.expired).toBe(false);
     act(() => vi.advanceTimersByTime(1000));
-    expect(result.current).toEqual({ currentTime: auctionNow.getTime() + 1000, ticking: true, remainingMs: 0, expired: true, timeLeft: "Ending..." });
+    expect(result.current).toEqual({ currentTime: auctionNow.getTime() + 1000, ticking: true, remainingMs: 0, expired: true, timeLeft: "Ending…" });
     act(() => vi.advanceTimersByTime(5000));
     expect(result.current.remainingMs).toBe(0);
   });

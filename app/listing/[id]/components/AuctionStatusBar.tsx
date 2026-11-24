@@ -4,7 +4,7 @@ import { getApiErrorMessage } from "@/app/utils/api-error";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { formatAmount } from "@/app/utils/format";
+import { formatBid, formatCount } from "@/app/utils/format";
 import Button from "@/app/components/Button";
 import NoReserveBadge from "@/app/components/NoReserveBadge";
 import { useAuctionContext } from "@/app/context/AuctionContext";
@@ -101,7 +101,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   const { headline, price, result } = display;
   const live = display.bucket === "live";
   const ended = display.bucket === "results";
-  const amountLabel = price.amount !== null ? `$${formatAmount(price.amount)}` : null;
+  const amountLabel = price.amount !== null ? formatBid(price.amount) : null;
   const announcedPrice = amountLabel ? ` ${price.label} ${amountLabel}.` : ended ? "" : " Bid amount to be announced.";
 
   return (
@@ -152,8 +152,8 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
           </div>
         )}
         <div className="flex flex-wrap gap-5 text-sm text-slate-400">
-          {display.bucket !== "upcoming" && <Link href="#bids" className="flex items-center gap-2 hover:text-white"><FaHashtag />{bids.length} bids</Link>}
-          <Link href="#comments" aria-live="polite" aria-atomic="true" className="flex items-center gap-2 hover:text-white"><FaRegCommentAlt />{comments.length} comments</Link>
+          {display.bucket !== "upcoming" && <Link href="#bids" className="flex items-center gap-2 hover:text-white"><FaHashtag />{formatCount(bids.length, "bid")}</Link>}
+          <Link href="#comments" aria-live="polite" aria-atomic="true" className="flex items-center gap-2 hover:text-white"><FaRegCommentAlt />{formatCount(comments.length, "comment")}</Link>
         </div>
       </div>
     </section>

@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import clsx from "clsx";
 import { logger } from "@/app/libs/logger";
 import { MAX_LISTING_PHOTOS } from "@/app/libs/listing-validation";
+import { formatCount } from "@/app/utils/format";
 
 interface GalleryProps {
   listingId: string;
@@ -74,7 +75,7 @@ const Gallery: React.FC<GalleryProps> = ({
     <section id="photos" className="scroll-mt-24 rounded-2xl">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold">Photo gallery</h2>
-        <span className="text-xs text-slate-500">{images.length} photos</span>
+        <span className="text-xs text-slate-500">{formatCount(images.length, "photo")}</span>
       </div>
       {!images.length && (
         <p className="text-sm text-slate-500">No additional photos yet.</p>

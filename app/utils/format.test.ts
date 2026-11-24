@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  canEndAuction,
   capitalize,
   formatAmount,
+  formatAuctionCountdown,
   formatBid,
-  formatTimeLeft,
-  formatTimeLeftShort,
+  formatCount,
+  formatDate,
+  formatDateTime,
+  formatMonthYear,
 } from "./format";
 
 describe("display formatting", () => {
@@ -24,35 +26,42 @@ describe("display formatting", () => {
     expect(formatBid(0)).toBe("$0");
   });
 
+  it("formats calendar dates the same in every time zone", () => {
+    expect(formatDate(new Date("2026-11-24T23:30:00Z"))).toBe("Nov 24, 2026");
+    expect(formatDate("2026-01-05T00:15:00Z")).toBe("Jan 5, 2026");
+  });
+
+  it("formats date-times in UTC and says so", () => {
+    expect(formatDateTime(new Date("2026-11-24T23:30:00Z"))).toBe("Nov 24, 2026, 11:30 PM UTC");
+    expect(formatDateTime("2026-01-05T09:05:00Z")).toBe("Jan 5, 2026, 9:05 AM UTC");
+  });
+
+  it("formats a membership month in UTC", () => {
+    expect(formatMonthYear("2026-11-30T23:59:00Z")).toBe("November 2026");
+    expect(formatMonthYear(new Date("2026-01-01T00:00:00Z"))).toBe("January 2026");
+  });
+
+  it.each([
+    [0, "bid", undefined, "0 bids"],
+    [1, "bid", undefined, "1 bid"],
+    [2, "comment", undefined, "2 comments"],
+    [1_250, "photo", undefined, "1,250 photos"],
+    [1, "vehicle sold", "vehicles sold", "1 vehicle sold"],
+    [3, "vehicle sold", "vehicles sold", "3 vehicles sold"],
+  ])("counts %i %s", (count, singular, plural, expected) => {
+    expect(formatCount(count, singular, plural)).toBe(expected);
+  });
+
+  it.each([
+    [0, "Ending…"],
+    [-1_000, "Ending…"],
+    [5_000, "5s"],
+  ])("shows %i ms remaining as %s", (remainingMs, expected) => {
+    expect(formatAuctionCountdown(remainingMs)).toBe(expected);
+  });
+
   it("capitalizes the first character", () => {
     expect(capitalize("auction")).toBe("Auction");
     expect(capitalize("")).toBe("");
-  });
-
-  it.each([
-    [0, "Ending..."],
-    [-1, "Ending..."],
-    [5, "5s"],
-    [65, "1m 5s"],
-    [3_661, "1h 1m 1s"],
-  ])("formats a countdown of %i seconds", (seconds, expected) => {
-    expect(formatTimeLeft(seconds)).toBe(expected);
-  });
-
-  it("allows finalization for the expired countdown formats", () => {
-    expect(canEndAuction(formatTimeLeft(0))).toBe(true);
-    expect(canEndAuction(formatTimeLeftShort(0))).toBe(true);
-    expect(canEndAuction("")).toBe(false);
-  });
-
-  it.each([
-    ["Ending...", true],
-    ["2h 59m 59s", false],
-    ["3h 0m 0s", false],
-    ["15m 0s", false],
-    ["10s", false],
-    ["1d 0h 0m 0s", false],
-  ])("decides whether %s may be ended", (timeLeft, expected) => {
-    expect(canEndAuction(timeLeft)).toBe(expected);
   });
 });

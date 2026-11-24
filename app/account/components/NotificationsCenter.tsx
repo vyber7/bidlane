@@ -17,19 +17,10 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 import type { AccountNotification, NotificationFeed } from "@/app/types/account";
-import { formatAmount } from "@/app/utils/format";
+import { formatAmount, formatCount, formatDateTime } from "@/app/utils/format";
 import { updateAccountUrl } from "./AccountTabs";
 
 type View = "all" | "unread";
-
-const dateTime = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  timeZone: "UTC",
-  timeZoneName: "short",
-});
 
 const focusRing = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900";
 
@@ -145,7 +136,7 @@ const NotificationsCenter = ({ initialFeed, initialView, userId }: {
           items: previous.feed.items.map((item) => (!item.readAt && (id ? item.id === id : item.createdAt <= before!)) ? { ...item, readAt } : item),
         },
       }));
-      setAnnouncement(id ? "Notification marked as read." : `${formatAmount(updated)} ${updated === 1 ? "notification" : "notifications"} marked as read.`);
+      setAnnouncement(id ? "Notification marked as read." : `${formatCount(updated, "notification")} marked as read.`);
       saved = true;
     } catch (error) {
       setError(getApiErrorMessage(error, "Unable to mark notifications as read."));
@@ -326,7 +317,7 @@ const NotificationRow = ({
               dateTime={notification.createdAt}
               className="shrink-0 text-xs text-gray-500"
             >
-              {dateTime.format(new Date(notification.createdAt))}
+              {formatDateTime(notification.createdAt)}
             </time>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-4">

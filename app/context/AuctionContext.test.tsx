@@ -134,7 +134,7 @@ describe("shared auction views", () => {
     expect(screen.getAllByText("$12,000")).toHaveLength(3);
     expect(input).toHaveProperty("min", "12500");
     expect(screen.getByText("2m : 0s")).toBeDefined();
-    expect(screen.getByRole("link", { name: "1 bids" })).toBeDefined();
+    expect(screen.getByRole("link", { name: "1 bid" })).toBeDefined();
     expect(screen.getByLabelText("Auction closing progress").firstElementChild).toHaveProperty("style.width", "100%");
   });
 
@@ -153,7 +153,7 @@ describe("shared auction views", () => {
     rerender(view({ ...listing, currentBid: bid.amount, highestBidderId: bid.userId }, [bid], [comment]));
     expect(screen.getAllByText("$12,000")).toHaveLength(3);
     expect(screen.getByText(comment.body!)).toBeDefined();
-    expect(screen.getByRole("link", { name: "1 comments" })).toBeDefined();
+    expect(screen.getByRole("link", { name: "1 comment" })).toBeDefined();
     const input = screen.getByRole("spinbutton", { name: "Your bid amount in dollars" });
     await act(async () => vi.advanceTimersByTime(60000));
     expect(input).toHaveProperty("disabled", true);

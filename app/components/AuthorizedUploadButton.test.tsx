@@ -23,7 +23,8 @@ describe("authorized upload control", () => {
   it("rejects oversized files before issuing a request", async () => {
     render(<AuthorizedUploadButton kind="RECORD" onUpload={vi.fn()}>Add record</AuthorizedUploadButton>);
     await act(async () => fireEvent.change(screen.getByLabelText("Choose upload files"), { target: { files: [new File([new Uint8Array(MAX_UPLOAD_BYTES + 1)], "record.pdf")] } }));
-    expect(screen.getByRole("alert").textContent).toContain("4 MB"); expect(mocks.post).not.toHaveBeenCalled();
+    // A no-break space keeps the size and its unit on one line.
+    expect(screen.getByRole("alert").textContent).toContain("4 MB"); expect(mocks.post).not.toHaveBeenCalled();
   });
   it("respects remaining file slots instead of silently discarding files", async () => {
     render(<AuthorizedUploadButton kind="PHOTO" maxFiles={1} onUpload={vi.fn()}>Add photo</AuthorizedUploadButton>);

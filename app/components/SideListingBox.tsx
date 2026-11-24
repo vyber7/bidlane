@@ -4,7 +4,7 @@ import Image from "next/image";
 import NoReserveBadge from "./NoReserveBadge";
 import Link from "next/link";
 import type { PublicListing } from "@/app/libs/listing-payload";
-import { formatAmount } from "@/app/utils/format";
+import { formatBid } from "@/app/utils/format";
 import { CldImage } from "next-cloudinary";
 
 interface SideListingBoxProps {
@@ -45,7 +45,7 @@ const SideListingBox: React.FC<SideListingBoxProps> = ({ auction, variant = "sol
             {variant === "live" ? auction.currentBid === null ? "Starting bid" : "Current bid" : "Sold for"}
           </p>
           <p className="text-sm font-bold text-slate-950">
-            {amount === null ? "—" : `$${formatAmount(amount)}`}
+            {amount === null ? "—" : formatBid(amount)}
           </p>
         </div>
       </Link>
