@@ -44,6 +44,12 @@ async function reviewBid(amount = "12000") {
 }
 
 describe("auction description in the bids panel", () => {
+  it("formats the view and Watcher counts with thousands separators", () => {
+    render(view({ ...makeListing({ views: 12345 }), watcherCount: 1250 }));
+    expect(screen.getByText("12,345")).toBeDefined();
+    expect(screen.getByText("1,250")).toBeDefined();
+  });
+
   it("formats the current price, minimum, and reviewed bid as whole dollars", async () => {
     render(view(makeListing({ currentBid: 12000, highestBidderId: "other-buyer" })));
     expect(screen.getByText("$12,000")).toBeDefined();

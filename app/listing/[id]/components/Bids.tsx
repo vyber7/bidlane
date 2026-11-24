@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { capitalize, formatBid, formatDateTime, formatDisplayName } from "@/app/utils/format";
+import { capitalize, formatAmount, formatBid, formatDateTime, formatDisplayName } from "@/app/utils/format";
 import { useAuctionContext } from "@/app/context/AuctionContext";
 import BidForm from "./BidForm";
 import { describeAuction } from "@/app/libs/auction-display";
@@ -79,15 +79,15 @@ const Bids: React.FC<BidsProps> = ({
           </p>
           <p className="flex justify-start">
             <span className="w-1/4">Views</span>
-            <span className="font-semibold"> {listing.views}</span>
+            <span className="font-semibold"> {formatAmount(listing.views)}</span>
           </p>
           <p className="flex justify-start">
             <span className="w-1/4">Watching</span>
-            <span className="font-semibold"> {listing.watcherCount}</span>
+            <span className="font-semibold"> {formatAmount(listing.watcherCount)}</span>
           </p>
           <p className="flex justify-start">
             <span className="w-1/4">Bids</span>
-            <span className="font-semibold"> {bids.length}</span>
+            <span className="font-semibold"> {formatAmount(bids.length)}</span>
           </p>
         </div>
       </div>
