@@ -6,15 +6,13 @@ import { useState } from "react";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 import type {
   AcceptedBidResponse,
-  AuctionStartedEvent,
-  AuctionEndedEvent,
   CommentEvent,
   WatcherCountEvent,
 } from "@/app/types/auction-events";
 import useCountDown from "./useCountDown";
 import usePusherEvent from "./usePusherEvent";
 import { listingChannel } from "@/app/libs/realtime/catalog";
-import { useRealtimeEvent } from "@/app/libs/realtime/client";
+import { useRealtimeEvent, useRealtimeReady } from "@/app/libs/realtime/client";
 import useAuctionRefresh from "./useAuctionRefresh";
 
 interface AuctionSnapshot<T extends PublicListing> {
@@ -133,7 +131,7 @@ export default function useAuction<T extends PublicListing>(
   useRealtimeEvent(listingUpdates, "new-end-time", ({ newEndTime }) => {
     updateListing({ auctionEndsAt: new Date(newEndTime) });
   });
-  usePusherEvent<AuctionStartedEvent>(channel, "auction-started", (event) => {
+  useRealtimeEvent(listingUpdates, "auction-started", (event) => {
     updateListing({
       ...event,
       status: "LIVE",
@@ -142,7 +140,7 @@ export default function useAuction<T extends PublicListing>(
     });
     refresh();
   });
-  usePusherEvent<AuctionEndedEvent>(channel, "auction-ended", (event) => {
+  useRealtimeEvent(listingUpdates, "auction-ended", (event) => {
     updateListing({ status: "ENDED", result: event.result, auctionEndsAt: new Date(event.auctionEndsAt) });
     refresh();
   });
@@ -150,7 +148,7 @@ export default function useAuction<T extends PublicListing>(
     receiveComment(comment);
     refresh();
   });
-  usePusherEvent(channel, "pusher:subscription_succeeded", () => {
+  useRealtimeReady(listingUpdates, () => {
     // Recover events missed before subscribing or while disconnected.
     refresh();
   });

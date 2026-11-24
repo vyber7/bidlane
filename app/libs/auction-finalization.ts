@@ -2,9 +2,9 @@ import { getNativeRepositories, withNativeTransaction } from "./native-repositor
 import { auctionTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
 import type { AuctionListing } from "@/prisma/native/auctions";
 import { logger } from "@/app/libs/logger";
-import { pusherServer } from "@/app/libs/pusher";
-import type { AuctionEndedEvent } from "@/app/types/auction-events";
-import { auctionResultNotifications, publishNotificationChanges, saveNotifications } from "./notifications";
+import { listingChannel } from "./realtime/catalog";
+import { notificationsChanged, publish } from "./realtime/server";
+import { auctionResultNotifications, saveNotifications } from "./notifications";
 import { isDue, settle, type AuctionResult } from "./auction-lifecycle";
 
 export type { AuctionResult };
@@ -33,17 +33,10 @@ async function notifyAuctionEnded(
   result: AuctionResult,
   userIds: string[]
 ) {
-  const notification = await Promise.allSettled([
-    publishNotificationChanges(userIds),
-    pusherServer.trigger(`listing-${listingId}`, "auction-ended", {
-      auctionEndsAt: auctionEndsAt.toISOString(),
-      result,
-    } satisfies AuctionEndedEvent),
-  ]);
-
-  if (notification.some((item) => item.status === "rejected")) {
-    logger.warn("auction.end_notification_failed", { listingId });
-  }
+  await publish("auction.end_realtime_update_failed", [
+    { channel: listingChannel(listingId), event: "auction-ended", payload: { auctionEndsAt: auctionEndsAt.toISOString(), result } },
+    ...notificationsChanged(userIds),
+  ], { listingId });
 }
 
 async function resolveCompetingFinalization(

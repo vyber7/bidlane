@@ -79,6 +79,30 @@ describe("auction command retry policy", () => {
     warn.mockRestore();
   });
 
+  it("publishes the Auction start with the Notifications it saved", async () => {
+    const now = new Date(start.endsAt.getTime() - 60_000);
+    mocks.transaction.mockResolvedValue({ ok: true, notificationUsers: ["watcher"] });
+    await expect(startAuction(start, now)).resolves.toMatchObject({ ok: true });
+    expect(realtime.published).toEqual([
+      {
+        channel: `listing:${start.listingId}`,
+        event: "auction-started",
+        payload: { auctionStartsAt: now.toISOString(), auctionEndsAt: start.endsAt.toISOString(), startingBid: 1000, bidIncrement: 100 },
+      },
+      { channel: "user:watcher", event: "notifications-changed", payload: {} },
+    ]);
+  });
+
+  it("starts the Auction even if its real-time updates fail", async () => {
+    mocks.transaction.mockResolvedValue({ ok: true, notificationUsers: ["watcher"] });
+    realtime.failSends();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    await expect(startAuction(start)).resolves.toMatchObject({ ok: true });
+    expect(warn).toHaveBeenCalledOnce();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"event":"auction.start_realtime_update_failed"'));
+    warn.mockRestore();
+  });
+
   it("checks the start deadline and bid ladder before opening a transaction", async () => {
     await expect(startAuction({ ...start, endsAt: new Date(Date.now() - 1) })).resolves.toEqual({ ok: false, reason: "ends-in-past" });
     await expect(startAuction({ ...start, startingBid: 2_147_483_600 })).resolves.toEqual({ ok: false, reason: "ladder-too-large" });

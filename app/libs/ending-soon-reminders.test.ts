@@ -1,17 +1,21 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { auctionNow, makeListing } from "@/app/test/auction-fixtures";
 
-const mocks = vi.hoisted(() => ({ findMany: vi.fn(), claim: vi.fn(), upsert: vi.fn(), trigger: vi.fn() }));
+const mocks = vi.hoisted(() => ({ findMany: vi.fn(), claim: vi.fn(), upsert: vi.fn() }));
 vi.mock("./native-repositories", () => ({
   getNativeRepositories: () => ({ auctions: { reminderCandidates: mocks.findMany } }),
   withNativeTransaction: async (fn: (tx: unknown) => unknown) => fn({ auctions: { claimReminder: mocks.claim }, notifications: { insertOnce: mocks.upsert } }),
 }));
-vi.mock("./pusher", () => ({ pusherServer: { trigger: mocks.trigger } }));
 vi.mock("./logger", () => ({ logger: { error: vi.fn(), warn: vi.fn() } }));
+import { installFakeRealtime, type FakeRealtime } from "./realtime/testing";
 import { queueEndingSoonReminders } from "./ending-soon-reminders";
+
+let realtime: FakeRealtime;
+afterEach(() => realtime.uninstall());
 
 beforeEach(() => {
   vi.clearAllMocks();
+  realtime = installFakeRealtime();
   mocks.findMany.mockResolvedValue([{ id: "auction" }]);
   mocks.claim.mockResolvedValue(makeListing({ watchersIds: ["watcher", "buyer", "seller", "watcher"], biddersIds: ["buyer"], highestBidderId: "leader" }));
 });
@@ -22,12 +26,15 @@ describe("ending-soon reminders", () => {
     expect(mocks.upsert.mock.calls.map(([arg]) => arg.userId)).toEqual(["watcher", "buyer", "leader"]);
     expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ eventKey: `ending-soon:${makeListing().id}`, emailListingId: makeListing().id, kind: "auction" }));
     expect(mocks.upsert.mock.invocationCallOrder[0]).toBeGreaterThan(mocks.claim.mock.invocationCallOrder[0]);
+    expect(realtime.published).toEqual(["watcher", "buyer", "leader"].map((userId) => (
+      { channel: `user:${userId}`, event: "notifications-changed", payload: {} }
+    )));
   });
   it("does not create alerts when another worker claimed it or the auction ended", async () => {
     mocks.claim.mockResolvedValue(null);
     await expect(queueEndingSoonReminders(auctionNow)).resolves.toMatchObject({ skipped: 1, queued: 0 });
     expect(mocks.upsert).not.toHaveBeenCalled();
-    expect(mocks.trigger).not.toHaveBeenCalled();
+    expect(realtime.published).toEqual([]);
   });
   it("reports a failed transaction and continues processing other auctions", async () => {
     mocks.findMany.mockResolvedValue([{ id: "failed" }, { id: "ok" }]);
