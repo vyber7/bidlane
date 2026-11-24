@@ -34,7 +34,8 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [autoFinalizingDeadline, setAutoFinalizingDeadline] = useState<string | null>(null);
   const { listing, bids, comments, remainingMs, timeLeft, phase } = useAuctionContext();
-  const closing = phase?.phase === "closing";
+  const display = describeAuction(listing, phase, currentUser);
+  const closing = display.timer === "closing";
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
     userId: currentUser,
@@ -97,7 +98,6 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
 
   const transaction = transactionAccess(listing, currentUser);
   const owner = currentUser === listing.userId;
-  const display = describeAuction(listing, phase, currentUser);
   const { headline, price, result } = display;
   const live = display.bucket === "live";
   const ended = display.bucket === "results";

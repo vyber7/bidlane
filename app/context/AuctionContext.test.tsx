@@ -14,6 +14,7 @@ import ListingsDashboard from "@/app/account/components/ListingsDashboard";
 import ListingBox from "@/app/components/ListingBox";
 import FeaturedAuction from "@/app/(site)/components/FeaturedAuction";
 import { auctionNow, makeBid, makeComment, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
+import { describeAuction } from "@/app/libs/auction-display";
 
 const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn(), search: "" }));
 vi.mock("axios", async (importOriginal) => {
@@ -55,12 +56,22 @@ describe("shared auction views", () => {
     );
   }
 
-  it("waits for the browser clock before the listing views invite a bid", () => {
+  it.each([
+    ["status bar", <AuctionStatusBar key="status" currentUser="buyer" />],
+    ["mobile bar", <MobileAuctionBar key="mobile" currentUserId="buyer" />],
+    ["bids panel", <Bids key="bids" currentUserId="buyer" emailVerified />],
+  ])("shows the auction display's syncing message on the %s before the browser clock arrives", (_view, child) => {
+    const listing = makeListing();
+    const initial = document.createElement("div");
+    initial.innerHTML = renderToString(<AuctionProvider listing={listing} bids={[]} comments={[]}>{child}</AuctionProvider>);
+    expect(initial.textContent).toContain(describeAuction(listing, null, "buyer").message);
+    expect(within(initial).queryByRole("link", { name: "Place a bid" })).toBeNull();
+  });
+
+  it("invites a bid on the listing views once the browser clock arrives", () => {
     const view = biddingViews();
     const initial = document.createElement("div");
     initial.innerHTML = renderToString(view);
-    expect(initial.textContent?.match(/Syncing auction…/g)).toHaveLength(3);
-    expect(within(initial).queryByRole("link", { name: "Place a bid" })).toBeNull();
     expect(within(initial).getByRole("button", { name: "Review bid" })).toHaveProperty("disabled", true);
 
     render(view);

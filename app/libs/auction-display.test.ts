@@ -22,6 +22,7 @@ describe("describeAuction", () => {
       message: "Bidding hasn’t opened yet. Add this vehicle to your watchlist to find it again easily.",
       result: null,
       noReserveNote: null,
+      minimumBid: null,
     });
   });
 
@@ -43,6 +44,7 @@ describe("describeAuction", () => {
       message: null,
       result: null,
       noReserveNote: null,
+      minimumBid: 12500,
     });
   });
 
@@ -72,6 +74,7 @@ describe("describeAuction", () => {
       message: "Finalizing results…",
       result: null,
       noReserveNote: null,
+      minimumBid: null,
     });
   });
 
@@ -94,6 +97,7 @@ describe("describeAuction", () => {
       message: null,
       result: "Auction complete",
       noReserveNote: null,
+      minimumBid: null,
     });
   });
 
@@ -111,6 +115,7 @@ describe("describeAuction", () => {
       message: null,
       result,
       noReserveNote: null,
+      minimumBid: null,
     });
   });
 
@@ -125,6 +130,7 @@ describe("describeAuction", () => {
       message: "Syncing auction…",
       result: null,
       noReserveNote: null,
+      minimumBid: null,
     });
   });
 
@@ -143,6 +149,12 @@ describe("describeAuction", () => {
     [{ status: "ENDED", result: "RESERVE_NOT_MET", currentBid: null }, "This auction had no reserve."],
   ] as const)("explains a no-reserve Auction %j", (overrides, noReserveNote) => {
     expect(describeAt({ reservePrice: null, ...overrides }, "buyer")).toMatchObject({ noReserveNote });
+  });
+
+  it("gives the minimum next bid only while the Auction accepts bids", () => {
+    expect(describeAt({ currentBid: 12000 }, "seller").minimumBid).toBe(12500);
+    expect(describeAt({}, null).minimumBid).toBe(10000);
+    expect(describeAt({ auctionStartsAt: new Date(now + 1000) }, "buyer").minimumBid).toBeNull();
   });
 
   it("points the seller at the bids on their Open Auction", () => {

@@ -47,7 +47,7 @@ const Bids: React.FC<BidsProps> = ({
       </h2>
       <div className="flex flex-col md:flex-row gap-2 lg:gap-4 md:justify-between pb-2 md:pb-4">
         <div className="md:w-1/2 w-full flex flex-col justify-between bg-slate-200 rounded-md p-2 md:p-4 gap-2 text-sm md:text-base">
-          {phase?.phase === "sold" ? (
+          {display.headline === "Sold" ? (
             <p className="text-green-600 font-bold">Sold to {highestBidderName}, congratulations!</p>
           ) : result ? (
             <div>
