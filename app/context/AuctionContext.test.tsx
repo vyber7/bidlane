@@ -316,6 +316,17 @@ describe("shared auction views", () => {
     expect(screen.getByRole("spinbutton")).toHaveProperty("disabled", false);
   });
 
+  it("stops the countdown on a Closing Auction's inventory card", () => {
+    const listing = makeListing({ currentBid: 12000, auctionEndsAt: new Date(auctionNow.getTime() + 1000) });
+    render(<ListingBox listing={listing} />);
+    expect(screen.getByText("1s")).toBeDefined();
+
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.getByText("Finalizing results…")).toBeDefined();
+    expect(screen.queryByText(/^\d+s$/)).toBeNull();
+    expect(screen.getByText("$12,000")).toBeDefined();
+  });
+
   it("renders listing cards safely before a starting price has been configured", () => {
     render(<ListingBox listing={makeListing({ startingBid: null })} />);
     expect(screen.getByText("To be announced")).toBeDefined();

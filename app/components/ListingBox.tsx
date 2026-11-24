@@ -14,7 +14,7 @@ import { capitalize, formatBid } from "../utils/format";
 import { clsx } from "clsx";
 import { CldImage } from "next-cloudinary";
 import useWatchlist from "../hooks/useWatchlist";
-import { auctionPrice } from "@/app/libs/auction-lifecycle";
+import { describeAuction } from "@/app/libs/auction-display";
 
 interface ListingBoxProps {
   listing: PublicListing;
@@ -22,12 +22,13 @@ interface ListingBoxProps {
 }
 
 const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, currentUserId }) => {
-  const { listing, remainingMs, timeLeft } = useAuction(initialListing);
+  const { listing, phase, remainingMs, timeLeft } = useAuction(initialListing);
   const titleId = useId();
   const title = `${listing.year} ${capitalize(listing.make)} ${capitalize(listing.model)}`;
   const href = `/listing/${listing.id}`;
   const isOwner = listing.userId === currentUserId;
-  const price = auctionPrice(listing);
+  const display = describeAuction(listing, phase, currentUserId);
+  const { price } = display;
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
     userId: currentUserId,
@@ -39,7 +40,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
       <Link className="min-w-0 flex-1" href={href}>
         <Title id={titleId}>{title}</Title>
       </Link>
-      {isOwner && listing.status === "UPCOMING" && (
+      {display.action === "edit-listing" && (
         <Link
           href={`${href}#edit-listing`}
           aria-label={`Edit listing for ${title}`}
@@ -97,24 +98,28 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
           )}
         </div>
         <div className="flex min-h-10 items-center justify-between bg-slate-950 px-3 py-2 text-xs font-medium text-white">
-          {listing.status === "UPCOMING" ? (
-            <div>Upcoming</div>
-          ) : listing.status === "ENDED" ? (
+          {display.bucket === "upcoming" ? (
+            <div>{display.headline}</div>
+          ) : display.bucket === "results" ? (
             <div>
               {price.label}{price.amount !== null && <> <b>{formatBid(price.amount)}</b></>}
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2">
-                <FaRegClock aria-hidden="true" />
-                <span
-                  className={clsx(
-                    remainingMs !== null && remainingMs < 3 * 60 * 60 * 1000 ? "text-red-400" : "",
-                  )}
-                >
-                  {timeLeft}
-                </span>
-              </div>
+              {display.timer === "closing" ? (
+                <div>{display.message}</div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <FaRegClock aria-hidden="true" />
+                  <span
+                    className={clsx(
+                      remainingMs !== null && remainingMs < 3 * 60 * 60 * 1000 ? "text-red-400" : "",
+                    )}
+                  >
+                    {timeLeft}
+                  </span>
+                </div>
+              )}
               <span aria-live="polite" aria-atomic="true">
                 <span className="sr-only">{title}: </span>
                 {price.label}{" "}
