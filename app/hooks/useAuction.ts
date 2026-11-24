@@ -6,15 +6,15 @@ import { useState } from "react";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 import type {
   AcceptedBidResponse,
-  AuctionEndTimeEvent,
   AuctionStartedEvent,
   AuctionEndedEvent,
-  BidEvent,
   CommentEvent,
   WatcherCountEvent,
 } from "@/app/types/auction-events";
 import useCountDown from "./useCountDown";
 import usePusherEvent from "./usePusherEvent";
+import { listingChannel } from "@/app/libs/realtime/catalog";
+import { useRealtimeEvent } from "@/app/libs/realtime/client";
 import useAuctionRefresh from "./useAuctionRefresh";
 
 interface AuctionSnapshot<T extends PublicListing> {
@@ -125,11 +125,12 @@ export default function useAuction<T extends PublicListing>(
   usePusherEvent<WatcherCountEvent>(channel, "watcher-count-update", (event) => {
     if (event.listingId === listing.id) updateListing({ watcherCount: event.watcherCount });
   });
-  usePusherEvent<BidEvent>(channel, "new-bid", (bid) => {
+  const listingUpdates = listingChannel(listing.id);
+  useRealtimeEvent(listingUpdates, "new-bid", (bid) => {
     receiveBid(bid);
     refresh();
   });
-  usePusherEvent<AuctionEndTimeEvent>(channel, "new-end-time", ({ newEndTime }) => {
+  useRealtimeEvent(listingUpdates, "new-end-time", ({ newEndTime }) => {
     updateListing({ auctionEndsAt: new Date(newEndTime) });
   });
   usePusherEvent<AuctionStartedEvent>(channel, "auction-started", (event) => {

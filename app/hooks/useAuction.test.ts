@@ -27,15 +27,26 @@ vi.mock("@/app/libs/pusher-channels", () => ({
   releasePusherChannel: vi.fn(),
 }));
 
+import { installFakeRealtime, type FakeRealtime } from "@/app/libs/realtime/testing";
+import type { RealtimeCatalog } from "@/app/libs/realtime/catalog";
 import useAuction from "./useAuction";
 
-function emit(event: string, payload: unknown, listingId = makeListing().id) {
+let realtime: FakeRealtime;
+
+function emit<E extends keyof RealtimeCatalog["listing"]>(event: E, payload: RealtimeCatalog["listing"][E], listingId = makeListing().id) {
+  act(() => realtime.deliver(`listing:${listingId}`, event, payload));
+}
+
+// Events still bound through the old untyped hook. Removed once every
+// Auction view listener uses the event channel.
+function emitLegacy(event: string, payload: unknown, listingId = makeListing().id) {
   act(() => {
     mocks.channels.get(`listing-${listingId}`)?.get(event)?.forEach((handler) => handler(payload));
   });
 }
 
 beforeEach(() => {
+  realtime = installFakeRealtime();
   vi.useFakeTimers();
   vi.setSystemTime(auctionNow);
   mocks.refresh.mockClear();
@@ -43,6 +54,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  realtime.uninstall();
   mocks.channels.clear();
   vi.useRealTimers();
 });
@@ -51,10 +63,10 @@ describe("auction state reconciliation", () => {
   it("updates aggregate watcher counts without receiving watcher identities", () => {
     const listing = makeListing();
     const { result } = renderHook(() => useAuction(listing));
-    emit("watcher-count-update", { listingId: makeListing().id, watcherCount: 7 });
+    emitLegacy("watcher-count-update", { listingId: makeListing().id, watcherCount: 7 });
     expect(result.current.listing.watcherCount).toBe(7);
     expect(result.current.listing).not.toHaveProperty("watchersIds");
-    emit("watcher-count-update", { listingId: "other-listing", watcherCount: 99 });
+    emitLegacy("watcher-count-update", { listingId: "other-listing", watcherCount: 99 });
     expect(result.current.listing.watcherCount).toBe(7);
   });
 
@@ -114,10 +126,10 @@ describe("auction state reconciliation", () => {
     const upcoming = makeListing({ status: "UPCOMING", auctionStartsAt: null, auctionEndsAt: null, startingBid: null, bidIncrement: null });
     const { result, rerender } = renderHook(({ listing }) => useAuction(listing), { initialProps: { listing: upcoming } });
     const end = new Date(Date.now() + 120000).toISOString();
-    emit("auction-started", { auctionStartsAt: auctionNow.toISOString(), auctionEndsAt: end, startingBid: 10000, bidIncrement: 500 });
+    emitLegacy("auction-started", { auctionStartsAt: auctionNow.toISOString(), auctionEndsAt: end, startingBid: 10000, bidIncrement: 500 });
     rerender({ listing: { ...upcoming } });
     expect(result.current.listing).toMatchObject({ status: "LIVE", startingBid: 10000, bidIncrement: 500, auctionStartsAt: auctionNow });
-    emit("auction-ended", { result: "RESERVE_NOT_MET", auctionEndsAt: end });
+    emitLegacy("auction-ended", { result: "RESERVE_NOT_MET", auctionEndsAt: end });
     rerender({ listing: { ...upcoming } });
     expect(result.current.listing).toMatchObject({ status: "ENDED", result: "RESERVE_NOT_MET" });
   });
@@ -140,7 +152,7 @@ describe("auction state reconciliation", () => {
     expect(vi.getTimerCount()).toBe(0);
     rerender({ listing: makeListing({ status: "LIVE" }) });
     expect(vi.getTimerCount()).toBe(1);
-    emit("auction-ended", { result: "RESERVE_NOT_MET", auctionEndsAt: auctionNow.toISOString() });
+    emitLegacy("auction-ended", { result: "RESERVE_NOT_MET", auctionEndsAt: auctionNow.toISOString() });
     act(() => vi.advanceTimersByTime(250));
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -153,7 +165,7 @@ describe("auction state reconciliation", () => {
     });
     const comment = makeComment();
     act(() => result.current.acceptComment(comment));
-    emit("new-comment", comment);
+    emitLegacy("new-comment", comment);
     rerender({ listing: { ...listing }, comments: [comment, makeComment({ id: "missed-comment" })] });
     expect(result.current.comments).toHaveLength(2);
   });
@@ -161,13 +173,13 @@ describe("auction state reconciliation", () => {
   it("refreshes when subscribing and reconnecting, and releases listeners on unmount", () => {
     const listing = makeListing();
     const { unmount } = renderHook(() => useAuction(listing));
-    emit("pusher:subscription_succeeded", {});
+    emitLegacy("pusher:subscription_succeeded", {});
     act(() => vi.advanceTimersByTime(250));
-    emit("pusher:subscription_succeeded", {});
+    emitLegacy("pusher:subscription_succeeded", {});
     act(() => vi.advanceTimersByTime(250));
     expect(mocks.refresh).toHaveBeenCalledTimes(2);
     unmount();
-    emit("pusher:subscription_succeeded", {});
+    emitLegacy("pusher:subscription_succeeded", {});
     expect(mocks.refresh).toHaveBeenCalledTimes(2);
   });
 
@@ -177,7 +189,7 @@ describe("auction state reconciliation", () => {
       return renderHook(() => useAuction(listing));
     });
     for (let index = 0; index < cards.length; index++) {
-      emit("pusher:subscription_succeeded", {}, `listing-${index}`);
+      emitLegacy("pusher:subscription_succeeded", {}, `listing-${index}`);
     }
     expect(mocks.refresh).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(250));
@@ -185,7 +197,7 @@ describe("auction state reconciliation", () => {
 
     // A later reconnect still resynchronizes, once for the whole page.
     for (let index = 0; index < cards.length; index++) {
-      emit("pusher:subscription_succeeded", {}, `listing-${index}`);
+      emitLegacy("pusher:subscription_succeeded", {}, `listing-${index}`);
     }
     act(() => vi.advanceTimersByTime(250));
     expect(mocks.refresh).toHaveBeenCalledTimes(2);
@@ -195,8 +207,8 @@ describe("auction state reconciliation", () => {
     const first = makeListing({ id: "first", status: "UPCOMING" });
     const second = makeListing({ id: "second", status: "UPCOMING" });
     const cards = [first, second].map((listing) => renderHook(() => useAuction(listing)));
-    emit("pusher:subscription_succeeded", {}, first.id);
-    emit("pusher:subscription_succeeded", {}, second.id);
+    emitLegacy("pusher:subscription_succeeded", {}, first.id);
+    emitLegacy("pusher:subscription_succeeded", {}, second.id);
     cards[0].unmount();
     expect(vi.getTimerCount()).toBe(1);
     cards[1].unmount();
