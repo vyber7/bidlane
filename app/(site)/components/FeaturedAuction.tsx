@@ -37,7 +37,7 @@ export default function FeaturedAuction({ listing: initialListing, currentUserId
         )}
         <span aria-live="polite" aria-atomic="true" className="absolute left-3 top-3 rounded-full bg-slate-950/90 px-3 py-1.5 text-xs font-bold text-amber-400">
           <span className="sr-only">{title}: </span>
-          {ended ? "Recent result" : display.headline}
+          {display.headline}
         </span>
         <span aria-hidden="true" className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white text-slate-950 transition group-hover:bg-amber-400"><FiArrowUpRight size={18} /></span>
       </div>

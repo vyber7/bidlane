@@ -406,12 +406,12 @@ describe("shared auction views", () => {
   });
 
   it.each([
-    [{ result: "SOLD", currentBid: 12000 }, "Auction complete"],
-    [{ result: "RESERVE_NOT_MET", currentBid: 9000 }, "Reserve not met"],
-    [{ result: "RESERVE_NOT_MET", currentBid: null }, "No bids placed"],
-  ] as const)("shows the featured card's result line for %j", (overrides, line) => {
+    [{ result: "SOLD", currentBid: 12000 }, "Sold", "Auction complete"],
+    [{ result: "RESERVE_NOT_MET", currentBid: 9000 }, "Ended", "Reserve not met"],
+    [{ result: "RESERVE_NOT_MET", currentBid: null }, "Ended", "No bids placed"],
+  ] as const)("shows the featured card's headline and result line for %j", (overrides, headline, line) => {
     render(<FeaturedAuction listing={makeListing({ status: "ENDED", reservePrice: 20000, ...overrides })} />);
-    expect(screen.getByText("Recent result")).toBeDefined();
+    expect(screen.getByText(headline)).toBeDefined();
     expect(screen.getByText(line)).toBeDefined();
     expect(screen.getByText(/View result/)).toBeDefined();
   });
@@ -438,7 +438,7 @@ describe("shared auction views", () => {
     expect(screen.getByText("59s left").closest("[aria-live]")).toBeNull();
 
     rerender(<FeaturedAuction listing={{ ...listing, currentBid: 15000, status: "ENDED", result: "SOLD" }} />);
-    expect(screen.getByText("Recent result").closest("[aria-live]")).toBe(status);
+    expect(screen.getByText("Sold").closest("[aria-live]")).toBe(status);
     expect(screen.getByText("$15,000").closest("[aria-live]")).toBe(bid);
     expect(screen.getAllByRole("link")).toHaveLength(1);
   });
