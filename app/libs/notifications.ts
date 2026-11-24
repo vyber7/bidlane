@@ -1,7 +1,6 @@
 import type { Listing } from "@/app/types/database";
 import type { AccountNotification } from "@/app/types/account";
-import { pusherServer } from "./pusher";
-import { logger } from "./logger";
+import { notificationsChanged, publish } from "./realtime/server";
 import { soldAuction, transactionAccess, transactionHref } from "./transaction-completion";
 import type { NativeRepositories } from "@/prisma/native/repositories";
 
@@ -170,16 +169,5 @@ export async function saveNotifications(
 }
 
 export async function publishNotificationChanges(userIds: string[]) {
-  const results = await Promise.allSettled(
-    [...new Set(userIds)].map(async (userId) =>
-      pusherServer.trigger(
-        `private-user-${userId}`,
-        "notifications-changed",
-        {},
-      ),
-    ),
-  );
-  if (results.some((result) => result.status === "rejected")) {
-    logger.warn("notification.live_update_failed", {});
-  }
+  await publish("notification.realtime_update_failed", notificationsChanged(userIds));
 }

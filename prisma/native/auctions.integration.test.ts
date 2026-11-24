@@ -32,9 +32,6 @@ vi.mock("@/app/libs/prismadb-v8", () => ({
     return state.connection;
   },
 }));
-vi.mock("@/app/libs/pusher", () => ({
-  pusherServer: { trigger: state.trigger },
-}));
 vi.mock("@/app/libs/logger", () => ({
   logger: { error: state.log, warn: state.log },
 }));
@@ -55,6 +52,14 @@ import {
   outbidNotifications,
   saveNotifications,
 } from "@/app/libs/notifications";
+import { installServerTransport } from "@/app/libs/realtime/server";
+
+// Real-time updates reach the spy through the event channel's transport,
+// with the same wire arguments Pusher receives.
+installServerTransport({
+  send: (channel, event, payload) => state.trigger(channel.name, event, payload),
+  authorize: () => ({}),
+});
 
 const request = (body: unknown, key = "bid-request-00000001") =>
   new Request("http://localhost/api/auction", {

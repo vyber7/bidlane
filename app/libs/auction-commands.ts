@@ -1,18 +1,17 @@
 import { withNativeTransaction } from "./native-repositories";
 import type { NativeRepositories } from "@/prisma/native/repositories";
 import { auctionTransactionOptions, isDuplicateKey, isTransactionContention } from "@/prisma/native/transaction-errors";
-import { pusherServer } from "./pusher";
-import { logger } from "./logger";
+import { listingChannel } from "./realtime/catalog";
+import { notificationsChanged, publish } from "./realtime/server";
 import { enforceAbuseLimit } from "./abuse-limits";
 import {
   auctionLiveNotifications,
   outbidNotifications,
-  publishNotificationChanges,
   saveNotifications,
 } from "./notifications";
 import { auctionPhase, extendedDeadline } from "./auction-lifecycle";
 import { MAX_INTEGER } from "@/app/schemas/common";
-import type { AcceptedBidResponse, AuctionEndTimeEvent, AuctionStartedEvent } from "@/app/types/auction-events";
+import type { AcceptedBidResponse } from "@/app/types/auction-events";
 
 // Auction commands: each one owns its transaction, retries, idempotency and
 // the events it publishes after commit, and returns a typed outcome. Routes
@@ -140,16 +139,12 @@ async function publishAcceptedBid(
   listingId: string,
   { response, extended, notificationUsers }: { response: AcceptedBidResponse; extended: boolean; notificationUsers: string[] },
 ) {
-  const channel = `listing-${listingId}`;
-  const published: Array<() => Promise<unknown>> = [
-    () => pusherServer.trigger(channel, "new-bid", response.bid),
-    () => publishNotificationChanges(notificationUsers),
-    ...(extended
-      ? [() => pusherServer.trigger(channel, "new-end-time", { newEndTime: response.auctionEndsAt } satisfies AuctionEndTimeEvent)]
-      : []),
-  ];
-  const results = await Promise.allSettled(published.map((publish) => Promise.resolve().then(publish)));
-  if (results.some((item) => item.status === "rejected")) logger.warn("bid.notification_failed", { listingId });
+  const channel = listingChannel(listingId);
+  await publish("bid.realtime_update_failed", [
+    { channel, event: "new-bid", payload: response.bid },
+    ...(extended ? [{ channel, event: "new-end-time", payload: { newEndTime: response.auctionEndsAt } } as const] : []),
+    ...notificationsChanged(notificationUsers),
+  ], { listingId });
 }
 
 // ---------------------------------------------------------------------------
@@ -204,16 +199,14 @@ export async function startAuction(request: StartRequest, now = new Date()): Pro
   }
   if (!started.ok) return started;
 
-  const published = await Promise.allSettled([
-    publishNotificationChanges(started.notificationUsers),
-    pusherServer.trigger(`listing-${listingId}`, "auction-started", {
-      auctionStartsAt: now.toISOString(),
-      auctionEndsAt: endsAt.toISOString(),
-      startingBid,
-      bidIncrement,
-    } satisfies AuctionStartedEvent),
-  ]);
-  if (published.some((item) => item.status === "rejected")) logger.warn("auction.start_notification_failed", { listingId });
+  await publish("auction.start_realtime_update_failed", [
+    {
+      channel: listingChannel(listingId),
+      event: "auction-started",
+      payload: { auctionStartsAt: now.toISOString(), auctionEndsAt: endsAt.toISOString(), startingBid, bidIncrement },
+    },
+    ...notificationsChanged(started.notificationUsers),
+  ], { listingId });
 
   return { ok: true, auctionStartsAt: now, auctionEndsAt: endsAt };
 }

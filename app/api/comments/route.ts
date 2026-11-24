@@ -4,10 +4,10 @@ import getCurrentUser from "@/app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
 import { withNativeTransaction } from "@/app/libs/native-repositories";
 import { engagementTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
-import { pusherServer } from "@/app/libs/pusher";
+import { listingChannel } from "@/app/libs/realtime/catalog";
+import { notificationsChanged, publish } from "@/app/libs/realtime/server";
 import {
   commentNotifications,
-  publishNotificationChanges,
   saveNotifications,
 } from "@/app/libs/notifications";
 import { logger } from "@/app/libs/logger";
@@ -58,17 +58,10 @@ export async function POST(req: Request) {
       ...newComment,
       createdAt: newComment.createdAt.toISOString(),
     } satisfies CommentEvent;
-    const notification = await Promise.allSettled([
-      publishNotificationChanges(notificationUsers),
-      pusherServer.trigger(
-        `listing-${listingId}`,
-        "new-comment",
-        commentPayload,
-      ),
-    ]);
-    if (notification.some((item) => item.status === "rejected")) {
-      logger.warn("comment.notification_failed", { listingId });
-    }
+    await publish("comment.realtime_update_failed", [
+      { channel: listingChannel(listingId), event: "new-comment", payload: commentPayload },
+      ...notificationsChanged(notificationUsers),
+    ], { listingId });
 
     return NextResponse.json(
       { comment: commentPayload } satisfies CommentResponse,

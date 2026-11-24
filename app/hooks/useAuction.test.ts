@@ -5,37 +5,27 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 import { auctionNow, makeBid, makeComment, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 
-const mocks = vi.hoisted(() => ({
-  refresh: vi.fn(),
-  channels: new Map<string, Map<string, Set<(data: unknown) => void>>>(),
-}));
+const mocks = vi.hoisted(() => ({ refresh: vi.fn() }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
-vi.mock("@/app/libs/pusher-channels", () => ({
-  acquirePusherChannel: (name: string) => {
-    const events = mocks.channels.get(name) ?? new Map<string, Set<(data: unknown) => void>>();
-    mocks.channels.set(name, events);
-    return {
-      bind: (event: string, handler: (data: unknown) => void) => {
-        const handlers = events.get(event) ?? new Set();
-        handlers.add(handler);
-        events.set(event, handlers);
-      },
-      unbind: (event: string, handler: (data: unknown) => void) => events.get(event)?.delete(handler),
-    };
-  },
-  releasePusherChannel: vi.fn(),
-}));
 
+import { installFakeRealtime, type FakeRealtime } from "@/app/libs/realtime/testing";
+import type { RealtimeCatalog } from "@/app/libs/realtime/catalog";
 import useAuction from "./useAuction";
 
-function emit(event: string, payload: unknown, listingId = makeListing().id) {
-  act(() => {
-    mocks.channels.get(`listing-${listingId}`)?.get(event)?.forEach((handler) => handler(payload));
-  });
+let realtime: FakeRealtime;
+
+function emit<E extends keyof RealtimeCatalog["listing"]>(event: E, payload: RealtimeCatalog["listing"][E], listingId = makeListing().id) {
+  act(() => realtime.deliver(`listing:${listingId}`, event, payload));
 }
 
+function ready(listingId = makeListing().id) {
+  act(() => realtime.ready(`listing:${listingId}`));
+}
+
+
 beforeEach(() => {
+  realtime = installFakeRealtime();
   vi.useFakeTimers();
   vi.setSystemTime(auctionNow);
   mocks.refresh.mockClear();
@@ -43,7 +33,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  mocks.channels.clear();
+  realtime.uninstall();
   vi.useRealTimers();
 });
 
@@ -158,16 +148,27 @@ describe("auction state reconciliation", () => {
     expect(result.current.comments).toHaveLength(2);
   });
 
+  it("shows comments delivered in real time, but only on views that show activity", () => {
+    const listing = makeListing();
+    const card = renderHook(() => useAuction(listing));
+    const bids: BidWithAuthor[] = [];
+    const comments: CommentWithAuthor[] = [];
+    const page = renderHook(() => useAuction(listing, bids, comments));
+    emit("new-comment", { ...makeComment({ id: "realtime-comment" }), createdAt: auctionNow.toISOString() });
+    expect(page.result.current.comments.map((comment) => comment.id)).toEqual(["realtime-comment"]);
+    expect(card.result.current.comments).toEqual([]);
+  });
+
   it("refreshes when subscribing and reconnecting, and releases listeners on unmount", () => {
     const listing = makeListing();
     const { unmount } = renderHook(() => useAuction(listing));
-    emit("pusher:subscription_succeeded", {});
+    ready();
     act(() => vi.advanceTimersByTime(250));
-    emit("pusher:subscription_succeeded", {});
+    ready();
     act(() => vi.advanceTimersByTime(250));
     expect(mocks.refresh).toHaveBeenCalledTimes(2);
     unmount();
-    emit("pusher:subscription_succeeded", {});
+    ready();
     expect(mocks.refresh).toHaveBeenCalledTimes(2);
   });
 
@@ -177,7 +178,7 @@ describe("auction state reconciliation", () => {
       return renderHook(() => useAuction(listing));
     });
     for (let index = 0; index < cards.length; index++) {
-      emit("pusher:subscription_succeeded", {}, `listing-${index}`);
+      ready(`listing-${index}`);
     }
     expect(mocks.refresh).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(250));
@@ -185,7 +186,7 @@ describe("auction state reconciliation", () => {
 
     // A later reconnect still resynchronizes, once for the whole page.
     for (let index = 0; index < cards.length; index++) {
-      emit("pusher:subscription_succeeded", {}, `listing-${index}`);
+      ready(`listing-${index}`);
     }
     act(() => vi.advanceTimersByTime(250));
     expect(mocks.refresh).toHaveBeenCalledTimes(2);
@@ -195,8 +196,8 @@ describe("auction state reconciliation", () => {
     const first = makeListing({ id: "first", status: "UPCOMING" });
     const second = makeListing({ id: "second", status: "UPCOMING" });
     const cards = [first, second].map((listing) => renderHook(() => useAuction(listing)));
-    emit("pusher:subscription_succeeded", {}, first.id);
-    emit("pusher:subscription_succeeded", {}, second.id);
+    ready(first.id);
+    ready(second.id);
     cards[0].unmount();
     expect(vi.getTimerCount()).toBe(1);
     cards[1].unmount();

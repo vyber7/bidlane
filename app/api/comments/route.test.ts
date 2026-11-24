@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({ limit: vi.fn(),
   getCurrentUser: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
-  trigger: vi.fn(),
+  warn: vi.fn(),
   findUnique: vi.fn(),
   insertOnce: vi.fn(),
   assets: vi.fn(),
@@ -19,17 +19,18 @@ vi.mock("@/app/libs/native-repositories", () => ({
 }));
 vi.mock("@/app/libs/abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.getCurrentUser }));
-vi.mock("@/app/libs/pusher", () => ({
-  pusherServer: { trigger: mocks.trigger },
-}));
 vi.mock("@/app/libs/logger", () => ({
-  logger: { warn: vi.fn(), error: vi.fn() },
+  logger: { warn: mocks.warn, error: vi.fn() },
 }));
 
+import { installFakeRealtime, type FakeRealtime } from "@/app/libs/realtime/testing";
 import { POST } from "./route";
 import { ApiRequestError } from "@/app/libs/api-request";
 
 const listingId = "abcdef0123456789abcdef01";
+let realtime: FakeRealtime;
+beforeEach(() => { realtime = installFakeRealtime(); });
+afterEach(() => realtime.uninstall());
 
 function request(body: unknown) {
   return new Request("http://localhost/api/comments", {
@@ -44,7 +45,7 @@ describe("POST /api/comments", () => {
     mocks.limit.mockRejectedValueOnce(new ApiRequestError(429, "Wait", 23));
     const response = await POST(request({ listingId, comment: "Hello" }));
     expect(response.status).toBe(429); expect(response.headers.get("retry-after")).toBe("23");
-    expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.trigger).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled(); expect(realtime.published).toEqual([]);
   });
   it("rejects oversized comments before transaction work", async () => {
     expect((await POST(request({ listingId, comment: "x".repeat(4001) }))).status).toBe(400);
@@ -52,13 +53,13 @@ describe("POST /api/comments", () => {
   });
   it("rejects unregistered attachment URLs without creating or broadcasting a comment", async () => {
     expect((await POST(request({ listingId, comment: "Hello", image: "https://res.cloudinary.com/demo/image/upload/borrowed.jpg" }))).status).toBe(400);
-    expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.trigger).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled(); expect(realtime.published).toEqual([]);
   });
   it("does not post or broadcast comments on an unapproved listing", async () => {
     mocks.findUnique.mockResolvedValue({ id: listingId, userId: "seller", status: "UPCOMING", reviewStatus: "PENDING" });
     expect((await POST(request({ listingId, comment: "Hello" }))).status).toBe(409);
     expect(mocks.create).not.toHaveBeenCalled();
-    expect(mocks.trigger).not.toHaveBeenCalled();
+    expect(realtime.published).toEqual([]);
   });
 
   beforeEach(() => {
@@ -77,7 +78,6 @@ describe("POST /api/comments", () => {
     });
     mocks.findUnique.mockResolvedValue({ id: listingId, userId: "seller", status: "LIVE", year: 2020, make: "Porsche", model: "911" });
     mocks.update.mockResolvedValue({ count: 1 });
-    mocks.trigger.mockResolvedValue(undefined);
   });
 
   it("broadcasts and returns only the public comment author shape", async () => {
@@ -86,10 +86,11 @@ describe("POST /api/comments", () => {
     expect(response.status).toBe(201);
     expect(mocks.insertOnce).toHaveBeenCalledWith(expect.objectContaining({ userId: "seller", title: "New comment on your listing" }));
     expect(mocks.create).toHaveBeenCalledWith({ listingId, userId: "user-1", body: "Great car", image: undefined }, expect.any(Date));
-    const payload = mocks.trigger.mock.calls.find((call) => call[1] === "new-comment")![2];
-    expect(payload.createdAt).toBe("2026-09-10T12:00:00.000Z");
-    expect(payload.user).toEqual({ name: "Driver" });
-    expect(payload.user).not.toHaveProperty("hashedPassword");
+    const publicComment = { id: "comment-1", body: "Great car", image: null, createdAt: "2026-09-10T12:00:00.000Z", listingId, user: { name: "Driver" } };
+    expect(realtime.published).toEqual([
+      { channel: `listing:${listingId}`, event: "new-comment", payload: publicComment },
+      { channel: "user:seller", event: "notifications-changed", payload: {} },
+    ]);
     await expect(response.json()).resolves.toEqual({
       comment: {
         id: "comment-1",
@@ -100,6 +101,14 @@ describe("POST /api/comments", () => {
         user: { name: "Driver" },
       },
     });
+  });
+
+  it("returns the saved comment even if its real-time updates fail", async () => {
+    realtime.failSends();
+    const response = await POST(request({ listingId, comment: "Great car" }));
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({ comment: { id: "comment-1" } });
+    expect(mocks.warn).toHaveBeenCalledExactlyOnceWith("comment.realtime_update_failed", expect.objectContaining({ listingId }));
   });
 
   it("requires authentication before creating a comment", async () => {

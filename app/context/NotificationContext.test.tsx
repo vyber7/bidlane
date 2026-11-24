@@ -2,26 +2,23 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ email: "buyer@example.test" as string | null, fetch: vi.fn(), acquire: vi.fn(), release: vi.fn(), listeners: new Map<string, () => void>() }));
+const mocks = vi.hoisted(() => ({ email: "buyer@example.test" as string | null, fetch: vi.fn() }));
 vi.mock("next-auth/react", () => ({ useSession: () => ({ data: mocks.email ? { user: { email: mocks.email } } : null }) }));
-vi.mock("@/app/libs/pusher-channels", () => ({ acquirePusherChannel: mocks.acquire, releasePusherChannel: mocks.release }));
+import { installFakeRealtime, type FakeRealtime } from "@/app/libs/realtime/testing";
 import { NotificationProvider } from "./NotificationContext";
 import NotificationBell from "@/app/components/NotificationBell";
 
 const response = (unreadCount: number, userId = "buyer") => new Response(JSON.stringify({ userId, unreadCount }));
+let realtime: FakeRealtime;
 beforeEach(() => {
   vi.clearAllMocks();
+  realtime = installFakeRealtime();
   vi.useFakeTimers();
   vi.stubGlobal("fetch", mocks.fetch);
   mocks.email = "buyer@example.test";
-  mocks.listeners.clear();
   mocks.fetch.mockResolvedValue(response(2));
-  mocks.acquire.mockImplementation((channel: string) => ({
-    bind: (event: string, listener: () => void) => mocks.listeners.set(`${channel}:${event}`, listener),
-    unbind: (event: string) => mocks.listeners.delete(`${channel}:${event}`),
-  }));
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); realtime.uninstall(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 const view = () => <NotificationProvider><NotificationBell /></NotificationProvider>;
 
@@ -29,12 +26,12 @@ describe("live notification count", () => {
   it("fetches the account count and refreshes after a private event or reconnect", async () => {
     await act(async () => { render(view()); });
     expect(screen.getByRole("link", { name: "Notifications, 2 unread" })).toBeDefined();
-    expect(mocks.acquire).toHaveBeenCalledWith("private-user-buyer");
+    expect(realtime.subscribed("user:buyer")).toBe(true);
     mocks.fetch.mockResolvedValue(response(3));
-    await act(async () => { mocks.listeners.get("private-user-buyer:notifications-changed")!(); });
+    await act(async () => { realtime.deliver("user:buyer", "notifications-changed", {}); });
     expect(screen.getByRole("link", { name: "Notifications, 3 unread" })).toBeDefined();
     mocks.fetch.mockResolvedValue(response(0));
-    await act(async () => { mocks.listeners.get("private-user-buyer:pusher:subscription_succeeded")!(); });
+    await act(async () => { realtime.ready("user:buyer"); });
     expect(screen.getByRole("link", { name: "Notifications" })).toBeDefined();
     expect(screen.queryByText("3")).toBeNull();
   });
@@ -65,8 +62,8 @@ describe("live notification count", () => {
     mocks.email = null;
     await act(async () => { rerender(view()); });
     expect(screen.getByRole("link", { name: "Notifications" })).toBeDefined();
-    expect(mocks.release).toHaveBeenCalledWith("private-user-buyer");
-    expect(mocks.listeners.size).toBe(0);
+    expect(realtime.subscribed("user:buyer")).toBe(false);
+    expect(realtime.listeners("user:buyer")).toBe(0);
   });
 
   it("ignores a late response from an earlier request or account", async () => {
@@ -78,6 +75,6 @@ describe("live notification count", () => {
     await act(async () => { rerender(view()); });
     await act(async () => { resolve(response(99)); });
     expect(screen.getByRole("link", { name: "Notifications, 1 unread" })).toBeDefined();
-    expect(mocks.acquire).not.toHaveBeenCalledWith("private-user-buyer");
+    expect(realtime.everSubscribed("user:buyer")).toBe(false);
   });
 });

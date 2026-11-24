@@ -4,17 +4,10 @@ import type { PublicListing } from "@/app/libs/listing-payload";
 import { auctionPhase, auctionStatusOrder, type AuctionPhase } from "@/app/libs/auction-lifecycle";
 import { useState } from "react";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
-import type {
-  AcceptedBidResponse,
-  AuctionEndTimeEvent,
-  AuctionStartedEvent,
-  AuctionEndedEvent,
-  BidEvent,
-  CommentEvent,
-  WatcherCountEvent,
-} from "@/app/types/auction-events";
+import type { AcceptedBidResponse } from "@/app/types/auction-events";
 import useCountDown from "./useCountDown";
-import usePusherEvent from "./usePusherEvent";
+import { listingChannel } from "@/app/libs/realtime/catalog";
+import { useRealtimeEvent, useRealtimeReady } from "@/app/libs/realtime/client";
 import useAuctionRefresh from "./useAuctionRefresh";
 
 interface AuctionSnapshot<T extends PublicListing> {
@@ -121,18 +114,18 @@ export default function useAuction<T extends PublicListing>(
     }));
   }
 
-  const channel = `listing-${listing.id}`;
-  usePusherEvent<WatcherCountEvent>(channel, "watcher-count-update", (event) => {
+  const listingUpdatesChannel = listingChannel(listing.id);
+  useRealtimeEvent(listingUpdatesChannel, "watcher-count-update", (event) => {
     if (event.listingId === listing.id) updateListing({ watcherCount: event.watcherCount });
   });
-  usePusherEvent<BidEvent>(channel, "new-bid", (bid) => {
+  useRealtimeEvent(listingUpdatesChannel, "new-bid", (bid) => {
     receiveBid(bid);
     refresh();
   });
-  usePusherEvent<AuctionEndTimeEvent>(channel, "new-end-time", ({ newEndTime }) => {
+  useRealtimeEvent(listingUpdatesChannel, "new-end-time", ({ newEndTime }) => {
     updateListing({ auctionEndsAt: new Date(newEndTime) });
   });
-  usePusherEvent<AuctionStartedEvent>(channel, "auction-started", (event) => {
+  useRealtimeEvent(listingUpdatesChannel, "auction-started", (event) => {
     updateListing({
       ...event,
       status: "LIVE",
@@ -141,15 +134,16 @@ export default function useAuction<T extends PublicListing>(
     });
     refresh();
   });
-  usePusherEvent<AuctionEndedEvent>(channel, "auction-ended", (event) => {
+  useRealtimeEvent(listingUpdatesChannel, "auction-ended", (event) => {
     updateListing({ status: "ENDED", result: event.result, auctionEndsAt: new Date(event.auctionEndsAt) });
     refresh();
   });
-  usePusherEvent<CommentEvent>(bids === emptyBids && comments === emptyComments ? null : channel, "new-comment", (comment) => {
+  // Only views that show activity (bids or comments) follow new comments.
+  useRealtimeEvent(bids === emptyBids && comments === emptyComments ? null : listingUpdatesChannel, "new-comment", (comment) => {
     receiveComment(comment);
     refresh();
   });
-  usePusherEvent(channel, "pusher:subscription_succeeded", () => {
+  useRealtimeReady(listingUpdatesChannel, () => {
     // Recover events missed before subscribing or while disconnected.
     refresh();
   });

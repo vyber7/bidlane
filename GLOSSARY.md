@@ -49,3 +49,21 @@ _Avoid_: Minimum bid (that is the bid ladder)
 **Extension**:
 The rule that a bid placed in the final two minutes resets the deadline to two minutes after that bid.
 _Avoid_: Anti-sniping, overtime
+
+## Following an Auction
+
+**Watcher**:
+A user who follows a Listing to hear about its Auction without bidding on it.
+_Avoid_: Follower, subscriber
+
+**Watchlist**:
+The Listings a user is watching.
+_Avoid_: Favourites, saved listings
+
+**Notification**:
+A message saved to a user's account about an Auction they bid on, sell or watch, such as being outbid, an ending-soon reminder or a Result.
+_Avoid_: Alert; notification (when you mean a Real-time update)
+
+**Real-time update**:
+A change shown to people viewing a Listing, or to one signed-in user, without reloading. It can be missed, so it is never the record of what happened.
+_Avoid_: Live update, push, broadcast

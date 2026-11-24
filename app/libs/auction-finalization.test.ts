@@ -1,10 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   findUnique: vi.fn(),
   findMany: vi.fn(),
   updateMany: vi.fn(),
-  trigger: vi.fn(),
   upsert: vi.fn(),
   loggerWarn: vi.fn(),
   loggerError: vi.fn(),
@@ -14,19 +13,20 @@ vi.mock("@/app/libs/native-repositories", () => ({
   getNativeRepositories: () => ({ auctions: { find: mocks.findUnique, expired: mocks.findMany } }),
   withNativeTransaction: async (callback: (tx: unknown) => unknown) => callback({ auctions: { finish: mocks.updateMany }, notifications: { insertOnce: mocks.upsert } }),
 }));
-vi.mock("@/app/libs/pusher", () => ({
-  pusherServer: { trigger: mocks.trigger },
-}));
 vi.mock("@/app/libs/logger", () => ({
   logger: { warn: mocks.loggerWarn, error: mocks.loggerError },
 }));
 
+import { installFakeRealtime, type FakeRealtime } from "./realtime/testing";
 import {
   finalizeAuction,
   finalizeExpiredAuctions,
 } from "./auction-finalization";
 
 const listingId = "abcdef0123456789abcdef01";
+let realtime: FakeRealtime;
+beforeEach(() => { realtime = installFakeRealtime(); });
+afterEach(() => realtime.uninstall());
 const endTime = new Date("2026-09-10T11:59:00.000Z");
 const now = new Date("2026-09-10T12:00:00.000Z");
 
@@ -49,7 +49,6 @@ describe("finalizeAuction", () => {
     vi.clearAllMocks();
     mocks.findUnique.mockResolvedValue(listing());
     mocks.updateMany.mockResolvedValue({ count: 1 });
-    mocks.trigger.mockResolvedValue(undefined);
   });
 
   it("returns not_found without trying to update", async () => {
@@ -91,11 +90,11 @@ describe("finalizeAuction", () => {
       auctionEndsAt: endTime,
     });
     expect(mocks.updateMany).toHaveBeenCalledWith(expect.objectContaining({ id: listingId, auctionEndsAt: endTime, currentBid: 12000 }), "SOLD", now);
-    expect(mocks.trigger).toHaveBeenCalledWith(
-      `listing-${listingId}`,
-      "auction-ended",
-      { auctionEndsAt: endTime.toISOString(), result: "SOLD" }
-    );
+    expect(realtime.published).toEqual([
+      { channel: `listing:${listingId}`, event: "auction-ended", payload: { auctionEndsAt: endTime.toISOString(), result: "SOLD" } },
+      { channel: "user:seller", event: "notifications-changed", payload: {} },
+      { channel: "user:buyer", event: "notifications-changed", payload: {} },
+    ]);
   });
 
   it("records reserve-not-met when there are no bids", async () => {
@@ -122,7 +121,7 @@ describe("finalizeAuction", () => {
   it("rolls back the finalization transaction if saving its result notification fails", async () => {
     mocks.upsert.mockRejectedValueOnce(new Error("notification write failed"));
     await expect(finalizeAuction(listingId, now)).rejects.toThrow("notification write failed");
-    expect(mocks.trigger).not.toHaveBeenCalled();
+    expect(realtime.published).toEqual([]);
   });
 
   it("lets a competing last-second extension win", async () => {
@@ -140,7 +139,7 @@ describe("finalizeAuction", () => {
       status: "not_due",
       auctionEndsAt: extendedEnd,
     });
-    expect(mocks.trigger).not.toHaveBeenCalled();
+    expect(realtime.published).toEqual([]);
     expect(mocks.upsert).not.toHaveBeenCalled();
   });
 
@@ -157,19 +156,19 @@ describe("finalizeAuction", () => {
       result: "SOLD",
     });
     expect(mocks.updateMany).toHaveBeenCalledTimes(2);
-    expect(mocks.trigger).toHaveBeenCalledTimes(3);
+    expect(realtime.sent(`listing:${listingId}`, "auction-ended")).toHaveLength(1);
   });
 
-  it("does not fail a committed finalization when notification fails", async () => {
-    mocks.trigger.mockRejectedValue(new Error("Pusher unavailable"));
+  it("does not fail a committed finalization when its real-time updates fail", async () => {
+    realtime.failSends();
 
     await expect(finalizeAuction(listingId, now)).resolves.toMatchObject({
       status: "finalized",
       result: "SOLD",
     });
-    expect(mocks.loggerWarn).toHaveBeenCalledWith(
-      "auction.end_notification_failed",
-      { listingId }
+    expect(mocks.loggerWarn).toHaveBeenCalledExactlyOnceWith(
+      "auction.end_realtime_update_failed",
+      expect.objectContaining({ listingId }),
     );
   });
 });
@@ -177,7 +176,6 @@ describe("finalizeAuction", () => {
 describe("finalizeExpiredAuctions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.trigger.mockResolvedValue(undefined);
   });
 
   it("finalizes due auctions and reports a bounded batch summary", async () => {

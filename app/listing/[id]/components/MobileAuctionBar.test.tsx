@@ -7,7 +7,11 @@ import { auctionNow, makePublicListing as makeListing } from "@/app/test/auction
 import MobileAuctionBar from "./MobileAuctionBar";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-vi.mock("@/app/hooks/usePusherEvent", () => ({ default: vi.fn() }));
+import { installFakeRealtime } from "@/app/libs/realtime/testing";
+
+let uninstallRealtime = () => {};
+beforeEach(() => { uninstallRealtime = installFakeRealtime().uninstall; });
+afterEach(() => uninstallRealtime());
 
 beforeEach(() => {
   vi.useFakeTimers();

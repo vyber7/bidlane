@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import usePusherEvent from "@/app/hooks/usePusherEvent";
+import { userChannel } from "@/app/libs/realtime/catalog";
+import { useRealtimeEvent, useRealtimeReady } from "@/app/libs/realtime/client";
 import type { NotificationSummary } from "@/app/types/account";
 
 type NotificationState = {
@@ -48,9 +49,9 @@ function AccountNotifications({ email, children }: { email: string | null; child
     };
   }, [email, refresh]);
 
-  const channel = state.summary ? `private-user-${state.summary.userId}` : null;
-  usePusherEvent(channel, "notifications-changed", () => { void refresh(); });
-  usePusherEvent(channel, "pusher:subscription_succeeded", () => { void refresh(); });
+  const channel = state.summary ? userChannel(state.summary.userId) : null;
+  useRealtimeEvent(channel, "notifications-changed", () => { void refresh(); });
+  useRealtimeReady(channel, () => { void refresh(); });
 
   return <NotificationContext.Provider value={{ ...state, refresh }}>{children}</NotificationContext.Provider>;
 }
