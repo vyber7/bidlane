@@ -113,7 +113,7 @@ const faqs = [
 
 export default function FAQPage() {
   return (
-    <main className="overflow-hidden bg-stone-50 pt-16">
+    <div className="overflow-hidden bg-stone-50 pt-16">
       <section className="relative bg-slate-950 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,rgba(245,158,11,0.22),transparent_30%)]" />
         <div className="relative mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8 lg:py-24">
@@ -129,9 +129,9 @@ export default function FAQPage() {
               Everything you need to find, bid on, or sell an enthusiast vehicle—without losing the thrill of the auction.
             </p>
             <nav aria-label="How it works sections" className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-amber-400">
-              <a href="#auction-rules" className="hover:text-amber-300">Bidding rules ↓</a>
-              <a href="#after-auction" className="hover:text-amber-300">After the auction ↓</a>
-              <a href="#fees" className="hover:text-amber-300">Payment & costs ↓</a>
+              <a href="#auction-rules" className="hover:text-amber-300">Bidding rules <span aria-hidden="true">↓</span></a>
+              <a href="#after-auction" className="hover:text-amber-300">After the auction <span aria-hidden="true">↓</span></a>
+              <a href="#fees" className="hover:text-amber-300">Payment & costs <span aria-hidden="true">↓</span></a>
             </nav>
           </div>
         </div>
@@ -144,7 +144,7 @@ export default function FAQPage() {
             <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Three steps to the driver&apos;s seat.</h2>
           </div>
           <Link href="/?status=live#auctions" className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 transition hover:text-amber-600">
-            See what&apos;s live <FiArrowRight aria-hidden="true" />
+            See What&apos;s Live <FiArrowRight aria-hidden="true" />
           </Link>
         </div>
 
@@ -165,7 +165,7 @@ export default function FAQPage() {
         </ol>
       </section>
 
-      <section id="auction-rules" className="mx-auto max-w-6xl scroll-mt-24 px-5 pb-16 sm:px-6 lg:px-8 lg:pb-24">
+      <section id="auction-rules" className="mx-auto max-w-6xl px-5 pb-16 sm:px-6 lg:px-8 lg:pb-24">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Before you bid</p>
         <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Know how the auction closes.</h2>
         <div className="mt-8 grid gap-5 lg:grid-cols-3">
@@ -181,7 +181,7 @@ export default function FAQPage() {
             <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Give your car the presentation it deserves.</h2>
             <p className="mt-5 text-base leading-7 text-slate-600">Strong auctions begin with honest details and a story worth sharing.</p>
             <Link href="/submit-listing" className="mt-7 inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-amber-400 hover:text-slate-950">
-              Submit your vehicle <FiArrowRight aria-hidden="true" />
+              Submit Your Vehicle <FiArrowRight aria-hidden="true" />
             </Link>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -204,7 +204,7 @@ export default function FAQPage() {
         </div>
       </section>
 
-      <section id="after-auction" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-16 sm:px-6 lg:px-8 lg:py-24">
+      <section id="after-auction" className="mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8 lg:py-24">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">After the auction</p>
         <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Turn a winning bid into a handoff.</h2>
         <p className="mt-5 max-w-3xl text-sm leading-7 text-slate-600">Once a sale is finalized, sign in and open <Link href="/account/shipments" className="font-bold text-slate-950 underline decoration-amber-400 underline-offset-4">Account → Purchases & sales</Link>. The winning buyer and seller can see the winning bid and each other’s contact details there. Check your in-app Notifications for the result.</p>
@@ -214,13 +214,13 @@ export default function FAQPage() {
         <p className="mt-5 text-sm leading-6 text-slate-500">If the reserve was not met or there were no bids, there is no sale to coordinate. If contact details are missing after a sold result, <Link href="/contact" className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">contact BidLane support</Link>.</p>
       </section>
 
-      <section id="fees" className="scroll-mt-24 border-y border-slate-200 bg-white">
+      <section id="fees" className="border-y border-slate-200 bg-white">
         <div className="mx-auto max-w-6xl px-5 py-12 sm:px-6 lg:px-8">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Payment & costs</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Know what you’re agreeing to.</h2>
           <div className="mt-7 grid gap-7 md:grid-cols-2">
-            <div><h3 className="font-bold text-slate-950">No platform fees for now</h3><p className="mt-3 text-sm leading-7 text-slate-600">BidLane currently charges no listing fees, buyer’s premiums, or seller commissions. The winning buyer and seller arrange vehicle payment directly; BidLane does not process that payment.</p></div>
-            <div><h3 className="font-bold text-slate-950">Costs beyond the winning bid</h3><p className="mt-3 text-sm leading-7 text-slate-600">Inspection, transport, insurance, taxes, and registration may add to the vehicle price. Agree who will handle these costs and the payment arrangements with the other party before completing the sale.</p></div>
+            <div><h3 className="font-bold text-slate-950">No Platform Fees for Now</h3><p className="mt-3 text-sm leading-7 text-slate-600">BidLane currently charges no listing fees, buyer’s premiums, or seller commissions. The winning buyer and seller arrange vehicle payment directly; BidLane does not process that payment.</p></div>
+            <div><h3 className="font-bold text-slate-950">Costs Beyond the Winning Bid</h3><p className="mt-3 text-sm leading-7 text-slate-600">Inspection, transport, insurance, taxes, and registration may add to the vehicle price. Agree who will handle these costs and the payment arrangements with the other party before completing the sale.</p></div>
           </div>
           <Link href="/contact" className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-slate-900 hover:text-amber-600">Questions about costs? Contact BidLane <FiArrowRight aria-hidden="true" /></Link>
         </div>
@@ -229,14 +229,14 @@ export default function FAQPage() {
       <section className="mx-auto max-w-4xl px-5 py-16 sm:px-6 lg:py-24">
         <div className="text-center">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Good to know</p>
-          <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Frequently asked questions</h2>
+          <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Frequently Asked Questions</h2>
         </div>
         <div className="mt-10 divide-y divide-slate-200 border-y border-slate-200">
           {faqs.map((item, index) => (
             <details key={item.question} className="group" open={index === 0}>
               <summary className="flex cursor-pointer list-none items-center justify-between gap-5 py-6 text-left text-base font-bold text-slate-950 marker:content-none sm:text-lg">
                 {item.question}
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600 transition group-open:rotate-180 group-open:bg-amber-400 group-open:text-slate-950">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600 transition motion-reduce:transition-none group-open:rotate-180 group-open:bg-amber-400 group-open:text-slate-950">
                   <FiChevronDown aria-hidden="true" />
                 </span>
               </summary>
@@ -253,10 +253,10 @@ export default function FAQPage() {
             <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Find the car that earns your bid.</h2>
           </div>
           <Link href="/?status=live#auctions" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
-            Browse live auctions <FiArrowRight aria-hidden="true" />
+            Browse Live Auctions <FiArrowRight aria-hidden="true" />
           </Link>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

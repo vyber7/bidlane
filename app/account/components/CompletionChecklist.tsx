@@ -140,17 +140,19 @@ export default function CompletionChecklist({ listingId, role, initialCompletion
               </div>
               <p className="mt-1 text-xs leading-5 text-gray-500">{description}</p>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-gray-900">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(own)}
-                    disabled={saving !== null}
-                    onChange={(event) => void confirm(id, event.target.checked)}
-                    aria-label={`Confirm ${title.toLowerCase()} as ${role}`}
-                    className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-gray-900 disabled:cursor-wait"
-                  />
-                  {saving === id ? "Saving…" : own ? "You confirmed" : "Confirm complete"}
-                </label>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-gray-900">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(own)}
+                      disabled={saving !== null}
+                      onChange={(event) => void confirm(id, event.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-gray-900 disabled:cursor-wait"
+                    />
+                    Confirm {title.toLowerCase()}{" "}<span className="sr-only">as {role}</span>
+                  </label>
+                  {(saving === id || own) && <span className="text-xs text-gray-500">{saving === id ? "Saving…" : "You confirmed"}</span>}
+                </div>
                 <span className={`text-xs ${other ? "text-emerald-700" : "text-gray-500"}`}>
                   {other ? `${counterparty === "buyer" ? "Buyer" : "Seller"} confirmed` : `Waiting for ${counterparty}`}
                 </span>

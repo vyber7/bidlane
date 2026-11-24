@@ -67,3 +67,9 @@ _Avoid_: Alert; notification (when you mean a Real-time update)
 **Real-time update**:
 A change shown to people viewing a Listing, or to one signed-in user, without reloading. It can be missed, so it is never the record of what happened.
 _Avoid_: Live update, push, broadcast
+
+## Interface copy
+
+**Copy case**:
+Buttons, button-styled links, and headings use Title Case ("Place a Bid", "Review Your Bid"). Body text, eyebrows, badges, navigation link lists, links inside sentences, and headlines written as full sentences ("Great cars. Worth the chase.") use sentence case.
+_Avoid_: Mixing cases within one kind of control

@@ -27,19 +27,19 @@ const sections: LegalSection[] = [
     title: "Information we collect",
     content: (
       <>
-        <h3>Information you provide</h3>
+        <h3>Information You Provide</h3>
         <p>
           This may include your name, email address, password, profile image,
           messages to us, comments, bids, watchlist choices, and vehicle listing
           details such as photos, description, mileage, and location.
         </p>
-        <h3>Information collected automatically</h3>
+        <h3>Information Collected Automatically</h3>
         <p>
           When you use Bidlane, we may receive device and browser information,
           IP address, approximate location, pages viewed, interactions,
           referring pages, timestamps, cookie identifiers, and diagnostic logs.
         </p>
-        <h3>Information from other sources</h3>
+        <h3>Information from Other Sources</h3>
         <p>
           If you sign in through an identity provider, we receive the account
           information that provider makes available according to your settings.

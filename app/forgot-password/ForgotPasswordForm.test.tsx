@@ -5,6 +5,12 @@ const mocks = vi.hoisted(() => ({ post: vi.fn() }));
 vi.mock("axios", async (importOriginal) => { const actual = await importOriginal<typeof import("axios")>(); return { ...actual, default: { ...actual.default, post: mocks.post } }; });
 import ForgotPasswordForm from "./ForgotPasswordForm";
 beforeEach(() => { vi.clearAllMocks(); }); afterEach(cleanup);
+
+function expectFieldError(field: HTMLElement, message: string) {
+  expect(field.getAttribute("aria-invalid")).toBe("true");
+  const ids = (field.getAttribute("aria-describedby") ?? "").split(" ");
+  expect(ids.map((id) => document.getElementById(id)?.textContent ?? "").join(" ")).toContain(message);
+}
 describe("forgot password", () => {
   it("submits a trimmed email and shows the generic confirmation", async () => {
     mocks.post.mockResolvedValueOnce({ data: { message: "If an eligible account exists, you’ll receive a reset email." } });
@@ -13,7 +19,7 @@ describe("forgot password", () => {
     await act(async () => { fireEvent.submit(container.querySelector("form")!); });
     expect(mocks.post).toHaveBeenCalledWith("/api/forgot-password", { email: "user@example.com" });
     expect(screen.getByRole("status").textContent).toContain("If an eligible account exists");
-    expect(screen.getByRole("link", { name: "Back to sign in" }).getAttribute("href")).toBe("/signin");
+    expect(screen.getByRole("link", { name: "Back to Sign In" }).getAttribute("href")).toBe("/signin");
   });
   it("preserves the email for retry after failure", async () => {
     mocks.post.mockRejectedValueOnce({ isAxiosError: true, response: { data: { error: "Recovery unavailable" } } });
@@ -31,5 +37,16 @@ describe("forgot password", () => {
     fireEvent.submit(container.querySelector("form")!); fireEvent.submit(container.querySelector("form")!);
     expect(mocks.post).toHaveBeenCalledTimes(1); expect(screen.getByRole("button", { name: "Requesting…" })).toHaveProperty("disabled", true);
     await act(async () => { resolve({ data: { message: "Check your inbox" } }); });
+  });
+  it("ties an invalid email error to the field and focuses it", async () => {
+    const { container } = render(<ForgotPasswordForm />);
+    const email = screen.getByLabelText("Email address");
+    expect(email.getAttribute("name")).toBe("email");
+    expect(email.getAttribute("spellcheck")).toBe("false");
+    fireEvent.change(email, { target: { value: "not-an-email" } });
+    await act(async () => { fireEvent.submit(container.querySelector("form")!); });
+    expectFieldError(email, "Enter a valid email address.");
+    expect(document.activeElement).toBe(email);
+    expect(mocks.post).not.toHaveBeenCalled();
   });
 });

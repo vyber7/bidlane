@@ -12,7 +12,7 @@ export default function Comments({ signedIn }: { signedIn: boolean }) {
     <section
       id="comments"
       aria-labelledby="comments-heading"
-      className="scroll-mt-[calc(var(--site-header-height)+1rem)] rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
+      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
     >
       <h2 id="comments-heading" className="text-2xl font-bold tracking-tight">Comments &amp; Bids</h2>
       <div className="my-4">

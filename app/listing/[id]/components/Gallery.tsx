@@ -48,6 +48,9 @@ const Gallery: React.FC<GalleryProps> = ({
     ? images.slice(Math.max(0, selectedImage - 1), selectedImage + 2)
     : images.filter((image) => image === preparedImage);
 
+  const showPrevious = () => setSelectedImage((i) => Math.max(0, i - 1));
+  const showNext = () => setSelectedImage((i) => (i < images.length - 1 ? i + 1 : i));
+
   const handleUpload = (imageUrl: string) => {
     return axios
       .post("/api/cloudinary-images", {
@@ -72,9 +75,9 @@ const Gallery: React.FC<GalleryProps> = ({
   };
 
   return (
-    <section id="photos" className="scroll-mt-24 rounded-2xl">
+    <section id="photos" className="rounded-2xl">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold">Photo gallery</h2>
+        <h2 className="text-lg font-bold">Photo Gallery</h2>
         <span className="text-xs text-slate-500">{formatCount(images.length, "photo")}</span>
       </div>
       {!images.length && (
@@ -139,11 +142,20 @@ const Gallery: React.FC<GalleryProps> = ({
           setIsOpen(false);
           setPreparedImage(null);
         }}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowRight") {
+            event.preventDefault();
+            showNext();
+          } else if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            showPrevious();
+          }
+        }}
         aria-label={`${vehicleName} photos`}
         className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-5xl overflow-y-auto overscroll-contain rounded-2xl bg-slate-950 p-4 text-white backdrop:bg-black/80"
       >
         <div className="mb-4 flex items-center justify-between gap-4">
-          <p aria-live="polite" aria-atomic="true" className="text-sm">
+          <p aria-live="polite" aria-atomic="true" className="text-sm tabular-nums">
             Photo {selectedImage + 1} of {images.length}
           </p>
           <button
@@ -151,7 +163,7 @@ const Gallery: React.FC<GalleryProps> = ({
             onClick={() => dialogRef.current?.close()}
             className={dialogButtonClass}
           >
-            Close ×
+            Close <span aria-hidden="true">×</span>
           </button>
         </div>
         <div className="relative h-[min(70dvh,700px)]">
@@ -169,18 +181,18 @@ const Gallery: React.FC<GalleryProps> = ({
           <button
             type="button"
             aria-disabled={selectedImage === 0}
-            onClick={() => setSelectedImage((i) => Math.max(0, i - 1))}
+            onClick={showPrevious}
             className={dialogButtonClass}
           >
-            ← Previous
+            <span aria-hidden="true">←</span> Previous
           </button>
           <button
             type="button"
             aria-disabled={selectedImage >= images.length - 1}
-            onClick={() => setSelectedImage((i) => i < images.length - 1 ? i + 1 : i)}
+            onClick={showNext}
             className={dialogButtonClass}
           >
-            Next →
+            Next <span aria-hidden="true">→</span>
           </button>
         </div>
       </dialog>

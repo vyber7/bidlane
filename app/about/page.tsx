@@ -60,7 +60,7 @@ const journey = [
 
 export default function AboutPage() {
   return (
-    <main className="overflow-hidden bg-stone-50 pt-16">
+    <div className="overflow-hidden bg-stone-50 pt-16">
       <section className="relative bg-slate-950 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_18%,rgba(245,158,11,0.20),transparent_31%)]" />
         <div className="absolute -bottom-32 -left-32 h-72 w-72 rounded-full border border-white/[0.06]" />
@@ -83,13 +83,13 @@ export default function AboutPage() {
                 href="/?status=live#auctions"
                 className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300"
               >
-                Explore live auctions <FiArrowRight aria-hidden="true" />
+                Explore Live Auctions <FiArrowRight aria-hidden="true" />
               </Link>
               <Link
                 href="/submit-listing"
                 className="rounded-full border border-white/25 px-6 py-3 text-sm font-semibold transition hover:border-white/60 hover:bg-white/10"
               >
-                Sell your vehicle
+                Sell Your Vehicle
               </Link>
             </div>
           </div>
@@ -138,7 +138,7 @@ export default function AboutPage() {
             {values.map(({ icon: Icon, title, description }) => (
               <article
                 key={title}
-                className="rounded-2xl border border-slate-200 bg-stone-50 p-7 transition hover:-translate-y-1 hover:border-amber-300 hover:shadow-lg hover:shadow-slate-900/5"
+                className="rounded-2xl border border-slate-200 bg-stone-50 p-7"
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-amber-400">
                   <Icon size={20} aria-hidden="true" />
@@ -203,10 +203,10 @@ export default function AboutPage() {
             href="/?status=live#auctions"
             className="relative mt-7 inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-slate-800 lg:mt-0"
           >
-            Browse auctions <FiArrowRight aria-hidden="true" />
+            Browse Auctions <FiArrowRight aria-hidden="true" />
           </Link>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

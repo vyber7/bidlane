@@ -54,8 +54,8 @@ describe("auction expiry controls", () => {
   });
 
   it.each([
-    ["seller", "View sale details"],
-    ["buyer", "View purchase details"],
+    ["seller", "View Sale Details"],
+    ["buyer", "View Purchase Details"],
   ])("takes the sold vehicle's %s to the handoff details", (user, label) => {
     render(auction(makeListing({ status: "ENDED", result: "SOLD", currentBid: 10000, highestBidderId: "buyer" }), user));
     expect(screen.getByRole("link", { name: label }).getAttribute("href")).toBe(`/account/shipments#transaction-${makeListing().id}`);
@@ -78,7 +78,7 @@ describe("auction expiry controls", () => {
     expect(screen.getByText("Closing")).toBeDefined();
     mocks.post.mockClear();
     await act(async () => {
-      screen.getByRole("button", { name: "Retry finalization" }).click();
+      screen.getByRole("button", { name: "Retry Finalization" }).click();
     });
     expect(mocks.post).toHaveBeenCalledWith("/api/auction-finalize", { listingId: makeListing().id });
   });
@@ -120,7 +120,7 @@ describe("auction expiry controls", () => {
 
   it("invites a signed-out visitor to bid on an Open Auction", () => {
     render(createElement(AuctionProvider, { listing: makeListing(), bids: [], comments: [] }, createElement(AuctionStatusBar, {})));
-    expect(screen.getByRole("link", { name: "Place a bid" })).toBeDefined();
+    expect(screen.getByRole("link", { name: "Place a Bid" })).toBeDefined();
   });
 
   it("does not request finalization again for an ended auction", () => {
@@ -132,11 +132,11 @@ describe("auction expiry controls", () => {
     const listing = makeListing();
     const { rerender } = render(auction(listing));
     expect(screen.getByText("1m : 0s")).toBeDefined();
-    expect(screen.getByLabelText("Auction closing progress").firstElementChild).toHaveProperty("style.width", "50%");
+    expect(screen.getByRole("progressbar", { name: "Auction closing progress" }).getAttribute("aria-valuenow")).toBe("50");
     act(() => vi.advanceTimersByTime(1000));
     rerender(auction({ ...listing, auctionEndsAt: new Date(Date.now() + 90000) }));
     expect(screen.getByText("1m : 30s")).toBeDefined();
-    expect(screen.getByLabelText("Auction closing progress").firstElementChild).toHaveProperty("style.width", "75%");
+    expect(screen.getByRole("progressbar", { name: "Auction closing progress" }).getAttribute("aria-valuenow")).toBe("75");
   });
 
   it("finalizes a newly extended deadline even if the previous deadline was already requested", async () => {
@@ -162,8 +162,37 @@ describe("auction expiry controls", () => {
     expect(finish).toHaveLength(2);
 
     await act(async () => finish[0]({ data: {} }));
-    expect(screen.getByRole("button", { name: "Finalizing auction…" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "Finalizing Auction…" })).toHaveProperty("disabled", true);
     await act(async () => finish[1]({ data: {} }));
-    expect(screen.getByRole("button", { name: "Retry finalization" })).toHaveProperty("disabled", false);
+    expect(screen.getByRole("button", { name: "Retry Finalization" })).toHaveProperty("disabled", false);
+  });
+});
+
+describe("auction status panel semantics", () => {
+  it("exposes the Extension window as a progressbar with its current value", () => {
+    render(auction(makeListing()));
+    const progress = screen.getByRole("progressbar", { name: "Auction closing progress" });
+    expect(progress.getAttribute("aria-valuemin")).toBe("0");
+    expect(progress.getAttribute("aria-valuemax")).toBe("100");
+    expect(progress.getAttribute("aria-valuenow")).toBe("50");
+    expect(progress.getAttribute("aria-valuetext")).toBe("1m : 0s left");
+  });
+
+  it("shows no progressbar outside the Extension window", () => {
+    render(auction(makeListing({ auctionEndsAt: new Date(auctionNow.getTime() + 3600000) })));
+    expect(screen.queryByRole("progressbar")).toBeNull();
+  });
+
+  it("keeps decorative icons and the live dot out of accessible names", () => {
+    const { container } = render(auction(makeListing({ commentsIds: [] }), "buyer"));
+    expect(container.querySelectorAll("svg:not([aria-hidden='true'])")).toHaveLength(0);
+    expect(screen.getByText("●").getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("names count links by their counts and announces comments only through the status line", () => {
+    render(auction(makeListing(), "buyer"));
+    const comments = screen.getByRole("link", { name: "0 comments" });
+    expect(comments.getAttribute("aria-live")).toBeNull();
+    expect(screen.getByRole("link", { name: "0 bids" })).toBeDefined();
   });
 });

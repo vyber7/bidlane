@@ -33,7 +33,7 @@ const Bids: React.FC<BidsProps> = ({
   return (
     <div
       id="bids"
-      className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
+      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
     >
       <h2 className="pb-2 md:pb-4 text-lg font-bold">
         {listing.year} {capitalize(listing.make)} {capitalize(listing.model)}
@@ -55,41 +55,37 @@ const Bids: React.FC<BidsProps> = ({
               </span>
             </p>
           )}
-          <div className="font-bold text-4xl sm:text-5xl tracking-tight">
+          <div className="font-bold text-4xl sm:text-5xl tracking-tight tabular-nums">
             {price.amount !== null ? <span>{formatPrice(price.amount)}</span> : <span>—</span>}
           </div>
         </div>
 
-        <div className="md:w-1/2 w-full flex flex-col gap-2 text-sm">
-          <p className="flex justify-start">
-            <span className="w-1/4">Seller</span>
-            <span className="font-semibold">
-              {" "}
-              {formatDisplayName(sellerName, "Seller")}
-            </span>
-          </p>
-          <p className="flex justify-start">
-            <span className="w-1/4">Ending</span>
-            <span className="font-semibold">
-              {" "}
+        <dl className="md:w-1/2 w-full flex flex-col gap-2 text-sm">
+          <div className="flex justify-start">
+            <dt className="w-1/4">Seller</dt>
+            <dd className="font-semibold">{formatDisplayName(sellerName, "Seller")}</dd>
+          </div>
+          <div className="flex justify-start">
+            <dt className="w-1/4">Ending</dt>
+            <dd className="font-semibold tabular-nums">
               {listing.auctionEndsAt ? (
                 <time dateTime={listing.auctionEndsAt.toISOString()}>{formatDateTime(listing.auctionEndsAt)}</time>
               ) : "To be announced"}
-            </span>
-          </p>
-          <p className="flex justify-start">
-            <span className="w-1/4">Views</span>
-            <span className="font-semibold"> {formatAmount(listing.views)}</span>
-          </p>
-          <p className="flex justify-start">
-            <span className="w-1/4">Watching</span>
-            <span className="font-semibold"> {formatAmount(listing.watcherCount)}</span>
-          </p>
-          <p className="flex justify-start">
-            <span className="w-1/4">Bids</span>
-            <span className="font-semibold"> {formatAmount(bids.length)}</span>
-          </p>
-        </div>
+            </dd>
+          </div>
+          <div className="flex justify-start">
+            <dt className="w-1/4">Views</dt>
+            <dd className="font-semibold tabular-nums">{formatAmount(listing.views)}</dd>
+          </div>
+          <div className="flex justify-start">
+            <dt className="w-1/4">Watching</dt>
+            <dd className="font-semibold tabular-nums">{formatAmount(listing.watcherCount)}</dd>
+          </div>
+          <div className="flex justify-start">
+            <dt className="w-1/4">Bids</dt>
+            <dd className="font-semibold tabular-nums">{formatAmount(bids.length)}</dd>
+          </div>
+        </dl>
       </div>
       {display.bucket === "live" && (display.action === null || display.timer === "closing") && display.message && (
         <p className="mt-2 text-sm text-slate-500">{display.message}</p>

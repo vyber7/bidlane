@@ -11,9 +11,9 @@ interface AsideProps {
 
 const Aside: React.FC<AsideProps> = ({ auctions, variant = "sold" }) => {
   const live = variant === "live";
-  const heading = live ? "Live auctions" : "Recently sold";
+  const heading = live ? "Live Auctions" : "Recently Sold";
   return (
-    <aside aria-label={heading} className={`h-fit rounded-2xl border border-slate-200 bg-slate-50 p-5${live ? "" : " lg:sticky lg:top-20"}`}>
+    <aside aria-label={heading} className={`h-fit rounded-2xl border border-slate-200 bg-slate-50 p-5${live ? "" : " lg:sticky lg:top-[calc(var(--site-header-height)+1rem)]"}`}>
       <h2 className="mt-2 text-xl font-bold text-slate-950">
         {heading}
       </h2>
@@ -41,7 +41,7 @@ const Aside: React.FC<AsideProps> = ({ auctions, variant = "sold" }) => {
           href={live ? "/?status=live#auctions" : "/?status=ended#auctions"}
           className="inline-flex items-center gap-2 text-sm font-bold text-slate-950 transition hover:text-amber-600"
         >
-          {live ? "View all live auctions" : "View all results"}{" "}
+          {live ? "View All Live Auctions" : "View All Results"}{" "}
           <FiArrowRight aria-hidden="true" />
         </Link>
       </div>

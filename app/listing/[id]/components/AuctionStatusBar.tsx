@@ -109,17 +109,17 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
       <p role="status" aria-atomic="true" className="sr-only">
         {`${headline}.${announcedPrice}${result ? ` ${result}.` : ""}`}
       </p>
-      {live && <ProgressBar remainingMs={remainingMs} />}
+      {live && <ProgressBar remainingMs={remainingMs} timeLeft={timeLeft} />}
       <div className="space-y-4 p-5 sm:space-y-6 sm:p-6">
         <div className="flex items-center justify-between gap-3">
           <span className={clsx("rounded-full px-3 py-1 text-xs font-bold", display.tone === "live" ? "bg-amber-400 text-slate-950" : "bg-white/10 text-slate-200")}>
-            {display.timer === "countdown" ? `● ${headline}` : headline}
+            {display.timer === "countdown" && <span aria-hidden="true">● </span>}{headline}
           </span>
           {!owner && !ended && (
             <button type="button" onClick={toggle} disabled={isUpdating} aria-pressed={watching}
               aria-label={watching ? "Remove from watchlist" : "Add to watchlist"}
               className="rounded-lg p-2 text-2xl text-amber-400 hover:bg-white/10 disabled:opacity-50">
-              {watching ? <GoStarFill /> : <GoStar />}
+              {watching ? <GoStarFill aria-hidden="true" /> : <GoStar aria-hidden="true" />}
             </button>
           )}
         </div>
@@ -135,25 +135,25 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
           {result && <p className="mt-2 text-sm text-amber-400">{result}</p>}
         </div>
         {display.timer === "countdown" && <div className="flex items-center justify-between gap-3 border-y border-white/10 py-4 text-sm">
-          <span className="flex items-center gap-2 text-slate-400"><FaRegClock /> Time left</span>
+          <span className="flex items-center gap-2 text-slate-400"><FaRegClock aria-hidden="true" /> Time left</span>
           <span className="font-semibold tabular-nums">{timeLeft || "Calculating…"}</span>
         </div>}
         {display.action === "retry-finalization" ? (
-          <Button onClick={retryFinalization} disabled={isLoading || isAutoFinalizing}>{isLoading || isAutoFinalizing ? "Finalizing auction…" : "Retry finalization"}</Button>
+          <Button onClick={retryFinalization} disabled={isLoading || isAutoFinalizing}>{isLoading || isAutoFinalizing ? "Finalizing Auction…" : "Retry Finalization"}</Button>
         ) : display.action === "place-bid" ? (
-          <Link href="#bids" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">Place a bid</Link>
+          <Link href="#bids" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">Place a Bid</Link>
         ) : display.message ? (
           <p className="text-sm leading-6 text-slate-400">{display.message}</p>
         ) : null}
         {transaction?.canComplete && (
           <div className="space-y-3">
-            <Link href={transactionHref(listing.id)} className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">{transaction.role === "seller" ? "View sale details" : "View purchase details"}</Link>
+            <Link href={transactionHref(listing.id)} className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">{transaction.role === "seller" ? "View Sale Details" : "View Purchase Details"}</Link>
             <p className="text-xs leading-5 text-slate-400">Contact the {transaction.role === "seller" ? "buyer" : "seller"} to agree payment, paperwork, and pickup.</p>
           </div>
         )}
         <div className="flex flex-wrap gap-5 text-sm text-slate-400">
-          {display.bucket !== "upcoming" && <Link href="#bids" className="flex items-center gap-2 hover:text-white"><FaHashtag />{formatCount(bids.length, "bid")}</Link>}
-          <Link href="#comments" aria-live="polite" aria-atomic="true" className="flex items-center gap-2 hover:text-white"><FaRegCommentAlt />{formatCount(comments.length, "comment")}</Link>
+          {display.bucket !== "upcoming" && <Link href="#bids" className="flex items-center gap-2 tabular-nums hover:text-white"><FaHashtag aria-hidden="true" />{formatCount(bids.length, "bid")}</Link>}
+          <Link href="#comments" className="flex items-center gap-2 tabular-nums hover:text-white"><FaRegCommentAlt aria-hidden="true" />{formatCount(comments.length, "comment")}</Link>
         </div>
       </div>
     </section>

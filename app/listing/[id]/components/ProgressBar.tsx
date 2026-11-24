@@ -1,32 +1,28 @@
-// This component will display a bar indicating the ending time of an auction.
+// Shows how much of the Extension window is left before the Auction closes.
 "use client";
-import clsx from "clsx";
 import { EXTENSION_WINDOW_MS } from "@/app/libs/auction-lifecycle";
 
 interface ProgressBarProps {
   remainingMs: number | null;
+  timeLeft?: string;
 }
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ remainingMs }) => {
+const ProgressBar: React.FC<ProgressBarProps> = ({ remainingMs, timeLeft }) => {
   const distance = remainingMs ?? 0;
-  const isVisible = distance <= EXTENSION_WINDOW_MS && distance > 0;
-  const width = Math.max(0, Math.min(100, (distance / EXTENSION_WINDOW_MS) * 100));
+  if (distance <= 0 || distance > EXTENSION_WINDOW_MS) return null;
+  const percent = Math.round(Math.max(0, Math.min(100, (distance / EXTENSION_WINDOW_MS) * 100)));
 
   return (
     <div
+      role="progressbar"
       aria-label="Auction closing progress"
-      className={clsx(
-        isVisible ? "block" : "hidden",
-        "w-full bg-red-100 rounded-t-md"
-      )}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={percent}
+      aria-valuetext={timeLeft ? `${timeLeft} left` : undefined}
+      className="w-full rounded-t-md bg-red-100"
     >
-      <div
-        style={{ width: `${Math.round(width)}%` }}
-        className={clsx(
-          isVisible ? "block" : "hidden",
-          "h-1 bg-red-500 rounded-tl-md"
-        )}
-      ></div>
+      <div style={{ width: `${percent}%` }} className="h-1 rounded-tl-md bg-red-500" />
     </div>
   );
 };

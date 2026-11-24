@@ -35,8 +35,7 @@ export default function FeaturedAuction({ listing: initialListing, currentUserId
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-slate-400"><FiCamera size={28} aria-hidden="true" />Photos coming soon</div>
         )}
-        <span aria-live="polite" aria-atomic="true" className="absolute left-3 top-3 rounded-full bg-slate-950/90 px-3 py-1.5 text-xs font-bold text-amber-400">
-          <span className="sr-only">{title}: </span>
+        <span aria-hidden="true" className="absolute left-3 top-3 rounded-full bg-slate-950/90 px-3 py-1.5 text-xs font-bold text-amber-400">
           {display.headline}
         </span>
         <span aria-hidden="true" className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white text-slate-950 transition group-hover:bg-amber-400"><FiArrowUpRight size={18} /></span>
@@ -52,15 +51,15 @@ export default function FeaturedAuction({ listing: initialListing, currentUserId
         <p className="mt-2 text-sm text-slate-300">{formatAmount(listing.miles)} miles · {listing.location}</p>
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4 lg:mt-auto">
           <div className="text-sm leading-6 text-slate-300">
-            <p aria-live="polite" aria-atomic="true">
-              {!upcoming && <>
-                <span className="sr-only">{title}: </span>
-                {bidLabel} <strong className="text-xl tabular-nums text-white">{amount === null ? "—" : formatPrice(amount)}</strong>
-              </>}
+            <p aria-live="polite" aria-atomic="true" className="sr-only">
+              {`${title}: ${display.headline}.${upcoming ? "" : ` ${bidLabel} ${amount === null ? "not yet set" : formatPrice(amount)}.`}`}
             </p>
+            {!upcoming && <p aria-hidden="true">
+              {bidLabel} <strong className="text-xl tabular-nums text-white">{amount === null ? "—" : formatPrice(amount)}</strong>
+            </p>}
             {upcoming
               ? <p>Watch it now.<br /><span className="text-white">Be ready when bidding opens.</span></p>
-              : <p className="text-amber-400">{statusLine}</p>}
+              : <p className="tabular-nums text-amber-400">{statusLine}</p>}
           </div>
           {showWatchButton ? (
             <div className="relative z-20">
@@ -68,7 +67,7 @@ export default function FeaturedAuction({ listing: initialListing, currentUserId
             </div>
           ) : (
             <span aria-hidden="true" className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-amber-400">
-              {upcoming ? "View your listing" : ended ? "View result" : "View auction"}<FiArrowUpRight aria-hidden="true" />
+              {upcoming ? "View Your Listing" : ended ? "View Result" : "View Auction"}<FiArrowUpRight aria-hidden="true" />
             </span>
           )}
         </div>

@@ -34,8 +34,8 @@ export default async function SellerPage({ params, searchParams }: {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("");
-  return <main className="mx-auto max-w-6xl space-y-7 px-4 pb-16 pt-28 sm:px-6 lg:px-8">
-    <Link href={fromListing ? `/listing/${fromListing}` : "/#auctions"} className="text-sm font-semibold text-slate-600 hover:underline">{fromListing ? "← Back to listing" : "← Browse auctions"}</Link>
+  return <div className="mx-auto max-w-6xl space-y-7 px-4 pb-16 pt-28 sm:px-6 lg:px-8">
+    <Link href={fromListing ? `/listing/${fromListing}` : "/#auctions"} className="text-sm font-semibold text-slate-600 hover:underline"><span aria-hidden="true">←</span> {fromListing ? "Back to Listing" : "Browse Auctions"}</Link>
     <header className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
       <div className="grid grid-cols-[minmax(0,1fr)_5rem] items-start gap-4 sm:grid-cols-[minmax(0,1fr)_10rem] sm:gap-8">
         <div>
@@ -67,10 +67,10 @@ export default async function SellerPage({ params, searchParams }: {
     <VehicleList title="Latest current listings" vehicles={active} empty="No current listings." />
     <VehicleList title="Sold at auction" vehicles={sales} empty="No sold auction results yet." />
     {(page > 1 || page * 12 < salesCount) && <nav aria-label="Seller auction result pages" className="flex justify-between text-sm font-bold underline">
-      {page > 1 ? <Link href={`/sellers/${id}?page=${page - 1}${listingQuery}`}>← Previous results</Link> : <span />}
-      {page * 12 < salesCount && <Link href={`/sellers/${id}?page=${page + 1}${listingQuery}`}>More results →</Link>}
+      {page > 1 ? <Link href={`/sellers/${id}?page=${page - 1}${listingQuery}`}><span aria-hidden="true">←</span> Previous Results</Link> : <span />}
+      {page * 12 < salesCount && <Link href={`/sellers/${id}?page=${page + 1}${listingQuery}`}>More Results <span aria-hidden="true">→</span></Link>}
     </nav>}
-  </main>;
+  </div>;
 }
 
 function VehicleList({ title, vehicles, empty }: { title: string; vehicles: NonNullable<Awaited<ReturnType<typeof getSellerProfile>>>["sales"]; empty: string }) {

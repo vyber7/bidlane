@@ -1,12 +1,13 @@
 "use client";
 
 import type { PublicListing } from "@/app/libs/listing-payload";
-import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { FiCheckCircle, FiClock, FiSearch, FiTag, FiZap } from "react-icons/fi";
 import Listings from "../../components/Listings";
 import AuctionSearchControls from "@/app/components/AuctionSearchControls";
 import useAuctionInventory from "@/app/hooks/useAuctionInventory";
 import { inventoryTabs, type InventoryTab } from "@/app/libs/auction-inventory";
+import { InventoryAnnouncementsProvider } from "@/app/context/InventoryAnnouncements";
 
 interface AuctionBrowserProps {
   listings: PublicListing[];
@@ -73,6 +74,14 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
   const resultMessage = resultCount === 0
     ? "No auctions found"
     : `${resultCount} ${resultCount === 1 ? "auction" : "auctions"} found`;
+  const resultAnnouncement = `${activeLabel}: ${resultMessage}.`;
+  // The latest card price change, until the results themselves change.
+  const [priceAnnouncement, setPriceAnnouncement] = useState<{ message: string; results: string } | null>(null);
+  const announcePrice = useCallback(
+    (message: string) => setPriceAnnouncement({ message, results: resultAnnouncement }),
+    [resultAnnouncement],
+  );
+  const announcement = priceAnnouncement?.results === resultAnnouncement ? priceAnnouncement.message : resultAnnouncement;
 
   function focusTab(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
@@ -171,7 +180,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
       </div>
 
       <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        {activeLabel}: {resultMessage}.
+        {announcement}
       </p>
 
       {inventoryTabs.map((id) => (
@@ -186,11 +195,13 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
         >
           {id === activeTab && (
             resultCount > 0 ? (
-              <Listings resultsPage={resultsPage} currentUserId={currentUserId} onPageChange={setPage} />
+              <InventoryAnnouncementsProvider value={announcePrice}>
+                <Listings resultsPage={resultsPage} currentUserId={currentUserId} onPageChange={setPage} />
+              </InventoryAnnouncementsProvider>
             ) : (
               <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center">
                 <FiSearch aria-hidden="true" className="mx-auto text-2xl text-slate-400" />
-                <h3 className="mt-3 font-bold text-slate-950">No auctions found</h3>
+                <h3 className="mt-3 font-bold text-slate-950">No Auctions Found</h3>
                 <p className="mt-1 text-sm text-slate-500">
                   Try another search or choose a different auction tab.
                 </p>
@@ -200,7 +211,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
                     onClick={() => setQuery("")}
                     className="mt-4 text-sm font-bold text-slate-950 hover:underline"
                   >
-                    Clear search
+                    Clear Search
                   </button>
                 )}
               </div>

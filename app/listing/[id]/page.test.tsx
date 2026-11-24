@@ -50,7 +50,7 @@ describe("private listing pages", () => {
   it.each([null, "seller"])("skips the completion checklist for a sale without a distinct buyer (%s)", async (highestBidderId) => {
     mocks.listing.mockResolvedValue(makeListing({ status: "ENDED", result: "SOLD", highestBidderId }));
     mocks.user.mockResolvedValue({ id: "seller" });
-    expect(renderToStaticMarkup(await visit())).not.toContain("Open completion checklist");
+    expect(renderToStaticMarkup(await visit())).not.toContain("Open Completion Checklist");
   });
   it("never passes reserve amounts or private activity lists into the auction provider", async () => {
     mocks.listing.mockResolvedValue(makeListing({

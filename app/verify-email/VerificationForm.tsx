@@ -33,7 +33,7 @@ export default function VerificationForm() {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
       <h1 className="text-2xl font-black">
-        {state === "done" ? "Email verified" : "Confirm your email"}
+        {state === "done" ? "Email Verified" : "Confirm Your Email"}
       </h1>
       {state === "done" ? (
         <p role="status" className="mt-4 text-emerald-800">
@@ -49,7 +49,7 @@ export default function VerificationForm() {
           <button
             type="button"
             disabled={!token || state === "sending"}
-            className="mt-5 rounded-lg bg-amber-400 px-5 py-3 font-bold text-slate-950 disabled:opacity-50"
+            className="mt-5 rounded-lg bg-amber-400 px-5 py-3 font-bold text-slate-950 hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:opacity-50 disabled:hover:bg-amber-400"
             onClick={async () => {
               if (!token || busy.current) return;
               busy.current = true;
@@ -76,7 +76,7 @@ export default function VerificationForm() {
               }
             }}
           >
-            {state === "sending" ? "Verifying…" : "Verify email address"}
+            {state === "sending" ? "Verifying…" : "Verify Email Address"}
           </button>
           {!token && (
             <p className="mt-3 text-sm text-slate-600">
@@ -93,9 +93,9 @@ export default function VerificationForm() {
       )}
       <Link
         href="/account/profile"
-        className="mt-6 block w-fit text-sm font-bold underline"
+        className="mt-6 block w-fit text-sm font-bold underline hover:text-amber-700"
       >
-        Go to profile
+        Go to Profile
       </Link>
     </section>
   );

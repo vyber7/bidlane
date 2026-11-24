@@ -51,7 +51,7 @@ export default function ContactForm() {
       <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-6">
         <div>
           <h2 className="text-2xl font-black tracking-tight text-slate-950">
-            Send us a note
+            Send Us a Note
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             All fields are required.
@@ -78,7 +78,7 @@ export default function ContactForm() {
               name="name"
               maxLength={contactLimits.name}
               type="text"
-              placeholder="Alex Morgan"
+              placeholder="Alex Morgan…"
               className={fieldClass}
             />
           </label>
@@ -88,9 +88,10 @@ export default function ContactForm() {
               required
               autoComplete="email"
               name="email"
+              spellCheck={false}
               maxLength={contactLimits.email}
               type="email"
-              placeholder="alex@example.com"
+              placeholder="alex@example.com…"
               className={fieldClass}
             />
           </label>
@@ -113,7 +114,7 @@ export default function ContactForm() {
             name="message"
             maxLength={contactLimits.message}
             rows={6}
-            placeholder="Tell us how we can help..."
+            placeholder="Tell us how we can help…"
             className={`${fieldClass} resize-y`}
           />
         </label>
@@ -127,7 +128,7 @@ export default function ContactForm() {
             disabled={sending}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-amber-400 hover:text-slate-950 disabled:cursor-wait disabled:opacity-70"
           >
-            {sending ? "Sending…" : "Send message"}
+            {sending ? "Sending…" : "Send Message"}
             <FiArrowUpRight aria-hidden="true" />
           </button>
         </div>

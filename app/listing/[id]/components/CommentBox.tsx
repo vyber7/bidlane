@@ -43,7 +43,7 @@ const CommentBox = memo(function CommentBox({ comments, bids }: CommentBoxProps)
             <li
               key={`${isComment ? "comment" : "bid"}-${item.id}`}
               tabIndex={-1}
-              className="flex min-w-0 scroll-mt-[calc(var(--site-header-height)+1rem)] flex-col gap-1 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500 [content-visibility:auto] [contain-intrinsic-size:auto_5rem]"
+              className="flex min-w-0 flex-col gap-1 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500 [content-visibility:auto] [contain-intrinsic-size:auto_5rem]"
             >
               <div className="flex flex-wrap items-baseline gap-x-3">
                 <span className="min-w-0 font-bold [overflow-wrap:anywhere]">{formatDisplayName(name)}</span>

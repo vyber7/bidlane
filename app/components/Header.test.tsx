@@ -66,14 +66,14 @@ it("offers a sign-in link in both layouts and restores focus when the mobile pan
   render(<Header />);
 
   const primary = screen.getByRole("navigation", { name: "Primary navigation" });
-  expect(within(primary).getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/signin");
+  expect(within(primary).getByRole("link", { name: "Sign In" }).getAttribute("href")).toBe("/signin");
 
   const trigger = screen.getByRole("button", { name: "Open menu" });
   fireEvent.click(trigger);
   const mobile = screen.getByRole("navigation", { name: "Mobile navigation" });
   expect(mobile.id).toBe(trigger.getAttribute("aria-controls"));
 
-  const signIn = within(mobile).getByRole("link", { name: "Sign in" });
+  const signIn = within(mobile).getByRole("link", { name: "Sign In" });
   expect(signIn.getAttribute("href")).toBe("/signin");
   act(() => signIn.focus());
   fireEvent.keyDown(signIn, { key: "Escape" });

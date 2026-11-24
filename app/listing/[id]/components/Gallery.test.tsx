@@ -93,7 +93,7 @@ describe("gallery preview loading", () => {
 
     const nextImage = previews[2];
     fireEvent.load(nextImage);
-    fireEvent.click(within(dialog).getByRole("button", { name: "Next →" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Next" }));
 
     expect(within(dialog).getByRole("img", { name: `${vehicleName}, photo 3` })).toBe(nextImage);
     expect(nextImage.className).not.toContain("opacity-0");
@@ -115,7 +115,7 @@ describe("gallery preview loading", () => {
     expect(selected.className).not.toContain("opacity-0");
     expect(dialog.querySelector(`img[src="${savedUrl}?thumbnail=320"]`)).toBeNull();
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "Close ×" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     expect(dialog.querySelectorAll("img")).toHaveLength(0);
   });
 
@@ -133,7 +133,7 @@ describe("gallery preview loading", () => {
     const { dialog } = setup();
     fireEvent.click(photos()[2]);
     const counter = within(dialog).getByText("Photo 3 of 4");
-    const next = within(dialog).getByRole("button", { name: "Next →" });
+    const next = within(dialog).getByRole("button", { name: "Next" });
     expect(counter.getAttribute("aria-live")).toBe("polite");
     expect(counter.getAttribute("aria-atomic")).toBe("true");
     next.focus();
@@ -144,8 +144,34 @@ describe("gallery preview loading", () => {
     expect(document.activeElement).toBe(next);
     fireEvent.click(next);
     expect(counter.textContent).toBe("Photo 4 of 4");
-    fireEvent.click(within(dialog).getByRole("button", { name: "← Previous" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Previous" }));
     expect(counter.textContent).toBe("Photo 3 of 4");
+  });
+});
+
+describe("gallery keyboard browsing", () => {
+  it("moves between photos with ArrowLeft and ArrowRight in the full-screen view", () => {
+    render(<Gallery listingId={listingId} vehicleName={vehicleName} initialImages={[savedUrl, uploadedUrl, "https://res.cloudinary.com/demo/image/upload/third.jpg"]} />);
+    const dialog = document.querySelector("dialog")!;
+    dialog.showModal = vi.fn(() => dialog.setAttribute("open", ""));
+    fireEvent.click(photos()[1]);
+
+    fireEvent.keyDown(dialog, { key: "ArrowRight" });
+    expect(within(dialog).getByText("Photo 3 of 3")).toBeDefined();
+    fireEvent.keyDown(dialog, { key: "ArrowRight" });
+    expect(within(dialog).getByText("Photo 3 of 3")).toBeDefined();
+    fireEvent.keyDown(dialog, { key: "ArrowLeft" });
+    fireEvent.keyDown(dialog, { key: "ArrowLeft" });
+    fireEvent.keyDown(dialog, { key: "ArrowLeft" });
+    expect(within(dialog).getByText("Photo 1 of 3")).toBeDefined();
+  });
+
+  it("keeps the close and arrow glyphs out of button names", () => {
+    render(<Gallery listingId={listingId} initialImages={[savedUrl]} />);
+    const dialog = document.querySelector("dialog")!;
+    for (const glyph of ["×", "←", "→"]) {
+      expect(within(dialog).getByText(glyph).getAttribute("aria-hidden")).toBe("true");
+    }
   });
 });
 

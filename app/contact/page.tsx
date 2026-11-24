@@ -40,7 +40,7 @@ const contactReasons = [
 
 export default function ContactPage() {
   return (
-    <main className="overflow-hidden bg-stone-50 pt-16">
+    <div className="overflow-hidden bg-stone-50 pt-16">
       <section className="relative bg-slate-950 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_20%,rgba(245,158,11,0.22),transparent_30%)]" />
         <div className="absolute -bottom-28 -left-28 h-64 w-64 rounded-full border border-white/[0.06]" />
@@ -113,7 +113,7 @@ export default function ContactPage() {
                 href="/faq"
                 className="inline-flex items-center gap-1 font-bold text-slate-950 underline decoration-amber-400 decoration-2 underline-offset-4"
               >
-                Visit our FAQ <FiArrowRight aria-hidden="true" />
+                Visit Our FAQ <FiArrowRight aria-hidden="true" />
               </Link>
             </p>
           </aside>
@@ -150,6 +150,6 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

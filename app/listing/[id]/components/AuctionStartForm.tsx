@@ -47,6 +47,7 @@ const AuctionStartForm: React.FC<AuctionStartFormProps> = ({ listingId }) => {
     setIsLoading(true);
     axios
       .post("/api/auction-start", { ...data, endTime: closingTime.toISOString(), listingId })
+      .then(() => toast.success("Auction started. Bidding is now open."))
       .catch((error: unknown) => {
         logger.error("auction.start_client_failed", error, { listingId });
         toast.error(getApiErrorMessage(error, "The auction could not be started. Please try again."));

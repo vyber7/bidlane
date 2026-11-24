@@ -161,7 +161,7 @@ function Header({ auctionStatus = defaultInventoryTab }: { auctionStatus?: Inven
               href="/submit-listing"
               className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-amber-400 hover:text-slate-950"
             >
-              Sell your car
+              Sell Your Car
             </Link>
 
             {user ? (
@@ -201,9 +201,9 @@ function Header({ auctionStatus = defaultInventoryTab }: { auctionStatus?: Inven
                   <button
                     type="button"
                     onClick={() => void signOut()}
-                    className="w-full border-t border-slate-100 px-3 pt-3 text-left text-sm font-semibold text-red-600"
+                    className="mt-1 w-full rounded-lg border-t border-slate-100 px-3 py-2 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700"
                   >
-                    Sign out
+                    Sign Out
                   </button>
                 </div>
               </div>
@@ -212,7 +212,7 @@ function Header({ auctionStatus = defaultInventoryTab }: { auctionStatus?: Inven
                 href="/signin"
                 className="rounded-full px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
               >
-                Sign in
+                Sign In
               </Link>
             )}
           </div>
@@ -270,16 +270,16 @@ function Header({ auctionStatus = defaultInventoryTab }: { auctionStatus?: Inven
         )}
 
         <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-200 pt-4">
-          <Link href="/submit-listing" className="rounded-xl bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white">
-            Sell your car
+          <Link href="/submit-listing" className="rounded-xl bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-amber-400 hover:text-slate-950">
+            Sell Your Car
           </Link>
           {user ? (
-            <button type="button" onClick={() => void signOut()} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700">
-              Sign out
+            <button type="button" onClick={() => void signOut()} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-red-50 hover:text-red-700">
+              Sign Out
             </button>
           ) : (
             <Link href="/signin" className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-100">
-              <FiUser aria-hidden="true" /> Sign in
+              <FiUser aria-hidden="true" /> Sign In
             </Link>
           )}
         </div>

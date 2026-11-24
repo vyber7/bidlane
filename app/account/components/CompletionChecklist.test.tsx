@@ -25,6 +25,21 @@ describe("shared completion checklist", () => {
     expect(screen.getByText("Nov 24, 2026, 11:30 PM UTC")).toBeDefined();
   });
 
+  it("names each checkbox with its visible label", async () => {
+    const { container } = mount();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    for (const checkbox of screen.getAllByRole("checkbox")) {
+      const label = container.querySelector(`label[for="${checkbox.id}"]`) ?? checkbox.closest("label")!;
+      const visible = Array.from(label.childNodes)
+        .filter((node) => !(node instanceof HTMLElement && node.classList.contains("sr-only")))
+        .map((node) => node.textContent).join("").trim();
+      expect(visible).not.toBe("");
+      expect(checkbox.hasAttribute("aria-label")).toBe(false);
+      expect(label.textContent).toContain(visible);
+    }
+    expect(screen.getByRole("checkbox", { name: "Confirm payment as buyer" })).toBeDefined();
+  });
+
   it("saves a buyer's confirmation and only completes a step once both parties confirm", async () => {
     mount();
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
