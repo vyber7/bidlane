@@ -94,6 +94,26 @@ describe("auction expiry controls", () => {
     expect(mocks.post).not.toHaveBeenCalledWith("/api/auction-finalize", expect.anything());
   });
 
+  it("tells a buyer a Closing Auction is finalizing while keeping its price", async () => {
+    await act(async () => {
+      render(auction(makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 }), "buyer"));
+    });
+    expect(screen.getByText("Closing")).toBeDefined();
+    expect(screen.getByText("Finalizing results…")).toBeDefined();
+    expect(screen.getByText("$12,000")).toBeDefined();
+    expect(screen.queryByText("Time left")).toBeNull();
+  });
+
+  it.each([
+    [{ result: "SOLD", currentBid: 12000 }, "Auction complete", "Sold. Sold for $12,000. Auction complete."],
+    [{ result: "RESERVE_NOT_MET", currentBid: 9000 }, "Reserve not met", "Ended. Highest bid $9,000. Reserve not met."],
+    [{ result: "RESERVE_NOT_MET", currentBid: null }, "No bids placed", "Ended. No bids placed."],
+  ] as const)("shows and announces the result of an ended Auction %j", (overrides, note, announcement) => {
+    render(auction(makeListing({ status: "ENDED", reservePrice: 20000, ...overrides }), "buyer"));
+    expect(screen.getByText(note)).toBeDefined();
+    expect(screen.getByRole("status").textContent).toBe(announcement);
+  });
+
   it("does not request finalization again for an ended auction", () => {
     render(auction(makeListing({ status: "ENDED", auctionEndsAt: auctionNow })));
     expect(mocks.post).not.toHaveBeenCalledWith("/api/auction-finalize", expect.anything());

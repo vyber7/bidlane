@@ -22,7 +22,7 @@ import toast from "react-hot-toast";
 import useWatchlist from "@/app/hooks/useWatchlist";
 import { logger } from "@/app/libs/logger";
 import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
-import { acceptedBid, auctionPrice, phaseLabel } from "@/app/libs/auction-lifecycle";
+import { describeAuction } from "@/app/libs/auction-display";
 
 interface AuctionStatusBarProps {
   currentUser?: string | null;
@@ -95,27 +95,27 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
       });
   }, [listing.id, currentUser]);
 
-  const live = listing.status === "LIVE";
-  const ended = listing.status === "ENDED";
   const transaction = transactionAccess(listing, currentUser);
   const owner = currentUser === listing.userId;
-  const price = auctionPrice(listing);
-  const statusLabel = phase ? phaseLabel(phase) : "Live auction";
+  const display = describeAuction(listing, phase, currentUser);
+  const { headline, price, result } = display;
+  const live = display.bucket === "live";
+  const ended = display.bucket === "results";
   const amountLabel = price.amount !== null ? `$${formatAmount(price.amount)}` : null;
+  const announcedPrice = amountLabel ? ` ${price.label} ${amountLabel}.` : ended ? "" : " Bid amount to be announced.";
 
   return (
     <section className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
       <p role="status" aria-atomic="true" className="sr-only">
-        {statusLabel}. {amountLabel ? `${price.label} ${amountLabel}.` : ended ? "No bids placed." : "Bid amount to be announced."}
-        {ended && listing.result === "RESERVE_NOT_MET" ? " Reserve not met." : ""}
+        {`${headline}.${announcedPrice}${result ? ` ${result}.` : ""}`}
       </p>
       {live && <ProgressBar remainingMs={remainingMs} />}
       <div className="space-y-4 p-5 sm:space-y-6 sm:p-6">
         <div className="flex items-center justify-between gap-3">
-          <span className={clsx("rounded-full px-3 py-1 text-xs font-bold", live ? "bg-amber-400 text-slate-950" : "bg-white/10 text-slate-200")}>
-            {live && !closing ? `● ${statusLabel}` : statusLabel}
+          <span className={clsx("rounded-full px-3 py-1 text-xs font-bold", display.tone === "live" ? "bg-amber-400 text-slate-950" : "bg-white/10 text-slate-200")}>
+            {display.timer === "countdown" ? `● ${headline}` : headline}
           </span>
-          {currentUser !== listing.userId && !ended && (
+          {!owner && !ended && (
             <button type="button" onClick={toggle} disabled={isUpdating} aria-pressed={watching}
               aria-label={watching ? "Remove from watchlist" : "Add to watchlist"}
               className="rounded-lg p-2 text-2xl text-amber-400 hover:bg-white/10 disabled:opacity-50">
@@ -123,35 +123,27 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
             </button>
           )}
         </div>
-        {listing.isNoReserve && (
+        {display.noReserveNote && (
           <div className="space-y-2">
             <NoReserveBadge isNoReserve={listing.isNoReserve} />
-            <p className="text-xs leading-5 text-slate-300">{ended ? "This auction had no reserve." : "No minimum sale price. The highest accepted bid wins."}</p>
+            <p className="text-xs leading-5 text-slate-300">{display.noReserveNote}</p>
           </div>
         )}
         <div>
           <p className="mb-2 text-sm text-slate-400">{price.label}</p>
           <p className="text-4xl font-bold tracking-tight tabular-nums">{amountLabel ?? (ended ? "—" : "To be announced")}</p>
-          {ended && listing.result === "RESERVE_NOT_MET" && <p className="mt-2 text-sm text-amber-400">Reserve not met</p>}
+          {result && <p className="mt-2 text-sm text-amber-400">{result}</p>}
         </div>
-        {live && <div className="flex items-center justify-between gap-3 border-y border-white/10 py-4 text-sm">
+        {display.timer === "countdown" && <div className="flex items-center justify-between gap-3 border-y border-white/10 py-4 text-sm">
           <span className="flex items-center gap-2 text-slate-400"><FaRegClock /> Time left</span>
           <span className="font-semibold tabular-nums">{timeLeft || "Calculating…"}</span>
         </div>}
-        {closing ? (
-          owner ? (
-            <Button onClick={retryFinalization} disabled={isLoading || isAutoFinalizing}>{isLoading || isAutoFinalizing ? "Finalizing auction…" : "Retry finalization"}</Button>
-          ) : (
-            <p className="text-sm leading-6 text-slate-400">Finalizing auction results…</p>
-          )
-        ) : live ? owner ? (
-          <p className="text-sm leading-6 text-slate-400">Your auction is live. Results are finalized automatically when the timer ends.</p>
-        ) : acceptedBid(phase) ? (
+        {display.action === "retry-finalization" ? (
+          <Button onClick={retryFinalization} disabled={isLoading || isAutoFinalizing}>{isLoading || isAutoFinalizing ? "Finalizing auction…" : "Retry finalization"}</Button>
+        ) : display.action === "place-bid" ? (
           <Link href="#bids" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">Place a bid</Link>
-        ) : (
-          <p className="text-sm leading-6 text-slate-400">{phase === null ? "Syncing auction…" : "Bidding unavailable"}</p>
-        ) : !ended ? (
-          <p className="text-sm leading-6 text-slate-400">Bidding hasn’t opened yet. {owner ? "Set up your auction below when you’re ready." : "Add this vehicle to your watchlist to find it again easily."}</p>
+        ) : display.message ? (
+          <p className="text-sm leading-6 text-slate-400">{display.message}</p>
         ) : null}
         {transaction?.canComplete && (
           <div className="space-y-3">
@@ -160,7 +152,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
           </div>
         )}
         <div className="flex flex-wrap gap-5 text-sm text-slate-400">
-          {(live || ended) && <Link href="#bids" className="flex items-center gap-2 hover:text-white"><FaHashtag />{bids.length} bids</Link>}
+          {display.bucket !== "upcoming" && <Link href="#bids" className="flex items-center gap-2 hover:text-white"><FaHashtag />{bids.length} bids</Link>}
           <Link href="#comments" aria-live="polite" aria-atomic="true" className="flex items-center gap-2 hover:text-white"><FaRegCommentAlt />{comments.length} comments</Link>
         </div>
       </div>
