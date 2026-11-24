@@ -16,7 +16,7 @@ function listingReview(overrides: Record<string, unknown> = {}) {
   return {
     id, year: 1995, make: "Porsche", model: "911", miles: 123456, location: "Austin, TX",
     vin: null, reservePrice: 1250000, description: "Clean car.", images: [], coverImage: null,
-    status: "UPCOMING", reviewStatus: "PENDING", reviewRevision: 2, reviewNote: null, vehicleRecords: null,
+    status: "UPCOMING", phase: "upcoming", reviewStatus: "PENDING", reviewRevision: 2, reviewNote: null, vehicleRecords: null,
     user: { name: "Seller", email: "seller@example.com" },
     reviews: [{ id: "r1", decision: "CHANGES_REQUESTED", reviewerName: "Admin", revision: 1, reason: null, createdAt: new Date("2026-11-24T23:30:00Z") }],
     ...overrides,
@@ -29,6 +29,12 @@ beforeEach(() => {
 });
 
 describe("admin listing review page", () => {
+  it.each([["upcoming", "Upcoming"], ["closing", "Closing"], ["unsold", "Unsold"]])("names the %s Auction phase in words", async (phase, label) => {
+    mocks.review.mockResolvedValue(listingReview({ phase }));
+    const text = renderToStaticMarkup(await ReviewPage({ params: Promise.resolve({ id }) })).replace(/<[^>]+>/g, "");
+    expect(text).toContain(`Awaiting review · ${label}`);
+  });
+
   it("formats mileage, reserve, and review history times for people", async () => {
     mocks.review.mockResolvedValue(listingReview());
     const html = renderToStaticMarkup(await ReviewPage({ params: Promise.resolve({ id }) }));

@@ -15,6 +15,7 @@ import { clsx } from "clsx";
 import { CldImage } from "next-cloudinary";
 import useWatchlist from "../hooks/useWatchlist";
 import { describeAuction } from "@/app/libs/auction-display";
+import { useAnnouncePriceChange } from "@/app/context/InventoryAnnouncements";
 
 interface ListingBoxProps {
   listing: PublicListing;
@@ -29,6 +30,10 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
   const isOwner = listing.userId === currentUserId;
   const display = describeAuction(listing, phase, currentUserId);
   const { price } = display;
+  useAnnouncePriceChange(
+    `${title}: ${price.label} ${price.amount === null ? "to be announced" : formatPrice(price.amount)}.`,
+    price.amount,
+  );
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
     userId: currentUserId,

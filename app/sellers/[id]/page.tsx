@@ -43,7 +43,7 @@ export default async function SellerPage({ params, searchParams }: {
           <h1 className="mt-1 break-words text-3xl font-black">{seller.name || "BidLane seller"}</h1>
           <p className="mt-2 text-sm text-slate-600">Member since {formatMonthYear(seller.createdAt)}</p>
           <div className="mt-5 flex flex-wrap gap-3 text-sm font-semibold">
-            <span className={`rounded-full px-3 py-1 ${seller.emailVerified ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{seller.emailVerified ? "Email Verified" : "Email not verified"}</span>
+            <span className={`rounded-full px-3 py-1 ${seller.emailVerified ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{seller.emailVerified ? "Email verified" : "Email not verified"}</span>
             <span className="rounded-full bg-slate-100 px-3 py-1">{formatCount(salesCount, "vehicle sold at auction", "vehicles sold at auction")}</span>
           </div>
         </div>

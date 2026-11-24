@@ -5,6 +5,7 @@ import { getNativeRepositories, withNativeTransaction } from "./native-repositor
 import { requireAdmin } from "./admin";
 import { ApiRequestError } from "./api-request";
 import type { listingDecisionSchema } from "@/app/schemas/listing-review";
+import { auctionPhase } from "./auction-lifecycle";
 
 export async function getReviewQueue(page = 1, filter: ReviewStatus = "PENDING") {
   await requireAdmin();
@@ -14,9 +15,13 @@ export async function getReviewQueue(page = 1, filter: ReviewStatus = "PENDING")
 
 export async function getListingReview(id: string) {
   await requireAdmin();
-  const listing = await getNativeRepositories().listingAuthoring.reviewDetail(id);
-  if (!listing) throw new ApiRequestError(404, "Listing not found.");
-  return listing;
+  const repositories = getNativeRepositories();
+  const [listing, auction] = await Promise.all([
+    repositories.listingAuthoring.reviewDetail(id),
+    repositories.auctions.find(id),
+  ]);
+  if (!listing || !auction) throw new ApiRequestError(404, "Listing not found.");
+  return { ...listing, phase: auctionPhase(auction, Date.now()).phase };
 }
 
 export async function reviewListing(id: string, input: z.output<typeof listingDecisionSchema>) {

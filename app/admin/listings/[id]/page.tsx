@@ -10,9 +10,11 @@ import Gallery from "@/app/listing/[id]/components/Gallery";
 import CoverImage from "@/app/listing/[id]/components/CoverImage";
 import ReviewForm from "./ReviewForm";
 import { formatAmount, formatPrice, formatDateTime } from "@/app/utils/format";
+import type { AuctionPhase } from "@/app/libs/auction-lifecycle";
 
-// The review payload holds only the stored status, so name the Auction phase it implies.
-const phaseLabels: Record<string, string> = { UPCOMING: "Upcoming", LIVE: "Open", ENDED: "Ended" };
+const phaseLabels: Record<AuctionPhase["phase"], string> = {
+  upcoming: "Upcoming", open: "Open", closing: "Closing", sold: "Sold", unsold: "Unsold",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +31,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const title = `${listing.year} ${listing.make} ${listing.model}`;
   return <div className="mx-auto max-w-6xl space-y-6 px-4 pb-12 pt-24 sm:px-6 lg:px-8">
     <Link href="/admin/listings" className="text-sm font-bold underline hover:text-amber-700"><span aria-hidden="true">←</span> Listing Reviews</Link>
-    <header><p className="text-sm font-bold text-amber-800">{reviewLabels[listing.reviewStatus ?? "PENDING"]} · {phaseLabels[listing.status] ?? listing.status}</p><h1 className="mt-2 text-balance text-3xl font-black">{title}</h1><p className="mt-3 text-sm text-slate-600">Seller: {listing.user.name || "Seller"} · {listing.user.email || "Email unavailable"}</p><Link href={`/listing/${id}`} className="mt-3 inline-block text-sm font-bold underline hover:text-amber-700">View Listing Page <span aria-hidden="true">→</span></Link></header>
+    <header><p className="text-sm font-bold text-amber-800">{reviewLabels[listing.reviewStatus ?? "PENDING"]} · {phaseLabels[listing.phase]}</p><h1 className="mt-2 text-balance text-3xl font-black">{title}</h1><p className="mt-3 text-sm text-slate-600">Seller: {listing.user.name || "Seller"} · {listing.user.email || "Email unavailable"}</p><Link href={`/listing/${id}`} className="mt-3 inline-block text-sm font-bold underline hover:text-amber-700">View Listing Page <span aria-hidden="true">→</span></Link></header>
     <section className="rounded-2xl border bg-white p-6">
       <h2 className="text-xl font-bold">Vehicle Details</h2>
       <dl className="mt-4 grid gap-4 sm:grid-cols-2">{[
