@@ -169,9 +169,20 @@ describe("auction state reconciliation", () => {
     });
     const comment = makeComment();
     act(() => result.current.acceptComment(comment));
-    emitLegacy("new-comment", comment);
+    emit("new-comment", comment);
     rerender({ listing: { ...listing }, comments: [comment, makeComment({ id: "missed-comment" })] });
     expect(result.current.comments).toHaveLength(2);
+  });
+
+  it("shows comments delivered in real time, but only on views that show activity", () => {
+    const listing = makeListing();
+    const card = renderHook(() => useAuction(listing));
+    const bids: BidWithAuthor[] = [];
+    const comments: CommentWithAuthor[] = [];
+    const page = renderHook(() => useAuction(listing, bids, comments));
+    emit("new-comment", { ...makeComment({ id: "live-comment" }), createdAt: auctionNow.toISOString() });
+    expect(page.result.current.comments.map((comment) => comment.id)).toEqual(["live-comment"]);
+    expect(card.result.current.comments).toEqual([]);
   });
 
   it("refreshes when subscribing and reconnecting, and releases listeners on unmount", () => {

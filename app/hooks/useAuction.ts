@@ -6,7 +6,6 @@ import { useState } from "react";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 import type {
   AcceptedBidResponse,
-  CommentEvent,
   WatcherCountEvent,
 } from "@/app/types/auction-events";
 import useCountDown from "./useCountDown";
@@ -144,7 +143,8 @@ export default function useAuction<T extends PublicListing>(
     updateListing({ status: "ENDED", result: event.result, auctionEndsAt: new Date(event.auctionEndsAt) });
     refresh();
   });
-  usePusherEvent<CommentEvent>(bids === emptyBids && comments === emptyComments ? null : channel, "new-comment", (comment) => {
+  // Only views that show activity (bids or comments) follow new comments.
+  useRealtimeEvent(bids === emptyBids && comments === emptyComments ? null : listingUpdates, "new-comment", (comment) => {
     receiveComment(comment);
     refresh();
   });
