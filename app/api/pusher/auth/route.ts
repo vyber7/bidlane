@@ -1,5 +1,5 @@
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import { pusherServer } from "@/app/libs/pusher";
+import { authorizeUserChannel } from "@/app/libs/realtime/server";
 import { apiErrorResponse, errorResponse, readBoundedBody } from "@/app/libs/api-request";
 import { logger } from "@/app/libs/logger";
 
@@ -13,8 +13,10 @@ export async function POST(request: Request) {
     const socketId = body.get("socket_id");
     const channelName = body.get("channel_name");
     if (typeof socketId !== "string" || !/^\d+\.\d+$/.test(socketId)) return errorResponse("Invalid socket ID", 400);
-    if (channelName !== `private-user-${user.id}`) return errorResponse("Forbidden", 403);
-    return Response.json(pusherServer.authorizeChannel(socketId, channelName));
+    if (typeof channelName !== "string") return errorResponse("Forbidden", 403);
+    const signature = await authorizeUserChannel(user.id, socketId, channelName);
+    if (!signature) return errorResponse("Forbidden", 403);
+    return Response.json(signature);
   } catch (error) {
     const response = apiErrorResponse(error);
     if (response) return response;

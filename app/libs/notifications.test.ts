@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   makeBid,
   makeComment,
@@ -6,9 +6,9 @@ import {
   auctionNow,
 } from "@/app/test/auction-fixtures";
 
-const mocks = vi.hoisted(() => ({ trigger: vi.fn(), warn: vi.fn() }));
-vi.mock("./pusher", () => ({ pusherServer: { trigger: mocks.trigger } }));
+const mocks = vi.hoisted(() => ({ warn: vi.fn() }));
 vi.mock("./logger", () => ({ logger: { warn: mocks.warn } }));
+import { installFakeRealtime, type FakeRealtime } from "./realtime/testing";
 import {
   auctionLiveNotifications,
   auctionResultNotifications,
@@ -18,10 +18,12 @@ import {
   saveNotifications,
 } from "./notifications";
 
+let realtime: FakeRealtime;
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.trigger.mockResolvedValue(undefined);
+  realtime = installFakeRealtime();
 });
+afterEach(() => realtime.uninstall());
 
 describe("notification events", () => {
   it("alerts only the displaced bidder, without a self-outbid or first-bid alert", () => {
@@ -137,19 +139,20 @@ describe("notification events", () => {
     expect(insertOnce).toHaveBeenCalledWith(expect.objectContaining({ userId: "buyer", eventKey: `auction-ended:${makeListing().id}` }));
   });
 
+  it("tells each affected user once that their notifications changed", async () => {
+    await publishNotificationChanges(["buyer", "seller", "buyer"]);
+    expect(realtime.sent("user:buyer", "notifications-changed")).toEqual([{}]);
+    expect(realtime.sent("user:seller", "notifications-changed")).toEqual([{}]);
+  });
+
   it("keeps persisted events available if live delivery fails", async () => {
-    mocks.trigger.mockRejectedValue(new Error("offline"));
+    realtime.failSends();
     await expect(
       publishNotificationChanges(["buyer", "buyer"]),
     ).resolves.toBeUndefined();
-    expect(mocks.trigger).toHaveBeenCalledExactlyOnceWith(
-      "private-user-buyer",
-      "notifications-changed",
-      {},
-    );
-    expect(mocks.warn).toHaveBeenCalledWith(
+    expect(mocks.warn).toHaveBeenCalledExactlyOnceWith(
       "notification.live_update_failed",
-      {},
+      { failed: [{ channel: "user", event: "notifications-changed" }] },
     );
   });
 
