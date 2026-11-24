@@ -316,6 +316,33 @@ describe("shared auction views", () => {
     expect(screen.getByRole("spinbutton")).toHaveProperty("disabled", false);
   });
 
+  it.each([
+    ["buyer", null],
+    ["seller", "View bids"],
+  ])("shows %s the Closing message on the mobile bar", async (viewer, link) => {
+    await act(async () => {
+      render(
+        <AuctionProvider listing={makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 })} bids={[]} comments={[]}>
+          <MobileAuctionBar currentUserId={viewer} />
+        </AuctionProvider>
+      );
+    });
+    expect(screen.getByText("Finalizing results…")).toBeDefined();
+    expect(screen.getByText("Closing")).toBeDefined();
+    expect(screen.getByText("$12,000")).toBeDefined();
+    expect(screen.queryByRole("link", { name: "Place a bid" })).toBeNull();
+    if (link) expect(screen.queryByRole("link", { name: link })).toBeNull();
+  });
+
+  it("hides the mobile bar once the Auction has ended", () => {
+    const { container } = render(
+      <AuctionProvider listing={makeListing({ status: "ENDED", result: "SOLD", currentBid: 12000 })} bids={[]} comments={[]}>
+        <MobileAuctionBar currentUserId="buyer" />
+      </AuctionProvider>
+    );
+    expect(container.textContent).toBe("");
+  });
+
   it("stops the countdown on a Closing Auction's inventory card", () => {
     const listing = makeListing({ currentBid: 12000, auctionEndsAt: new Date(auctionNow.getTime() + 1000) });
     render(<ListingBox listing={listing} />);
@@ -360,6 +387,44 @@ describe("shared auction views", () => {
     expect(screen.getByText("$15,000").closest("[aria-live]")).toBe(bidRegion);
   });
 
+  it("shows the Closing message in the account dashboard", async () => {
+    await act(async () => {
+      render(<AccountListingBox listing={makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 })} watching={true} uploaded={false} />);
+    });
+    expect(screen.getByText("Closing")).toBeDefined();
+    expect(screen.getByText("Finalizing results…")).toBeDefined();
+    expect(screen.getByText("$12,000")).toBeDefined();
+  });
+
+  it.each([
+    [{}, "Live auction"],
+    [{ status: "ENDED", result: "SOLD", currentBid: 12000 }, "Sold"],
+    [{ status: "ENDED", result: "RESERVE_NOT_MET", currentBid: 9000 }, "Ended"],
+  ] as const)("labels the account dashboard chip for %j", (overrides, chip) => {
+    render(<AccountListingBox listing={makeListing({ reservePrice: 20000, ...overrides })} watching={true} uploaded={false} />);
+    expect(screen.getByText(chip)).toBeDefined();
+  });
+
+  it.each([
+    [{ result: "SOLD", currentBid: 12000 }, "Sold", "Auction complete"],
+    [{ result: "RESERVE_NOT_MET", currentBid: 9000 }, "Ended", "Reserve not met"],
+    [{ result: "RESERVE_NOT_MET", currentBid: null }, "Ended", "No bids placed"],
+  ] as const)("shows the featured card's headline and result line for %j", (overrides, headline, line) => {
+    render(<FeaturedAuction listing={makeListing({ status: "ENDED", reservePrice: 20000, ...overrides })} />);
+    expect(screen.getByText(headline)).toBeDefined();
+    expect(screen.getByText(line)).toBeDefined();
+    expect(screen.getByText(/View result/)).toBeDefined();
+  });
+
+  it("shows the Closing message on the featured card", async () => {
+    await act(async () => {
+      render(<FeaturedAuction listing={makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 })} />);
+    });
+    expect(screen.getByText("Closing")).toBeDefined();
+    expect(screen.getByText("Finalizing results…")).toBeDefined();
+    expect(screen.getByText(/View auction/)).toBeDefined();
+  });
+
   it("uses one featured listing link and announces bid and status changes", () => {
     const listing = makeListing({ currentBid: 12000, coverImage: null, images: [] });
     const { rerender } = render(<FeaturedAuction listing={listing} />);
@@ -373,7 +438,7 @@ describe("shared auction views", () => {
     expect(screen.getByText("59s left").closest("[aria-live]")).toBeNull();
 
     rerender(<FeaturedAuction listing={{ ...listing, currentBid: 15000, status: "ENDED", result: "SOLD" }} />);
-    expect(screen.getByText("Recent result").closest("[aria-live]")).toBe(status);
+    expect(screen.getByText("Sold").closest("[aria-live]")).toBe(status);
     expect(screen.getByText("$15,000").closest("[aria-live]")).toBe(bid);
     expect(screen.getAllByRole("link")).toHaveLength(1);
   });

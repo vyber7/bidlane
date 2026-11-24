@@ -5,10 +5,9 @@ import { FiArrowRight } from "react-icons/fi";
 import AuctionBrowser from "./components/AuctionBrowser";
 import FeaturedAuction from "./components/FeaturedAuction";
 import LatestBids from "./components/LatestBids";
-import { getHomeSpotlight } from "../libs/featured-auction";
 import WatchAuctionButton from "./components/WatchAuctionButton";
 import { toPublicListing } from "../libs/listing-payload";
-import { countInventoryTabs, inventoryHref, type InventoryTab } from "../libs/auction-inventory";
+import { homeSpotlight, inventoryHref, type InventoryTab } from "../libs/auction-inventory";
 
 export const dynamic = "force-dynamic";
 
@@ -19,24 +18,33 @@ const heroStats: { tab: InventoryTab; label: string }[] = [
   { tab: "ENDED", label: "Results" },
 ];
 
-export default async function Home() {
+const browseLabels = {
+  LIVE: "Browse live auctions",
+  UPCOMING: "Explore coming soon",
+  ENDED: "Explore auction results",
+} satisfies Partial<Record<InventoryTab, string>>;
+
+/**
+ * Reads the public inventory and notes when it was read. The whole page, and
+ * the browser after hydration, judge every Auction phase at that one moment.
+ */
+async function readHomeInventory() {
   const repositories = getReadRepositories();
   const [publicListings, currentUser] = await Promise.all([
     repositories.listings.public(),
     getCurrentUser(),
   ]);
   const latestBids = await repositories.bids.latestForListings(publicListings);
+  return { publicListings, currentUser, latestBids, now: Date.now() };
+}
+
+export default async function Home() {
+  const { publicListings, currentUser, latestBids, now } = await readHomeInventory();
   const listings = publicListings.map((listing) => toPublicListing(listing, currentUser?.id));
-  const { featured, live, upcoming } = getHomeSpotlight(listings);
-  const counts = countInventoryTabs(listings);
-  const comingNext = featured?.status === "UPCOMING" ? null : upcoming;
-  const browse = live
-    ? { href: inventoryHref("LIVE"), label: "Browse live auctions" }
-    : upcoming
-      ? { href: inventoryHref("UPCOMING"), label: "Explore coming soon" }
-      : featured?.status === "ENDED"
-        ? { href: inventoryHref("ENDED"), label: "Explore auction results" }
-        : { href: "#auctions", label: "Browse auctions" };
+  const { featured, comingNext, counts, browse: browseTab } = homeSpotlight(listings, now);
+  const browse = browseTab
+    ? { href: inventoryHref(browseTab), label: browseLabels[browseTab] }
+    : { href: "#auctions", label: "Browse auctions" };
 
   return (
     <div className="bg-stone-50 pb-16 pt-[var(--site-nav-height)]">
@@ -153,7 +161,7 @@ export default async function Home() {
             Inventory
           </h2>
 
-          <AuctionBrowser listings={listings} currentUserId={currentUser?.id} />
+          <AuctionBrowser listings={listings} now={now} currentUserId={currentUser?.id} />
         </section>
       </div>
     </div>

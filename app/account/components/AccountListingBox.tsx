@@ -8,11 +8,18 @@ import { formatAmount, formatBid } from "@/app/utils/format";
 import clsx from "clsx";
 import { FiArrowUpRight, FiClock, FiEye, FiMapPin } from "react-icons/fi";
 import useAuction from "@/app/hooks/useAuction";
-import { auctionPrice, phaseLabel } from "@/app/libs/auction-lifecycle";
+import { describeAuction, type AuctionDisplay } from "@/app/libs/auction-display";
 import { CldImage } from "next-cloudinary";
 import useWatchlist from "@/app/hooks/useWatchlist";
 import { reviewLabels } from "@/app/libs/listing-review";
 import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
+
+const chipClasses: Record<AuctionDisplay["tone"], string> = {
+  live: "bg-red-50 text-red-700 ring-red-100",
+  upcoming: "bg-blue-50 text-blue-700 ring-blue-100",
+  sold: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+  neutral: "bg-gray-100 text-gray-600 ring-gray-200",
+};
 
 interface AccountListingBoxProps {
   listing: PublicListing & Partial<Pick<SellerListing, "reviewStatus" | "reviewNote">>;
@@ -28,7 +35,6 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
   uploaded,
 }) => {
   const { listing, phase, timeLeft } = useAuction(initialListing);
-  const closing = phase?.phase === "closing";
   const transaction = uploaded ? transactionAccess(listing, currentUserId) : null;
   const { isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
@@ -36,17 +42,8 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
     initialWatching: watching,
   });
 
-  const status = {
-    label: phase ? phaseLabel(phase) : "Live auction",
-    classes: listing.status === "LIVE"
-      ? "bg-red-50 text-red-700 ring-red-100"
-      : listing.status === "UPCOMING"
-        ? "bg-blue-50 text-blue-700 ring-blue-100"
-        : phase?.phase === "sold"
-          ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-          : "bg-gray-100 text-gray-600 ring-gray-200",
-  };
-  const { label: amountLabel, amount } = auctionPrice(listing);
+  const display = describeAuction(listing, phase, currentUserId);
+  const { label: amountLabel, amount } = display.price;
 
   return (
     <article className="p-4 transition-colors hover:bg-gray-50 sm:p-5">
@@ -79,9 +76,9 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="mb-1 flex flex-wrap items-center gap-2">
-                {uploaded && listing.status === "UPCOMING" && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">{reviewLabels[listing.reviewStatus ?? "PENDING"]}</span>}
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-inset ${status.classes}`}>
-                  {status.label}
+                {uploaded && display.bucket === "upcoming" && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">{reviewLabels[listing.reviewStatus ?? "PENDING"]}</span>}
+                <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-inset ${chipClasses[display.tone]}`}>
+                  {display.headline}
                 </span>
                 <span className="flex items-center gap-1 text-xs tabular-nums text-gray-600">
                   <FiEye aria-hidden="true" /> <span className="sr-only">Views:</span> {formatAmount(listing.views)}
@@ -129,16 +126,16 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
                   {formatAmount(listing.miles)} mi
                 </p>
               </div>
-              {listing.status === "LIVE" && (
+              {display.bucket === "live" && (
                 <div className="hidden sm:block">
                   <p className="text-xs text-gray-500">Time left</p>
                   <p
                     className={clsx(
                       "mt-0.5 flex items-center gap-1 text-sm font-bold tabular-nums",
-                      closing ? "text-red-600" : "text-gray-950"
+                      display.timer === "closing" ? "text-red-600" : "text-gray-950"
                     )}
                   >
-                    <FiClock aria-hidden="true" /> {timeLeft || "Calculating…"}
+                    <FiClock aria-hidden="true" /> {display.timer === "closing" ? display.message : timeLeft || "Calculating…"}
                   </p>
                 </div>
               )}

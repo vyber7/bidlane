@@ -10,6 +10,8 @@ import { inventoryTabs, type InventoryTab } from "@/app/libs/auction-inventory";
 
 interface AuctionBrowserProps {
   listings: PublicListing[];
+  /** The moment the page was rendered, so server and browser sort alike. */
+  now: number;
   currentUserId?: string | null;
 }
 
@@ -22,6 +24,7 @@ const tabDisplay = {
 
 const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
   listings,
+  now,
   currentUserId,
 }) => {
   const {
@@ -35,7 +38,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
     setStatus,
     setSort,
     setPage,
-  } = useAuctionInventory(listings);
+  } = useAuctionInventory(listings, now);
 
   const browserId = useId();
   const tabRefs = useRef<Partial<Record<InventoryTab, HTMLButtonElement>>>({});

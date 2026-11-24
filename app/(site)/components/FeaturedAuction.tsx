@@ -8,7 +8,7 @@ import useAuction from "@/app/hooks/useAuction";
 import WatchAuctionButton from "./WatchAuctionButton";
 import NoReserveBadge from "@/app/components/NoReserveBadge";
 import { formatBid } from "@/app/utils/format";
-import { auctionPrice, phaseLabel } from "@/app/libs/auction-lifecycle";
+import { describeAuction } from "@/app/libs/auction-display";
 
 export default function FeaturedAuction({ listing: initialListing, currentUserId }: {
   listing: PublicListing;
@@ -18,11 +18,14 @@ export default function FeaturedAuction({ listing: initialListing, currentUserId
   const title = `${listing.year} ${listing.make} ${listing.model}`;
   const href = `/listing/${listing.id}`;
   const image = listing.coverImage || listing.images[0];
-  const upcoming = listing.status === "UPCOMING";
-  const live = listing.status === "LIVE";
-  const closing = phase?.phase === "closing";
-  const { label: bidLabel, amount } = auctionPrice(listing);
-  const showWatchButton = upcoming && currentUserId !== listing.userId;
+  const display = describeAuction(listing, phase, currentUserId);
+  const upcoming = display.bucket === "upcoming";
+  const ended = display.bucket === "results";
+  const { label: bidLabel, amount } = display.price;
+  const showWatchButton = display.action === "watch";
+  const statusLine = display.timer === "closing" ? display.message
+    : display.timer === "countdown" ? timeLeft ? `${timeLeft} left` : "Live bidding"
+    : display.result;
 
   return (
     <article aria-label={`Featured vehicle: ${title}`} className="group relative isolate grid min-w-0 overflow-hidden rounded-2xl bg-slate-950 text-white lg:grid-cols-[3fr_2fr]">
@@ -34,7 +37,7 @@ export default function FeaturedAuction({ listing: initialListing, currentUserId
         )}
         <span aria-live="polite" aria-atomic="true" className="absolute left-3 top-3 rounded-full bg-slate-950/90 px-3 py-1.5 text-xs font-bold text-amber-400">
           <span className="sr-only">{title}: </span>
-          {listing.status === "ENDED" ? "Recent result" : phase ? phaseLabel(phase) : "Live auction"}
+          {display.headline}
         </span>
         <span aria-hidden="true" className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white text-slate-950 transition group-hover:bg-amber-400"><FiArrowUpRight size={18} /></span>
       </div>
@@ -57,7 +60,7 @@ export default function FeaturedAuction({ listing: initialListing, currentUserId
             </p>
             {upcoming
               ? <p>Watch it now.<br /><span className="text-white">Be ready when bidding opens.</span></p>
-              : <p className="text-amber-400">{live ? closing ? "Finalizing results…" : timeLeft ? `${timeLeft} left` : "Live bidding" : phase?.phase === "sold" ? "Auction complete" : phase?.phase === "unsold" && phase.reason === "reserve-not-met" ? "Reserve not met" : "No bids placed"}</p>}
+              : <p className="text-amber-400">{statusLine}</p>}
           </div>
           {showWatchButton ? (
             <div className="relative z-20">
@@ -65,7 +68,7 @@ export default function FeaturedAuction({ listing: initialListing, currentUserId
             </div>
           ) : (
             <span aria-hidden="true" className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-amber-400">
-              {upcoming ? "View your listing" : live ? "View auction" : "View result"}<FiArrowUpRight aria-hidden="true" />
+              {upcoming ? "View your listing" : ended ? "View result" : "View auction"}<FiArrowUpRight aria-hidden="true" />
             </span>
           )}
         </div>
