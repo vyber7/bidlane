@@ -387,6 +387,35 @@ describe("shared auction views", () => {
     expect(screen.getByText("$15,000").closest("[aria-live]")).toBe(bidRegion);
   });
 
+  it("shows a Closing Auction in the account dashboard as finalizing", async () => {
+    await act(async () => {
+      render(<AccountListingBox listing={makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 })} watching={true} uploaded={false} />);
+    });
+    expect(screen.getByText("Closing")).toBeDefined();
+    expect(screen.getByText("Finalizing results…")).toBeDefined();
+    expect(screen.getByText("$12,000")).toBeDefined();
+  });
+
+  it.each([
+    [{ result: "SOLD", currentBid: 12000 }, "Auction complete"],
+    [{ result: "RESERVE_NOT_MET", currentBid: 9000 }, "Reserve not met"],
+    [{ result: "RESERVE_NOT_MET", currentBid: null }, "No bids placed"],
+  ] as const)("shows the featured card's result line for %j", (overrides, line) => {
+    render(<FeaturedAuction listing={makeListing({ status: "ENDED", reservePrice: 20000, ...overrides })} />);
+    expect(screen.getByText("Recent result")).toBeDefined();
+    expect(screen.getByText(line)).toBeDefined();
+    expect(screen.getByText(/View result/)).toBeDefined();
+  });
+
+  it("shows a Closing featured Auction as finalizing", async () => {
+    await act(async () => {
+      render(<FeaturedAuction listing={makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 })} />);
+    });
+    expect(screen.getByText("Closing")).toBeDefined();
+    expect(screen.getByText("Finalizing results…")).toBeDefined();
+    expect(screen.getByText(/View auction/)).toBeDefined();
+  });
+
   it("uses one featured listing link and announces bid and status changes", () => {
     const listing = makeListing({ currentBid: 12000, coverImage: null, images: [] });
     const { rerender } = render(<FeaturedAuction listing={listing} />);
