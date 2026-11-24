@@ -316,6 +316,33 @@ describe("shared auction views", () => {
     expect(screen.getByRole("spinbutton")).toHaveProperty("disabled", false);
   });
 
+  it.each([
+    ["buyer", null],
+    ["seller", "View bids"],
+  ])("shows %s a Closing Auction on the mobile bar as finalizing", async (viewer, link) => {
+    await act(async () => {
+      render(
+        <AuctionProvider listing={makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 })} bids={[]} comments={[]}>
+          <MobileAuctionBar currentUserId={viewer} />
+        </AuctionProvider>
+      );
+    });
+    expect(screen.getByText("Finalizing results…")).toBeDefined();
+    expect(screen.getByText("Closing")).toBeDefined();
+    expect(screen.getByText("$12,000")).toBeDefined();
+    expect(screen.queryByRole("link", { name: "Place a bid" })).toBeNull();
+    if (link) expect(screen.queryByRole("link", { name: link })).toBeNull();
+  });
+
+  it("hides the mobile bar once the Auction has ended", () => {
+    const { container } = render(
+      <AuctionProvider listing={makeListing({ status: "ENDED", result: "SOLD", currentBid: 12000 })} bids={[]} comments={[]}>
+        <MobileAuctionBar currentUserId="buyer" />
+      </AuctionProvider>
+    );
+    expect(container.textContent).toBe("");
+  });
+
   it("stops the countdown on a Closing Auction's inventory card", () => {
     const listing = makeListing({ currentBid: 12000, auctionEndsAt: new Date(auctionNow.getTime() + 1000) });
     render(<ListingBox listing={listing} />);

@@ -14,6 +14,7 @@ import { bidRequestSchema } from "@/app/schemas/auction";
 import { MAX_INTEGER, validationMessage } from "@/app/schemas/common";
 import Link from "next/link";
 import { acceptedBid, EXTENSION_WINDOW_MS } from "@/app/libs/auction-lifecycle";
+import { describeAuction } from "@/app/libs/auction-display";
 
 const extensionMinutes = EXTENSION_WINDOW_MS / 60_000;
 
@@ -97,7 +98,7 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
     }
   }
 
-  if (listing.status !== "LIVE" && !pendingKey && acceptedAmount === null) return null;
+  if (describeAuction(listing, phase, currentUserId).bucket !== "live" && !pendingKey && acceptedAmount === null) return null;
 
   return (
     <div className="mt-3 space-y-4">

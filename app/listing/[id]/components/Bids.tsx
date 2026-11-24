@@ -5,7 +5,7 @@ import Link from "next/link";
 import { formatAmount, capitalize, formatDisplayName } from "@/app/utils/format";
 import { useAuctionContext } from "@/app/context/AuctionContext";
 import BidForm from "./BidForm";
-import { acceptedBid, auctionPrice, type AuctionPhase } from "@/app/libs/auction-lifecycle";
+import { describeAuction } from "@/app/libs/auction-display";
 
 const closeTimeFormatter = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
@@ -16,16 +16,6 @@ const closeTimeFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
   timeZoneName: "short",
 });
-
-function unavailableMessage(phase: AuctionPhase | null) {
-  if (phase === null) return "Syncing auction…";
-  if (phase.phase === "closing") return "Bidding has closed. Finalizing results…";
-  if (phase.phase === "open" && !phase.bidding.accepting &&
-    (phase.bidding.reason === "unconfigured" || phase.bidding.reason === "missing-schedule")) {
-    return "Bidding is unavailable until the auction is configured.";
-  }
-  return "Bidding unavailable";
-}
 
 interface BidsProps {
   sellerName?: string | null;
@@ -40,8 +30,8 @@ const Bids: React.FC<BidsProps> = ({
 }) => {
   const { data: session } = useSession();
   const { listing, bids, phase } = useAuctionContext();
-  const bidding = acceptedBid(phase);
-  const price = auctionPrice(listing);
+  const display = describeAuction(listing, phase, currentUserId);
+  const { price, result } = display;
   const highestBidderName = formatDisplayName(
     bids.find((item) => item.userId === listing.highestBidderId)?.user.name,
     "Bidder"
@@ -59,8 +49,11 @@ const Bids: React.FC<BidsProps> = ({
         <div className="md:w-1/2 w-full flex flex-col justify-between bg-slate-200 rounded-md p-2 md:p-4 gap-2 text-sm md:text-base">
           {phase?.phase === "sold" ? (
             <p className="text-green-600 font-bold">Sold to {highestBidderName}, congratulations!</p>
-          ) : phase?.phase === "unsold" ? (
-            <p>{phase.reason === "no-bids" ? "No bids were placed" : "Reserve not met. Highest bid"}</p>
+          ) : result ? (
+            <div>
+              <p className="font-semibold">{result}</p>
+              {price.amount !== null && <p>{price.label}</p>}
+            </div>
           ) : (
             <p>
               {price.label}{" "}
@@ -105,13 +98,13 @@ const Bids: React.FC<BidsProps> = ({
           </p>
         </div>
       </div>
-      {listing.status === "LIVE" && !bidding && (
-        <p className="mt-2 text-sm text-slate-500">{unavailableMessage(phase)}</p>
+      {display.bucket === "live" && display.action !== "place-bid" && display.message && (
+        <p className="mt-2 text-sm text-slate-500">{display.message}</p>
       )}
       {session &&
         listing.userId !== currentUserId ? (
         <BidForm key={`${listing.id}:${currentUserId ?? ""}`} currentUserId={currentUserId} emailVerified={emailVerified} />
-      ) : !session && bidding ? (
+      ) : !session && display.action === "place-bid" ? (
         <>
           <hr />
           <div className="mt-3 text-center">

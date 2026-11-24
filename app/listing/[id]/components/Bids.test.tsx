@@ -39,6 +39,25 @@ async function reviewBid(amount = "12000") {
   return input;
 }
 
+describe("auction description in the bids panel", () => {
+  it.each([
+    [{ currentBid: null }, "No bids placed", null],
+    [{ currentBid: 9000 }, "Reserve not met", "Highest bid"],
+  ] as const)("shows an Unsold Auction's result note with %j", (overrides, note, priceLabel) => {
+    render(view(makeListing({ status: "ENDED", result: "RESERVE_NOT_MET", reservePrice: 20000, ...overrides })));
+    expect(screen.getByText(note)).toBeDefined();
+    if (priceLabel) expect(screen.getByText(priceLabel)).toBeDefined();
+    expect(screen.queryByText(/No bids were placed|Reserve not met\. Highest bid/)).toBeNull();
+  });
+
+  it("tells bidders a Closing Auction is finalizing and disables bidding", async () => {
+    await act(async () => { render(view(makeListing({ auctionEndsAt: auctionNow }))); });
+    expect(screen.getByText("Finalizing results…")).toBeDefined();
+    expect(screen.queryByText(/Bidding has closed/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Review bid" })).toHaveProperty("disabled", true);
+  });
+});
+
 describe("bid review", () => {
   it("links signed-out bidders back to this auction and shows a closing time with a time zone", () => {
     mocks.useSession.mockReturnValue({ data: null });
