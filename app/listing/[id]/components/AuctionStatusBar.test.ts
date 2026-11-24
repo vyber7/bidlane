@@ -94,7 +94,7 @@ describe("auction expiry controls", () => {
     expect(mocks.post).not.toHaveBeenCalledWith("/api/auction-finalize", expect.anything());
   });
 
-  it("tells a buyer a Closing Auction is finalizing while keeping its price", async () => {
+  it("shows a buyer the Closing message while keeping the price", async () => {
     await act(async () => {
       render(auction(makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 }), "buyer"));
     });
@@ -112,6 +112,11 @@ describe("auction expiry controls", () => {
     render(auction(makeListing({ status: "ENDED", reservePrice: 20000, ...overrides }), "buyer"));
     expect(screen.getByText(note)).toBeDefined();
     expect(screen.getByRole("status").textContent).toBe(announcement);
+  });
+
+  it("invites a signed-out visitor to bid on an Open Auction", () => {
+    render(createElement(AuctionProvider, { listing: makeListing(), bids: [], comments: [] }, createElement(AuctionStatusBar, {})));
+    expect(screen.getByRole("link", { name: "Place a bid" })).toBeDefined();
   });
 
   it("does not request finalization again for an ended auction", () => {

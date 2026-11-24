@@ -98,7 +98,7 @@ const Bids: React.FC<BidsProps> = ({
           </p>
         </div>
       </div>
-      {display.bucket === "live" && display.action !== "place-bid" && display.message && (
+      {display.bucket === "live" && (display.action === null || display.timer === "closing") && display.message && (
         <p className="mt-2 text-sm text-slate-500">{display.message}</p>
       )}
       {session &&

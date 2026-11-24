@@ -319,7 +319,7 @@ describe("shared auction views", () => {
   it.each([
     ["buyer", null],
     ["seller", "View bids"],
-  ])("shows %s a Closing Auction on the mobile bar as finalizing", async (viewer, link) => {
+  ])("shows %s the Closing message on the mobile bar", async (viewer, link) => {
     await act(async () => {
       render(
         <AuctionProvider listing={makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 })} bids={[]} comments={[]}>
@@ -387,13 +387,22 @@ describe("shared auction views", () => {
     expect(screen.getByText("$15,000").closest("[aria-live]")).toBe(bidRegion);
   });
 
-  it("shows a Closing Auction in the account dashboard as finalizing", async () => {
+  it("shows the Closing message in the account dashboard", async () => {
     await act(async () => {
       render(<AccountListingBox listing={makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 })} watching={true} uploaded={false} />);
     });
     expect(screen.getByText("Closing")).toBeDefined();
     expect(screen.getByText("Finalizing results…")).toBeDefined();
     expect(screen.getByText("$12,000")).toBeDefined();
+  });
+
+  it.each([
+    [{}, "Live auction"],
+    [{ status: "ENDED", result: "SOLD", currentBid: 12000 }, "Sold"],
+    [{ status: "ENDED", result: "RESERVE_NOT_MET", currentBid: 9000 }, "Ended"],
+  ] as const)("labels the account dashboard chip for %j", (overrides, chip) => {
+    render(<AccountListingBox listing={makeListing({ reservePrice: 20000, ...overrides })} watching={true} uploaded={false} />);
+    expect(screen.getByText(chip)).toBeDefined();
   });
 
   it.each([
@@ -407,7 +416,7 @@ describe("shared auction views", () => {
     expect(screen.getByText(/View result/)).toBeDefined();
   });
 
-  it("shows a Closing featured Auction as finalizing", async () => {
+  it("shows the Closing message on the featured card", async () => {
     await act(async () => {
       render(<FeaturedAuction listing={makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 })} />);
     });

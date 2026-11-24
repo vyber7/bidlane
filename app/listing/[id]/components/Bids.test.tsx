@@ -50,7 +50,12 @@ describe("auction description in the bids panel", () => {
     expect(screen.queryByText(/No bids were placed|Reserve not met\. Highest bid/)).toBeNull();
   });
 
-  it("tells bidders a Closing Auction is finalizing and disables bidding", async () => {
+  it("keeps the seller's own Open Auction free of bidding guidance", () => {
+    render(<AuctionProvider listing={makeListing()} bids={[]} comments={[]}><Bids currentUserId="seller" emailVerified /></AuctionProvider>);
+    expect(screen.queryByText(/Your auction is live/)).toBeNull();
+  });
+
+  it("shows bidders the Closing message and disables bidding", async () => {
     await act(async () => { render(view(makeListing({ auctionEndsAt: auctionNow }))); });
     expect(screen.getByText("Finalizing results…")).toBeDefined();
     expect(screen.queryByText(/Bidding has closed/)).toBeNull();
