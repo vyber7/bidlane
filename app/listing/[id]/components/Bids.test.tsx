@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { AuctionProvider } from "@/app/context/AuctionContext";
 import { auctionNow, makeBid, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 import Bids from "./Bids";
@@ -44,6 +44,22 @@ async function reviewBid(amount = "12000") {
 }
 
 describe("auction description in the bids panel", () => {
+  it("formats the view and Watcher counts with thousands separators", () => {
+    render(view({ ...makeListing({ views: 12345 }), watcherCount: 1250 }));
+    expect(screen.getByText("12,345")).toBeDefined();
+    expect(screen.getByText("1,250")).toBeDefined();
+  });
+
+  it("formats the current price, minimum, and reviewed bid as whole dollars", async () => {
+    render(view(makeListing({ currentBid: 12000, highestBidderId: "other-buyer" })));
+    expect(screen.getByText("$12,000")).toBeDefined();
+    expect(screen.getByText("Minimum next bid: $12,500")).toBeDefined();
+    await reviewBid("1250000");
+    const review = screen.getByRole("region", { name: "Review your bid" });
+    expect(within(review).getByText("$1,250,000")).toBeDefined();
+    expect(within(review).getByRole("button", { name: "Confirm bid of $1,250,000" })).toBeDefined();
+  });
+
   it.each([
     [{ currentBid: null }, "No bids placed", null],
     [{ currentBid: 9000 }, "Reserve not met", "Highest bid"],
@@ -178,9 +194,9 @@ describe("bid review", () => {
   });
 
   it.each([
-    { offered: "12000", updated: 13500 },
-    { offered: "20000", updated: 20000 },
-  ])("requires another review after a price change, keeping the bidder's higher offer ($offered)", async ({ offered, updated }) => {
+    { offered: "12000", updated: 13500, confirmLabel: "Confirm bid of $13,500" },
+    { offered: "20000", updated: 20000, confirmLabel: "Confirm bid of $20,000" },
+  ])("requires another review after a price change, keeping the bidder's higher offer ($offered)", async ({ offered, updated, confirmLabel }) => {
     const listing = makeListing();
     const { rerender } = render(view(listing));
     await reviewBid(offered);
@@ -190,7 +206,7 @@ describe("bid review", () => {
     expect(mocks.post).not.toHaveBeenCalled();
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Review updated bid" })); });
     expect(mocks.post).not.toHaveBeenCalled();
-    const confirmation = screen.getByRole("button", { name: `Confirm bid of $${updated.toLocaleString("en-US")}` });
+    const confirmation = screen.getByRole("button", { name: confirmLabel });
     mocks.post.mockResolvedValueOnce({ data: { bid: makeBid({ amount: updated }), currentBid: updated, auctionEndsAt: listing.auctionEndsAt!.toISOString() } });
     await act(async () => { fireEvent.click(confirmation); });
     expect(mocks.post).toHaveBeenCalledExactlyOnceWith("/api/place-bid", { listingId: listing.id, bidAmount: updated }, { headers: { "Idempotency-Key": expect.any(String) } });

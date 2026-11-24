@@ -81,6 +81,7 @@ describe("guided vehicle submission", () => {
     render(<SubmitForm emailVerified />);
     fillDetails();
     fireEvent.change(screen.getByLabelText("VIN or chassis number (optional)"), { target: { value: "WP0AB2997YS123456" } });
+    fireEvent.change(screen.getByLabelText("Reserve price in USD (optional)"), { target: { value: "1250000" } });
     await next("Continue to condition →");
     fireEvent.change(screen.getByLabelText("Service history"), { target: { value: "Oil service at 42,000 miles; receipts available." } });
     fireEvent.change(screen.getByLabelText("Modifications"), { target: { value: "None known" } });
@@ -92,6 +93,8 @@ describe("guided vehicle submission", () => {
     await next("Preview listing →");
     let preview = screen.getByRole("article");
     expect(within(preview).getByText("WP0AB2997YS123456")).toBeDefined();
+    expect(within(preview).getByText("42,000 miles")).toBeDefined();
+    expect(within(preview).getByText("$1,250,000")).toBeDefined();
     expect(within(preview).getByRole("link", { name: /Service receipt/ })).toBeDefined();
     expect(within(preview).getByText("Manual")).toBeDefined();
     expect(within(preview).getByText("Rear-wheel drive")).toBeDefined();

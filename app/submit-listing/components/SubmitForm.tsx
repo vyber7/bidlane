@@ -11,6 +11,8 @@ import AuthorizedUploadButton from "@/app/components/AuthorizedUploadButton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MAX_LISTING_NUMBER, MAX_LISTING_PHOTOS, validateListing } from "@/app/libs/listing-validation";
+import { MAX_UPLOAD_SIZE_LABEL } from "@/app/libs/upload-policy";
+import { formatAmount, formatPrice } from "@/app/utils/format";
 import { listingSchema } from "@/app/schemas/listing";
 import { validationMessage } from "@/app/schemas/common";
 import type { ListingDetailsFormValues } from "@/app/types/forms";
@@ -188,7 +190,7 @@ export default function SubmitForm({ initialDraft, emailVerified = false }: { in
             setImages((current) => current.includes(url) ? current : [...current, url].slice(0, MAX_LISTING_PHOTOS));
             setError("");
           }}>{images.length ? "Add more photos" : "Add photos"}</AuthorizedUploadButton>
-          <p aria-live="polite" className="mt-3 text-xs text-slate-500">{images.length} / {MAX_LISTING_PHOTOS} photos · At least one required · Up to 4 MB each</p>
+          <p aria-live="polite" className="mt-3 text-xs text-slate-500">{images.length} / {MAX_LISTING_PHOTOS} photos · At least one required · Up to {MAX_UPLOAD_SIZE_LABEL} each</p>
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {images.map((url, index) => <div key={url} className="overflow-hidden rounded-xl border border-slate-200">
@@ -210,7 +212,7 @@ export default function SubmitForm({ initialDraft, emailVerified = false }: { in
           <div className="p-5">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-700">Listing preview · Not submitted</p>
             <h3 className="break-words text-2xl font-bold">{title}</h3>
-            <dl className="my-5 grid grid-cols-2 gap-4 text-sm"><div><dt className="text-slate-500">Mileage</dt><dd className="font-semibold">{Number(details.miles).toLocaleString()} miles</dd></div><div><dt className="text-slate-500">Location</dt><dd className="break-words font-semibold">{details.location}</dd></div><div><dt className="text-slate-500">Reserve price</dt><dd className="font-semibold">{details.reservePrice === "" ? "No reserve" : `$${Number(details.reservePrice).toLocaleString()}`}</dd></div></dl>
+            <dl className="my-5 grid grid-cols-2 gap-4 text-sm"><div><dt className="text-slate-500">Mileage</dt><dd className="font-semibold">{formatAmount(Number(details.miles))} miles</dd></div><div><dt className="text-slate-500">Location</dt><dd className="break-words font-semibold">{details.location}</dd></div><div><dt className="text-slate-500">Reserve price</dt><dd className="font-semibold">{details.reservePrice === "" ? "No reserve" : formatPrice(Number(details.reservePrice))}</dd></div></dl>
             <dl className="mb-5 grid grid-cols-2 gap-4 text-sm">{vehicleSpecificationFields.map(({ id, label }) => <div key={id}><dt className="text-slate-500">{label}</dt><dd className="font-semibold">{details[id]}</dd></div>)}</dl>
             <p className="mb-4 text-sm"><strong>VIN / chassis (seller-reported):</strong> {details.vin || "Not provided"}</p>
             <VehicleRecords records={records} headingLevel={4} />

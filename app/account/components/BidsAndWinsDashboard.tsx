@@ -12,17 +12,10 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 import type { AuctionBid } from "@/app/types/account";
-import { formatAmount, formatBid } from "@/app/utils/format";
+import { formatAmount, formatPrice, formatCount, formatDate } from "@/app/utils/format";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 
 type Tab = "active" | "wins" | "past";
-
-const shortDate = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  timeZone: "UTC",
-});
 
 const BidsAndWinsDashboard = ({ bids }: { bids: AuctionBid[] }) => {
   const active = bids.filter((bid) => bid.status === "LIVE");
@@ -69,7 +62,7 @@ const BidsAndWinsDashboard = ({ bids }: { bids: AuctionBid[] }) => {
       <div className="grid grid-cols-3 border-b border-gray-200 bg-gray-50">
         <Stat icon={<FiTrendingUp />} label="Active" value={formatAmount(active.length)} />
         <Stat icon={<FiCheckCircle />} label="Leading" value={formatAmount(leading)} />
-        <Stat icon={<FiAward />} label="Won value" value={formatBid(totalWon)} />
+        <Stat icon={<FiAward />} label="Won value" value={formatPrice(totalWon)} />
       </div>
 
       <AccountTabs<Tab>
@@ -165,21 +158,21 @@ const BidRow = ({ bid, tab }: { bid: AuctionBid; tab: Tab }) => {
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <BidDetail label="Your top bid" value={formatBid(bid.highestBid)} />
+            <BidDetail label="Your top bid" value={formatPrice(bid.highestBid)} />
             <BidDetail
               label={tab === "wins" ? "Winning bid" : "Current bid"}
-              value={formatBid(bid.currentBid ?? bid.highestBid)}
+              value={formatPrice(bid.currentBid ?? bid.highestBid)}
             />
             <BidDetail
               label={tab === "active" ? "Auction ends" : "Last bid"}
-              value={shortDate.format(new Date(tab === "active" && bid.auctionEndsAt ? bid.auctionEndsAt : bid.lastBidAt))}
+              value={formatDate(tab === "active" && bid.auctionEndsAt ? bid.auctionEndsAt : bid.lastBidAt)}
               className="col-span-2 sm:col-span-1"
             />
           </div>
 
           <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
             <span className="flex items-center gap-1.5 text-xs text-gray-500">
-              <FiClock aria-hidden="true" /> {formatAmount(bid.bidCount)} {bid.bidCount === 1 ? "bid" : "bids"} placed
+              <FiClock aria-hidden="true" /> {formatCount(bid.bidCount, "bid")} placed
             </span>
             <Link
               href={bid.completionHref ?? `/listing/${bid.id}`}

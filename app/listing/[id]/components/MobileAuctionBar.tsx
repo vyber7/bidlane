@@ -2,7 +2,7 @@
 
 import { useAuctionContext } from "@/app/context/AuctionContext";
 import NoReserveBadge from "@/app/components/NoReserveBadge";
-import { formatAmount } from "@/app/utils/format";
+import { formatPrice } from "@/app/utils/format";
 import { describeAuction } from "@/app/libs/auction-display";
 
 export default function MobileAuctionBar({ currentUserId }: { currentUserId?: string | null }) {
@@ -23,7 +23,7 @@ export default function MobileAuctionBar({ currentUserId }: { currentUserId?: st
             <p className="text-xs text-slate-400">{label}</p>
             <NoReserveBadge isNoReserve={listing.isNoReserve} />
           </div>
-          <p className="text-lg font-bold tabular-nums sm:text-xl">{amount === null ? "To be announced" : `$${formatAmount(amount)}`}</p>
+          <p className="text-lg font-bold tabular-nums sm:text-xl">{amount === null ? "To be announced" : formatPrice(amount)}</p>
           <p className="text-xs tabular-nums text-amber-400">{closing ? display.message : `Time left: ${timeLeft || "Syncing…"}`}</p>
         </div>
         {closing ? (

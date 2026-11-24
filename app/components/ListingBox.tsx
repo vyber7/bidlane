@@ -10,7 +10,7 @@ import { FaRegClock } from "react-icons/fa";
 import { useId } from "react";
 import type { PublicListing } from "@/app/libs/listing-payload";
 import useAuction from "../hooks/useAuction";
-import { capitalize, formatBid } from "../utils/format";
+import { capitalize, formatAmount, formatPrice } from "../utils/format";
 import { clsx } from "clsx";
 import { CldImage } from "next-cloudinary";
 import useWatchlist from "../hooks/useWatchlist";
@@ -102,7 +102,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
             <div>{display.headline}</div>
           ) : display.bucket === "results" ? (
             <div>
-              {price.label}{price.amount !== null && <> <b>{formatBid(price.amount)}</b></>}
+              {price.label}{price.amount !== null && <> <b>{formatPrice(price.amount)}</b></>}
             </div>
           ) : (
             <>
@@ -123,7 +123,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
               <span aria-live="polite" aria-atomic="true">
                 <span className="sr-only">{title}: </span>
                 {price.label}{" "}
-                <b>{price.amount !== null ? formatBid(price.amount) : "To be announced"}</b>
+                <b>{price.amount !== null ? formatPrice(price.amount) : "To be announced"}</b>
               </span>
             </>
           )}
@@ -131,7 +131,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
       </div>
       <div className="flex w-full flex-col px-3 py-3 text-sm leading-5 text-slate-600">
         <p className="line-clamp-2">{listing.description}</p>
-        <span className="mt-2 block break-words text-xs font-medium text-slate-600">{listing.miles.toLocaleString()} miles · {listing.location}</span>
+        <span className="mt-2 block break-words text-xs font-medium text-slate-600">{formatAmount(listing.miles)} miles · {listing.location}</span>
       </div>
       {/* <div className="relative px-3 pb-8 lg:w-1/2">
         <p className="relative h-48 overflow-hidden after:absolute after:bottom-0 after:left-0 after:h-20 after:w-full after:bg-gradient-to-t after:from-white ">

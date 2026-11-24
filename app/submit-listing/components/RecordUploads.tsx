@@ -1,5 +1,6 @@
 "use client";
 import AuthorizedUploadButton from "@/app/components/AuthorizedUploadButton";
+import { MAX_UPLOAD_SIZE_LABEL } from "@/app/libs/upload-policy";
 import { useId, useState } from "react";
 import { MAX_VEHICLE_RECORDS, vehicleRecordSchema, type VehicleRecord } from "@/app/schemas/vehicle-trust";
 
@@ -25,7 +26,7 @@ export default function RecordUploads({ records, onChange, listingId, validation
       if (!vehicleRecordSchema.safeParse(record).success) { setError("Upload a PDF, JPG, PNG, or WebP record."); return; }
       onChange([...records, record].slice(0, MAX_VEHICLE_RECORDS)); setError("");
     }}>Upload vehicle record</AuthorizedUploadButton>
-    <p className="mt-2 text-xs text-slate-500">{records.length} / {MAX_VEHICLE_RECORDS} records · PDF, JPG, PNG, WebP · Up to 4 MB each</p>
+    <p className="mt-2 text-xs text-slate-500">{records.length} / {MAX_VEHICLE_RECORDS} records · PDF, JPG, PNG, WebP · Up to {MAX_UPLOAD_SIZE_LABEL} each</p>
     {error && <p role="alert" className="mt-2 text-sm text-rose-700">{error}</p>}
     {groupError && <p id={`${id}-error`} role="alert" className="mt-2 text-sm text-rose-700">{groupError}</p>}
     <ul className="mt-4 space-y-3">{records.map((record, index) => {

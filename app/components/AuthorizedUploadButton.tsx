@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import axios from "axios";
-import { MAX_UPLOAD_BYTES, uploadAccept, type UploadKind } from "@/app/libs/upload-policy";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_SIZE_LABEL, uploadAccept, type UploadKind } from "@/app/libs/upload-policy";
 import { getApiErrorMessage } from "@/app/utils/api-error";
 
 export default function AuthorizedUploadButton({ kind, listingId, maxFiles = 1, disabled, className, children, onUpload, onUploadingChange }: {
@@ -25,7 +25,7 @@ export default function AuthorizedUploadButton({ kind, listingId, maxFiles = 1, 
       event.currentTarget.value = "";
       if (busy.current || disabled || !files.length) return;
       if (files.length > maxFiles) { setError(`Choose at most ${maxFiles} file${maxFiles === 1 ? "" : "s"}.`); return; }
-      if (files.some((file) => !file.size || file.size > MAX_UPLOAD_BYTES)) { setError("Choose nonempty files no larger than 4 MB each."); return; }
+      if (files.some((file) => !file.size || file.size > MAX_UPLOAD_BYTES)) { setError(`Choose nonempty files no larger than ${MAX_UPLOAD_SIZE_LABEL} each.`); return; }
       busy.current = true; setUploading(true); setError("");
       onUploadingChange?.(true);
       try {

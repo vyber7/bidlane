@@ -1,5 +1,5 @@
 const numberFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 20 });
-const bidFormatter = new Intl.NumberFormat("en-US", {
+const priceFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
   maximumFractionDigits: 0,
@@ -9,8 +9,12 @@ export function formatAmount(amount: number) {
   return numberFormatter.format(amount);
 }
 
-export function formatBid(amount: number) {
-  return bidFormatter.format(amount);
+export function formatPrice(amount: number) {
+  return priceFormatter.format(amount);
+}
+
+export function formatCount(count: number, singular: string, plural = `${singular}s`) {
+  return `${formatAmount(count)} ${count === 1 ? singular : plural}`;
 }
 
 //capitalize first letter of string
@@ -23,32 +27,46 @@ export function formatDisplayName(name: string | null | undefined, fallback = "U
   return trimmed ? capitalize(trimmed) : fallback;
 }
 
-//format date to MM/DD/YYYY
-export function formatDate(date: Date) {
-  const d = new Date(date);
-  const month = d.getMonth() + 1;
-  const day = d.getDate();
-  const year = d.getFullYear();
-  return `${month}/${day}/${year}`;
+// Dates render in UTC with a fixed locale so the server and browser agree.
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
+
+type DateInput = Date | string;
+
+export function formatDate(date: DateInput) {
+  return dateFormatter.format(new Date(date));
 }
 
-//format date to MM/DD/YYYY HH:MM AM/PM
-export function formatDateTime(date: Date) {
-  const d = new Date(date);
-  const month = d.getMonth() + 1;
-  const day = d.getDate();
-  const year = d.getFullYear();
-  let hours = d.getHours();
-  const minutes = d.getMinutes();
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12;
-  hours = hours ? hours : 12; // the hour '0' should be '12'
-  const minutesStr = minutes < 10 ? `0${minutes}` : minutes;
-  return `${month}/${day}/${year} ${hours}:${minutesStr} ${ampm}`;
+const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "UTC",
+  timeZoneName: "short",
+});
+
+export function formatDateTime(date: DateInput) {
+  return dateTimeFormatter.format(new Date(date));
+}
+
+const monthYearFormatter = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "long",
+  timeZone: "UTC",
+});
+
+export function formatMonthYear(date: DateInput) {
+  return monthYearFormatter.format(new Date(date));
 }
 
 export function formatAuctionCountdown(remainingMs: number) {
-  if (remainingMs <= 0) return "Ending...";
+  if (remainingMs <= 0) return "Ending…";
 
   const secondsTotal = Math.floor(remainingMs / 1000);
   const weeks = Math.floor(secondsTotal / (7 * 24 * 3600));
@@ -63,86 +81,3 @@ export function formatAuctionCountdown(remainingMs: number) {
   if (minutes > 0) return `${minutes}m : ${seconds}s`;
   return `${seconds}s`;
 }
-
-// Determine if the auction can be ended
-export const canEndAuction = (timeLeft: string) => {
-  if (timeLeft === "Ending...") {
-    return true;
-  } else {
-    return false;
-  }
-};
-
-// Is the time left less than 3 hours
-export const isLessThan3Hours = (timeLeft: string) => {
-  if (timeLeft === "Ending...") {
-    return true;
-  }
-
-  const hoursMatch = timeLeft.match(/^(\d+)h/);
-  const minutesMatch = timeLeft.match(/^(\d+)m/);
-  const secondsMatch = timeLeft.match(/^(\d+)s/);
-
-  // console.log("hoursMatch:", hoursMatch);
-  // console.log("minutesMatch:", minutesMatch);
-  // console.log("secondsMatch:", secondsMatch);
-
-  const hours = hoursMatch ? parseInt(hoursMatch[1], 10) : undefined;
-  const minutes = minutesMatch ? parseInt(minutesMatch[1], 10) : undefined;
-  const seconds = secondsMatch ? parseInt(secondsMatch[1], 10) : undefined;
-
-  // const canEndAuction =
-  //   hours !== undefined
-  //     ? hours > 3
-  //     : minutes !== undefined
-  //     ? false
-  //     : seconds !== undefined
-  //     ? false
-  //     : true;
-
-  const canEndAuction =
-    (hours !== undefined && hours < 3) ||
-    (hours === undefined && minutes !== undefined) ||
-    (hours === undefined && minutes === undefined && seconds !== undefined);
-  return canEndAuction;
-};
-
-// Display time left in HH:MM:SS format
-export const formatTimeLeft = (totalSeconds: number) => {
-  if (totalSeconds <= 0) {
-    return "Ending...";
-  }
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  const hoursStr = hours > 0 ? `${hours}h ` : "";
-  const minutesStr = minutes > 0 ? `${minutes}m ` : "";
-  const secondsStr = `${seconds}s`;
-
-  return `${hoursStr}${minutesStr}${secondsStr}`.trim();
-};
-
-// Format time left to display only weeks, days, or hours : minutes : seconds
-export const formatTimeLeftShort = (milliSeconds: number) => {
-  if (milliSeconds <= 0) {
-    return "Ending...";
-  }
-  const totalSeconds = Math.floor(milliSeconds / 1000);
-  const weeks = Math.floor(totalSeconds / (7 * 24 * 3600));
-  const days = Math.floor((totalSeconds % (7 * 24 * 3600)) / (24 * 3600));
-  const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (weeks > 0) {
-    return `${weeks}w`;
-  } else if (days > 0) {
-    return `${days}d`;
-  } else {
-    const hoursStr = hours > 0 ? `${hours}h : ` : "";
-    const minutesStr = minutes > 0 ? `${minutes}m : ` : "";
-    const secondsStr = `${seconds}s`;
-    return `${hoursStr}${minutesStr}${secondsStr}`.trim();
-  }
-};

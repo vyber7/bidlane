@@ -7,7 +7,7 @@ import { FiArrowUpRight, FiCamera } from "react-icons/fi";
 import useAuction from "@/app/hooks/useAuction";
 import WatchAuctionButton from "./WatchAuctionButton";
 import NoReserveBadge from "@/app/components/NoReserveBadge";
-import { formatBid } from "@/app/utils/format";
+import { formatAmount, formatPrice } from "@/app/utils/format";
 import { describeAuction } from "@/app/libs/auction-display";
 
 export default function FeaturedAuction({ listing: initialListing, currentUserId }: {
@@ -49,13 +49,13 @@ export default function FeaturedAuction({ listing: initialListing, currentUserId
           </Link>
         </h2>
         {listing.isNoReserve && <div className="mt-3"><NoReserveBadge isNoReserve={listing.isNoReserve} /></div>}
-        <p className="mt-2 text-sm text-slate-300">{listing.miles.toLocaleString("en-US")} miles · {listing.location}</p>
+        <p className="mt-2 text-sm text-slate-300">{formatAmount(listing.miles)} miles · {listing.location}</p>
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4 lg:mt-auto">
           <div className="text-sm leading-6 text-slate-300">
             <p aria-live="polite" aria-atomic="true">
               {!upcoming && <>
                 <span className="sr-only">{title}: </span>
-                {bidLabel} <strong className="text-xl tabular-nums text-white">{amount === null ? "—" : formatBid(amount)}</strong>
+                {bidLabel} <strong className="text-xl tabular-nums text-white">{amount === null ? "—" : formatPrice(amount)}</strong>
               </>}
             </p>
             {upcoming

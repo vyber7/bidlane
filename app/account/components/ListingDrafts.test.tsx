@@ -17,6 +17,12 @@ function openDeleteDialog() {
 }
 
 describe("saved draft management", () => {
+  it("shows each draft's photo count and save time in the shared formats", () => {
+    render(<ListingDrafts drafts={[draft, { ...draft, id: "draft-two", photoCount: 1, updatedAt: "2026-11-24T23:30:00Z" }]} />);
+    const [first, second] = screen.getAllByRole("listitem");
+    expect(first.textContent).toContain("4 photos · Saved Nov 3, 2026, 12:00 PM UTC");
+    expect(second.textContent).toContain("1 photo · Saved Nov 24, 2026, 11:30 PM UTC");
+  });
   it("links to the correct private resume URL and waits for confirmation before deleting", async () => {
     mocks.remove.mockResolvedValueOnce({ data: { deleted: true } }); render(<ListingDrafts drafts={[draft]} />);
     expect(screen.getByRole("link", { name: "Resume Draft" }).getAttribute("href")).toBe("/submit-listing?draft=draft-one");

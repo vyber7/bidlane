@@ -2,20 +2,10 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { formatAmount, capitalize, formatDisplayName } from "@/app/utils/format";
+import { capitalize, formatAmount, formatPrice, formatDateTime, formatDisplayName } from "@/app/utils/format";
 import { useAuctionContext } from "@/app/context/AuctionContext";
 import BidForm from "./BidForm";
 import { describeAuction } from "@/app/libs/auction-display";
-
-const closeTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  timeZone: "UTC",
-  timeZoneName: "short",
-});
 
 interface BidsProps {
   sellerName?: string | null;
@@ -66,7 +56,7 @@ const Bids: React.FC<BidsProps> = ({
             </p>
           )}
           <div className="font-bold text-4xl sm:text-5xl tracking-tight">
-            {price.amount !== null ? <span>${formatAmount(price.amount)}</span> : <span>—</span>}
+            {price.amount !== null ? <span>{formatPrice(price.amount)}</span> : <span>—</span>}
           </div>
         </div>
 
@@ -83,21 +73,21 @@ const Bids: React.FC<BidsProps> = ({
             <span className="font-semibold">
               {" "}
               {listing.auctionEndsAt ? (
-                <time dateTime={listing.auctionEndsAt.toISOString()}>{closeTimeFormatter.format(listing.auctionEndsAt)}</time>
+                <time dateTime={listing.auctionEndsAt.toISOString()}>{formatDateTime(listing.auctionEndsAt)}</time>
               ) : "To be announced"}
             </span>
           </p>
           <p className="flex justify-start">
             <span className="w-1/4">Views</span>
-            <span className="font-semibold"> {listing.views}</span>
+            <span className="font-semibold"> {formatAmount(listing.views)}</span>
           </p>
           <p className="flex justify-start">
             <span className="w-1/4">Watching</span>
-            <span className="font-semibold"> {listing.watcherCount}</span>
+            <span className="font-semibold"> {formatAmount(listing.watcherCount)}</span>
           </p>
           <p className="flex justify-start">
             <span className="w-1/4">Bids</span>
-            <span className="font-semibold"> {bids.length}</span>
+            <span className="font-semibold"> {formatAmount(bids.length)}</span>
           </p>
         </div>
       </div>

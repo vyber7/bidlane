@@ -3,14 +3,14 @@ import cloudinary from "./cloudinary";
 import { getNativeRepositories } from "./native-repositories";
 import { ApiRequestError } from "./api-request";
 import { logger } from "./logger";
-import { MAX_UPLOAD_BYTES, uploadFormats, type UploadKind } from "./upload-policy";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_SIZE_LABEL, uploadFormats, type UploadKind } from "./upload-policy";
 
 export async function saveUploadedFile(input: { userId: string; kind: UploadKind; file: File; listingId?: string }) {
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim();
   if (!cloud || !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
     throw new ApiRequestError(503, "Uploads are temporarily unavailable.");
   }
-  if (!input.file.size || input.file.size > MAX_UPLOAD_BYTES) throw new ApiRequestError(413, "Choose a file no larger than 4 MB.");
+  if (!input.file.size || input.file.size > MAX_UPLOAD_BYTES) throw new ApiRequestError(413, `Choose a file no larger than ${MAX_UPLOAD_SIZE_LABEL}.`);
   const publicId = `bidlane/${input.userId}/${input.kind.toLowerCase()}/${randomUUID()}`;
   let attempted = false;
   try {
@@ -27,7 +27,7 @@ export async function saveUploadedFile(input: { userId: string; kind: UploadKind
       !Number.isSafeInteger(result.version) || result.version <= 0 ||
       !uploadFormats(input.kind).includes(result.format) || !Number.isSafeInteger(result.bytes) ||
       result.bytes <= 0 || result.bytes > MAX_UPLOAD_BYTES || result.secure_url !== expectedUrl) {
-      throw new ApiRequestError(400, "Upload a JPG, PNG, or WebP photo, or a PDF vehicle record, up to 4 MB.");
+      throw new ApiRequestError(400, `Upload a JPG, PNG, or WebP photo, or a PDF vehicle record, up to ${MAX_UPLOAD_SIZE_LABEL}.`);
     }
     await getNativeRepositories().assets.register({
       id: publicId, userId: input.userId, kind: input.kind, listingId: input.listingId ?? null,

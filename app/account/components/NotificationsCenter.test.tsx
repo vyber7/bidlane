@@ -40,6 +40,11 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("persistent notification inbox", () => {
+  it("dates each notification in the shared date-time format", async () => {
+    await act(async () => { render(view()); });
+    expect(screen.getByText("Oct 14, 2026, 12:00 PM UTC").getAttribute("dateTime")).toBe(item.createdAt);
+  });
+
   it("saves read state on the server and refreshes the shared header count", async () => {
     await act(async () => { render(view()); });
     const mark = screen.getByRole("button", { name: "Mark as Read" });

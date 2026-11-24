@@ -24,6 +24,7 @@ import { toPublicListing, toSellerListing } from "@/app/libs/listing-payload";
 import VehicleHistory from "@/app/components/VehicleHistory";
 import { vehicleSpecificationFields } from "@/app/libs/vehicle-details";
 import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
+import { formatAmount } from "@/app/utils/format";
 
 export const metadata: Metadata = {
   title: "BidLane | Vehicle Auction",
@@ -73,7 +74,7 @@ const Listing = async (props: Params) => {
               <FiMapPin aria-hidden="true" />
               {listing.location}
             </span>
-            <span>{listing.miles.toLocaleString("en-US")} miles</span>
+            <span>{formatAmount(listing.miles)} miles</span>
             <span>
               Listed by{" "}
               <Link href={`/sellers/${listing.userId}?fromListing=${id}`} className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4">
@@ -122,7 +123,7 @@ const Listing = async (props: Params) => {
                   ["Model", listing.model],
                   [
                     "Mileage",
-                    `${listing.miles.toLocaleString("en-US")} miles`,
+                    `${formatAmount(listing.miles)} miles`,
                   ],
                   ["Location", listing.location],
                   ["VIN / chassis", listing.vin?.trim() || "Not provided"],

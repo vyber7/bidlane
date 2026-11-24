@@ -2,7 +2,7 @@ import { z } from "zod";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { ApiRequestError, apiErrorResponse, errorResponse, parseApiInput, requireListingId } from "@/app/libs/api-request";
-import { MAX_UPLOAD_BODY_BYTES, MAX_UPLOAD_BYTES, UPLOAD_KINDS } from "@/app/libs/upload-policy";
+import { MAX_UPLOAD_BODY_BYTES, MAX_UPLOAD_BYTES, MAX_UPLOAD_SIZE_LABEL, UPLOAD_KINDS } from "@/app/libs/upload-policy";
 import { uploadRetryAfter } from "@/app/libs/upload-rate-limit";
 import { saveUploadedFile } from "@/app/libs/server-upload";
 import { logger } from "@/app/libs/logger";
@@ -25,7 +25,7 @@ async function boundedForm(request: Request) {
       length += chunk.value.byteLength;
       if (length > MAX_UPLOAD_BODY_BYTES) {
         await reader.cancel();
-        throw new ApiRequestError(413, "Choose a file no larger than 4 MB.");
+        throw new ApiRequestError(413, `Choose a file no larger than ${MAX_UPLOAD_SIZE_LABEL}.`);
       }
       chunks.push(chunk.value);
     }
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const kind = parseApiInput(z.enum(UPLOAD_KINDS), form.get("kind"));
     const file = form.get("file");
     if (!(file instanceof File) || !file.size) throw new ApiRequestError(400, "Choose a nonempty file to upload.");
-    if (file.size > MAX_UPLOAD_BYTES) throw new ApiRequestError(413, "Choose a file no larger than 4 MB.");
+    if (file.size > MAX_UPLOAD_BYTES) throw new ApiRequestError(413, `Choose a file no larger than ${MAX_UPLOAD_SIZE_LABEL}.`);
     const listingId = form.has("listingId") ? requireListingId(form.get("listingId")) : undefined;
     if (listingId && kind === "PROFILE") throw new ApiRequestError(400, "Profile uploads cannot target a listing.");
     if (listingId) {

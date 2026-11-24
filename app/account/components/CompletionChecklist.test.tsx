@@ -14,6 +14,17 @@ beforeEach(() => { vi.stubGlobal("fetch", fetchMock); fetchMock.mockReset(); fet
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("shared completion checklist", () => {
+  it("shows when each party confirmed a step in the shared date-time format", async () => {
+    const completion = blank();
+    completion.payment.buyer = confirmedAt;
+    completion.payment.seller = "2026-11-24T23:30:00.000Z";
+    fetchMock.mockResolvedValue(respond(completion));
+    mount(completion);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("Nov 14, 2026, 12:00 PM UTC").getAttribute("dateTime")).toBe(confirmedAt);
+    expect(screen.getByText("Nov 24, 2026, 11:30 PM UTC")).toBeDefined();
+  });
+
   it("saves a buyer's confirmation and only completes a step once both parties confirm", async () => {
     mount();
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getAdminOverview } from "@/app/libs/admin";
 import { ApiRequestError } from "@/app/libs/api-request";
+import { formatAmount } from "@/app/utils/format";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function AdminPage() {
         ].map(({ label, value }) => (
           <div key={label} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <dt className="text-sm font-semibold text-slate-500">{label}</dt>
-            <dd className="mt-2 text-3xl font-black text-slate-950">{value.toLocaleString("en-US")}</dd>
+            <dd className="mt-2 text-3xl font-black text-slate-950">{formatAmount(value)}</dd>
           </div>
         ))}
       </dl>

@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { formatAmount, formatDisplayName } from "@/app/utils/format";
+import { formatPrice, formatDate, formatDisplayName } from "@/app/utils/format";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 
 interface CommentBoxProps {
@@ -11,12 +11,6 @@ interface CommentBoxProps {
 }
 
 const ACTIVITY_PAGE_SIZE = 25;
-const activityDateFormatter = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  timeZone: "UTC",
-});
 
 const CommentBox = memo(function CommentBox({ comments, bids }: CommentBoxProps) {
   const [visibleCount, setVisibleCount] = useState(ACTIVITY_PAGE_SIZE);
@@ -55,7 +49,7 @@ const CommentBox = memo(function CommentBox({ comments, bids }: CommentBoxProps)
                 <span className="min-w-0 font-bold [overflow-wrap:anywhere]">{formatDisplayName(name)}</span>
                 {Number.isFinite(createdAt.getTime()) && (
                   <time dateTime={createdAt.toISOString()} className="text-xs text-slate-600">
-                    {activityDateFormatter.format(createdAt)}
+                    {formatDate(createdAt)}
                   </time>
                 )}
               </div>
@@ -66,7 +60,7 @@ const CommentBox = memo(function CommentBox({ comments, bids }: CommentBoxProps)
                 {isComment ? item.body?.trim() || "Comment text unavailable." : (
                   <>
                     <span className="font-normal">Bid</span>{" "}
-                    {`$${formatAmount(item.amount)}`}
+                    {formatPrice(item.amount)}
                   </>
                 )}
               </div>

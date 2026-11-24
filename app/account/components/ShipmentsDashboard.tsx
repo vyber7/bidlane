@@ -16,18 +16,11 @@ import {
 import type { ShipmentTransaction } from "@/app/types/account";
 import { handoffSteps } from "@/app/libs/auction-guidance";
 import { transactionAnchor } from "@/app/libs/transaction-completion";
-import { formatAmount, formatBid } from "@/app/utils/format";
+import { formatAmount, formatPrice, formatDate } from "@/app/utils/format";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 import CompletionChecklist from "./CompletionChecklist";
 
 type Tab = "all" | "purchases" | "sales";
-
-const date = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  timeZone: "UTC",
-});
 
 const ShipmentsDashboard = ({ shipments }: { shipments: ShipmentTransaction[] }) => {
   const purchases = shipments.filter((shipment) => shipment.role === "buyer");
@@ -145,7 +138,7 @@ const ShipmentRow = ({ shipment }: { shipment: ShipmentTransaction }) => {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-wide text-gray-500">
-                {isBuyer ? "Auction won" : "Sold at auction"} · <time dateTime={shipment.soldAt}>{date.format(new Date(shipment.soldAt))}</time>
+                {isBuyer ? "Auction won" : "Sold at auction"} · <time dateTime={shipment.soldAt}>{formatDate(shipment.soldAt)}</time>
               </p>
               <Link href={`/listing/${shipment.id}`} className="hover:underline">
                 <h3 className="mt-1 truncate text-lg font-bold text-gray-950">{vehicle}</h3>
@@ -157,7 +150,7 @@ const ShipmentRow = ({ shipment }: { shipment: ShipmentTransaction }) => {
             <span className="flex items-center gap-1.5 text-gray-600">
               <FiMapPin aria-hidden="true" className="shrink-0 text-gray-500" /> <span className="min-w-0 break-words">{shipment.location}</span>
             </span>
-            <span className="font-bold tabular-nums text-gray-950">Winning bid {formatBid(shipment.price)}</span>
+            <span className="font-bold tabular-nums text-gray-950">Winning bid {formatPrice(shipment.price)}</span>
           </div>
 
           <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between">

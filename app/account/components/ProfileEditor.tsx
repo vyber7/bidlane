@@ -23,6 +23,7 @@ import {
 } from "react-icons/fi";
 import { logger } from "@/app/libs/logger";
 import { profileSchema } from "@/app/schemas/account";
+import { formatMonthYear } from "@/app/utils/format";
 
 type ProfileUser = {
   name: string;
@@ -31,12 +32,6 @@ type ProfileUser = {
   createdAt: string;
   hasPassword: boolean;
 };
-
-const memberSince = new Intl.DateTimeFormat("en-US", {
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
 
 const ProfileEditor = ({ user }: { user: ProfileUser }) => {
   const router = useRouter();
@@ -238,7 +233,7 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
               <Detail
                 icon={<FiCalendar />}
                 label="Member since"
-                value={memberSince.format(new Date(user.createdAt))}
+                value={formatMonthYear(user.createdAt)}
               />
               <Detail
                 icon={<FiLock />}

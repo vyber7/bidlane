@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { useAuctionContext } from "@/app/context/AuctionContext";
 import { getApiErrorMessage } from "@/app/utils/api-error";
-import { capitalize, formatAmount } from "@/app/utils/format";
+import { capitalize, formatPrice } from "@/app/utils/format";
 import type { AcceptedBidResponse } from "@/app/types/auction-events";
 import type { BidFormValues } from "@/app/types/forms";
 import { bidRequestSchema } from "@/app/schemas/auction";
@@ -104,7 +104,7 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
     <div className="mt-3 space-y-4">
       {(acceptedAmount !== null || leading) && (
         <div role="status" className={`rounded-lg border p-4 text-sm ${leading ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-950"}`}>
-          {acceptedAmount !== null && <p>Your bid of ${formatAmount(acceptedAmount)} was accepted.</p>}
+          {acceptedAmount !== null && <p>Your bid of {formatPrice(acceptedAmount)} was accepted.</p>}
           <p className="font-bold">{leading ? "You’re leading" : "You’ve been outbid"}</p>
           <p>{leading ? "Keep an eye on the auction until it closes." : "Review the current price before bidding again."}</p>
         </div>
@@ -119,7 +119,7 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
       }}>
         <label htmlFor="bidAmount" className="block text-sm font-semibold text-slate-950">Your bid amount in dollars</label>
         {minimumBid !== null && (
-          <p id="bid-minimum" className="mb-2 mt-1 text-sm text-slate-600">{`Minimum next bid: $${formatAmount(minimumBid)}`}</p>
+          <p id="bid-minimum" className="mb-2 mt-1 text-sm text-slate-600">{`Minimum next bid: ${formatPrice(minimumBid)}`}</p>
         )}
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
@@ -130,7 +130,7 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
               valueAsNumber: true,
               required: "Enter your bid amount.",
               validate: (value) => validationMessage(bidRequestSchema.shape.bidAmount, value),
-              min: { value: minimumBid ?? 0, message: `Your bid must be at least $${formatAmount(minimumBid ?? 0)}.` },
+              min: { value: minimumBid ?? 0, message: `Your bid must be at least ${formatPrice(minimumBid ?? 0)}.` },
             })}
             disabled={!canBid || !emailVerified || review !== null || isLoading}
             className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-3 font-semibold text-slate-950 focus:border-amber-500 focus:ring-amber-500 disabled:bg-slate-100 disabled:text-slate-500"
@@ -145,12 +145,12 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
         <section aria-labelledby="bid-review-title" aria-busy={isLoading} className="space-y-4 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
           <h3 id="bid-review-title" ref={reviewHeading} tabIndex={-1} className="text-lg font-bold text-slate-950 focus:outline-none">Review your bid</h3>
           <p className="font-semibold text-slate-950">{listing.year} {capitalize(listing.make)} {capitalize(listing.model)}</p>
-          <div><p className="text-sm text-slate-600">Your bid</p><p className="text-3xl font-black tracking-tight text-slate-950">${formatAmount(review.amount)}</p></div>
+          <div><p className="text-sm text-slate-600">Your bid</p><p className="text-3xl font-black tracking-tight text-slate-950">{formatPrice(review.amount)}</p></div>
           <p className="text-sm leading-6 text-slate-700">By confirming, you commit to purchasing this vehicle for your bid amount if you win and the reserve is met. Review the listing and arrange any inspection before bidding.</p>
           {pendingKey ? null : !canBid ? (
             <p role="alert" className="text-sm font-semibold text-rose-700">This auction is no longer accepting bids.</p>
           ) : minimumChanged && (
-            <p role="alert" className="text-sm font-semibold text-amber-950">The minimum bid changed while you were reviewing. The minimum is now ${formatAmount(minimumBid ?? 0)}. Review the updated bid before confirming.</p>
+            <p role="alert" className="text-sm font-semibold text-amber-950">The minimum bid changed while you were reviewing. The minimum is now {formatPrice(minimumBid ?? 0)}. Review the updated bid before confirming.</p>
           )}
           <div className="flex flex-col gap-2 sm:flex-row">
             {pendingKey ? (
@@ -163,7 +163,7 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
                 setReview({ amount, minimumBid });
               }}>Review updated bid</button>
             ) : (
-              <button type="button" disabled={!canBid || isLoading} className={primaryButton} onClick={confirmBid}>{isLoading ? "Placing bid…" : `Confirm bid of $${formatAmount(review.amount)}`}</button>
+              <button type="button" disabled={!canBid || isLoading} className={primaryButton} onClick={confirmBid}>{isLoading ? "Placing bid…" : `Confirm bid of ${formatPrice(review.amount)}`}</button>
             )}
             <button type="button" disabled={isLoading || pendingKey !== null} onClick={closeReview} className="rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50">Edit bid</button>
           </div>

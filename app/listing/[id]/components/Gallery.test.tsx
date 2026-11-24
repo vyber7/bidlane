@@ -153,6 +153,14 @@ const photos = () => screen.queryAllByRole("button", { name: /^View photo/ });
 const upload = () => fireEvent.click(screen.getByRole("button", { name: "Add Images" }));
 
 describe("gallery image data", () => {
+  it.each([
+    [[savedUrl], "1 photo"],
+    [[savedUrl, uploadedUrl], "2 photos"],
+  ])("counts %j as %s", (initialImages, label) => {
+    render(<Gallery listingId={listingId} vehicleName={vehicleName} initialImages={initialImages} />);
+    expect(screen.getByText(label)).toBeDefined();
+  });
+
   it("renders all 20 photos and hides uploads when the gallery is full", () => {
     const images = Array.from({ length: 20 }, (_, i) => `https://res.cloudinary.com/demo/image/upload/photo-${i}.jpg`);
     render(<Gallery listingId={listingId} initialImages={images} owner />);
@@ -164,7 +172,7 @@ describe("gallery image data", () => {
     render(<Gallery listingId={listingId} vehicleName={vehicleName} initialImages={[savedUrl, savedUrl]} />);
 
     expect(photos()).toHaveLength(1);
-    expect(screen.getByText("1 photos")).toBeTruthy();
+    expect(screen.getByText("1 photo")).toBeTruthy();
     expect(screen.getByRole("img", { name: `${vehicleName}, photo 1` }).getAttribute("data-src")).toBe(savedUrl);
     expect(screen.queryByText("Loading images…")).toBeNull();
     expect(mocks.fetch).not.toHaveBeenCalled();
