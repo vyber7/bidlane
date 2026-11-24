@@ -1,10 +1,11 @@
 import { FiCalendar, FiCheckCircle, FiEdit2, FiLock, FiMail, FiShield, FiUser } from "react-icons/fi";
-import { Bone, Line } from "@/app/components/Skeleton";
+import { Bone, Line, LoadingStatus } from "@/app/components/Skeleton";
 
 // Mirrors EmailVerification, the public profile link, and ProfileEditor.
 export default function Loading() {
   return (
-    <div className="space-y-5" aria-label="Loading profile" aria-busy="true">
+    <div className="space-y-5" aria-busy="true">
+      <LoadingStatus label="Loading profile" />
       <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
         <Line className="h-7"><Bone className="h-5 w-40" /></Line>
         <Line className="mt-2"><Bone className="h-4 w-full max-w-lg bg-slate-100" /></Line>

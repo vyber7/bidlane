@@ -11,6 +11,9 @@ import CoverImage from "@/app/listing/[id]/components/CoverImage";
 import ReviewForm from "./ReviewForm";
 import { formatAmount, formatPrice, formatDateTime } from "@/app/utils/format";
 
+// The review payload holds only the stored status, so name the Auction phase it implies.
+const phaseLabels: Record<string, string> = { UPCOMING: "Upcoming", LIVE: "Open", ENDED: "Ended" };
+
 export const dynamic = "force-dynamic";
 
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,10 +28,10 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   });
   const title = `${listing.year} ${listing.make} ${listing.model}`;
   return <div className="mx-auto max-w-6xl space-y-6 px-4 pb-12 pt-24 sm:px-6 lg:px-8">
-    <Link href="/admin/listings" className="text-sm font-bold underline">← Listing reviews</Link>
-    <header><p className="text-sm font-bold text-amber-800">{reviewLabels[listing.reviewStatus ?? "PENDING"]} · {listing.status}</p><h1 className="mt-2 text-3xl font-black">{title}</h1><p className="mt-3 text-sm text-slate-600">Seller: {listing.user.name || "Seller"} · {listing.user.email || "Email unavailable"}</p><Link href={`/listing/${id}`} className="mt-3 inline-block text-sm font-bold underline">View listing page →</Link></header>
+    <Link href="/admin/listings" className="text-sm font-bold underline hover:text-amber-700"><span aria-hidden="true">←</span> Listing Reviews</Link>
+    <header><p className="text-sm font-bold text-amber-800">{reviewLabels[listing.reviewStatus ?? "PENDING"]} · {phaseLabels[listing.status] ?? listing.status}</p><h1 className="mt-2 text-balance text-3xl font-black">{title}</h1><p className="mt-3 text-sm text-slate-600">Seller: {listing.user.name || "Seller"} · {listing.user.email || "Email unavailable"}</p><Link href={`/listing/${id}`} className="mt-3 inline-block text-sm font-bold underline hover:text-amber-700">View Listing Page <span aria-hidden="true">→</span></Link></header>
     <section className="rounded-2xl border bg-white p-6">
-      <h2 className="text-xl font-bold">Vehicle details</h2>
+      <h2 className="text-xl font-bold">Vehicle Details</h2>
       <dl className="mt-4 grid gap-4 sm:grid-cols-2">{[
         ["Mileage", `${formatAmount(listing.miles)} miles`], ["Location", listing.location],
         ["VIN / chassis", listing.vin || "Not provided"], ["Reserve", listing.reservePrice == null ? "No reserve" : formatPrice(listing.reservePrice)],
@@ -43,7 +46,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
     {listing.reviewNote && <p className="whitespace-pre-wrap break-words rounded-xl bg-amber-50 p-4 text-sm">Latest feedback: {listing.reviewNote}</p>}
     <ReviewForm key={listing.reviewRevision ?? 0} id={id} revision={listing.reviewRevision ?? 0} disabled={listing.status !== "UPCOMING"} />
     <section className="rounded-2xl border bg-white p-6">
-      <h2 className="text-xl font-bold">Review history</h2>
+      <h2 className="text-xl font-bold">Review History</h2>
       <p className="mt-2 text-xs text-slate-500">Latest 50 decisions. Saving listing changes requires a new approval.</p>
       {listing.reviews.length ? <ol className="mt-4 space-y-4">{listing.reviews.map((review) => <li key={review.id} className="border-t pt-3 text-sm"><p className="font-bold">{reviewLabels[review.decision]} · {review.reviewerName}</p><p className="mt-1 text-xs text-slate-500"><time dateTime={review.createdAt.toISOString()}>{formatDateTime(review.createdAt)}</time> · Revision {review.revision}</p>{review.reason && <p className="mt-2 whitespace-pre-wrap break-words">{review.reason}</p>}</li>)}</ol> : <p className="mt-4 text-sm text-slate-500">No decisions recorded yet.</p>}
     </section>

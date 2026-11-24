@@ -7,7 +7,7 @@ export default function LatestBids({ bids }: { bids: RecentBid[] }) {
     <section aria-labelledby="latest-bids-title">
       <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
         <h2 id="latest-bids-title" className="text-lg font-bold tracking-tight text-slate-950">
-          Latest bids
+          Latest Bids
         </h2>
         {bids.length ? (
           <ol className="mt-3 grid auto-cols-[min(76%,15rem)] grid-flow-col grid-rows-2 gap-x-4 gap-y-3 overflow-x-auto pb-1 [scrollbar-width:thin] lg:grid-flow-row lg:grid-cols-5 lg:grid-rows-none">

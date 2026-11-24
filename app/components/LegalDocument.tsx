@@ -63,8 +63,8 @@ export default function LegalDocument({ eyebrow, title, description, effectiveDa
             ))}
           </div>
           <div className="mt-4 rounded-3xl bg-slate-950 p-7 text-white sm:flex sm:items-center sm:justify-between sm:p-9">
-            <div><FiMail className="text-amber-400" size={22} aria-hidden="true" /><h2 className="mt-4 text-2xl font-black">Questions about this policy?</h2><p className="mt-2 text-sm leading-6 text-slate-400">We&apos;re happy to clarify how these terms apply to your use of Bidlane.</p></div>
-            <Link href="/contact" className="mt-6 inline-flex items-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300 sm:mt-0">Contact us <FiArrowRight aria-hidden="true" /></Link>
+            <div><FiMail className="text-amber-400" size={22} aria-hidden="true" /><h2 className="mt-4 text-2xl font-black">Questions About This Policy?</h2><p className="mt-2 text-sm leading-6 text-slate-400">We&apos;re happy to clarify how these terms apply to your use of Bidlane.</p></div>
+            <Link href="/contact" className="mt-6 inline-flex items-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300 sm:mt-0">Contact Us <FiArrowRight aria-hidden="true" /></Link>
           </div>
         </article>
       </div>

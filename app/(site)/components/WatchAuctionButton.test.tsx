@@ -22,7 +22,7 @@ describe("homepage watch action", () => {
     const listing = makeListing({ status: "UPCOMING" });
     mocks.post.mockResolvedValueOnce({ data: { watching: true } });
     render(<WatchAuctionButton listing={listing} currentUserId="buyer" />);
-    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Watch auction" })));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Watch Auction" })));
     expect(mocks.post).toHaveBeenCalledWith("/api/update-watchlist", { listingId: listing.id, watching: true });
     expect(screen.getByRole("button", { name: "Watching" }).getAttribute("aria-pressed")).toBe("true");
 
@@ -34,7 +34,7 @@ describe("homepage watch action", () => {
 
   it("takes visitors to sign in without sending a watch request", () => {
     render(<WatchAuctionButton listing={makeListing({ status: "UPCOMING" })} />);
-    expect(screen.getByRole("link", { name: "Sign in to watch" }).getAttribute("href")).toBe("/signin");
+    expect(screen.getByRole("link", { name: "Sign In to Watch" }).getAttribute("href")).toBe("/signin");
     expect(screen.queryByRole("button")).toBeNull();
     expect(mocks.post).not.toHaveBeenCalled();
   });
@@ -42,7 +42,7 @@ describe("homepage watch action", () => {
   it("takes sellers to their listing instead of offering to watch it", () => {
     const listing = makeListing({ status: "UPCOMING" });
     render(<WatchAuctionButton listing={listing} currentUserId="seller" />);
-    expect(screen.getByRole("link", { name: "View your listing" }).getAttribute("href")).toBe(`/listing/${listing.id}`);
+    expect(screen.getByRole("link", { name: "View Your Listing" }).getAttribute("href")).toBe(`/listing/${listing.id}`);
     expect(screen.queryByRole("button")).toBeNull();
   });
 });

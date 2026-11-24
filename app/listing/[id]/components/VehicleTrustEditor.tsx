@@ -26,9 +26,9 @@ export default function VehicleTrustEditor({ id, initialVin, initialRecords }: {
     <fieldset disabled={saving} className="min-w-0">
       <legend className="text-lg font-bold">Seller: VIN & records</legend>
       <p className="mt-2 text-sm text-slate-600">Add or correct these details before starting the auction. They cannot be changed once bidding opens.</p>
-      <label className="mt-4 block text-sm font-bold">VIN or chassis number (optional)<input value={vin} onChange={(event) => { setVin(event.target.value); setSaved(false); }} maxLength={30} className="mt-2 block w-full rounded-lg border border-slate-300 px-3 py-2" /></label>
+      <label className="mt-4 block text-sm font-bold">VIN or chassis number (optional)<input name="vin" autoComplete="off" spellCheck={false} value={vin} onChange={(event) => { setVin(event.target.value); setSaved(false); }} maxLength={30} className="mt-2 block w-full rounded-lg border border-slate-300 px-3 py-2" /></label>
       <RecordUploads records={records} onChange={(next) => { setRecords(next); setSaved(false); }} />
-      <button type="submit" className="mt-4 rounded-lg bg-slate-950 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{saving ? "Saving…" : "Save VIN & records"}</button>
+      <button type="submit" className="mt-4 rounded-lg bg-slate-950 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950 disabled:opacity-50">{saving ? "Saving…" : "Save VIN & Records"}</button>
     </fieldset>
     {saved && <p role="status" className="mt-3 text-sm text-emerald-800">Vehicle details saved.</p>}
     {error && <p role="alert" className="mt-3 text-sm text-rose-700">{error}</p>}

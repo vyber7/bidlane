@@ -33,7 +33,7 @@ describe("authorized upload control", () => {
   });
   it("awaits uploads and saves sequentially and blocks a second selection while busy", async () => {
     const pending = Promise.withResolvers<{ data: { url: string } }>(); mocks.post.mockReturnValueOnce(pending.promise);
-    const uploaded = vi.fn(); render(<AuthorizedUploadButton kind="PHOTO" maxFiles={2} onUpload={uploaded}>Add photos</AuthorizedUploadButton>);
+    const uploaded = vi.fn(); render(<AuthorizedUploadButton kind="PHOTO" maxFiles={2} onUpload={uploaded}>Add Photos</AuthorizedUploadButton>);
     const input = screen.getByLabelText("Choose upload files"); const files = [new File(["1"], "1.jpg"), new File(["2"], "2.jpg")];
     await act(async () => fireEvent.change(input, { target: { files } }));
     expect(screen.getByRole("button").hasAttribute("disabled")).toBe(true);

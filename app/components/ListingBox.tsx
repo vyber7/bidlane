@@ -52,7 +52,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
       {!isOwner && (
         <button
           type="button"
-          className="flex items-center px-3 text-xl motion-safe:transition-transform motion-safe:hover:scale-110"
+          className="flex items-center px-3 text-xl motion-safe:transition-transform motion-safe:hover:scale-110 disabled:cursor-wait disabled:opacity-40 disabled:hover:scale-100"
           onClick={toggle}
           disabled={isUpdating}
           aria-label={watching ? "Remove from watchlist" : "Add to watchlist"}
@@ -102,7 +102,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
             <div>{display.headline}</div>
           ) : display.bucket === "results" ? (
             <div>
-              {price.label}{price.amount !== null && <> <b>{formatPrice(price.amount)}</b></>}
+              {price.label}{price.amount !== null && <> <b className="tabular-nums">{formatPrice(price.amount)}</b></>}
             </div>
           ) : (
             <>
@@ -113,6 +113,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
                   <FaRegClock aria-hidden="true" />
                   <span
                     className={clsx(
+                      "tabular-nums",
                       remainingMs !== null && remainingMs < 3 * 60 * 60 * 1000 ? "text-red-400" : "",
                     )}
                   >
@@ -120,10 +121,9 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
                   </span>
                 </div>
               )}
-              <span aria-live="polite" aria-atomic="true">
-                <span className="sr-only">{title}: </span>
+              <span>
                 {price.label}{" "}
-                <b>{price.amount !== null ? formatPrice(price.amount) : "To be announced"}</b>
+                <b className="tabular-nums">{price.amount !== null ? formatPrice(price.amount) : "To be announced"}</b>
               </span>
             </>
           )}
@@ -133,17 +133,6 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
         <p className="line-clamp-2">{listing.description}</p>
         <span className="mt-2 block break-words text-xs font-medium text-slate-600">{formatAmount(listing.miles)} miles · {listing.location}</span>
       </div>
-      {/* <div className="relative px-3 pb-8 lg:w-1/2">
-        <p className="relative h-48 overflow-hidden after:absolute after:bottom-0 after:left-0 after:h-20 after:w-full after:bg-gradient-to-t after:from-white ">
-          {description}
-        </p>
-        <button
-          onClick={() => router.push(`/listing/${id}`)}
-          className="z-1 absolute bottom-2 p-2 right-1/2 translate-x-1/2 rounded text-sm font-bold transition hover:bg-gray-100"
-        >
-          Read more...
-        </button>
-      </div> */}
     </div>
   );
 };

@@ -13,7 +13,7 @@ export default function MobileAuctionBar({ currentUserId }: { currentUserId?: st
 
   const { headline, price: { label, amount }, action } = display;
   const closing = display.timer === "closing";
-  const link = action === "view-bids" ? "View bids" : action === "place-bid" ? "Place a bid" : null;
+  const link = action === "view-bids" ? "View Bids" : action === "place-bid" ? "Place a Bid" : null;
 
   return (
     <section aria-label="Live auction quick actions" className="sticky bottom-0 z-40 border-t border-white/10 bg-slate-950 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-white shadow-[0_-4px_20px_rgba(2,6,23,0.15)] lg:hidden">

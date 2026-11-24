@@ -159,12 +159,12 @@ describe("URL-driven auction browsers", () => {
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "BMW & MINI" } });
     expect(window.history.replaceState).toHaveBeenLastCalledWith(null, "", "/?utm_source=share&status=live&sort=bid-low&q=BMW+%26+MINI#auctions");
     expect(new URLSearchParams(window.location.search).get("q")).toBe("BMW & MINI");
-    expect(screen.getByText("No auctions found")).toBeDefined();
+    expect(screen.getByText("No Auctions Found")).toBeDefined();
     act(() => window.history.back());
     await waitFor(() => expect(screen.getByRole("searchbox")).toHaveProperty("value", ""));
     act(() => window.history.forward());
     await waitFor(() => expect(screen.getByRole("searchbox")).toHaveProperty("value", "BMW & MINI"));
-    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear Search" }));
     expect(new URLSearchParams(window.location.search).has("q")).toBe(false);
     expect(screen.getByRole("combobox")).toHaveProperty("value", "bid-low");
   });

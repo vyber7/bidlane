@@ -118,7 +118,7 @@ export default async function SignIn({ searchParams }: {
               href="/?status=live#auctions"
               className="mt-8 inline-flex items-center gap-2 rounded-sm text-sm font-semibold text-amber-400 transition hover:text-amber-300 focus-visible:outline-amber-400 lg:mt-10"
             >
-              Explore live auctions <FiArrowUpRight aria-hidden="true" />
+              Explore Live Auctions <FiArrowUpRight aria-hidden="true" />
             </Link>
           </div>
         </section>

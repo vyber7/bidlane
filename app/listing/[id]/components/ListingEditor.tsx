@@ -12,7 +12,10 @@ import { vehicleDisclosureFields, vehicleSpecificationFields } from "@/app/libs/
 import RecordUploads from "@/app/submit-listing/components/RecordUploads";
 import { getApiErrorMessage } from "@/app/utils/api-error";
 import useUnsavedChangesWarning from "@/app/hooks/useUnsavedChangesWarning";
+import useUndo from "@/app/hooks/useUndo";
+import UndoNotice from "@/app/components/UndoNotice";
 
+const numberFields: ReadonlySet<string> = new Set(["year", "miles", "reservePrice"]);
 const textFields = [
   ["make", "Make"], ["model", "Model"], ["year", "Year"], ["miles", "Mileage"],
   ["location", "Location"], ["reservePrice", "Reserve price in USD (optional)"], ["vin", "VIN or chassis number (optional)"],
@@ -40,6 +43,7 @@ export default function ListingEditor({ listing }: { listing: SellerListing }) {
   const id = useId();
   const busy = useRef(false);
   const router = useRouter();
+  const photoUndo = useUndo();
   const dirty = fieldsChanged || cover !== savedMedia.cover ||
     JSON.stringify(images) !== JSON.stringify(savedMedia.images) ||
     JSON.stringify(records) !== JSON.stringify(savedMedia.records);
@@ -77,7 +81,7 @@ export default function ListingEditor({ listing }: { listing: SellerListing }) {
   }
 
   return <details className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-    <summary id="edit-listing" className="cursor-pointer scroll-mt-28 text-lg font-bold">Edit listing & submit for review</summary>
+    <summary id="edit-listing" className="cursor-pointer scroll-mt-28 text-lg font-bold">Edit Listing & Submit for Review</summary>
     <p className="mt-3 text-sm leading-6 text-slate-600">Save all corrections together. Any change returns this listing to review and hides it from buyers until approved again. Photos and details cannot be changed after bidding opens.</p>
     <form ref={formRef} className="mt-5" noValidate onChange={(event) => {
       setFieldsChanged(JSON.stringify(listingFields(event.currentTarget)) !== savedFields.current);
@@ -117,7 +121,7 @@ export default function ListingEditor({ listing }: { listing: SellerListing }) {
         <div className="grid gap-4 sm:grid-cols-2">
           {textFields.map(([name, label]) => <div key={name} className="text-sm font-bold">
             <label htmlFor={`${id}-${name}`}>{label}</label>
-            <input {...fieldProps(name)} type={["year", "miles", "reservePrice"].includes(name) ? "number" : "text"} autoComplete="off" step="1" defaultValue={listing[name] ?? ""} className={inputClass} />
+            <input {...fieldProps(name)} type={numberFields.has(name) ? "number" : "text"} inputMode={numberFields.has(name) ? "numeric" : undefined} autoComplete="off" spellCheck={numberFields.has(name) ? undefined : false} step="1" defaultValue={listing[name] ?? ""} className={inputClass} />
             {fieldError(name)}
           </div>)}
           {vehicleSpecificationFields.map(({ id: name, label, options }) => <div key={name} className="text-sm font-bold">
@@ -153,22 +157,30 @@ export default function ListingEditor({ listing }: { listing: SellerListing }) {
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {images.map((url, index) => <div key={`${url}-${index}`} className="rounded-lg border bg-white p-2">
               <CldImage src={url} alt={`Listing photo ${index + 1}`} width={240} height={160} crop="fill" className="aspect-[3/2] w-full rounded object-cover" />
-              <label className="mt-2 flex items-center gap-2 text-xs"><input type="radio" name="cover" checked={cover === url} onChange={() => setCover(url)} />Cover</label>
-              <button type="button" className="mt-2 text-xs font-bold text-rose-700 underline" onClick={() => {
+              <label className="mt-2 flex items-center gap-2 text-xs"><input type="radio" name="cover" aria-label={`Use photo ${index + 1} as cover`} checked={cover === url} onChange={() => setCover(url)} />Cover</label>
+              <button type="button" className="mt-2 rounded text-xs font-bold text-rose-700 underline hover:text-rose-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700" onClick={() => {
+                const previousImages = images;
+                const previousCover = cover;
                 const next = images.filter((_, i) => i !== index);
                 setImages(next);
                 if (cover === url) setCover(next[0]);
                 clearFieldErrors("images");
-              }}>Remove photo {index + 1}</button>
+                photoUndo.offer(`Photo ${index + 1} removed.`, () => {
+                  setImages(previousImages);
+                  setCover(previousCover);
+                });
+              }}>Remove Photo {index + 1}</button>
             </div>)}
           </div>
-          <AuthorizedUploadButton kind="PHOTO" listingId={listing.id} maxFiles={MAX_LISTING_PHOTOS - images.length} className="mt-3 rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold disabled:opacity-50" onUpload={(url) => {
+          <UndoNotice notice={photoUndo.notice} onUndo={photoUndo.undo} className="mt-3" />
+          <AuthorizedUploadButton kind="PHOTO" listingId={listing.id} maxFiles={MAX_LISTING_PHOTOS - images.length} className="mt-3 rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950 disabled:opacity-50" onUpload={(url) => {
+            photoUndo.dismiss();
             setImages((previous) => previous.includes(url) ? previous : [...previous, url].slice(0, MAX_LISTING_PHOTOS));
             setCover((previous) => previous || url);
             clearFieldErrors("images");
-          }}>Add photos</AuthorizedUploadButton>
+          }}>Add Photos</AuthorizedUploadButton>
         </div>
-        <button type="submit" className="rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{saving ? "Saving…" : "Save & submit for review"}</button>
+        <button type="submit" className="rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950 disabled:opacity-50">{saving ? "Saving…" : "Save & Submit for Review"}</button>
       </fieldset>
       {(error || fieldErrors[""]) && <p role="alert" className="mt-4 text-sm text-rose-700">{error || fieldErrors[""]}</p>}
     </form>

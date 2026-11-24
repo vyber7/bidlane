@@ -123,7 +123,7 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
         )}
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
-            id="bidAmount" type="number" inputMode="numeric" placeholder="Your bid ($)"
+            id="bidAmount" type="number" inputMode="numeric" placeholder="e.g. 12500…"
             min={minimumBid ?? undefined} max={MAX_INTEGER} step={1}
             aria-invalid={!!errors.bidAmount} aria-describedby={[minimumBid !== null && "bid-minimum", errors.bidAmount && "bid-error"].filter(Boolean).join(" ") || undefined}
             {...register("bidAmount", {
@@ -135,7 +135,7 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
             disabled={!canBid || !emailVerified || review !== null || isLoading}
             className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-3 font-semibold text-slate-950 focus:border-amber-500 focus:ring-amber-500 disabled:bg-slate-100 disabled:text-slate-500"
           />
-          <button type="submit" disabled={!canBid || !emailVerified || review !== null || isLoading} className={primaryButton}>Review bid</button>
+          <button type="submit" disabled={!canBid || !emailVerified || review !== null || isLoading} className={primaryButton}>Review Bid</button>
         </div>
         {errors.bidAmount && <p id="bid-error" role="alert" className="mt-2 text-sm text-rose-700">{errors.bidAmount.message}</p>}
       </form>
@@ -143,9 +143,9 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
       {requestError && <p role="alert" className="text-sm text-rose-700">{requestError}</p>}
       {review && (
         <section aria-labelledby="bid-review-title" aria-busy={isLoading} className="space-y-4 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
-          <h3 id="bid-review-title" ref={reviewHeading} tabIndex={-1} className="text-lg font-bold text-slate-950 focus:outline-none">Review your bid</h3>
+          <h3 id="bid-review-title" ref={reviewHeading} tabIndex={-1} className="text-lg font-bold text-slate-950 focus:outline-none">Review Your Bid</h3>
           <p className="font-semibold text-slate-950">{listing.year} {capitalize(listing.make)} {capitalize(listing.model)}</p>
-          <div><p className="text-sm text-slate-600">Your bid</p><p className="text-3xl font-black tracking-tight text-slate-950">{formatPrice(review.amount)}</p></div>
+          <div><p className="text-sm text-slate-600">Your bid</p><p className="text-3xl font-black tracking-tight tabular-nums text-slate-950">{formatPrice(review.amount)}</p></div>
           <p className="text-sm leading-6 text-slate-700">By confirming, you commit to purchasing this vehicle for your bid amount if you win and the reserve is met. Review the listing and arrange any inspection before bidding.</p>
           {pendingKey ? null : !canBid ? (
             <p role="alert" className="text-sm font-semibold text-rose-700">This auction is no longer accepting bids.</p>
@@ -154,18 +154,18 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
           )}
           <div className="flex flex-col gap-2 sm:flex-row">
             {pendingKey ? (
-              <button type="button" disabled={isLoading} className={primaryButton} onClick={confirmBid}>{isLoading ? "Placing bid…" : "Retry same bid"}</button>
+              <button type="button" disabled={isLoading} className={primaryButton} onClick={confirmBid}>{isLoading ? "Placing Bid…" : "Retry Same Bid"}</button>
             ) : minimumChanged ? (
               <button type="button" disabled={!canBid || isLoading} className={primaryButton} onClick={() => {
                 if (!canBid || minimumBid === null) return;
                 const amount = Math.max(review.amount, minimumBid);
                 setValue("bidAmount", amount);
                 setReview({ amount, minimumBid });
-              }}>Review updated bid</button>
+              }}>Review Updated Bid</button>
             ) : (
-              <button type="button" disabled={!canBid || isLoading} className={primaryButton} onClick={confirmBid}>{isLoading ? "Placing bid…" : `Confirm bid of ${formatPrice(review.amount)}`}</button>
+              <button type="button" disabled={!canBid || isLoading} className={primaryButton} onClick={confirmBid}>{isLoading ? "Placing Bid…" : `Confirm Bid of ${formatPrice(review.amount)}`}</button>
             )}
-            <button type="button" disabled={isLoading || pendingKey !== null} onClick={closeReview} className="rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50">Edit bid</button>
+            <button type="button" disabled={isLoading || pendingKey !== null} onClick={closeReview} className="rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50">Edit Bid</button>
           </div>
         </section>
       )}

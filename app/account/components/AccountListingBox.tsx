@@ -10,7 +10,6 @@ import { FiArrowUpRight, FiClock, FiEye, FiMapPin } from "react-icons/fi";
 import useAuction from "@/app/hooks/useAuction";
 import { describeAuction, type AuctionDisplay } from "@/app/libs/auction-display";
 import { CldImage } from "next-cloudinary";
-import useWatchlist from "@/app/hooks/useWatchlist";
 import { reviewLabels } from "@/app/libs/listing-review";
 import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
 
@@ -24,23 +23,19 @@ const chipClasses: Record<AuctionDisplay["tone"], string> = {
 interface AccountListingBoxProps {
   listing: PublicListing & Partial<Pick<SellerListing, "reviewStatus" | "reviewNote">>;
   currentUserId?: string | null;
-  watching: boolean;
   uploaded: boolean;
+  /** Removes a watched Listing from the Watchlist; the dashboard owns undo. */
+  onRemove?: () => void;
 }
 
 const AccountListingBox: React.FC<AccountListingBoxProps> = ({
   listing: initialListing,
   currentUserId,
-  watching,
   uploaded,
+  onRemove,
 }) => {
   const { listing, phase, timeLeft } = useAuction(initialListing);
   const transaction = uploaded ? transactionAccess(listing, currentUserId) : null;
-  const { isUpdating, toggle } = useWatchlist({
-    listingId: listing.id,
-    userId: currentUserId,
-    initialWatching: watching,
-  });
 
   const display = describeAuction(listing, phase, currentUserId);
   const { label: amountLabel, amount } = display.price;
@@ -93,13 +88,12 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
                 <FiMapPin aria-hidden="true" className="shrink-0" /> <span className="min-w-0 truncate">{listing.location}</span>
               </p>
             </div>
-            {!uploaded && (
+            {!uploaded && onRemove && (
               <button
                 type="button"
-                className="shrink-0 rounded-lg p-2 text-gray-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:cursor-wait disabled:opacity-50"
-                onClick={toggle}
-                disabled={isUpdating}
-                aria-label="Remove from Watchlist"
+                className="shrink-0 rounded-lg p-2 text-gray-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
+                onClick={onRemove}
+                aria-label={`Remove ${listing.year} ${listing.make} ${listing.model} from Watchlist`}
                 title="Remove from Watchlist"
               >
                 <GoTrash aria-hidden="true" />

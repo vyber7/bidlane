@@ -57,6 +57,8 @@ const CoverImage: React.FC<CoverImageProps> = ({ listingId, url, owner, alt = "V
             alt="Vehicle photo not yet available"
             width={1200}
             height={800}
+            priority
+            sizes="(min-width: 1024px) 700px, 100vw"
             className="aspect-[3/2] w-full object-cover"
           />
         )}
@@ -68,10 +70,10 @@ const CoverImage: React.FC<CoverImageProps> = ({ listingId, url, owner, alt = "V
           className="mt-3 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
         >
           {imageUrl ? (
-            <div className="flex items-center gap-1">
-              <FaRegEdit />
-              <span>Edit Image</span>
-            </div>
+            <span className="flex items-center gap-1">
+              <FaRegEdit aria-hidden="true" />
+              Edit Image
+            </span>
           ) : (
             "Add Cover Image"
           )}

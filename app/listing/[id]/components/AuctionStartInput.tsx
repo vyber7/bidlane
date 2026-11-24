@@ -12,7 +12,7 @@ interface AuctionStartInputProps {
   placeholder?: string;
   errors: FieldErrors<AuctionStartFormValues>;
   label: string;
-    hint?: string;
+  hint?: string;
   disabled?: boolean;
 }
 
@@ -43,7 +43,7 @@ const AuctionStartInput: React.FC<AuctionStartInputProps> = ({
         {...register(id, { required, valueAsNumber: id !== "endTime" })}
         placeholder={placeholder}
         className={clsx(
-          `w-full p-2 rounded-md form-input border-gray-300 mb-4 focus:ring focus:ring-gray-500 hover:ring hover:ring-gray-500`,
+          `w-full p-2 rounded-md form-input border-gray-300 mb-4 hover:border-gray-500 focus:border-gray-950 focus:ring-2 focus:ring-gray-950`,
           error && "border-rose-500 focus:ring-rose-500",
           disabled && "opacity-50 cursor-not-allowed"
         )}

@@ -66,7 +66,7 @@ const Listing = async (props: Params) => {
           <FiArrowLeft aria-hidden="true" /> All auctions
         </Link>
         <header className="mb-6">
-          <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
+          <h1 className="text-balance text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
             {title}
           </h1>
           <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500">
@@ -81,22 +81,22 @@ const Listing = async (props: Params) => {
                 {seller?.name || "Seller"}
               </Link>
             </span>
-            <span title="Confirms inbox access, not identity or vehicle condition." className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold">{seller?.emailVerified ? "Seller email verified" : "Seller email not verified"}</span>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold">{seller?.emailVerified ? "Seller email verified" : "Seller email not verified"}</span>
           </div>
-          <p className="mt-3 text-xs text-slate-500">Vehicle details and records are seller-reported. BidLane has not independently verified ownership, history, or condition.</p>
+          <p className="mt-3 text-xs text-slate-500">Vehicle details and records are seller-reported. BidLane has not independently verified ownership, history, or condition. Email verification confirms inbox access, not identity or vehicle condition.</p>
         </header>
         {transaction?.canComplete && (
           <section className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-5" aria-label="Complete your transaction">
-            <h2 className="font-bold text-gray-950">Finish the handoff together</h2>
+            <h2 className="font-bold text-gray-950">Finish the Handoff Together</h2>
             <p className="mt-2 text-sm text-gray-700">Track payment, paperwork, and pickup with your {transaction.role === "seller" ? "buyer" : "seller"}.</p>
-            <Link href={transactionHref(id)} className="mt-3 inline-block text-sm font-bold underline">Open completion checklist →</Link>
+            <Link href={transactionHref(id)} className="mt-3 inline-block text-sm font-bold underline">Open Completion Checklist <span aria-hidden="true">→</span></Link>
           </section>
         )}
         {(owner || currentUser?.role === "ADMIN") && listing.status === "UPCOMING" && <section className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5" aria-label="Listing review status">
           <h2 className="font-bold">{reviewLabels[listing.reviewStatus ?? "PENDING"]}</h2>
           <p className="mt-2 text-sm text-slate-700">{listing.reviewStatus === "APPROVED" ? "Your listing is public and the seller can start the auction. Changes will require another review." : "This listing is visible only to its seller and admins. Admin approval is required before buyers can see it or bidding can open."}</p>
           {listing.reviewNote && <p className="mt-3 whitespace-pre-wrap break-words text-sm font-semibold">{listing.reviewNote}</p>}
-          {currentUser?.role === "ADMIN" && <Link href={`/admin/listings/${id}`} className="mt-3 inline-block text-sm font-bold underline">Review this listing →</Link>}
+          {currentUser?.role === "ADMIN" && <Link href={`/admin/listings/${id}`} className="mt-3 inline-block text-sm font-bold underline">Review This Listing <span aria-hidden="true">→</span></Link>}
         </section>}
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0 lg:col-start-1 lg:row-start-1">
@@ -114,7 +114,7 @@ const Listing = async (props: Params) => {
             {isPublicListing(listing) && <AuctionStatusBar currentUser={currentUser?.id} />}
             <section className="rounded-2xl border border-slate-200 bg-white p-6">
               <h2 className="mb-4 text-lg font-bold tracking-tight">
-                Vehicle at a glance
+                Vehicle at a Glance
               </h2>
               <dl className="divide-y divide-slate-100 text-sm">
                 {[
@@ -182,7 +182,7 @@ const Listing = async (props: Params) => {
             href="/faq"
             className="inline-block px-2 text-sm text-slate-500 hover:text-slate-950"
           >
-            New to BidLane? Learn how bidding works →
+            New to BidLane? Learn how bidding works <span aria-hidden="true">→</span>
           </Link>
         </div>
       </div>

@@ -73,3 +73,45 @@ describe("seller corrections", () => {
     expect(mocks.refresh).not.toHaveBeenCalled();
   });
 });
+
+describe("seller photo management", () => {
+  const photos = ["https://res.cloudinary.com/demo/image/upload/a.jpg", "https://res.cloudinary.com/demo/image/upload/b.jpg", "https://res.cloudinary.com/demo/image/upload/c.jpg"];
+  const multiPhoto = makeListing({ ...listing, images: photos, coverImage: photos[1] });
+
+  it("names each cover radio for its photo", () => {
+    render(<ListingEditor listing={multiPhoto} />);
+    expect(screen.getAllByRole("radio")).toHaveLength(3);
+    for (const name of ["Use photo 1 as cover", "Use photo 2 as cover", "Use photo 3 as cover"]) {
+      expect(screen.getByRole("radio", { name })).toBeDefined();
+    }
+    expect((screen.getByRole("radio", { name: "Use photo 2 as cover" }) as HTMLInputElement).checked).toBe(true);
+  });
+
+  it("restores a removed cover photo to its place when the seller undoes the removal", async () => {
+    const { container } = render(<ListingEditor listing={multiPhoto} />);
+    fireEvent.click(screen.getByRole("button", { name: "Remove Photo 2" }));
+
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect(screen.getByRole("status").textContent).toContain("Photo 2 removed");
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+    expect(screen.getAllByRole("radio")).toHaveLength(3);
+    expect((screen.getByRole("radio", { name: "Use photo 2 as cover" }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+    await act(async () => { fireEvent.submit(container.querySelector("form")!); });
+    expect(mocks.patch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+      coverImage: photos[1],
+      data: expect.objectContaining({ images: photos }),
+    }));
+  });
+
+  it("brings up a numeric keypad for number fields", () => {
+    render(<ListingEditor listing={listing} />);
+    for (const label of ["Year", "Mileage", "Reserve price in USD (optional)"]) {
+      expect(screen.getByLabelText(label).getAttribute("inputmode")).toBe("numeric");
+    }
+    const vin = screen.getByLabelText("VIN or chassis number (optional)");
+    expect(vin.getAttribute("spellcheck")).toBe("false");
+    expect(vin.getAttribute("autocomplete")).toBe("off");
+  });
+});

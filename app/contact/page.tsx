@@ -113,7 +113,7 @@ export default function ContactPage() {
                 href="/faq"
                 className="inline-flex items-center gap-1 font-bold text-slate-950 underline decoration-amber-400 decoration-2 underline-offset-4"
               >
-                Visit our FAQ <FiArrowRight aria-hidden="true" />
+                Visit Our FAQ <FiArrowRight aria-hidden="true" />
               </Link>
             </p>
           </aside>

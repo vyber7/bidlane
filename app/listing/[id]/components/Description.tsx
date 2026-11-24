@@ -16,7 +16,7 @@ const Description: React.FC<DescriptionProps> = ({ description }) => {
         From the seller
       </p>
       <h2 className="mb-4 text-2xl font-bold tracking-tight">
-        About this vehicle
+        About This Vehicle
       </h2>
       {(vehicleDescription || !illustrativeNotice) && (
         <p className="max-w-3xl whitespace-pre-wrap break-words leading-7 text-slate-600">

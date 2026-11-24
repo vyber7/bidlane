@@ -20,7 +20,7 @@ const SideListingBox: React.FC<SideListingBoxProps> = ({ auction, variant = "sol
         {auction.coverImage ? (
           <CldImage
             src={auction.coverImage}
-            alt={`${auction.year} ${auction.make} ${auction.model}`}
+            alt=""
             width={208}
             height={160}
             crop="fill"
@@ -30,7 +30,7 @@ const SideListingBox: React.FC<SideListingBoxProps> = ({ auction, variant = "sol
         ) : (
           <Image
             src="/images/default-vehicle-image.png"
-            alt={`${auction.year} ${auction.make} ${auction.model}`}
+            alt=""
             width={208}
             height={160}
             className="h-full min-h-24 w-full object-cover"
@@ -44,7 +44,7 @@ const SideListingBox: React.FC<SideListingBoxProps> = ({ auction, variant = "sol
           <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-400">
             {variant === "live" ? auction.currentBid === null ? "Starting bid" : "Current bid" : "Sold for"}
           </p>
-          <p className="text-sm font-bold text-slate-950">
+          <p className="text-sm font-bold tabular-nums text-slate-950">
             {amount === null ? "—" : formatPrice(amount)}
           </p>
         </div>

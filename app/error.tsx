@@ -16,7 +16,7 @@ export default function ErrorPage({
 
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center gap-4 px-4 text-center">
-      <h1 className="text-2xl font-bold">Something went wrong</h1>
+      <h1 className="text-2xl font-bold">Something Went Wrong</h1>
       <p className="text-gray-600">
         We could not load this page. Please try again.
       </p>
@@ -25,7 +25,7 @@ export default function ErrorPage({
         onClick={reset}
         className="rounded-md bg-gray-900 px-4 py-2 font-semibold text-white hover:bg-gray-700"
       >
-        Try again
+        Try Again
       </button>
     </div>
   );

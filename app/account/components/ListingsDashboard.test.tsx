@@ -2,7 +2,7 @@
 
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useSyncExternalStore } from "react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makePublicListing, makeSellerListing } from "@/app/test/auction-fixtures";
 import { installFakeRealtime, type FakeRealtime } from "@/app/libs/realtime/testing";
 import { serializeListing } from "@/app/utils/listing-serialization";
@@ -11,8 +11,17 @@ import ListingsDashboard from "./ListingsDashboard";
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(useSyncExternalStore(subscribe, () => window.location.search)),
 }));
+const mocks = vi.hoisted(() => ({ post: vi.fn() }));
+vi.mock("axios", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("axios")>();
+  return { ...actual, default: { ...actual.default, post: mocks.post } };
+});
+vi.mock("react-hot-toast", () => ({ default: { error: vi.fn() } }));
 vi.mock("./AccountListingBox", () => ({
-  default: ({ listing }: { listing: { model: string } }) => <span>{listing.model}</span>,
+  default: ({ listing, onRemove }: { listing: { model: string }; onRemove?: () => void }) => <>
+    <span>{listing.model}</span>
+    {onRemove && <button type="button" onClick={onRemove}>Remove {listing.model}</button>}
+  </>,
 }));
 
 function subscribe(notify: () => void) {
@@ -22,6 +31,8 @@ function subscribe(notify: () => void) {
 
 let realtime: FakeRealtime;
 beforeEach(() => {
+  mocks.post.mockReset();
+  mocks.post.mockImplementation(async (_url, body) => ({ data: { watching: body.watching } }));
   realtime = installFakeRealtime();
   for (const method of ["pushState", "replaceState"] as const) {
     const navigate = window.history[method].bind(window.history);
@@ -83,4 +94,71 @@ it("adds and removes Watchlist entries when the user watches from another tab", 
   act(() => realtime.deliver("user:buyer", "watching-update", { listing: serializeListing(watched), watching: false }));
   expect(screen.queryByText("911")).toBeNull();
   expect(screen.getByText("Cayman")).toBeDefined();
+});
+
+describe("undoing a Watchlist removal", () => {
+  const first = makePublicListing({ id: "first", model: "911" });
+  const second = makePublicListing({ id: "second", model: "Cayman" });
+  const third = makePublicListing({ id: "third", model: "Boxster" });
+  const models = () => screen.getAllByText(/^(911|Cayman|Boxster)$/).map((item) => item.textContent);
+  const removal = (listing: typeof first, watching: boolean) =>
+    realtime.deliver("user:buyer", "watching-update", { listing: serializeListing(listing), watching });
+
+  beforeEach(() => window.history.replaceState(null, "", "/account/listings?tab=watching"));
+
+  async function remove(model: string) {
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: `Remove ${model}` })); });
+  }
+  async function undo() {
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Undo" })); });
+  }
+
+  it("restores the entry in place and watches the Auction again", async () => {
+    render(<ListingsDashboard uploaded={[]} initialWatching={[first, second, third]} currentUserId="buyer" />);
+    await remove("Cayman");
+    expect(models()).toEqual(["911", "Boxster"]);
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByText(/Cayman removed from your Watchlist/)).toBeDefined();
+    expect(mocks.post).toHaveBeenLastCalledWith("/api/update-watchlist", { listingId: "second", watching: false });
+
+    await undo();
+    expect(models()).toEqual(["911", "Cayman", "Boxster"]);
+    expect(mocks.post).toHaveBeenLastCalledWith("/api/update-watchlist", { listingId: "second", watching: true });
+    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+  });
+
+  it("keeps one restored row when the removal and re-watch Real-time updates arrive around the undo", async () => {
+    render(<ListingsDashboard uploaded={[]} initialWatching={[first, second, third]} currentUserId="buyer" />);
+    await remove("Cayman");
+    act(() => removal(second, false));
+    expect(models()).toEqual(["911", "Boxster"]);
+
+    await undo();
+    act(() => removal(second, true));
+    expect(models()).toEqual(["911", "Cayman", "Boxster"]);
+  });
+
+  it("ignores a removal Real-time update that arrives after the undo", async () => {
+    render(<ListingsDashboard uploaded={[]} initialWatching={[first, second, third]} currentUserId="buyer" />);
+    await remove("Cayman");
+    await undo();
+    act(() => removal(second, false));
+    expect(models()).toEqual(["911", "Cayman", "Boxster"]);
+    act(() => removal(second, true));
+    expect(models()).toEqual(["911", "Cayman", "Boxster"]);
+  });
+
+  it("does not resurrect a removal that was left to expire", async () => {
+    vi.useFakeTimers();
+    try {
+      render(<ListingsDashboard uploaded={[]} initialWatching={[first, second]} currentUserId="buyer" />);
+      await remove("Cayman");
+      await act(async () => { vi.advanceTimersByTime(10_000); });
+      expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+      act(() => removal(second, false));
+      expect(models()).toEqual(["911"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

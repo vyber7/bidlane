@@ -41,7 +41,7 @@ describe("mobile auction quick actions", () => {
     expect(screen.getByText("Starting bid")).toBeDefined();
     expect(screen.getByText("$10,000")).toBeDefined();
     expect(screen.getByText("Time left: 1m : 0s")).toBeDefined();
-    expect(screen.getByRole("link", { name: "Place a bid" }).getAttribute("href")).toBe("#bids");
+    expect(screen.getByRole("link", { name: "Place a Bid" }).getAttribute("href")).toBe("#bids");
 
     const updated = { ...listing, currentBid: 12000, auctionEndsAt: new Date(Date.now() + 120000) };
     rerender(view(updated));
@@ -60,8 +60,8 @@ describe("mobile auction quick actions", () => {
 
   it("lets sellers review bids without inviting them to bid on their own vehicle", () => {
     render(view(makeListing(), "seller"));
-    expect(screen.getByRole("link", { name: "View bids" }).getAttribute("href")).toBe("#bids");
-    expect(screen.queryByRole("link", { name: "Place a bid" })).toBeNull();
+    expect(screen.getByRole("link", { name: "View Bids" }).getAttribute("href")).toBe("#bids");
+    expect(screen.queryByRole("link", { name: "Place a Bid" })).toBeNull();
   });
 
   it.each([
@@ -71,7 +71,7 @@ describe("mobile auction quick actions", () => {
     { currentBid: 2_147_483_647 },
   ])("does not offer a bid the bidding form cannot accept (%j)", (overrides) => {
     render(view(makeListing(overrides), "buyer"));
-    expect(screen.queryByRole("link", { name: "Place a bid" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Place a Bid" })).toBeNull();
     expect(screen.getByRole("status")).toBeDefined();
   });
 });

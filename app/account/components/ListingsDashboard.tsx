@@ -4,6 +4,8 @@ import type { PublicListing, SellerListing } from "@/app/libs/listing-payload";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { startTransition, useMemo, useOptimistic, useRef, useState } from "react";
+import axios from "axios";
+import toast from "react-hot-toast";
 import {
   FiArrowUpRight,
   FiEye,
@@ -17,6 +19,26 @@ import { useRealtimeEvent } from "@/app/libs/realtime/client";
 import { deserializeListing } from "@/app/utils/listing-serialization";
 import AccountListingBox from "./AccountListingBox";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
+import useUndo from "@/app/hooks/useUndo";
+import UndoNotice from "@/app/components/UndoNotice";
+import { getApiErrorMessage } from "@/app/utils/api-error";
+import type { WatchlistResponse } from "@/app/types/auction-events";
+
+/** How long a local Watchlist change outranks contradicting Real-time updates. */
+const WATCH_INTENT_MS = 30_000;
+type WatchIntents = Map<string, { watching: boolean; until: number }>;
+
+function recordIntent(intents: WatchIntents, listingId: string, watching: boolean) {
+  intents.set(listingId, { watching, until: Date.now() + WATCH_INTENT_MS });
+}
+
+/** A Real-time update that contradicts the latest local change is a stale echo of an earlier one. */
+function isStaleEcho(intents: WatchIntents, listingId: string, watching: boolean) {
+  const intent = intents.get(listingId);
+  if (intent && intent.until > Date.now() && intent.watching !== watching) return true;
+  intents.delete(listingId);
+  return false;
+}
 
 interface ListingsDashboardProps {
   uploaded: SellerListing[];
@@ -48,13 +70,59 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
     setWatchlist({ source: initialWatching, listings: initialWatching });
   }
   const watching = watchlist.listings;
-  const watchingIds = useMemo(() => new Set(watching.map((listing) => listing.id)), [watching]);
+  const watchUndo = useUndo();
+  // Local removals and undos run in order per Listing, and Real-time updates
+  // that contradict the latest local change are stale echoes of an earlier one.
+  const watchIntents = useRef<WatchIntents>(new Map());
+  const watchRequests = useRef(new Map<string, Promise<unknown>>());
+
+  function insertWatched(listing: PublicListing, index: number) {
+    setWatchlist((current) => current.listings.some((item) => item.id === listing.id) ? current : {
+      ...current,
+      listings: [...current.listings.slice(0, index), listing, ...current.listings.slice(index)],
+    });
+  }
+
+  function dropWatched(listingId: string) {
+    setWatchlist((current) => ({ ...current, listings: current.listings.filter((item) => item.id !== listingId) }));
+  }
+
+  function saveWatching(listingId: string, desired: boolean) {
+    recordIntent(watchIntents.current, listingId, desired);
+    const previous = watchRequests.current.get(listingId) ?? Promise.resolve();
+    const request = previous.catch(() => undefined).then(() =>
+      axios.post<WatchlistResponse>("/api/update-watchlist", { listingId, watching: desired }));
+    watchRequests.current.set(listingId, request);
+    return request.catch((error: unknown) => {
+      if (watchIntents.current.get(listingId)?.watching === desired) watchIntents.current.delete(listingId);
+      throw error;
+    });
+  }
+
+  function removeFromWatchlist(listing: PublicListing) {
+    const index = watching.findIndex((item) => item.id === listing.id);
+    const title = `${listing.year} ${listing.make} ${listing.model}`;
+    dropWatched(listing.id);
+    watchUndo.offer(`${title} removed from your Watchlist.`, () => {
+      insertWatched(listing, index);
+      saveWatching(listing.id, true).catch((error: unknown) => {
+        dropWatched(listing.id);
+        toast.error(getApiErrorMessage(error, "The Watchlist could not be updated. Please try again."));
+      });
+    });
+    saveWatching(listing.id, false).catch((error: unknown) => {
+      watchUndo.dismiss();
+      insertWatched(listing, index);
+      toast.error(getApiErrorMessage(error, "The Watchlist could not be updated. Please try again."));
+    });
+  }
 
   useRealtimeEvent(
     currentUserId ? userChannel(currentUserId) : null,
     "watching-update",
     ({ listing: payload, watching: isWatching }) => {
       const listing = deserializeListing(payload);
+      if (isStaleEcho(watchIntents.current, listing.id, isWatching)) return;
       setWatchlist((current) => ({
         ...current,
         listings: !isWatching
@@ -166,6 +234,7 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
         <p role="status" className="sr-only">
           {visibleListings.length} {visibleListings.length === 1 ? "listing" : "listings"} found
         </p>
+        {tab === "watching" && <UndoNotice notice={watchUndo.notice} onUndo={watchUndo.undo} className="border-b border-gray-200 bg-amber-50 px-4 py-3 sm:px-6" />}
         {visibleListings.length ? (
           <ul className="divide-y divide-gray-200">
             {visibleListings.map((listing) => (
@@ -173,8 +242,8 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
                 <AccountListingBox
                   listing={listing}
                   currentUserId={currentUserId}
-                  watching={watchingIds.has(listing.id)}
                   uploaded={tab === "uploaded"}
+                  onRemove={tab === "watching" ? () => removeFromWatchlist(listing) : undefined}
                 />
               </li>
             ))}

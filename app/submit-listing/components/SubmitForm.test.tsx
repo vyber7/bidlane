@@ -45,25 +45,25 @@ describe("guided vehicle submission", () => {
     render(<SubmitForm emailVerified />);
     fillDetails();
     fireEvent.change(screen.getByLabelText("Mileage"), { target: { value: "1.5" } });
-    await next("Continue to condition →");
+    await next("Continue to Condition");
     expect(screen.getByText("Please enter a valid miles.")).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Vehicle details" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Vehicle Details" })).toBeDefined();
     expect(mocks.post).not.toHaveBeenCalled();
   });
 
   it("validates only the active step and requires explicit disclosures before photos", async () => {
     render(<SubmitForm emailVerified />);
-    await next("Continue to condition →");
+    await next("Continue to Condition");
     expect(screen.getByText("Please select a valid transmission.")).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Vehicle details" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Vehicle Details" })).toBeDefined();
     fillDetails();
-    await next("Continue to condition →");
-    expect(screen.getByRole("heading", { name: "History & condition" })).toBeDefined();
-    await next("Continue to photos →");
+    await next("Continue to Condition");
+    expect(screen.getByRole("heading", { name: "History & Condition" })).toBeDefined();
+    await next("Continue to Photos");
     expect(screen.getByText("Please provide service history.")).toBeDefined();
     expect(screen.getByText("Please provide modifications.")).toBeDefined();
     expect(screen.getByText("Please provide known flaws.")).toBeDefined();
-    expect(screen.queryByRole("button", { name: "Add photos" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add Photos" })).toBeNull();
     expect(mocks.post).not.toHaveBeenCalled();
     await act(async () => {
       fireEvent.change(screen.getByLabelText("Service history"), { target: { value: "History unknown" } });
@@ -73,8 +73,8 @@ describe("guided vehicle submission", () => {
     expect(screen.queryByText("Please provide service history.")).toBeNull();
     expect(screen.queryByText("Please provide modifications.")).toBeNull();
     expect(screen.queryByText("Please provide known flaws.")).toBeNull();
-    await next("Continue to photos →");
-    expect(screen.getByRole("button", { name: "Add photos" })).toBeDefined();
+    await next("Continue to Photos");
+    expect(screen.getByRole("button", { name: "Add Photos" })).toBeDefined();
   });
 
   it("preserves edits, previews every disclosure, and submits the complete listing", async () => {
@@ -82,15 +82,15 @@ describe("guided vehicle submission", () => {
     fillDetails();
     fireEvent.change(screen.getByLabelText("VIN or chassis number (optional)"), { target: { value: "WP0AB2997YS123456" } });
     fireEvent.change(screen.getByLabelText("Reserve price in USD (optional)"), { target: { value: "1250000" } });
-    await next("Continue to condition →");
+    await next("Continue to Condition");
     fireEvent.change(screen.getByLabelText("Service history"), { target: { value: "Oil service at 42,000 miles; receipts available." } });
     fireEvent.change(screen.getByLabelText("Modifications"), { target: { value: "None known" } });
     fireEvent.change(screen.getByLabelText("Known flaws"), { target: { value: "Stone chips on hood." } });
-    await next("Continue to photos →");
-    await next("Add photos");
-    await next("Upload vehicle record");
+    await next("Continue to Photos");
+    await next("Add Photos");
+    await next("Upload Vehicle Record");
     fireEvent.change(screen.getByLabelText("Record 1 name"), { target: { value: "Service receipt" } });
-    await next("Preview listing →");
+    await next("Preview Listing");
     let preview = screen.getByRole("article");
     expect(within(preview).getByText("WP0AB2997YS123456")).toBeDefined();
     expect(within(preview).getByText("42,000 miles")).toBeDefined();
@@ -100,14 +100,14 @@ describe("guided vehicle submission", () => {
     expect(within(preview).getByText("Rear-wheel drive")).toBeDefined();
     expect(within(preview).getByText("Unknown")).toBeDefined();
     expect(within(preview).getByText("Stone chips on hood.")).toBeDefined();
-    await next("Edit condition");
+    await next("Edit Condition");
     expect(screen.getByLabelText("Known flaws")).toHaveProperty("value", "Stone chips on hood.");
     fireEvent.change(screen.getByLabelText("Known flaws"), { target: { value: "Stone chips on hood. Driver’s seat bolster wear." } });
-    await next("Continue to photos →");
-    await next("Preview listing →");
+    await next("Continue to Photos");
+    await next("Preview Listing");
     preview = screen.getByRole("article");
     expect(within(preview).getByText("Stone chips on hood. Driver’s seat bolster wear.")).toBeDefined();
-    await next("Submit listing");
+    await next("Submit Listing");
     const saved = mocks.post.mock.calls.find(([url]) => url === "/api/listing-drafts")![1];
     expect(saved.payload).toMatchObject({
       details: { vin: "WP0AB2997YS123456", transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Unknown", serviceHistory: "Oil service at 42,000 miles; receipts available.", modifications: "None known", knownFlaws: "Stone chips on hood. Driver’s seat bolster wear." },
@@ -123,14 +123,14 @@ describe("draft resume and exit", () => {
   it("keeps draft saving available before email verification", async () => {
     render(<SubmitForm emailVerified={false} />);
     fireEvent.change(screen.getByLabelText("Make", { exact: true }), { target: { value: "Porsche" } });
-    await next("Save & exit");
+    await next("Save & Exit");
     expect(mocks.post).toHaveBeenCalledWith("/api/listing-drafts", expect.anything());
     expect(mocks.post.mock.calls.some(([url]) => url === "/api/new-listing")).toBe(false);
   });
   it("saves incomplete details and exits without publishing", async () => {
     render(<SubmitForm emailVerified />);
     fireEvent.change(screen.getByLabelText("Make", { exact: true }), { target: { value: "Porsche" } });
-    await next("Save & exit");
+    await next("Save & Exit");
     expect(mocks.post).toHaveBeenCalledWith("/api/listing-drafts", expect.objectContaining({ payload: expect.objectContaining({ details: expect.objectContaining({ make: "Porsche", model: "" }), step: 0 }) }));
     expect(mocks.post.mock.calls.some(([url]) => url === "/api/new-listing")).toBe(false);
     expect(mocks.push).toHaveBeenCalledWith("/account/listings");
@@ -145,9 +145,39 @@ describe("draft resume and exit", () => {
     expect(screen.getByRole("heading", { name: "Photos" })).toBeDefined();
     expect(screen.getByRole("checkbox", { name: /Exterior/ })).toHaveProperty("checked", true);
     expect(screen.getByLabelText("Record 1 name")).toHaveProperty("value", "Receipt");
-    await next("← Edit condition");
+    await next("Edit Condition");
     expect(screen.getByLabelText("Known flaws")).toHaveProperty("value", "Still writing this");
-    await next("← Edit vehicle details");
+    await next("Edit Vehicle Details");
     expect(screen.getByLabelText("Make", { exact: true })).toHaveProperty("value", "Porsche");
+  });
+
+  it("lets the seller undo removing a photo", async () => {
+    const { emptyDraftPayload } = await import("@/app/schemas/listing-draft");
+    const photos = ["https://res.cloudinary.com/demo/image/upload/a.jpg", "https://res.cloudinary.com/demo/image/upload/b.jpg"];
+    render(<SubmitForm emailVerified initialDraft={{
+      id: "abcdef0123456789abcdef01", revision: 4, updatedAt: new Date().toISOString(), publishedListingId: null,
+      payload: { ...emptyDraftPayload, images: photos, step: 2 },
+    }} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Photo 1" }));
+    expect(screen.queryByRole("img", { name: "Vehicle photo 2" })).toBeNull();
+    expect(screen.getByText(/Photo 1 removed/)).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+    expect(screen.getAllByRole("img").map((image) => image.getAttribute("aria-label"))).toEqual(["Vehicle photo 1", "Vehicle photo 2"]);
+    expect(screen.getByText("Cover photo")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Remove Photo 2" })).toBeDefined();
+  });
+
+  it("brings up a numeric keypad for numbers and keeps autofill and spellcheck off identifying fields", () => {
+    render(<SubmitForm emailVerified />);
+    for (const label of ["Year", "Mileage", "Reserve price in USD (optional)"]) {
+      expect(screen.getByLabelText(label).getAttribute("inputmode")).toBe("numeric");
+    }
+    for (const label of ["Make", "Model", "Location", "VIN or chassis number (optional)"]) {
+      const field = screen.getByLabelText(label, { exact: true });
+      expect(field.getAttribute("autocomplete")).toBe("off");
+      expect(field.getAttribute("spellcheck")).toBe("false");
+    }
   });
 });

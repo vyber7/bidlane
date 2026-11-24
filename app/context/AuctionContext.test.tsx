@@ -69,28 +69,28 @@ describe("shared auction views", () => {
     const initial = document.createElement("div");
     initial.innerHTML = renderToString(<AuctionProvider listing={listing} bids={[]} comments={[]}>{child}</AuctionProvider>);
     expect(initial.textContent).toContain(describeAuction(listing, null, "buyer").message);
-    expect(within(initial).queryByRole("link", { name: "Place a bid" })).toBeNull();
+    expect(within(initial).queryByRole("link", { name: "Place a Bid" })).toBeNull();
   });
 
   it("invites a bid on the listing views once the browser clock arrives", () => {
     const view = biddingViews();
     const initial = document.createElement("div");
     initial.innerHTML = renderToString(view);
-    expect(within(initial).getByRole("button", { name: "Review bid" })).toHaveProperty("disabled", true);
+    expect(within(initial).getByRole("button", { name: "Review Bid" })).toHaveProperty("disabled", true);
 
     render(view);
-    expect(screen.getAllByRole("link", { name: "Place a bid" })).toHaveLength(2);
-    expect(screen.getByRole("button", { name: "Review bid" })).toHaveProperty("disabled", false);
+    expect(screen.getAllByRole("link", { name: "Place a Bid" })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Review Bid" })).toHaveProperty("disabled", false);
   });
 
   it("opens both bidding links and the form when the scheduled start arrives", () => {
     render(biddingViews(makeListing({ auctionStartsAt: new Date(auctionNow.getTime() + 1000) })));
-    expect(screen.queryByRole("link", { name: "Place a bid" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Review bid" })).toHaveProperty("disabled", true);
+    expect(screen.queryByRole("link", { name: "Place a Bid" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Review Bid" })).toHaveProperty("disabled", true);
 
     act(() => vi.advanceTimersByTime(1000));
-    expect(screen.getAllByRole("link", { name: "Place a bid" })).toHaveLength(2);
-    expect(screen.getByRole("button", { name: "Review bid" })).toHaveProperty("disabled", false);
+    expect(screen.getAllByRole("link", { name: "Place a Bid" })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Review Bid" })).toHaveProperty("disabled", false);
   });
 
   it("shows a rejected bid's API message while preserving the bid input", async () => {
@@ -106,7 +106,7 @@ describe("shared auction views", () => {
     const input = screen.getByRole("spinbutton", { name: "Your bid amount in dollars" });
     fireEvent.change(input, { target: { value: "12000" } });
     await act(async () => { fireEvent.submit(input.closest("form")!); });
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm bid of $12,000" })); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm Bid of $12,000" })); });
     expect(toast.error).toHaveBeenCalledWith("The auction changed; please try again");
     expect(input).toHaveProperty("value", "12000");
     expect(screen.queryByText("$12,000")).toBeNull();
@@ -129,7 +129,7 @@ describe("shared auction views", () => {
     const input = screen.getByRole("spinbutton", { name: "Your bid amount in dollars" });
     fireEvent.change(input, { target: { value: "12000" } });
     await act(async () => { fireEvent.submit(input.closest("form")!); });
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm bid of $12,000" })); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm Bid of $12,000" })); });
 
     expect(screen.getAllByText("$12,000")).toHaveLength(3);
     expect(input).toHaveProperty("min", "12500");
@@ -167,7 +167,7 @@ describe("shared auction views", () => {
     const listing = makeListing({ currentBid: 12000 });
     const card = (updated: typeof listing) => kind === "browse"
       ? <ListingBox listing={updated} />
-      : <AccountListingBox listing={updated} watching={false} uploaded={true} />;
+      : <AccountListingBox listing={updated} uploaded={true} />;
     const { rerender } = render(card(listing));
     expect(screen.getByText("$12,000")).toBeDefined();
     rerender(card({ ...listing, currentBid: 15000, auctionEndsAt: new Date(Date.now() + 120000) }));
@@ -333,7 +333,7 @@ describe("shared auction views", () => {
 
   it.each([
     ["buyer", null],
-    ["seller", "View bids"],
+    ["seller", "View Bids"],
   ])("shows %s the Closing message on the mobile bar", async (viewer, link) => {
     await act(async () => {
       render(
@@ -345,7 +345,7 @@ describe("shared auction views", () => {
     expect(screen.getByText("Finalizing results…")).toBeDefined();
     expect(screen.getByText("Closing")).toBeDefined();
     expect(screen.getByText("$12,000")).toBeDefined();
-    expect(screen.queryByRole("link", { name: "Place a bid" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Place a Bid" })).toBeNull();
     if (link) expect(screen.queryByRole("link", { name: link })).toBeNull();
   });
 
@@ -387,24 +387,21 @@ describe("shared auction views", () => {
     expect(screen.queryByRole("link", { name: /Edit listing/ })).toBeNull();
   });
 
-  it("updates the polite bid region independently of the countdown", () => {
+  it("updates the card's price without announcing it from the card", () => {
     const listing = makeListing({ currentBid: 12000, coverImage: null });
-    const { rerender } = render(<ListingBox listing={listing} />);
-    const bidRegion = screen.getByText("$12,000").closest("[aria-live]");
-    expect(bidRegion?.getAttribute("aria-live")).toBe("polite");
-    const initialAnnouncement = bidRegion?.textContent;
-
+    const { container, rerender } = render(<ListingBox listing={listing} />);
+    expect(screen.getByText("$12,000")).toBeDefined();
     act(() => vi.advanceTimersByTime(1000));
-    expect(screen.getByText("59s").closest("[aria-live]")).toBeNull();
-    expect(bidRegion?.textContent).toBe(initialAnnouncement);
+    expect(screen.getByText("59s")).toBeDefined();
 
     rerender(<ListingBox listing={{ ...listing, currentBid: 15000 }} />);
-    expect(screen.getByText("$15,000").closest("[aria-live]")).toBe(bidRegion);
+    expect(screen.getByText("$15,000")).toBeDefined();
+    expect(container.querySelector("[aria-live]")).toBeNull();
   });
 
   it("shows the Closing message in the account dashboard", async () => {
     await act(async () => {
-      render(<AccountListingBox listing={makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 })} watching={true} uploaded={false} />);
+      render(<AccountListingBox listing={makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 })} uploaded={false} />);
     });
     expect(screen.getByText("Closing")).toBeDefined();
     expect(screen.getByText("Finalizing results…")).toBeDefined();
@@ -416,7 +413,7 @@ describe("shared auction views", () => {
     [{ status: "ENDED", result: "SOLD", currentBid: 12000 }, "Sold"],
     [{ status: "ENDED", result: "RESERVE_NOT_MET", currentBid: 9000 }, "Ended"],
   ] as const)("labels the account dashboard chip for %j", (overrides, chip) => {
-    render(<AccountListingBox listing={makeListing({ reservePrice: 20000, ...overrides })} watching={true} uploaded={false} />);
+    render(<AccountListingBox listing={makeListing({ reservePrice: 20000, ...overrides })} uploaded={false} />);
     expect(screen.getByText(chip)).toBeDefined();
   });
 
@@ -428,7 +425,7 @@ describe("shared auction views", () => {
     render(<FeaturedAuction listing={makeListing({ status: "ENDED", reservePrice: 20000, ...overrides })} />);
     expect(screen.getByText(headline)).toBeDefined();
     expect(screen.getByText(line)).toBeDefined();
-    expect(screen.getByText(/View result/)).toBeDefined();
+    expect(screen.getByText(/View Result/)).toBeDefined();
   });
 
   it("shows the Closing message on the featured card", async () => {
@@ -437,24 +434,26 @@ describe("shared auction views", () => {
     });
     expect(screen.getByText("Closing")).toBeDefined();
     expect(screen.getByText("Finalizing results…")).toBeDefined();
-    expect(screen.getByText(/View auction/)).toBeDefined();
+    expect(screen.getByText(/View Auction/)).toBeDefined();
   });
 
-  it("uses one featured listing link and announces bid and status changes", () => {
+  it("uses one featured listing link and announces bid and status changes from one live region", () => {
     const listing = makeListing({ currentBid: 12000, coverImage: null, images: [] });
-    const { rerender } = render(<FeaturedAuction listing={listing} />);
+    const { container, rerender } = render(<FeaturedAuction listing={listing} />);
     expect(screen.getAllByRole("link")).toHaveLength(1);
 
-    const status = screen.getByText("Live auction").closest("[aria-live]");
-    const bid = screen.getByText("$12,000").closest("[aria-live]");
-    expect(status?.getAttribute("aria-live")).toBe("polite");
-    expect(bid?.getAttribute("aria-live")).toBe("polite");
+    const regions = container.querySelectorAll("[aria-live]");
+    expect(regions).toHaveLength(1);
+    const [region] = regions;
+    expect(region.getAttribute("aria-live")).toBe("polite");
+    expect(region.textContent).toBe("2020 Porsche 911: Live auction. Current bid $12,000.");
     act(() => vi.advanceTimersByTime(1000));
     expect(screen.getByText("59s left").closest("[aria-live]")).toBeNull();
+    expect(region.textContent).toBe("2020 Porsche 911: Live auction. Current bid $12,000.");
 
     rerender(<FeaturedAuction listing={{ ...listing, currentBid: 15000, status: "ENDED", result: "SOLD" }} />);
-    expect(screen.getByText("Sold").closest("[aria-live]")).toBe(status);
-    expect(screen.getByText("$15,000").closest("[aria-live]")).toBe(bid);
+    expect(region.textContent).toBe("2020 Porsche 911: Sold. Sold for $15,000.");
+    expect(container.querySelectorAll("[aria-live]")).toHaveLength(1);
     expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 });

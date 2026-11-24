@@ -36,7 +36,7 @@ describe("server-to-client listing boundaries", () => {
       listingId: "auction-1", auctionTitle: "2020 Porsche 911",
     }]);
     const html = renderToStaticMarkup(await Home());
-    const feed = html.slice(html.indexOf("Latest bids"), html.indexOf("Inventory"));
+    const feed = html.slice(html.indexOf("Latest Bids"), html.indexOf("Inventory"));
     expect(feed).toContain("$12,500");
     expect(feed).toContain("by Alex");
     expect(feed).toContain('href="/listing/auction-1"');

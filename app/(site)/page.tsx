@@ -19,7 +19,7 @@ const heroStats: { tab: InventoryTab; label: string }[] = [
 ];
 
 const browseLabels = {
-  LIVE: "Browse live auctions",
+  LIVE: "Browse Live Auctions",
   UPCOMING: "Explore coming soon",
   ENDED: "Explore auction results",
 } satisfies Partial<Record<InventoryTab, string>>;
@@ -44,7 +44,7 @@ export default async function Home() {
   const { featured, comingNext, counts, browse: browseTab } = homeSpotlight(listings, now);
   const browse = browseTab
     ? { href: inventoryHref(browseTab), label: browseLabels[browseTab] }
-    : { href: "#auctions", label: "Browse auctions" };
+    : { href: "#auctions", label: "Browse Auctions" };
 
   return (
     <div className="bg-stone-50 pb-16 pt-[var(--site-nav-height)]">
@@ -73,7 +73,7 @@ export default async function Home() {
                 href="/submit-listing"
                 className="inline-flex min-h-11 items-center rounded-full px-1 py-3 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white sm:border sm:border-white/25 sm:px-4 sm:text-sm"
               >
-                Sell your vehicle
+                Sell Your Vehicle
               </Link>
             </div>
           </div>
@@ -134,7 +134,7 @@ export default async function Home() {
               The next chapter
             </p>
             <h2 className="mt-3 text-2xl font-bold tracking-tight">
-              Have a car worth sharing?
+              Have a Car Worth Sharing?
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-300">
               Bring your vehicle to BidLane and help build the next lineup of
@@ -144,7 +144,7 @@ export default async function Home() {
               href="/submit-listing"
               className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-amber-400 hover:text-amber-300"
             >
-              List your vehicle <FiArrowRight aria-hidden="true" />
+              List Your Vehicle <FiArrowRight aria-hidden="true" />
             </Link>
           </div>
         )}

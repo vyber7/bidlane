@@ -47,8 +47,11 @@ const AuthForm = ({ callbackUrl }: { callbackUrl?: string }) => {
     register,
     handleSubmit,
     clearErrors,
+    setError,
+    setFocus,
     formState: { errors },
   } = useForm<AuthFormValues>({
+    shouldFocusError: false,
     defaultValues: {
       name: "",
       email: "",
@@ -56,11 +59,25 @@ const AuthForm = ({ callbackUrl }: { callbackUrl?: string }) => {
     },
   });
 
+  const fieldOrder: (keyof AuthFormValues)[] = variant === "REGISTER" ? ["name", "email", "password"] : ["email", "password"];
+  const focusFirstInvalid = (invalid: Set<keyof AuthFormValues>) => {
+    const first = fieldOrder.find((field) => invalid.has(field));
+    if (first) setFocus(first);
+  };
+
   const onSubmit: SubmitHandler<AuthFormValues> = (data) => {
     if (variant === "REGISTER") {
       const result = registrationSchema.safeParse(data);
       if (!result.success) {
-        toast.error(result.error.issues[0].message);
+        const invalid = new Set<keyof AuthFormValues>();
+        for (const issue of result.error.issues) {
+          const field = issue.path[0] as keyof AuthFormValues;
+          if (fieldOrder.includes(field) && !invalid.has(field)) {
+            invalid.add(field);
+            setError(field, { message: issue.message });
+          }
+        }
+        focusFirstInvalid(invalid);
         return;
       }
       setIsLoading(true);
@@ -80,7 +97,7 @@ const AuthForm = ({ callbackUrl }: { callbackUrl?: string }) => {
       })
         .then((response) => {
           if (response?.error) {
-            toast.error(response.error === "RateLimited" ? "Too many sign-in attempts. Please wait before trying again." : response.error === "AuthUnavailable" ? "Sign-in is temporarily unavailable. Please try again later." : "Invalid Credentials");
+            toast.error(response.error === "RateLimited" ? "Too many sign-in attempts. Please wait before trying again." : response.error === "AuthUnavailable" ? "Sign-in is temporarily unavailable. Please try again later." : "Check your email and password, then try again.");
           } else {
             toast.success("Logged in successfully!");
 
@@ -96,7 +113,7 @@ const AuthForm = ({ callbackUrl }: { callbackUrl?: string }) => {
     signIn(action, { redirect: false, ...returnOptions })
       .then((response) => {
         if (response?.error) {
-          toast.error("Something went wrong!");
+          toast.error("Sign-in didn’t finish. Try again, or use your email and password.");
         } else {
           toast.success("Logged in successfully!");
         }
@@ -106,11 +123,11 @@ const AuthForm = ({ callbackUrl }: { callbackUrl?: string }) => {
   };
 
   const fields: { id: keyof AuthFormValues; label: string; type: string; placeholder: string; autoComplete: string }[] = [
-    { id: "email", label: "Email address", type: "email", placeholder: "you@example.com", autoComplete: "email" },
-    { id: "password", label: "Password", type: "password", placeholder: variant === "LOGIN" ? "Enter your password" : "Create a password", autoComplete: variant === "LOGIN" ? "current-password" : "new-password" },
+    { id: "email", label: "Email address", type: "email", placeholder: "you@example.com…", autoComplete: "email" },
+    { id: "password", label: "Password", type: "password", placeholder: variant === "LOGIN" ? "Enter your password…" : "Create a password…", autoComplete: variant === "LOGIN" ? "current-password" : "new-password" },
   ];
   if (variant === "REGISTER") {
-    fields.unshift({ id: "name", label: "Full name", type: "text", placeholder: "Your name", autoComplete: "name" });
+    fields.unshift({ id: "name", label: "Full name", type: "text", placeholder: "Your name…", autoComplete: "name" });
   }
 
   return (
@@ -123,7 +140,7 @@ const AuthForm = ({ callbackUrl }: { callbackUrl?: string }) => {
         {variant === "LOGIN" ? "Sign in and pick up where you left off." : "Create an account and find your next great drive."}
       </p>
 
-      <form className="mt-8 space-y-5" onSubmit={handleSubmit(onSubmit)} aria-busy={isLoading}>
+      <form className="mt-8 space-y-5" noValidate onSubmit={handleSubmit(onSubmit, (invalid) => focusFirstInvalid(new Set(Object.keys(invalid) as (keyof AuthFormValues)[])))} aria-busy={isLoading}>
         {fields.map(({ id, label, type, placeholder, autoComplete }) => (
           <div key={id}>
             <label htmlFor={id} className="block text-sm font-semibold text-slate-700">{label}</label>
@@ -132,6 +149,7 @@ const AuthForm = ({ callbackUrl }: { callbackUrl?: string }) => {
                 id={id}
                 type={id === "password" && showPassword ? "text" : type}
                 autoComplete={autoComplete}
+                spellCheck={id === "email" ? false : undefined}
                 placeholder={placeholder}
                 disabled={isLoading}
                 minLength={id === "password" && variant === "REGISTER" ? MIN_PASSWORD_LENGTH : undefined}
@@ -142,7 +160,7 @@ const AuthForm = ({ callbackUrl }: { callbackUrl?: string }) => {
                   required: `${label} is required.`,
                   validate: (value) => variant === "REGISTER" ? validationMessage(registrationSchema.shape[id], value) : id === "password" ? validationMessage(loginCredentialsSchema.shape.password, value) : true,
                 })}
-                className={`block w-full rounded-xl border bg-white px-4 py-3.5 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-400/20 disabled:cursor-wait disabled:opacity-60 sm:text-sm ${id === "password" ? "pr-14" : ""} ${errors[id] ? "border-rose-400" : "border-slate-200 hover:border-slate-300"}`}
+                className={`block w-full rounded-xl border bg-white px-4 py-3.5 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500 disabled:cursor-wait disabled:opacity-60 sm:text-sm ${id === "password" ? "pr-14" : ""} ${errors[id] ? "border-rose-400" : "border-slate-200 hover:border-slate-300"}`}
               />
               {id === "password" && (
                 <button
@@ -163,7 +181,7 @@ const AuthForm = ({ callbackUrl }: { callbackUrl?: string }) => {
         ))}
         {variant === "LOGIN" && <div className="text-right"><Link href="/forgot-password" className="text-sm font-semibold text-slate-700 underline decoration-amber-400 underline-offset-4 hover:text-amber-700">Forgot password?</Link></div>}
         <button disabled={isLoading} type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber-400 px-6 py-3.5 text-sm font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500 disabled:cursor-wait disabled:opacity-60">
-          {isLoading ? <><FiLoader className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> Please wait…</> : <>{variant === "LOGIN" ? "Sign in" : "Create account"}<FiArrowRight aria-hidden="true" /></>}
+          {isLoading ? <><FiLoader className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> Please wait…</> : <>{variant === "LOGIN" ? "Sign In" : "Create Account"}<FiArrowRight aria-hidden="true" /></>}
         </button>
       </form>
 
@@ -175,7 +193,7 @@ const AuthForm = ({ callbackUrl }: { callbackUrl?: string }) => {
       <p className="mt-8 text-center text-sm leading-6 text-slate-500">
         {variant === "LOGIN" ? "New to Bidlane?" : "Already have an account?"}{" "}
         <button type="button" disabled={isLoading} onClick={toggleVariant} className="rounded-sm font-bold text-slate-950 underline decoration-amber-400 decoration-2 underline-offset-4 hover:text-amber-700 focus-visible:outline-amber-500 disabled:opacity-60">
-          {variant === "LOGIN" ? "Create an account" : "Sign in"}
+          {variant === "LOGIN" ? "Create an Account" : "Sign In"}
         </button>
       </p>
     </div>

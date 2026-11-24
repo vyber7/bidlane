@@ -190,7 +190,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
             ) : (
               <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center">
                 <FiSearch aria-hidden="true" className="mx-auto text-2xl text-slate-400" />
-                <h3 className="mt-3 font-bold text-slate-950">No auctions found</h3>
+                <h3 className="mt-3 font-bold text-slate-950">No Auctions Found</h3>
                 <p className="mt-1 text-sm text-slate-500">
                   Try another search or choose a different auction tab.
                 </p>
@@ -200,7 +200,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
                     onClick={() => setQuery("")}
                     className="mt-4 text-sm font-bold text-slate-950 hover:underline"
                   >
-                    Clear search
+                    Clear Search
                   </button>
                 )}
               </div>

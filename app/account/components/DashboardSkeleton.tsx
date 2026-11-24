@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Bone, Line } from "@/app/components/Skeleton";
+import { Bone, Line, LoadingStatus } from "@/app/components/Skeleton";
 
 // Pieces shared by the account tab loading.tsx files. They mirror the
 // header, stat row, tabs, and rows of the account dashboards.
@@ -22,10 +22,10 @@ export function DashboardSkeleton({
 }) {
   return (
     <section
-      aria-label={`Loading ${title}`}
       aria-busy="true"
       className={`overflow-hidden bg-white ${raised ? "rounded-md shadow-md shadow-gray-400" : "rounded-xl border border-gray-200 shadow-sm"}`}
     >
+      <LoadingStatus label={`Loading ${title}`} />
       <div className="border-b border-gray-200 px-5 py-5 sm:px-6">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>

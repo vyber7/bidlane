@@ -1,3 +1,4 @@
+import { LoadingStatus } from "@/app/components/Skeleton";
 import { Bone, Line } from "./components/Skeleton";
 
 // Fallback for routes without their own loading.tsx (static pages, sign-in,
@@ -7,9 +8,9 @@ export default function Loading() {
   return (
     <div
       className="mx-auto max-w-6xl px-4 pb-16 pt-24 sm:px-6 lg:px-8"
-      aria-label="Loading page"
       aria-busy="true"
     >
+      <LoadingStatus label="Loading page" />
       <Line className="h-4"><Bone className="h-3 w-32 bg-slate-100" /></Line>
       <Line className="mt-2 h-9 sm:h-10"><Bone className="h-8 w-80 max-w-full" /></Line>
       <div className="mt-4 max-w-2xl space-y-2">
