@@ -37,6 +37,9 @@ const Bids: React.FC<BidsProps> = ({
     "Bidder"
   );
 
+  // Before bidding opens there is nothing to show; the panel appears as soon as the Auction starts.
+  if (display.bucket === "upcoming") return null;
+
   return (
     <div
       id="bids"

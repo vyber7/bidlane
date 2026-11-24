@@ -50,6 +50,15 @@ describe("auction description in the bids panel", () => {
     expect(screen.queryByText(/No bids were placed|Reserve not met\. Highest bid/)).toBeNull();
   });
 
+  it("stays hidden while the Auction is Upcoming and appears once it starts", () => {
+    const listing = makeListing({ status: "UPCOMING" });
+    const { container, rerender } = render(view(listing));
+    expect(container.querySelector("#bids")).toBeNull();
+
+    rerender(view({ ...listing, status: "LIVE" }));
+    expect(container.querySelector("#bids")).not.toBeNull();
+  });
+
   it("keeps the seller's own Open Auction free of bidding guidance", () => {
     render(<AuctionProvider listing={makeListing()} bids={[]} comments={[]}><Bids currentUserId="seller" emailVerified /></AuctionProvider>);
     expect(screen.queryByText(/Your auction is live/)).toBeNull();

@@ -161,13 +161,11 @@ const Listing = async (props: Params) => {
                 initialImages={[...listing.images]}
               />
               <VehicleRecords records={listing.vehicleRecords} />
-              {listing.status !== "UPCOMING" && (
-                <Bids
-                  sellerName={seller?.name}
-                  currentUserId={currentUser?.id}
-                  emailVerified={Boolean(currentUser?.emailVerified)}
-                />
-              )}
+              <Bids
+                sellerName={seller?.name}
+                currentUserId={currentUser?.id}
+                emailVerified={Boolean(currentUser?.emailVerified)}
+              />
               {isPublicListing(listing) && <Comments signedIn={Boolean(currentUser)} />}
             </div>
           </div>
