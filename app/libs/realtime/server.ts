@@ -20,7 +20,7 @@ export function installServerTransport(transport: RealtimeServerTransport) {
 async function transport(): Promise<RealtimeServerTransport> {
   // Loaded lazily so code that never publishes, and tests with a fake
   // transport, never construct the Pusher server client.
-  return installed ?? (await import("./pusher-transport")).pusherServerTransport;
+  return installed ?? (await import("./pusher-server-transport")).pusherServerTransport;
 }
 
 /**

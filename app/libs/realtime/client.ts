@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent } from "react";
-import { acquirePusherChannel, releasePusherChannel } from "@/app/libs/pusher-channels";
+import { createPusherBrowserTransport } from "./pusher-browser-transport";
 import type { ChannelKind, RealtimeChannel, RealtimeEventName, RealtimePayload } from "./catalog";
 
 /** The signal that a subscription is (re)established and missed events should be recovered. */
@@ -31,22 +31,8 @@ export function installClientTransport(transport: RealtimeClientTransport) {
 
 function transport() {
   if (installed) return installed;
-  pusherTransport ??= createPusherClientTransport();
+  pusherTransport ??= createPusherBrowserTransport(subscriptionReady);
   return pusherTransport;
-}
-
-function createPusherClientTransport(): RealtimeClientTransport {
-  const pusherEventName = (event: Binding) => (event === subscriptionReady ? "pusher:subscription_succeeded" : event);
-  return {
-    acquire(channel) {
-      const subscription = acquirePusherChannel(channel.name);
-      return {
-        bind: (event, listener) => { subscription.bind(pusherEventName(event), listener); },
-        unbind: (event, listener) => { subscription.unbind(pusherEventName(event), listener); },
-      };
-    },
-    release: (channel) => releasePusherChannel(channel.name),
-  };
 }
 
 function useBinding(channel: RealtimeChannel | null, event: Binding, handler: Listener) {

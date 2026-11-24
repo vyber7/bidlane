@@ -14,7 +14,6 @@ vi.mock("axios", async (importOriginal) => {
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
 vi.mock("next-auth/react", () => ({ useSession: mocks.useSession }));
 vi.mock("react-hot-toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-vi.mock("@/app/hooks/usePusherEvent", () => ({ default: vi.fn() }));
 import { installFakeRealtime } from "@/app/libs/realtime/testing";
 
 let uninstallRealtime = () => {};

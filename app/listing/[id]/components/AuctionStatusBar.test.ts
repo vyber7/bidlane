@@ -10,7 +10,6 @@ import type { PublicListing } from "@/app/libs/listing-payload";
 const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn() }));
 vi.mock("axios", () => ({ default: { post: mocks.post } }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
-vi.mock("@/app/hooks/usePusherEvent", () => ({ default: vi.fn() }));
 import { installFakeRealtime } from "@/app/libs/realtime/testing";
 
 let uninstallRealtime = () => {};

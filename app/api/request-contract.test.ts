@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ currentUser: vi.fn(), database: vi.fn(), hash: vi.fn(), finalize: vi.fn() }));
 vi.mock("@/app/libs/native-repositories", () => ({
@@ -6,11 +6,11 @@ vi.mock("@/app/libs/native-repositories", () => ({
   withNativeTransaction: () => { mocks.database(); throw new Error("Unexpected native transaction in this test"); },
 }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.currentUser }));
-vi.mock("@/app/libs/pusher", () => ({ pusherServer: { trigger: vi.fn() } }));
 vi.mock("@/app/libs/auction-finalization", () => ({ finalizeAuction: mocks.finalize }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn(), warn: vi.fn() } }));
 vi.mock("bcrypt", () => ({ default: { hash: mocks.hash } }));
 
+import { installFakeRealtime } from "@/app/libs/realtime/testing";
 import { POST as bid } from "./place-bid/route";
 import { POST as start } from "./auction-start/route";
 import { POST as finalize } from "./auction-finalize/route";
@@ -37,7 +37,10 @@ const endpoints: { name: string; handler: (request: Request) => Promise<Response
   { name: "cover images", handler: (request) => cover(request, { params: Promise.resolve({ id: "abcdef0123456789abcdef01" }) }), authenticated: true },
 ];
 
+let uninstallRealtime = () => {};
+afterEach(() => uninstallRealtime());
 beforeEach(() => {
+  uninstallRealtime = installFakeRealtime().uninstall;
   vi.clearAllMocks();
   mocks.currentUser.mockResolvedValue({ id: "user", email: "user@example.com" });
 });

@@ -27,7 +27,6 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("next-auth/react", () => ({ useSession: () => ({ data: { user: { name: "Buyer" } } }) }));
 vi.mock("react-hot-toast", () => ({ default: { success: vi.fn(), error: vi.fn() }, toast: { success: vi.fn(), error: vi.fn() } }));
-vi.mock("@/app/hooks/usePusherEvent", () => ({ default: vi.fn() }));
 import { installFakeRealtime } from "@/app/libs/realtime/testing";
 
 let uninstallRealtime = () => {};

@@ -12,5 +12,19 @@ export default defineConfig([
       "@typescript-eslint/no-require-imports": "off",
     },
   },
+  {
+    files: ["app/**/*.{js,jsx,mjs,ts,tsx}"],
+    ignores: ["app/libs/realtime/pusher-*-transport.ts"],
+    rules: {
+      // Real-time updates go through the event channel in app/libs/realtime.
+      // Only its Pusher transports talk to Pusher.
+      "no-restricted-imports": ["error", {
+        paths: ["pusher", "pusher-js"].map((name) => ({
+          name,
+          message: "Publish with app/libs/realtime/server or subscribe with app/libs/realtime/client instead.",
+        })),
+      }],
+    },
+  },
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "prisma/v8/contract.d.ts"]),
 ]);

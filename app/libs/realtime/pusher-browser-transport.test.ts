@@ -16,9 +16,12 @@ vi.mock("pusher-js", () => ({
   },
 }));
 
+const ready = Symbol("ready");
+
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
+  mocks.subscribe.mockReturnValue({ bind: vi.fn(), unbind: vi.fn() });
 });
 
 afterEach(() => {
@@ -27,32 +30,33 @@ afterEach(() => {
 
 it("does not open connections when imported on the server", async () => {
   vi.stubGlobal("window", undefined);
-  await import("./pusher-channels");
-  const { getPusherClient } = await import("./pusher-client");
+  const { createPusherBrowserTransport } = await import("./pusher-browser-transport");
+  const transport = createPusherBrowserTransport(ready);
 
   expect(mocks.constructor).not.toHaveBeenCalled();
-  expect(() => getPusherClient()).toThrow("only available in the browser");
+  expect(() => transport.acquire({ kind: "user", key: "buyer", name: "private-user-buyer" })).toThrow("only available in the browser");
   expect(mocks.constructor).not.toHaveBeenCalled();
 });
 
 it("shares one browser client and keeps a channel until its last consumer leaves", async () => {
   vi.stubGlobal("window", {});
-  const channel = {};
-  mocks.subscribe.mockReturnValue(channel);
-  const { acquirePusherChannel, releasePusherChannel } = await import("./pusher-channels");
+  const { createPusherBrowserTransport } = await import("./pusher-browser-transport");
+  const transport = createPusherBrowserTransport(ready);
+  const first = { kind: "listing", key: "1", name: "listing-1" } as const;
+  const second = { kind: "listing", key: "2", name: "listing-2" } as const;
 
   expect(mocks.constructor).not.toHaveBeenCalled();
-  expect(acquirePusherChannel("listing-1")).toBe(channel);
-  expect(acquirePusherChannel("listing-1")).toBe(channel);
-  expect(mocks.subscribe).toHaveBeenCalledTimes(1);
+  transport.acquire(first);
+  transport.acquire(first);
+  expect(mocks.subscribe).toHaveBeenCalledExactlyOnceWith("listing-1");
 
-  releasePusherChannel("listing-1");
+  transport.release(first);
   expect(mocks.unsubscribe).not.toHaveBeenCalled();
-  releasePusherChannel("listing-1");
+  transport.release(first);
   expect(mocks.unsubscribe).toHaveBeenCalledExactlyOnceWith("listing-1");
 
-  acquirePusherChannel("listing-2");
+  transport.acquire(second);
   expect(mocks.constructor).toHaveBeenCalledTimes(1);
   expect(mocks.subscribe).toHaveBeenCalledTimes(2);
-  releasePusherChannel("listing-2");
+  transport.release(second);
 });

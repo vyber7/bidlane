@@ -5,9 +5,8 @@ import { TransactionRetryLimitError } from "@/prisma/native/transaction-errors";
 // Data behaviour is tested against real MongoDB in
 // prisma/native/auctions.integration.test.ts. These cover only the retry and
 // contention policy, which needs failures a local replica set cannot force.
-const mocks = vi.hoisted(() => ({ transaction: vi.fn(), trigger: vi.fn() }));
+const mocks = vi.hoisted(() => ({ transaction: vi.fn() }));
 vi.mock("./native-repositories", () => ({ withNativeTransaction: mocks.transaction }));
-vi.mock("./pusher", () => ({ pusherServer: { trigger: mocks.trigger } }));
 
 import { installFakeRealtime, type FakeRealtime } from "./realtime/testing";
 import { placeBid, startAuction } from "./auction-commands";
