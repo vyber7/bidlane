@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { PublicListing } from "@/app/libs/listing-payload";
-import { makePublicListing as makeListing } from "@/app/test/auction-fixtures";
+import { auctionNow, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 import AuctionBrowser from "@/app/(site)/components/AuctionBrowser";
 
 vi.mock("next/navigation", async () => {
@@ -59,7 +59,7 @@ describe("URL-driven auction browsers", () => {
       makeListing({ id: "zero-reserve", make: "MINI", reservePrice: 0 }),
       makeListing({ id: "upcoming", make: "Audi", status: "UPCOMING", reservePrice: 30000 }),
     ];
-    render(<AuctionBrowser listings={mixedListings} />);
+    render(<AuctionBrowser listings={mixedListings} now={+auctionNow} />);
     const noReserve = screen.getByRole("tab", { name: /No reserve\s*1/ });
     expect(screen.getByRole("tab", { name: /Live/ }).getAttribute("aria-selected")).toBe("true");
     expect(noReserve.getAttribute("aria-selected")).toBe("false");
@@ -70,14 +70,14 @@ describe("URL-driven auction browsers", () => {
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Porsche 911"]);
 
     cleanup();
-    render(<AuctionBrowser listings={mixedListings} />);
+    render(<AuctionBrowser listings={mixedListings} now={+auctionNow} />);
     expect(screen.getByRole("tab", { name: /No reserve\s*1/ }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
   });
 
   it("opens a shared home view with matching controls and listings", () => {
     window.history.replaceState(null, "", "/?status=live&q=Porsche&sort=bid-high#auctions");
-    render(<AuctionBrowser listings={listings} />);
+    render(<AuctionBrowser listings={listings} now={+auctionNow} />);
     expect(screen.getByRole("tab", { name: /Live/ }).getAttribute("aria-selected")).toBe("true");
     const search = screen.getByRole("searchbox", { name: /search live auctions/i });
     expect(search).toHaveProperty("value", "Porsche");
@@ -90,7 +90,7 @@ describe("URL-driven auction browsers", () => {
   });
 
   it("moves keyboard focus between tabs without selecting them until activation", () => {
-    render(<AuctionBrowser listings={listings} />);
+    render(<AuctionBrowser listings={listings} now={+auctionNow} />);
     const live = screen.getByRole("tab", { name: /Live/ });
     const upcoming = screen.getByRole("tab", { name: /Coming soon/ });
     const results = screen.getByRole("tab", { name: /Results/ });
@@ -128,7 +128,7 @@ describe("URL-driven auction browsers", () => {
   });
 
   it("updates the same polite status region as the search result count changes", () => {
-    render(<AuctionBrowser listings={listings} />);
+    render(<AuctionBrowser listings={listings} now={+auctionNow} />);
     const status = screen.getByRole("status");
     const search = screen.getByRole("searchbox");
 
@@ -142,7 +142,7 @@ describe("URL-driven auction browsers", () => {
 
   it("updates combined URL state, preserves the hash, and restores Back/Forward selections", async () => {
     window.history.replaceState(null, "", "/?utm_source=share#auctions");
-    render(<AuctionBrowser listings={listings} />);
+    render(<AuctionBrowser listings={listings} now={+auctionNow} />);
     fireEvent.click(screen.getByRole("tab", { name: /Live/ }));
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "bid-low" } });
     expect(window.history.pushState).toHaveBeenLastCalledWith(null, "", "/?utm_source=share&status=live&sort=bid-low#auctions");
@@ -173,7 +173,7 @@ describe("URL-driven auction browsers", () => {
     window.history.replaceState(null, "", "/?status=live&page=2#auctions");
     render(<AuctionBrowser listings={Array.from({ length: 53 }, (_, index) =>
       makeListing({ id: String(index), make: "BMW", model: `Car ${index}` }),
-    )} />);
+    )} now={+auctionNow} />);
 
     expect(screen.getAllByRole("listitem")).toHaveLength(24);
     expect(screen.getByText("Page 2 of 3")).toBeDefined();
@@ -193,7 +193,7 @@ describe("URL-driven auction browsers", () => {
     window.history.replaceState(null, "", "/?status=live&page=99#auctions");
     render(<AuctionBrowser listings={Array.from({ length: 25 }, (_, index) =>
       makeListing({ id: String(index), model: `Car ${index}` }),
-    )} />);
+    )} now={+auctionNow} />);
 
     expect(screen.getByText("Page 2 of 2")).toBeDefined();
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
@@ -216,7 +216,7 @@ describe("URL-driven auction browsers", () => {
     render(<AuctionBrowser listings={[
       ...listings,
       makeListing({ id: "audi", make: "Audi", model: "R8", status: "ENDED" }),
-    ]} />);
+    ]} now={+auctionNow} />);
     expect(screen.getByRole("tab", { name: new RegExp(label) }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getByRole("searchbox")).toHaveProperty("value", query);
     expect(screen.getByRole("combobox")).toHaveProperty("value", "bid-high");

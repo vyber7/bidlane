@@ -25,15 +25,15 @@ function navigateInventory(updates: Parameters<typeof updateInventoryParams>[1],
   else window.history.pushState(null, "", href);
 }
 
-export default function useAuctionInventory(listings: PublicListing[]) {
+export default function useAuctionInventory(listings: PublicListing[], now: number) {
   const searchParams = useSearchParams();
   const { status, sort, page, q } = useMemo(() => readAuctionInventory(searchParams), [searchParams]);
   const [query, setOptimisticQuery] = useOptimistic(q);
 
-  const counts = useMemo(() => countInventoryTabs(listings), [listings]);
+  const counts = useMemo(() => countInventoryTabs(listings, now), [listings, now]);
   const results = useMemo(
-    () => filterAndSortAuctions(listings, { status, sort, q: query }),
-    [listings, status, sort, query],
+    () => filterAndSortAuctions(listings, { status, sort, q: query }, now),
+    [listings, status, sort, query, now],
   );
 
   return {
