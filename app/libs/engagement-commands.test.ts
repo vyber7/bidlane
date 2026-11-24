@@ -1,4 +1,4 @@
-import { MongoServerError } from "mongodb";
+import { MongoError, MongoServerError } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TransactionRetryLimitError } from "@/prisma/native/transaction-errors";
 import { auctionNow, makeListing } from "@/app/test/auction-fixtures";
@@ -26,6 +26,7 @@ vi.mock("./abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
 vi.mock("./uploaded-assets", () => ({ assertOwnedAssets: mocks.ownedAssets }));
 vi.mock("./logger", () => ({ logger: { warn: mocks.warn } }));
 
+import { ApiRequestError } from "./api-request";
 import { toPublicListing } from "./listing-payload";
 import { installFakeRealtime, type FakeRealtime } from "./realtime/testing";
 import { postComment, setWatch } from "./engagement-commands";
@@ -90,8 +91,9 @@ describe("posting a comment", () => {
   });
 
   it("saves and sends nothing when the attached image isn't the commenter's", async () => {
-    mocks.ownedAssets.mockRejectedValueOnce(new Error("Use files uploaded through your BidLane account."));
-    await expect(postComment({ ...comment, image: "https://res.cloudinary.com/x/borrowed.jpg" })).rejects.toThrow("uploaded through your BidLane account");
+    const notOwned = new ApiRequestError(400, "Use files uploaded through your BidLane account.");
+    mocks.ownedAssets.mockRejectedValueOnce(notOwned);
+    await expect(postComment({ ...comment, image: "https://res.cloudinary.com/x/borrowed.jpg" })).rejects.toBe(notOwned);
     expect(mocks.createComment).not.toHaveBeenCalled();
     expect(realtime.published).toEqual([]);
   });
@@ -113,11 +115,19 @@ describe("posting a comment", () => {
   it("rejects a comment whose Listing left public view during the transaction", async () => {
     mocks.touchComment.mockResolvedValue({ count: 0 });
     await expect(postComment(comment)).resolves.toEqual({ ok: false, reason: "not-public" });
+    expect(mocks.createComment).not.toHaveBeenCalled();
     expect(realtime.published).toEqual([]);
   });
 
-  it("reports transaction contention as busy", async () => {
-    mocks.transaction.mockRejectedValue(new TransactionRetryLimitError());
+  it.each([
+    ["an exhausted retry budget", () => new TransactionRetryLimitError()],
+    ["a transient transaction error", () => {
+      const error = new MongoError("write conflict");
+      error.addErrorLabel("TransientTransactionError");
+      return error;
+    }],
+  ])("reports %s as busy", async (_case, contention) => {
+    mocks.transaction.mockRejectedValue(contention());
     await expect(postComment(comment)).resolves.toEqual({ ok: false, reason: "busy" });
   });
 

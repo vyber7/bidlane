@@ -43,39 +43,36 @@ export async function postComment(request: CommentRequest, now: () => Date = () 
   const { author, listingId, body, image } = request;
   await enforceAbuseLimit("comment", author.id);
 
-  let saved;
+  let outcome;
   try {
-    saved = await withNativeTransaction(async (tx) => {
+    outcome = await withNativeTransaction(async (tx) => {
       const listing = await tx.engagement.find(listingId);
       if (!listing) return { ok: false, reason: "not-found" } as const;
       if (!isPublicListing(listing)) return { ok: false, reason: "not-public" } as const;
       if (image) await assertOwnedAssets({ userId: author.id, kind: "PHOTO", urls: [image], listingId });
 
       const createdAt = now();
-      const comment = await tx.comments.create({ listingId, userId: author.id, body, image }, createdAt);
-      // The Listing's approval can change while this transaction runs.
+      // Touch first: it only matches a public Listing, so approval changing
+      // while this transaction runs rejects the comment before it is written.
       const touched = await tx.engagement.touchComment(listingId, createdAt);
-      if (touched.count !== 1) throw new LeftPublicView();
+      if (touched.count !== 1) return { ok: false, reason: "not-public" } as const;
+      const comment = await tx.comments.create({ listingId, userId: author.id, body, image }, createdAt);
       const notificationUsers = await saveNotifications(tx, commentNotifications(listing, comment, author.id));
       return { ok: true, comment, notificationUsers } as const;
     }, engagementTransactionOptions);
   } catch (error) {
-    if (error instanceof LeftPublicView) return { ok: false, reason: "not-public" };
     if (isTransactionContention(error)) return { ok: false, reason: "busy" };
     throw error;
   }
-  if (!saved.ok) return saved;
+  if (!outcome.ok) return outcome;
 
-  const comment = { ...saved.comment, createdAt: saved.comment.createdAt.toISOString() } satisfies CommentEvent;
+  const comment = { ...outcome.comment, createdAt: outcome.comment.createdAt.toISOString() } satisfies CommentEvent;
   await publish("comment.realtime_update_failed", [
     { channel: listingChannel(listingId), event: "new-comment", payload: comment },
-    ...notificationsChanged(saved.notificationUsers),
+    ...notificationsChanged(outcome.notificationUsers),
   ], { listingId });
   return { ok: true, comment };
 }
-
-/** Thrown to roll back a comment saved after its Listing left public view. */
-class LeftPublicView extends Error {}
 
 // ---------------------------------------------------------------------------
 // Watch or unwatch a Listing
