@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toPublicListing } from "@/app/libs/listing-payload";
 import { makeListing } from "@/app/test/auction-fixtures";
 
@@ -7,7 +7,6 @@ const mocks = vi.hoisted(() => ({
   listingFindUnique: vi.fn(),
   setWatch: vi.fn(),
   snapshot: vi.fn(),
-  trigger: vi.fn(),
   loggerWarn: vi.fn(),
   loggerError: vi.fn(),
 }));
@@ -19,17 +18,18 @@ vi.mock("@/app/libs/native-repositories", () => ({
   getNativeRepositories: () => ({ engagement: { watchSnapshot: mocks.snapshot } }),
   withNativeTransaction: async (callback: (tx: unknown) => unknown) => callback({ engagement: { find: mocks.listingFindUnique, setWatch: mocks.setWatch } }),
 }));
-vi.mock("@/app/libs/pusher", () => ({
-  pusherServer: { trigger: mocks.trigger },
-}));
 vi.mock("@/app/libs/logger", () => ({
   logger: { warn: mocks.loggerWarn, error: mocks.loggerError },
 }));
 
+import { installFakeRealtime, type FakeRealtime } from "@/app/libs/realtime/testing";
 import { POST } from "./route";
 
 const listingId = "abcdef0123456789abcdef01";
 const listing = makeListing({ id: listingId });
+let realtime: FakeRealtime;
+beforeEach(() => { realtime = installFakeRealtime(); });
+afterEach(() => realtime.uninstall());
 
 function request(body: unknown) {
   return new Request("http://localhost/api/update-watchlist", {
@@ -43,15 +43,15 @@ describe("POST /api/update-watchlist", () => {
   it("publishes personal watch activity only on the authenticated private user channel", async () => {
     const response = await POST(request({ listingId, watching: true }));
     expect(response.status).toBe(200);
-    const personalEvents = mocks.trigger.mock.calls.filter(([, event]) => ["watchlist-update", "watching-update"].includes(event));
+    const personalEvents = realtime.published.filter(({ event }) => ["watchlist-update", "watching-update"].includes(event));
     expect(personalEvents).toHaveLength(2);
-    for (const [channel] of personalEvents) expect(channel).toBe("private-user-user-1");
+    for (const { channel } of personalEvents) expect(channel).toBe("user:user-1");
   });
 
   it("does not watch or broadcast the contents of an unapproved listing", async () => {
     mocks.listingFindUnique.mockResolvedValue(makeListing({ status: "UPCOMING", reviewStatus: "PENDING" }));
     expect((await POST(request({ listingId, watching: true }))).status).toBe(404);
-    expect(mocks.setWatch).not.toHaveBeenCalled(); expect(mocks.trigger).not.toHaveBeenCalled();
+    expect(mocks.setWatch).not.toHaveBeenCalled(); expect(realtime.published).toEqual([]);
   });
 
   beforeEach(() => {
@@ -60,7 +60,6 @@ describe("POST /api/update-watchlist", () => {
     mocks.listingFindUnique.mockResolvedValue(listing);
     mocks.setWatch.mockResolvedValue({ count: 1 });
     mocks.snapshot.mockResolvedValue({ listing: toPublicListing(listing, "user-1"), reviewStatus: listing.reviewStatus });
-    mocks.trigger.mockResolvedValue(undefined);
   });
 
   it("requires authentication", async () => {
@@ -103,14 +102,8 @@ describe("POST /api/update-watchlist", () => {
     expect(response.status).toBe(200);
     expect(mocks.setWatch).toHaveBeenCalledWith(listingId, "user-1", watching);
     await expect(response.json()).resolves.toEqual({ listingId, watching });
-    expect(mocks.trigger).toHaveBeenCalledWith(
-      "private-user-user-1",
-      "watchlist-update",
-      { listingId, userId: "user-1", watching }
-    );
-    expect(mocks.trigger).toHaveBeenCalledWith(
-      "private-user-user-1",
-      "watching-update",
+    expect(realtime.sent("user:user-1", "watchlist-update")).toEqual([{ listingId, userId: "user-1", watching }]);
+    expect(realtime.sent("user:user-1", "watching-update")).toEqual([
       expect.objectContaining({
         listing: expect.objectContaining({
           createdAt: listing.createdAt.toISOString(),
@@ -119,9 +112,9 @@ describe("POST /api/update-watchlist", () => {
           watcherCount: watching ? 2 : 1,
         }),
         watching,
-      })
-    );
-    expect(mocks.trigger).toHaveBeenCalledWith(`listing-${listingId}`, "watcher-count-update", { listingId, watcherCount: watching ? 2 : 1 });
+      }),
+    ]);
+    expect(realtime.sent(`listing:${listingId}`, "watcher-count-update")).toEqual([{ listingId, watcherCount: watching ? 2 : 1 }]);
   });
 
   it("excludes private fields from every event and publishes only a count on public channels", async () => {
@@ -129,8 +122,9 @@ describe("POST /api/update-watchlist", () => {
     mocks.listingFindUnique.mockResolvedValue(sensitive);
     mocks.snapshot.mockResolvedValue({ listing: { ...toPublicListing(sensitive, "user-1"), futureSecret: "secret" }, reviewStatus: sensitive.reviewStatus });
     expect((await POST(request({ listingId, watching: true }))).status).toBe(200);
-    for (const [channel, event, payload] of mocks.trigger.mock.calls) {
-      if (!channel.startsWith("private-")) {
+    expect(realtime.published).toHaveLength(3);
+    for (const { channel, event, payload } of realtime.published as Array<{ channel: string; event: string; payload: { listing?: object } }>) {
+      if (!channel.startsWith("user:")) {
         expect(event).toBe("watcher-count-update");
         expect(payload).toEqual({ listingId, watcherCount: 2 });
       }
@@ -143,7 +137,7 @@ describe("POST /api/update-watchlist", () => {
   it("does not disclose a listing that became private while updating the relation", async () => {
     mocks.snapshot.mockResolvedValue({ listing: toPublicListing({ ...listing, status: "UPCOMING", reviewStatus: "PENDING" }), reviewStatus: "PENDING" });
     expect((await POST(request({ listingId, watching: true }))).status).toBe(200);
-    expect(mocks.trigger).not.toHaveBeenCalled();
+    expect(realtime.published).toEqual([]);
   });
 
   it("preserves the committed response when the notification snapshot cannot be loaded", async () => {
@@ -152,19 +146,20 @@ describe("POST /api/update-watchlist", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ listingId, watching: true });
     expect(mocks.setWatch).toHaveBeenCalled();
-    expect(mocks.trigger).not.toHaveBeenCalled();
-    expect(mocks.loggerWarn).toHaveBeenCalledWith("watchlist.notification_failed", { listingId, userId: "user-1" });
+    expect(realtime.published).toEqual([]);
+    expect(mocks.loggerWarn).toHaveBeenCalledWith("watchlist.realtime_update_failed", { listingId, userId: "user-1" });
   });
 
   it("keeps the successful response when real-time delivery fails", async () => {
-    mocks.trigger.mockRejectedValue(new Error("Pusher unavailable"));
+    realtime.failSends();
 
     const response = await POST(request({ listingId, watching: true }));
 
     expect(response.status).toBe(200);
-    expect(mocks.loggerWarn).toHaveBeenCalledWith(
-      "watchlist.notification_failed",
-      { listingId, userId: "user-1" }
+    await expect(response.json()).resolves.toEqual({ listingId, watching: true });
+    expect(mocks.loggerWarn).toHaveBeenCalledExactlyOnceWith(
+      "watchlist.realtime_update_failed",
+      expect.objectContaining({ listingId, userId: "user-1" }),
     );
   });
 });

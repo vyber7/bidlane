@@ -12,8 +12,8 @@ import {
   FiSearch,
   FiZap,
 } from "react-icons/fi";
-import usePusherEvent from "@/app/hooks/usePusherEvent";
-import type { WatchingUpdateEvent } from "@/app/types/auction-events";
+import { userChannel } from "@/app/libs/realtime/catalog";
+import { useRealtimeEvent } from "@/app/libs/realtime/client";
 import { deserializeListing } from "@/app/utils/listing-serialization";
 import AccountListingBox from "./AccountListingBox";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
@@ -50,8 +50,8 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
   const watching = watchlist.listings;
   const watchingIds = useMemo(() => new Set(watching.map((listing) => listing.id)), [watching]);
 
-  usePusherEvent<WatchingUpdateEvent>(
-    currentUserId ? `private-user-${currentUserId}` : null,
+  useRealtimeEvent(
+    currentUserId ? userChannel(currentUserId) : null,
     "watching-update",
     ({ listing: payload, watching: isWatching }) => {
       const listing = deserializeListing(payload);

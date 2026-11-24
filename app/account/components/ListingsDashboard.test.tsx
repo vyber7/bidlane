@@ -4,6 +4,8 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { makePublicListing, makeSellerListing } from "@/app/test/auction-fixtures";
+import { installFakeRealtime, type FakeRealtime } from "@/app/libs/realtime/testing";
+import { serializeListing } from "@/app/utils/listing-serialization";
 import ListingsDashboard from "./ListingsDashboard";
 
 vi.mock("next/navigation", () => ({
@@ -18,7 +20,9 @@ function subscribe(notify: () => void) {
   return () => window.removeEventListener("popstate", notify);
 }
 
+let realtime: FakeRealtime;
 beforeEach(() => {
+  realtime = installFakeRealtime();
   for (const method of ["pushState", "replaceState"] as const) {
     const navigate = window.history[method].bind(window.history);
     vi.spyOn(window.history, method).mockImplementation((...args) => {
@@ -30,6 +34,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  realtime.uninstall();
   vi.restoreAllMocks();
 });
 
@@ -65,4 +70,17 @@ it("opens a filtered URL and keeps tab selection, keyboard focus, and history in
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Porsche 911" } });
   expect(new URLSearchParams(window.location.search).get("q")).toBe("Porsche 911");
   expect(screen.getByText("911")).toBeDefined();
+});
+
+it("adds and removes Watchlist entries when the user watches from another tab", () => {
+  window.history.replaceState(null, "", "/account/listings?tab=watching");
+  const watched = makePublicListing({ id: "watched", model: "911" });
+  const added = makePublicListing({ id: "added", model: "Cayman" });
+  render(<ListingsDashboard uploaded={[]} initialWatching={[watched]} currentUserId="buyer" />);
+
+  act(() => realtime.deliver("user:buyer", "watching-update", { listing: serializeListing(added), watching: true }));
+  expect(screen.getByText("Cayman")).toBeDefined();
+  act(() => realtime.deliver("user:buyer", "watching-update", { listing: serializeListing(watched), watching: false }));
+  expect(screen.queryByText("911")).toBeNull();
+  expect(screen.getByText("Cayman")).toBeDefined();
 });

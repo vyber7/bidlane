@@ -11,10 +11,11 @@ vi.mock("axios", async (importOriginal) => {
   return { ...actual, default: { ...actual.default, post: mocks.post } };
 });
 vi.mock("react-hot-toast", () => ({ default: { error: mocks.error } }));
-vi.mock("@/app/hooks/usePusherEvent", () => ({ default: vi.fn() }));
+import { installFakeRealtime, type FakeRealtime } from "@/app/libs/realtime/testing";
 
-beforeEach(() => vi.clearAllMocks());
-afterEach(cleanup);
+let realtime: FakeRealtime;
+beforeEach(() => { vi.clearAllMocks(); realtime = installFakeRealtime(); });
+afterEach(() => { cleanup(); realtime.uninstall(); });
 
 describe("homepage watch action", () => {
   it("saves a watch and restores the saved state if removing it fails", async () => {

@@ -5,8 +5,9 @@ import { getApiErrorMessage } from "@/app/utils/api-error";
 import axios from "axios";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import usePusherEvent from "./usePusherEvent";
-import type { WatchlistResponse, WatchlistUpdateEvent } from "@/app/types/auction-events";
+import { userChannel } from "@/app/libs/realtime/catalog";
+import { useRealtimeEvent } from "@/app/libs/realtime/client";
+import type { WatchlistResponse } from "@/app/types/auction-events";
 
 export default function useWatchlist({
   listingId,
@@ -31,8 +32,8 @@ export default function useWatchlist({
     setState((current) => current.listingId === listingId && current.userId === userId ? { ...current, ...patch } : current);
   };
 
-  usePusherEvent<WatchlistUpdateEvent>(
-    userId ? `private-user-${userId}` : null,
+  useRealtimeEvent(
+    userId ? userChannel(userId) : null,
     "watchlist-update",
     (update) => {
       if (update.userId === userId && update.listingId === listingId) updateState({ watching: update.watching });

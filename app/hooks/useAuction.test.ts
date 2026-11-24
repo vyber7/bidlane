@@ -5,27 +5,9 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 import { auctionNow, makeBid, makeComment, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 
-const mocks = vi.hoisted(() => ({
-  refresh: vi.fn(),
-  channels: new Map<string, Map<string, Set<(data: unknown) => void>>>(),
-}));
+const mocks = vi.hoisted(() => ({ refresh: vi.fn() }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
-vi.mock("@/app/libs/pusher-channels", () => ({
-  acquirePusherChannel: (name: string) => {
-    const events = mocks.channels.get(name) ?? new Map<string, Set<(data: unknown) => void>>();
-    mocks.channels.set(name, events);
-    return {
-      bind: (event: string, handler: (data: unknown) => void) => {
-        const handlers = events.get(event) ?? new Set();
-        handlers.add(handler);
-        events.set(event, handlers);
-      },
-      unbind: (event: string, handler: (data: unknown) => void) => events.get(event)?.delete(handler),
-    };
-  },
-  releasePusherChannel: vi.fn(),
-}));
 
 import { installFakeRealtime, type FakeRealtime } from "@/app/libs/realtime/testing";
 import type { RealtimeCatalog } from "@/app/libs/realtime/catalog";
@@ -41,13 +23,6 @@ function ready(listingId = makeListing().id) {
   act(() => realtime.ready(`listing:${listingId}`));
 }
 
-// Events still bound through the old untyped hook. Removed once every
-// Auction view listener uses the event channel.
-function emitLegacy(event: string, payload: unknown, listingId = makeListing().id) {
-  act(() => {
-    mocks.channels.get(`listing-${listingId}`)?.get(event)?.forEach((handler) => handler(payload));
-  });
-}
 
 beforeEach(() => {
   realtime = installFakeRealtime();
@@ -59,7 +34,6 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   realtime.uninstall();
-  mocks.channels.clear();
   vi.useRealTimers();
 });
 
@@ -67,10 +41,10 @@ describe("auction state reconciliation", () => {
   it("updates aggregate watcher counts without receiving watcher identities", () => {
     const listing = makeListing();
     const { result } = renderHook(() => useAuction(listing));
-    emitLegacy("watcher-count-update", { listingId: makeListing().id, watcherCount: 7 });
+    emit("watcher-count-update", { listingId: makeListing().id, watcherCount: 7 });
     expect(result.current.listing.watcherCount).toBe(7);
     expect(result.current.listing).not.toHaveProperty("watchersIds");
-    emitLegacy("watcher-count-update", { listingId: "other-listing", watcherCount: 99 });
+    emit("watcher-count-update", { listingId: "other-listing", watcherCount: 99 });
     expect(result.current.listing.watcherCount).toBe(7);
   });
 

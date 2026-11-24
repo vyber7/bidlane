@@ -2,9 +2,10 @@ import { getNativeRepositories, withNativeTransaction } from "@/app/libs/native-
 import { engagementTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
 import getCurrentUser from "../../../app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
-import { pusherServer } from "@/app/libs/pusher";
+import { listingChannel, userChannel } from "@/app/libs/realtime/catalog";
+import { publish } from "@/app/libs/realtime/server";
 import { logger } from "@/app/libs/logger";
-import type { WatchingUpdateEvent, WatchlistUpdateEvent, WatchlistResponse, WatcherCountEvent } from "@/app/types/auction-events";
+import type { WatchlistResponse } from "@/app/types/auction-events";
 import { serializeListing } from "@/app/utils/listing-serialization";
 import { isPublicListing } from "@/app/libs/listing-review";
 import { ApiRequestError, apiErrorResponse, errorResponse, readJsonObject, requireListingId } from "@/app/libs/api-request";
@@ -35,40 +36,21 @@ export async function POST(request: Request) {
     // Read after the relation update so aggregates and the viewer's state
     // reflect persisted data. Never broadcast a listing removed from public view.
     const updatedListing = await getNativeRepositories().engagement.watchSnapshot(listingId, currentUser.id).catch(() => {
-      // The watch change is committed; a failed notification snapshot must
+      // The watch change is committed; a failed snapshot for its real-time updates must
       // not make the client roll back a successful write.
-      logger.warn("watchlist.notification_failed", { listingId, userId: currentUser.id });
+      logger.warn("watchlist.realtime_update_failed", { listingId, userId: currentUser.id });
       return null;
     });
     if (!updatedListing || !isPublicListing({ status: updatedListing.listing.status, reviewStatus: updatedListing.reviewStatus })) {
       return NextResponse.json({ listingId, watching } satisfies WatchlistResponse);
     }
     const publicListing = updatedListing.listing;
-    const update = { listingId, userId: currentUser.id, watching } satisfies WatchlistUpdateEvent;
-    const notificationResults = await Promise.allSettled([
-      pusherServer.trigger(
-        `private-user-${currentUser.id}`,
-        "watchlist-update",
-        update
-      ),
-      pusherServer.trigger(
-        `private-user-${currentUser.id}`,
-        "watching-update",
-        { listing: serializeListing(publicListing), watching } satisfies WatchingUpdateEvent
-      ),
-      pusherServer.trigger(
-        `listing-${listingId}`,
-        "watcher-count-update",
-        { listingId, watcherCount: publicListing.watcherCount } satisfies WatcherCountEvent
-      ),
-    ]);
-
-    if (notificationResults.some((result) => result.status === "rejected")) {
-      logger.warn("watchlist.notification_failed", {
-        listingId,
-        userId: currentUser.id,
-      });
-    }
+    const personal = userChannel(currentUser.id);
+    await publish("watchlist.realtime_update_failed", [
+      { channel: personal, event: "watchlist-update", payload: { listingId, userId: currentUser.id, watching } },
+      { channel: personal, event: "watching-update", payload: { listing: serializeListing(publicListing), watching } },
+      { channel: listingChannel(listingId), event: "watcher-count-update", payload: { listingId, watcherCount: publicListing.watcherCount } },
+    ], { listingId, userId: currentUser.id });
 
     return NextResponse.json({ listingId, watching } satisfies WatchlistResponse);
   } catch (error: unknown) {

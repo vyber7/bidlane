@@ -76,8 +76,8 @@ export function installFakeRealtime() {
     /** How many handlers are bound on `channel` right now. */
     listeners: (channel: ChannelLabel) =>
       [...(subscriptions.get(channel)?.listeners.values() ?? [])].reduce((total, set) => total + set.size, 0),
-    /** Whether anything subscribed to `channel` since the fake was installed. */
-    everSubscribed: (channel: ChannelLabel) => everSubscribed.has(channel),
+    /** Whether anything subscribed to `channel`, or with no channel to any channel, since the fake was installed. */
+    everSubscribed: (channel?: ChannelLabel) => (channel ? everSubscribed.has(channel) : everSubscribed.size > 0),
     /** Every event sent successfully, in order. */
     published,
     /** Every private subscription the transport signed. */

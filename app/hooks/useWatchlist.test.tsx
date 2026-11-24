@@ -3,25 +3,24 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { WatchlistUpdateEvent } from "@/app/types/auction-events";
 
-const mocks = vi.hoisted(() => ({ post: vi.fn(), subscriptions: new Map<string, (data: WatchlistUpdateEvent) => void>() }));
+const mocks = vi.hoisted(() => ({ post: vi.fn() }));
 vi.mock("axios", async (importOriginal) => {
   const actual = await importOriginal<typeof import("axios")>();
   return { ...actual, default: { ...actual.default, post: mocks.post } };
 });
 vi.mock("react-hot-toast", () => ({ default: { error: vi.fn() } }));
-vi.mock("./usePusherEvent", () => ({ default: (channel: string | null, event: string, handler: (data: WatchlistUpdateEvent) => void) => {
-  if (channel) mocks.subscriptions.set(`${channel}:${event}`, handler);
-} }));
+import { installFakeRealtime, type FakeRealtime } from "@/app/libs/realtime/testing";
 import useWatchlist from "./useWatchlist";
 
-beforeEach(() => { vi.clearAllMocks(); mocks.subscriptions.clear(); mocks.post.mockResolvedValue({ data: { listingId: "one", watching: true } }); });
-afterEach(cleanup);
+let realtime: FakeRealtime;
+beforeEach(() => { vi.clearAllMocks(); realtime = installFakeRealtime(); mocks.post.mockResolvedValue({ data: { listingId: "one", watching: true } }); });
+afterEach(() => { cleanup(); realtime.uninstall(); });
 
 describe("private watchlist synchronization", () => {
   it("ignores other listings and accounts on the shared private user channel", () => {
     const { result } = renderHook(() => useWatchlist({ listingId: "one", userId: "buyer", initialWatching: false }));
-    expect([...mocks.subscriptions.keys()]).toEqual(["private-user-buyer:watchlist-update"]);
-    const emit = mocks.subscriptions.get("private-user-buyer:watchlist-update")!;
+    expect(realtime.subscribed("user:buyer")).toBe(true);
+    const emit = (update: WatchlistUpdateEvent) => realtime.deliver("user:buyer", "watchlist-update", update);
     act(() => emit({ listingId: "two", userId: "buyer", watching: true }));
     expect(result.current.watching).toBe(false);
     act(() => emit({ listingId: "one", userId: "other", watching: true }));
@@ -32,7 +31,7 @@ describe("private watchlist synchronization", () => {
 
   it("does not subscribe while signed out", () => {
     renderHook(() => useWatchlist({ listingId: "one", initialWatching: false }));
-    expect(mocks.subscriptions.size).toBe(0);
+    expect(realtime.everSubscribed()).toBe(false);
   });
 
   it("adopts refreshed watch state and resets when the viewed listing changes", () => {

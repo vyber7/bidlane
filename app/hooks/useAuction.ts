@@ -4,12 +4,8 @@ import type { PublicListing } from "@/app/libs/listing-payload";
 import { auctionPhase, auctionStatusOrder, type AuctionPhase } from "@/app/libs/auction-lifecycle";
 import { useState } from "react";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
-import type {
-  AcceptedBidResponse,
-  WatcherCountEvent,
-} from "@/app/types/auction-events";
+import type { AcceptedBidResponse } from "@/app/types/auction-events";
 import useCountDown from "./useCountDown";
-import usePusherEvent from "./usePusherEvent";
 import { listingChannel } from "@/app/libs/realtime/catalog";
 import { useRealtimeEvent, useRealtimeReady } from "@/app/libs/realtime/client";
 import useAuctionRefresh from "./useAuctionRefresh";
@@ -118,11 +114,10 @@ export default function useAuction<T extends PublicListing>(
     }));
   }
 
-  const channel = `listing-${listing.id}`;
-  usePusherEvent<WatcherCountEvent>(channel, "watcher-count-update", (event) => {
+  const listingUpdates = listingChannel(listing.id);
+  useRealtimeEvent(listingUpdates, "watcher-count-update", (event) => {
     if (event.listingId === listing.id) updateListing({ watcherCount: event.watcherCount });
   });
-  const listingUpdates = listingChannel(listing.id);
   useRealtimeEvent(listingUpdates, "new-bid", (bid) => {
     receiveBid(bid);
     refresh();
