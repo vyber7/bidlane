@@ -233,7 +233,7 @@ describe("gallery image data", () => {
     upload();
     expect(photos()).toHaveLength(1);
     expect(mocks.success).not.toHaveBeenCalled();
-    expect(mocks.post).toHaveBeenCalledWith("/api/cloudinary-images", { listingId, imageUrl: uploadedUrl });
+    expect(mocks.post).toHaveBeenCalledWith(`/api/listing/${listingId}/photos`, { imageUrl: uploadedUrl });
 
     await act(async () => { saved.resolve({ data: {} }); });
 

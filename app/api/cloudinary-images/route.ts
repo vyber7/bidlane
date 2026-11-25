@@ -6,11 +6,9 @@ import { canViewListing } from "@/app/libs/listing-review";
 import {
   ApiRequestError,
   apiErrorResponse,
-  readJsonObject,
   errorResponse,
   requireListingId,
 } from "@/app/libs/api-request";
-import { addGalleryPhoto } from "@/app/libs/seller-listing-corrections";
 
 export async function GET(req: Request) {
   const folder = new URL(req.url).searchParams.get("folder");
@@ -33,28 +31,5 @@ export async function GET(req: Request) {
     if (response) return response;
     logger.error("cloudinary.images_route_failed", error, { folder });
     return errorResponse("Failed to fetch images", 500);
-  }
-}
-
-export async function POST(req: Request) {
-  try {
-    const currentUser = await getCurrentUser();
-    if (!currentUser?.id) {
-      return errorResponse("Unauthorized", 401);
-    }
-
-    const body = await readJsonObject(req);
-
-    const listingId = requireListingId(body.listingId);
-    const { alreadySaved, imageUrl } = await addGalleryPhoto({ listingId, sellerId: currentUser.id }, body.imageUrl);
-    return NextResponse.json({
-      message: alreadySaved ? "Image already saved" : "Image uploaded successfully",
-      imageUrl,
-    });
-  } catch (error) {
-    const response = apiErrorResponse(error);
-    if (response) return response;
-    logger.error("cloudinary.image_save_failed", error);
-    return errorResponse("Failed to save image", 500);
   }
 }

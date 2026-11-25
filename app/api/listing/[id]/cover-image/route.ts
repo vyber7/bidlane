@@ -7,7 +7,7 @@ import {
   errorResponse,
   requireListingId,
 } from "@/app/libs/api-request";
-import { correctCoverImage } from "@/app/libs/seller-listing-corrections";
+import { correctListing } from "@/app/libs/listing-correction";
 
 export async function POST(
   request: Request,
@@ -22,14 +22,13 @@ export async function POST(
 
     const { id } = await context.params;
     listingId = requireListingId(id);
-    const body = await readJsonObject(request);
-
-    const { coverImageUrl } = await correctCoverImage({ listingId, sellerId: currentUser.id }, body.url);
+    const { url } = await readJsonObject(request);
+    await correctListing({ listingId, sellerId: currentUser.id }, { kind: "coverPhoto", url });
 
     return NextResponse.json(
       {
         message: "Cover image updated successfully",
-        coverImageUrl,
+        coverImageUrl: url,
       },
       { status: 200 }
     );
