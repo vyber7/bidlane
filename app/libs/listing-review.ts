@@ -11,6 +11,7 @@ import { requireAdmin } from "./admin";
 import { ApiRequestError } from "./api-request";
 import { auctionPhase } from "./auction-lifecycle";
 import { isPublicListing } from "./listing-review-rules";
+import { listingCapabilities } from "./listing-capabilities";
 
 // The visibility rule and Approval requirement live in listing-review-rules,
 // which has no server dependencies so the database layer can use them too.
@@ -50,24 +51,25 @@ export async function getReviewQueue(page = 1, filter: ReviewStatus = "PENDING")
 }
 
 export async function getListingReview(id: string) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const repositories = getNativeRepositories();
   const [listing, auction] = await Promise.all([
     repositories.listingAuthoring.reviewDetail(id),
     repositories.auctions.find(id),
   ]);
   if (!listing || !auction) throw new ApiRequestError(404, refusals.missing);
-  return { ...listing, phase: auctionPhase(auction, Date.now()).phase };
+  const now = Date.now();
+  return { ...listing, phase: auctionPhase(auction, now).phase, canReview: listingCapabilities(auction, admin, now).review.allowed };
 }
 
 export async function reviewListing(id: string, input: z.output<typeof listingDecisionSchema>) {
   const admin = await requireAdmin();
   return withNativeTransaction(async (tx) => {
+    const now = new Date();
     const listing = await tx.listingAuthoring.find(id);
     if (!listing) throw new ApiRequestError(404, refusals.missing);
-    if (listing.status !== "UPCOMING") throw new ApiRequestError(409, refusals.notUpcoming);
+    if (!listingCapabilities(listing, admin, now.getTime()).review.allowed) throw new ApiRequestError(409, refusals.notUpcoming);
     if (listing.reviewRevision !== input.revision) throw new ApiRequestError(409, refusals.stale);
-    const now = new Date();
     const updated = await tx.listingAuthoring.setReview(id, input, now);
     if (updated.count !== 1) throw new ApiRequestError(409, refusals.stale);
     await tx.listingAuthoring.addReview(id, input, { id: admin.id, name: admin.name }, now);

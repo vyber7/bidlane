@@ -45,7 +45,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
     <VehicleHistory details={listing} />
     <VehicleRecords records={listing.vehicleRecords} />
     {listing.reviewNote && <p className="whitespace-pre-wrap break-words rounded-xl bg-amber-50 p-4 text-sm">Latest feedback: {listing.reviewNote}</p>}
-    <ReviewForm key={listing.reviewRevision} id={id} revision={listing.reviewRevision} disabled={listing.status !== "UPCOMING"} />
+    <ReviewForm key={listing.reviewRevision} id={id} revision={listing.reviewRevision} disabled={!listing.canReview} />
     <section className="rounded-2xl border bg-white p-6">
       <h2 className="text-xl font-bold">Review History</h2>
       <p className="mt-2 text-xs text-slate-500">Latest 50 decisions. Saving listing changes requires a new approval.</p>

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { getNativeRepositories } from "@/app/libs/native-repositories";
+import { listingCapabilities } from "@/app/libs/listing-capabilities";
+import { correctionRefusals } from "@/app/libs/listing-correction";
 import { ApiRequestError, apiErrorResponse, errorResponse, parseApiInput, requireListingId } from "@/app/libs/api-request";
 import { MAX_UPLOAD_BODY_BYTES, MAX_UPLOAD_BYTES, MAX_UPLOAD_SIZE_LABEL, UPLOAD_KINDS } from "@/app/libs/upload-policy";
 import { uploadRetryAfter } from "@/app/libs/upload-rate-limit";
@@ -51,8 +53,9 @@ export async function POST(request: Request) {
     if (listingId && kind === "PROFILE") throw new ApiRequestError(400, "Profile uploads cannot target a listing.");
     if (listingId) {
       const listing = await getNativeRepositories().listingAuthoring.find(listingId);
-      if (!listing || listing.userId !== user.id) return errorResponse("Listing not found.", 404);
-      if (listing.status !== "UPCOMING") return errorResponse("Files cannot be changed after bidding opens.", 409);
+      const correct = listing && listingCapabilities(listing, user, Date.now()).correct;
+      if (!correct || (!correct.allowed && correct.reason === "not-seller")) return errorResponse(correctionRefusals.missing, 404);
+      if (!correct.allowed) return errorResponse(correctionRefusals.closed, 409);
     }
     const url = await saveUploadedFile({ userId: user.id, kind, file, listingId });
     return Response.json({ url }, { status: 201, headers: { "Cache-Control": "no-store" } });

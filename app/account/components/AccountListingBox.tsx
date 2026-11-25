@@ -11,7 +11,8 @@ import { FiArrowUpRight, FiClock, FiEye, FiMapPin } from "react-icons/fi";
 import useAuction from "@/app/hooks/useAuction";
 import { describeAuction, type AuctionDisplay } from "@/app/libs/auction-display";
 import { CldImage } from "next-cloudinary";
-import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
+import { transactionHref } from "@/app/libs/transaction-completion";
+import { transactionAccess } from "@/app/libs/listing-capabilities";
 
 const chipClasses: Record<AuctionDisplay["tone"], string> = {
   live: "bg-red-50 text-red-700 ring-red-100",

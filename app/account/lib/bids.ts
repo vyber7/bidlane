@@ -1,13 +1,15 @@
 import type { Bid, Listing } from "@/app/types/database";
 import type { AuctionBid } from "@/app/types/account";
-import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
+import { transactionHref } from "@/app/libs/transaction-completion";
+import { listingCapabilities } from "@/app/libs/listing-capabilities";
 
 export type BidWithListing = Bid & { listing: Listing };
 
 // The account query returns bids newest first, which also determines row order.
 export function buildBidSummaries(
   bids: readonly BidWithListing[],
-  userId: string
+  userId: string,
+  now = Date.now(),
 ): AuctionBid[] {
   // Keep one row per vehicle while preserving the user's highest bid and the
   // date of their most recent activity on that auction.
@@ -40,7 +42,7 @@ export function buildBidSummaries(
 
   return Array.from(bidsByListing.values()).map(
     ({ listing, highestBid, lastBidAt, bidCount }) => {
-      const transaction = transactionAccess(listing, userId);
+      const { completeTransaction: transaction, group } = listingCapabilities(listing, { id: userId }, now);
       return {
         id: listing.id,
         year: listing.year,
@@ -50,6 +52,7 @@ export function buildBidSummaries(
         coverImage: listing.coverImage,
         status: listing.status,
         result: listing.result,
+        group,
         currentBid: listing.currentBid,
         auctionEndsAt: listing.auctionEndsAt?.toISOString() ?? null,
         highestBid,

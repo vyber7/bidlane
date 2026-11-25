@@ -5,6 +5,7 @@ import { vehicleRecordsSchema, vinSchema } from "@/app/schemas/vehicle-trust";
 import { ApiRequestError, parseApiInput } from "./api-request";
 import type { AuthoredListing } from "@/prisma/native/listing-authoring";
 import { getNativeRepositories } from "./native-repositories";
+import { listingCapabilities } from "./listing-capabilities";
 import { assertListingAssets, assertOwnedAssets, recordUrls } from "./uploaded-assets";
 
 /** The Listing to correct and the user asking to correct it. */
@@ -18,12 +19,13 @@ export type Correction =
   | { kind: "galleryPhoto"; url: unknown };
 
 
-const refusals = {
+export const correctionRefusals = {
   missing: "Listing not found.",
   forbidden: "Only the seller can edit this listing.",
   closed: "Listings cannot be edited after bidding opens.",
   stale: "This listing changed. Reload before editing again.",
 };
+const refusals = correctionRefusals;
 
 const recordsSchema = z.object({ vin: vinSchema, vehicleRecords: vehicleRecordsSchema });
 
@@ -104,8 +106,12 @@ export async function correctListing(target: CorrectionTarget, correction: Corre
   const repository = getNativeRepositories().listingAuthoring;
   const listing = await repository.find(listingId);
   if (!listing) throw new ApiRequestError(404, refusals.missing);
-  if (listing.userId !== sellerId) throw new ApiRequestError(403, refusals.forbidden);
-  if (listing.status !== "UPCOMING") throw new ApiRequestError(409, refusals.closed);
+  const { correct } = listingCapabilities(listing, { id: sellerId }, Date.now());
+  if (!correct.allowed) {
+    throw correct.reason === "not-seller"
+      ? new ApiRequestError(403, refusals.forbidden)
+      : new ApiRequestError(409, refusals.closed);
+  }
 
   const changes = await changesFor(correction, listing, target);
   const revision = listing.reviewRevision;

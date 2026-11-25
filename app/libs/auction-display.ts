@@ -1,5 +1,6 @@
 import { auctionPrice, type AuctionPhase, type BiddingBlock } from "./auction-lifecycle";
 import type { PublicListing } from "./listing-codec";
+import { auctionGroup, type AuctionGroup } from "./listing-capabilities";
 
 // The auction display: what any view shows for an Auction, given its phase and
 // who is looking. Views render this description instead of re-deriving it
@@ -11,7 +12,7 @@ export interface AuctionDisplay {
   /** How a view may colour the headline. */
   tone: "upcoming" | "live" | "sold" | "neutral";
   /** Where the homepage inventory files the Auction: Live is Open and Closing. */
-  bucket: "upcoming" | "live" | "results";
+  bucket: AuctionGroup;
   price: { label: string; amount: number | null };
   /** Countdown while bids may arrive; closing once the deadline has passed and the Result is pending. */
   timer: "countdown" | "closing" | "none";
@@ -38,11 +39,13 @@ export function describeAuction(
   viewerId: string | null | undefined,
 ): AuctionDisplay {
   const display = describePhase(phase, viewerId === listing.userId);
+  const bucket = auctionGroup(phase);
   return {
     ...display,
+    bucket,
     price: auctionPrice(listing),
     noReserveNote: !listing.isNoReserve ? null
-      : display.bucket === "results" ? "This auction had no reserve."
+      : bucket === "results" ? "This auction had no reserve."
       : "No minimum sale price. The highest accepted bid wins.",
     minimumBid: phase?.phase === "open" && phase.bidding.accepting ? phase.bidding.minimumBid : null,
   };
@@ -51,7 +54,7 @@ export function describeAuction(
 function describePhase(
   phase: AuctionPhase | null,
   owner: boolean,
-): Omit<AuctionDisplay, "price" | "noReserveNote" | "minimumBid"> {
+): Omit<AuctionDisplay, "bucket" | "price" | "noReserveNote" | "minimumBid"> {
   const ended = { timer: "none", action: null, message: null } as const;
 
   switch (phase?.phase) {
@@ -59,7 +62,6 @@ function describePhase(
       return {
         headline: "Coming soon",
         tone: "upcoming",
-        bucket: "upcoming",
         timer: "none",
         action: owner ? "edit-listing" : "watch",
         message: `Bidding hasn’t opened yet. ${owner
@@ -72,7 +74,6 @@ function describePhase(
         ...ended,
         headline: "Sold",
         tone: "sold",
-        bucket: "results",
         result: "Auction complete",
       };
     case "unsold":
@@ -80,14 +81,12 @@ function describePhase(
         ...ended,
         headline: "Ended",
         tone: "neutral",
-        bucket: "results",
         result: phase.reason === "no-bids" ? "No bids placed" : "Reserve not met",
       };
     case "closing":
       return {
         headline: "Closing",
         tone: "live",
-        bucket: "live",
         timer: "closing",
         action: owner ? "retry-finalization" : null,
         message: "Finalizing results…",
@@ -101,7 +100,6 @@ function describePhase(
       return {
         headline: "Live auction",
         tone: "live",
-        bucket: "live",
         timer: "countdown",
         action: owner ? "view-bids" : bidding?.accepting ? "place-bid" : null,
         message: owner ? "Your auction is live. Results are finalized automatically when the timer ends."

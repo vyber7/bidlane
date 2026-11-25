@@ -12,24 +12,6 @@ export type TransactionCompletion = Record<CompletionStep, Record<TransactionRol
 
 export const soldAuction = { status: "ENDED", result: "SOLD" } as const;
 
-type TransactionListing = {
-  status: string;
-  result: string | null;
-  userId: string;
-  highestBidderId: string | null;
-};
-
-type TransactionAccess =
-  | { role: "buyer"; canComplete: true }
-  | { role: "seller"; canComplete: boolean };
-
-export function transactionAccess(listing: TransactionListing, viewerId?: string | null): TransactionAccess | null {
-  if (!viewerId || listing.status !== soldAuction.status || listing.result !== soldAuction.result) return null;
-  const buyerId = listing.highestBidderId !== listing.userId ? listing.highestBidderId : null;
-  if (viewerId === listing.userId) return { role: "seller", canComplete: Boolean(buyerId) };
-  return viewerId === buyerId ? { role: "buyer", canComplete: true } : null;
-}
-
 export function transactionAnchor(listingId: string) {
   return `transaction-${listingId}`;
 }

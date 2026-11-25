@@ -21,7 +21,8 @@ import { GoStar, GoStarFill } from "react-icons/go";
 import toast from "react-hot-toast";
 import useWatchlist from "@/app/hooks/useWatchlist";
 import { logger } from "@/app/libs/logger";
-import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
+import { transactionHref } from "@/app/libs/transaction-completion";
+import { transactionAccess } from "@/app/libs/listing-capabilities";
 import { describeAuction } from "@/app/libs/auction-display";
 
 interface AuctionStatusBarProps {

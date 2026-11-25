@@ -1,7 +1,8 @@
 import type { Listing } from "@/app/types/database";
 import type { AccountNotification } from "@/app/types/account";
 import { notificationsChanged, publish } from "./realtime/server";
-import { soldAuction, transactionAccess, transactionHref } from "./transaction-completion";
+import { soldAuction, transactionHref } from "./transaction-completion";
+import { transactionAccess } from "./listing-capabilities";
 import type { NativeRepositories } from "@/prisma/native/repositories";
 
 type Vehicle = Pick<Listing, "id" | "year" | "make" | "model" | "userId">;

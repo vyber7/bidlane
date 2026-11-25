@@ -1,4 +1,5 @@
 import type { TransactionCompletion } from "@/app/libs/transaction-completion";
+import type { AuctionGroup } from "@/app/libs/listing-capabilities";
 
 export type AuctionBid = {
   id: string;
@@ -9,6 +10,8 @@ export type AuctionBid = {
   coverImage: string | null;
   status: string;
   result: string | null;
+  /** Where the Auction is filed, by Auction phase. */
+  group: AuctionGroup;
   currentBid: number | null;
   auctionEndsAt: string | null;
   highestBid: number;

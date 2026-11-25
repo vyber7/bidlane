@@ -18,10 +18,10 @@ import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 type Tab = "active" | "wins" | "past";
 
 const BidsAndWinsDashboard = ({ bids }: { bids: AuctionBid[] }) => {
-  const active = bids.filter((bid) => bid.status === "LIVE");
+  const active = bids.filter((bid) => bid.group === "live");
   const wins = bids.filter((bid) => bid.completionHref !== null);
   const wonIds = new Set(wins.map((win) => win.id));
-  const past = bids.filter((bid) => bid.status === "ENDED" && !wonIds.has(bid.id));
+  const past = bids.filter((bid) => bid.group === "results" && !wonIds.has(bid.id));
   const requestedTab = useSearchParams().get("tab");
   const tab = requestedTab === "active" || requestedTab === "wins" || requestedTab === "past"
     ? requestedTab

@@ -2,11 +2,11 @@ import { ObjectId, type ClientSession, type Db } from "mongodb";
 import {
   completionFields,
   soldAuction,
-  transactionAccess,
   transactionCompletion,
   type CompletionFields,
   type CompletionStep,
 } from "@/app/libs/transaction-completion";
+import { transactionAccess } from "@/app/libs/listing-capabilities";
 
 type CompletionDocument = CompletionFields & {
   _id: ObjectId;
