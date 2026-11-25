@@ -215,6 +215,34 @@ describe("following Real-time updates", () => {
     expect(screen.getByText("Soon Cayman")).toBeDefined();
   });
 
+  it("moves my Auction from Upcoming to Live when I start it from another tab", () => {
+    window.history.replaceState(null, "", "/account/listings?status=upcoming");
+    render(<ListingsDashboard
+      uploaded={[{ ...makeSellerListing({ id: "mine", model: "Boxster", status: "UPCOMING" }), reviewLabel: "Approved" }]}
+      initialWatching={[]}
+    />);
+    expect(screen.getByText("Boxster")).toBeDefined();
+
+    act(() => realtime.deliver("listing:mine", "auction-started", {
+      auctionStartsAt: past.toISOString(),
+      auctionEndsAt: new Date(Date.now() + 3_600_000).toISOString(),
+      startingBid: 10000,
+      bidIncrement: 500,
+    }));
+    expect(screen.queryByText("Boxster")).toBeNull();
+    act(() => window.history.replaceState(null, "", "/account/listings?status=live"));
+    expect(screen.getByText("Boxster")).toBeDefined();
+  });
+
+  it("keeps a watched Auction under Live when a new bid arrives", () => {
+    window.history.replaceState(null, "", "/account/listings?tab=watching&status=live");
+    render(<ListingsDashboard uploaded={[]} initialWatching={[makePublicListing({ id: "live", model: "Live 911" })]} />);
+    act(() => realtime.deliver("listing:live", "new-bid", {
+      id: "bid", listingId: "live", userId: "rival", amount: 12000, createdAt: new Date().toISOString(), user: { name: "Rival" },
+    }));
+    expect(screen.getByText("Live 911")).toBeDefined();
+  });
+
   it("keeps the Live now count in step with my Auctions as they are finalized", () => {
     render(<ListingsDashboard
       uploaded={[{ ...makeSellerListing({ id: "mine", model: "Boxster" }), reviewLabel: "Approved" }]}

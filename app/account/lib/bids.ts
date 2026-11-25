@@ -1,7 +1,7 @@
 import type { Bid, Listing } from "@/app/types/database";
 import type { AuctionBid } from "@/app/types/account";
 import { transactionHref } from "@/app/libs/transaction-completion";
-import { listingCapabilities, transactionAccess, type AuctionGroup } from "@/app/libs/listing-capabilities";
+import { listingGroup, transactionAccess, type AuctionGroup } from "@/app/libs/listing-capabilities";
 import { toPublicListing, type PublicListing } from "@/app/libs/listing-codec";
 
 export type BidWithListing = Bid & { listing: Listing };
@@ -55,7 +55,7 @@ export function buildBidSummaries(
         lastBidAt: lastBidAt.toISOString(),
         bidCount,
         auction,
-        ...auctionStanding(auction, listingCapabilities(listing, { id: userId }, now).group, userId),
+        ...auctionStanding(auction, listingGroup(listing, now), userId),
       };
     }
   );

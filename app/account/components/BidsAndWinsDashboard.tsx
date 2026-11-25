@@ -14,7 +14,7 @@ import {
 import type { AuctionBid } from "@/app/types/account";
 import { formatAmount, formatPrice, formatCount, formatDate } from "@/app/utils/format";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
-import useLiveAuctions from "./useLiveAuctions";
+import useTrackedAuctions from "./useTrackedAuctions";
 import { auctionStanding } from "../lib/bids";
 
 type Tab = "active" | "wins" | "past";
@@ -22,9 +22,9 @@ type Tab = "active" | "wins" | "past";
 const BidsAndWinsDashboard = ({ bids: loaded, currentUserId }: { bids: AuctionBid[]; currentUserId: string }) => {
   // Each row follows its Auction's Real-time updates, so an Auction that is
   // finalized while the page is open moves to Wins or Past Bids.
-  const { trackers, live } = useLiveAuctions(loaded.map((bid) => bid.auction));
+  const { trackers, current } = useTrackedAuctions(loaded.map((bid) => bid.auction));
   const bids = loaded.map((bid): AuctionBid => {
-    const { listing, group } = live(bid.auction);
+    const { listing, group } = current(bid.auction);
     return { ...bid, ...auctionStanding(listing, group, currentUserId) };
   });
   const active = bids.filter((bid) => bid.group === "live");

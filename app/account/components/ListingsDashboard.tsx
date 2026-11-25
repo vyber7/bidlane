@@ -18,7 +18,7 @@ import { userChannel } from "@/app/libs/realtime/catalog";
 import { useRealtimeEvent } from "@/app/libs/realtime/client";
 import { deserializeListing } from "@/app/utils/listing-serialization";
 import type { AuctionGroup } from "@/app/libs/listing-capabilities";
-import useLiveAuctions, { type LiveAuction } from "./useLiveAuctions";
+import useTrackedAuctions, { type TrackedAuction } from "./useTrackedAuctions";
 import AccountListingBox, { type AccountListing } from "./AccountListingBox";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 import useUndo from "@/app/hooks/useUndo";
@@ -139,9 +139,9 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
     }
   );
 
-  const liveUploaded = useLiveAuctions(uploaded);
-  const liveWatching = useLiveAuctions(watching);
-  const source: LiveAuction<PublicListing>[] = tab === "uploaded" ? uploaded.map(liveUploaded.live) : watching.map(liveWatching.live);
+  const trackedUploaded = useTrackedAuctions(uploaded);
+  const trackedWatching = useTrackedAuctions(watching);
+  const source: TrackedAuction<PublicListing>[] = tab === "uploaded" ? uploaded.map(trackedUploaded.current) : watching.map(trackedWatching.current);
   const normalizedQuery = query.trim().toLowerCase();
   const visibleListings = source.filter(({ listing, group }) => {
     const matchesStatus = !statusFilter.group || group === statusFilter.group;
@@ -149,7 +149,7 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
     return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
   }).map(({ listing }) => listing);
 
-  const liveCount = uploaded.filter((listing) => liveUploaded.live(listing).group === "live").length;
+  const liveCount = uploaded.filter((listing) => trackedUploaded.current(listing).group === "live").length;
   const changeTab = (nextTab: Tab) => {
     if (nextTab === tab) return;
     updateAccountUrl({ tab: nextTab === "watching" ? nextTab : "", status: "", q: "" });
@@ -157,8 +157,8 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
 
   return (
     <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      {liveUploaded.trackers}
-      {liveWatching.trackers}
+      {trackedUploaded.trackers}
+      {trackedWatching.trackers}
       <div className="border-b border-gray-200 px-5 py-5 sm:px-6">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
