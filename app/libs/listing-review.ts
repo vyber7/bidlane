@@ -66,7 +66,7 @@ export async function reviewListing(id: string, input: z.output<typeof listingDe
     const listing = await tx.listingAuthoring.find(id);
     if (!listing) throw new ApiRequestError(404, refusals.missing);
     if (listing.status !== "UPCOMING") throw new ApiRequestError(409, refusals.notUpcoming);
-    if ((listing.reviewRevision ?? 0) !== input.revision) throw new ApiRequestError(409, refusals.stale);
+    if (listing.reviewRevision !== input.revision) throw new ApiRequestError(409, refusals.stale);
     const now = new Date();
     const updated = await tx.listingAuthoring.setReview(id, input, now);
     if (updated.count !== 1) throw new ApiRequestError(409, refusals.stale);

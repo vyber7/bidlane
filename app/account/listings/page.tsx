@@ -4,7 +4,7 @@ import ListingsDashboard from "@/app/account/components/ListingsDashboard";
 import { getAccountUser } from "@/app/account/lib/current-user";
 import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { getReadRepositories } from "@/app/libs/read-repositories";
-import { toSellerListing } from "@/app/libs/listing-payload";
+import { toSellerListing } from "@/app/libs/listing-codec";
 import { reviewLabel } from "@/app/libs/listing-review";
 
 const MyListings = async () => {

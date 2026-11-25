@@ -1,4 +1,4 @@
-import type { PublicListing } from "@/app/libs/listing-payload";
+import type { PublicListing } from "@/app/libs/listing-codec";
 import { auctionPhase } from "@/app/libs/auction-lifecycle";
 import { describeAuction, type AuctionDisplay } from "@/app/libs/auction-display";
 

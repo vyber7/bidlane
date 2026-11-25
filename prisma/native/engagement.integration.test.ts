@@ -46,7 +46,7 @@ import getComments from "@/app/actions/getComments";
 import * as provider from "@/app/libs/native-repositories";
 import { makeListing } from "@/app/test/auction-fixtures";
 import { listingSchema } from "@/app/schemas/listing";
-import { toPublicListing } from "@/app/libs/listing-payload";
+import { toPublicListing } from "@/app/libs/listing-codec";
 import { TransactionRetryLimitError } from "./transaction-errors";
 import { installServerTransport } from "@/app/libs/realtime/server";
 

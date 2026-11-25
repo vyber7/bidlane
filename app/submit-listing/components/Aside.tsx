@@ -1,4 +1,4 @@
-import type { PublicListing } from "@/app/libs/listing-payload";
+import type { PublicListing } from "@/app/libs/listing-codec";
 import Link from "next/link";
 import { FiArrowRight } from "react-icons/fi";
 

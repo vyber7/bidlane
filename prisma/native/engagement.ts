@@ -5,10 +5,14 @@ import {
   type Db,
   type Document,
 } from "mongodb";
-import type { PublicListing } from "@/app/libs/listing-payload";
-import { publicListingFields } from "@/app/libs/listing-payload";
+import {
+  decodeListing,
+  listingProjection,
+  publicListingFields,
+  toPublicListing,
+  type ListingField,
+} from "@/app/libs/listing-codec";
 import { publicListingFilter } from "@/app/libs/listing-review-rules";
-import { readVehicleRecords } from "@/app/schemas/vehicle-trust";
 import type { ReviewStatus } from "./listing-authoring";
 
 type ListingDocument = {
@@ -33,6 +37,15 @@ type UserDocument = {
   updatedAt?: Date;
 };
 const MAX_VIEW_COUNT = 2_147_483_647;
+const engagementFields = [
+  "userId",
+  "status",
+  "reviewStatus",
+  "views",
+  "year",
+  "make",
+  "model",
+] as const satisfies readonly ListingField[];
 const integer = (value: unknown): number => {
   const result = Long.isLong(value) ? value.toNumber() : value;
   if (typeof result !== "number" || !Number.isSafeInteger(result))
@@ -49,22 +62,16 @@ const date = (value: unknown): Date => {
     throw new Error("Invalid engagement date");
   return value;
 };
-const nullableDate = (value: unknown) => (value == null ? null : date(value));
-const nullableInteger = (value: unknown) =>
-  value == null ? null : integer(value);
-const watchProjection = (userId: string) => ({
-  ...Object.fromEntries(
-    publicListingFields
-      .filter((field) => field !== "id")
-      .map((field) => [field, 1]),
-  ),
-  reviewStatus: 1,
-  isNoReserve: { $eq: [{ $ifNull: ["$reservePrice", null] }, null] },
-  watcherCount: { $size: { $ifNull: ["$watchersIds", []] } },
-  isWatching: {
-    $in: [new ObjectId(userId), { $ifNull: ["$watchersIds", []] }],
-  },
-});
+// A watched Listing is decoded like any other and projected for its Watcher,
+// so the Watchlist cannot drift from the public projection used elsewhere.
+const watchedFields = [
+  ...publicListingFields.filter((field) => field !== "id"),
+  "reservePrice",
+  "watchersIds",
+  "reviewStatus",
+] as const satisfies readonly ListingField[];
+const watchedProjection = listingProjection(watchedFields);
+const watched = (document: Document) => decodeListing(document, watchedFields);
 function comment(document: Document) {
   return {
     id: (document._id as ObjectId).toHexString(),
@@ -77,45 +84,6 @@ function comment(document: Document) {
       : null,
   };
 }
-function publicSnapshot(document: Document): PublicListing {
-  return {
-    id: document._id.toHexString(),
-    userId: document.userId.toHexString(),
-    year: integer(document.year),
-    make: text(document.make),
-    model: text(document.model),
-    miles: integer(document.miles),
-    images: (document.images ?? []).map(text),
-    location: text(document.location),
-    description: text(document.description),
-    transmission: nullableText(document.transmission),
-    drivetrain: nullableText(document.drivetrain),
-    titleStatus: nullableText(document.titleStatus),
-    serviceHistory: nullableText(document.serviceHistory),
-    modifications: nullableText(document.modifications),
-    knownFlaws: nullableText(document.knownFlaws),
-    vin: nullableText(document.vin),
-    vehicleRecords: readVehicleRecords(document.vehicleRecords),
-    createdAt: date(document.createdAt),
-    updatedAt: nullableDate(document.updatedAt),
-    lastCommentAt: nullableDate(document.lastCommentAt),
-    views: document.views == null ? 1 : integer(document.views),
-    coverImage: nullableText(document.coverImage),
-    auctionStartsAt: nullableDate(document.auctionStartsAt),
-    auctionEndsAt: nullableDate(document.auctionEndsAt),
-    status: document.status == null ? "UPCOMING" : text(document.status),
-    result: nullableText(document.result),
-    isFeatured: document.isFeatured ?? false,
-    startingBid: nullableInteger(document.startingBid),
-    currentBid: nullableInteger(document.currentBid),
-    bidIncrement: nullableInteger(document.bidIncrement),
-    highestBidderId: document.highestBidderId?.toHexString() ?? null,
-    isNoReserve: document.isNoReserve,
-    watcherCount: integer(document.watcherCount),
-    isWatching: document.isWatching,
-  };
-}
-
 export function engagementRepositories(database: Db, session?: ClientSession) {
   const listings = database.collection<ListingDocument>("Listing");
   const users = database.collection<UserDocument>("User");
@@ -189,30 +157,9 @@ export function engagementRepositories(database: Db, session?: ClientSession) {
         if (!ObjectId.isValid(id)) return null;
         const document = await listings.findOne(
           { _id: new ObjectId(id) },
-          {
-            ...options,
-            projection: {
-              userId: 1,
-              status: 1,
-              reviewStatus: 1,
-              views: 1,
-              year: 1,
-              make: 1,
-              model: 1,
-            },
-          },
+          { ...options, projection: listingProjection(engagementFields) },
         );
-        if (!document) return null;
-        return {
-          id: document._id.toHexString(),
-          userId: document.userId.toHexString(),
-          status: document.status ?? "UPCOMING",
-          reviewStatus: document.reviewStatus ?? null,
-          views: document.views == null ? 1 : integer(document.views),
-          year: integer(document.year),
-          make: text(document.make),
-          model: text(document.model),
-        };
+        return document ? decodeListing(document, engagementFields) : null;
       },
       async touchComment(id: string, now: Date) {
         const result = await listings.updateOne(
@@ -300,40 +247,31 @@ export function engagementRepositories(database: Db, session?: ClientSession) {
         return { count: 1 };
       },
       async watchSnapshot(id: string, userId: string) {
-        const [document] = await listings
-          .aggregate(
-            [
-              { $match: { _id: new ObjectId(id) } },
-              { $project: watchProjection(userId) },
-            ],
-            options,
-          )
-          .toArray();
-        return document
-          ? {
-              listing: publicSnapshot(document),
-              reviewStatus: (document.reviewStatus ??
-                null) as ReviewStatus | null,
-            }
-          : null;
+        const document = await listings.findOne(
+          { _id: new ObjectId(id) },
+          { ...options, projection: watchedProjection },
+        );
+        if (!document) return null;
+        const listing = watched(document);
+        return {
+          listing: toPublicListing(listing, userId),
+          reviewStatus: listing.reviewStatus,
+        };
       },
       async watchlist(userId: string) {
         const documents = await listings
-          .aggregate(
-            [
-              {
-                $match: {
-                  watchersIds: new ObjectId(userId),
-                  ...publicListingFilter.native(),
-                },
-              },
-              { $sort: { updatedAt: -1 } },
-              { $project: watchProjection(userId) },
-            ],
-            options,
+          .find(
+            {
+              watchersIds: new ObjectId(userId),
+              ...publicListingFilter.native(),
+            },
+            { ...options, projection: watchedProjection },
           )
+          .sort({ updatedAt: -1 })
           .toArray();
-        return documents.map(publicSnapshot);
+        return documents.map((document) =>
+          toPublicListing(watched(document), userId),
+        );
       },
     },
   };

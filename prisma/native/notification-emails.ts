@@ -7,6 +7,19 @@ import {
   type Filter,
 } from "mongodb";
 import type { OutbidEmailPayload } from "@/app/libs/outbid-email";
+import { decodeListing, listingProjection, type ListingField } from "@/app/libs/listing-codec";
+
+// What an email needs to know about its Listing to check it is still relevant.
+const emailedListingFields = [
+  "year",
+  "make",
+  "model",
+  "status",
+  "auctionEndsAt",
+  "highestBidderId",
+  "watchersIds",
+  "biddersIds",
+] as const satisfies readonly ListingField[];
 
 type EmailStatus = "PENDING" | "SENDING" | "SENT" | "SKIPPED" | "FAILED";
 type EmailDocument = {
@@ -214,37 +227,9 @@ export function notificationEmailRepository(
         .collection("Listing")
         .findOne(
           { _id: new ObjectId(id) },
-          {
-            ...options,
-            projection: {
-              year: 1,
-              make: 1,
-              model: 1,
-              status: 1,
-              auctionEndsAt: 1,
-              highestBidderId: 1,
-              watchersIds: 1,
-              biddersIds: 1,
-            },
-          },
+          { ...options, projection: listingProjection(emailedListingFields) },
         );
-      return document
-        ? {
-            id: document._id.toHexString(),
-            year: integer(document.year),
-            make: text(document.make),
-            model: text(document.model),
-            status: document.status ?? "UPCOMING",
-            auctionEndsAt: date(document.auctionEndsAt),
-            highestBidderId: document.highestBidderId?.toHexString() ?? null,
-            watchersIds: (document.watchersIds ?? []).map((value: ObjectId) =>
-              value.toHexString(),
-            ) as string[],
-            biddersIds: (document.biddersIds ?? []).map((value: ObjectId) =>
-              value.toHexString(),
-            ) as string[],
-          }
-        : null;
+      return document ? decodeListing(document, emailedListingFields) : null;
     },
   };
 }

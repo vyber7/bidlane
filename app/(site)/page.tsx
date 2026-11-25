@@ -6,7 +6,7 @@ import AuctionBrowser from "./components/AuctionBrowser";
 import FeaturedAuction from "./components/FeaturedAuction";
 import LatestBids from "./components/LatestBids";
 import WatchAuctionButton from "./components/WatchAuctionButton";
-import { toPublicListing } from "../libs/listing-payload";
+import { toPublicListing } from "../libs/listing-codec";
 import { homeSpotlight, inventoryHref, type InventoryTab } from "../libs/auction-inventory";
 
 export const dynamic = "force-dynamic";

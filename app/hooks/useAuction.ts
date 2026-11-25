@@ -1,6 +1,6 @@
 "use client";
 
-import type { PublicListing } from "@/app/libs/listing-payload";
+import type { PublicListing } from "@/app/libs/listing-codec";
 import { auctionPhase, auctionStatusOrder, type AuctionPhase } from "@/app/libs/auction-lifecycle";
 import { useState } from "react";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";

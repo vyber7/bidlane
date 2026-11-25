@@ -20,7 +20,7 @@ import { FiArrowLeft, FiMapPin } from "react-icons/fi";
 import VehicleRecords from "@/app/components/VehicleRecords";
 import ListingEditor from "./components/ListingEditor";
 import { canViewListing, isApproved, isPublicListing, reviewLabel } from "@/app/libs/listing-review";
-import { toPublicListing, toSellerListing } from "@/app/libs/listing-payload";
+import { toPublicListing, toSellerListing } from "@/app/libs/listing-codec";
 import VehicleHistory from "@/app/components/VehicleHistory";
 import { vehicleSpecificationFields } from "@/app/libs/vehicle-details";
 import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
@@ -101,7 +101,7 @@ const Listing = async (props: Params) => {
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0 lg:col-start-1 lg:row-start-1">
             <CoverImage
-              key={`${id}:${listing.reviewRevision ?? 0}`}
+              key={`${id}:${listing.reviewRevision}`}
               listingId={id}
               url={listing.coverImage || undefined}
               alt={title}
@@ -152,11 +152,11 @@ const Listing = async (props: Params) => {
               {owner && listing.status === "UPCOMING" && isApproved(listing) && (
                 <AuctionStartForm listingId={id} />
               )}
-              {owner && listing.status === "UPCOMING" && <ListingEditor key={listing.reviewRevision ?? 0} listing={toSellerListing(listing, currentUser)} />}
+              {owner && listing.status === "UPCOMING" && <ListingEditor key={listing.reviewRevision} listing={toSellerListing(listing, currentUser)} />}
               <Description description={listing.description} />
               <VehicleHistory details={listing} id="condition" />
               <Gallery
-                key={`${id}:${listing.reviewRevision ?? 0}`}
+                key={`${id}:${listing.reviewRevision}`}
                 listingId={id}
                 vehicleName={title}
                 initialImages={[...listing.images]}

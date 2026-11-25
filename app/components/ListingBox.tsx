@@ -8,7 +8,7 @@ import NoReserveBadge from "./NoReserveBadge";
 import { GrEdit } from "react-icons/gr";
 import { FaRegClock } from "react-icons/fa";
 import { useId } from "react";
-import type { PublicListing } from "@/app/libs/listing-payload";
+import type { PublicListing } from "@/app/libs/listing-codec";
 import useAuction from "../hooks/useAuction";
 import { capitalize, formatAmount, formatPrice } from "../utils/format";
 import { clsx } from "clsx";

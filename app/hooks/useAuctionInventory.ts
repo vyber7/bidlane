@@ -11,7 +11,7 @@ import {
   type AuctionSort,
   type InventoryTab,
 } from "@/app/libs/auction-inventory";
-import type { PublicListing } from "@/app/libs/listing-payload";
+import type { PublicListing } from "@/app/libs/listing-codec";
 
 function navigateInventory(updates: Parameters<typeof updateInventoryParams>[1], mode: "push" | "replace" = "push") {
   // Read the current location so rapid interactions preserve each other's changes.

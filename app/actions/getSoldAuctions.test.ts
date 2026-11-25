@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeListing } from "@/app/test/auction-fixtures";
-import { toPublicListing } from "@/app/libs/listing-payload";
+import { toPublicListing } from "@/app/libs/listing-codec";
 
 const mocks = vi.hoisted(() => ({
   findMany: vi.fn(),

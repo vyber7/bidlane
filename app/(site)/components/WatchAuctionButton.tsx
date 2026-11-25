@@ -1,6 +1,6 @@
 "use client";
 
-import type { PublicListing } from "@/app/libs/listing-payload";
+import type { PublicListing } from "@/app/libs/listing-codec";
 import Link from "next/link";
 import { FiCheck, FiStar } from "react-icons/fi";
 import useWatchlist from "@/app/hooks/useWatchlist";

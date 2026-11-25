@@ -1,6 +1,6 @@
 "use client";
 
-import type { SellerListing } from "@/app/libs/listing-payload";
+import type { SellerListing } from "@/app/libs/listing-codec";
 import axios from "axios";
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -108,7 +108,7 @@ export default function ListingEditor({ listing }: { listing: SellerListing }) {
       setFieldErrors({});
       busy.current = true; setSaving(true);
       try {
-        await axios.patch(`/api/listing/${listing.id}`, { revision: listing.reviewRevision ?? 0, data: parsed.data, coverImage: cover });
+        await axios.patch(`/api/listing/${listing.id}`, { revision: listing.reviewRevision, data: parsed.data, coverImage: cover });
         savedFields.current = JSON.stringify(fields);
         setFieldsChanged(false);
         setSavedMedia({ images, cover, records });

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { GoTrash } from "react-icons/go";
 import Image from "next/image";
-import type { PublicListing, SellerListing } from "@/app/libs/listing-payload";
+import type { PublicListing, SellerListing } from "@/app/libs/listing-codec";
 import type { ReviewLabel } from "@/app/libs/listing-review";
 import { formatAmount, formatPrice } from "@/app/utils/format";
 import clsx from "clsx";

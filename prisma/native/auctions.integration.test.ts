@@ -793,7 +793,7 @@ describe.skipIf(!url)(
           { $set: { auctionEndsAt: "2020-01-01" } },
         );
       await expect(finalizeAuction(listing.id)).rejects.toThrow(
-        "Invalid auction date",
+        "Stored Listing has an invalid auctionEndsAt",
       );
       const raw = await connection.database
         .collection("Listing")

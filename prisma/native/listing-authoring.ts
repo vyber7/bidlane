@@ -6,6 +6,7 @@ import {
   type Document,
 } from "mongodb";
 import type { ValidatedListing } from "@/app/schemas/listing";
+import { decodeListing, listingProjection, type ListingField } from "@/app/libs/listing-codec";
 import type { z } from "zod";
 import type { listingDecisionSchema } from "@/app/schemas/listing-review";
 
@@ -37,61 +38,34 @@ const reviewStatus = (value: unknown): ReviewStatus | null => {
     throw new Error("Invalid listing review status");
   return value;
 };
-const projection = {
-  userId: 1,
-  year: 1,
-  make: 1,
-  model: 1,
-  miles: 1,
-  location: 1,
-  description: 1,
-  images: 1,
-  coverImage: 1,
-  transmission: 1,
-  drivetrain: 1,
-  titleStatus: 1,
-  serviceHistory: 1,
-  modifications: 1,
-  knownFlaws: 1,
-  vin: 1,
-  vehicleRecords: 1,
-  reservePrice: 1,
-  createdAt: 1,
-  status: 1,
-  reviewStatus: 1,
-  reviewRevision: 1,
-  reviewNote: 1,
-} as const;
-function listing(document: Document) {
-  return {
-    id: (document._id as ObjectId).toHexString(),
-    userId: (document.userId as ObjectId).toHexString(),
-    year: integer(document.year),
-    make: text(document.make),
-    model: text(document.model),
-    miles: integer(document.miles),
-    location: text(document.location),
-    description: text(document.description),
-    images: (document.images ?? []).map(text) as string[],
-    coverImage: nullableText(document.coverImage),
-    vin: nullableText(document.vin),
-    vehicleRecords: (document.vehicleRecords ?? null) as unknown,
-    transmission: nullableText(document.transmission),
-    drivetrain: nullableText(document.drivetrain),
-    titleStatus: nullableText(document.titleStatus),
-    serviceHistory: nullableText(document.serviceHistory),
-    modifications: nullableText(document.modifications),
-    knownFlaws: nullableText(document.knownFlaws),
-    reservePrice:
-      document.reservePrice == null ? null : integer(document.reservePrice),
-    createdAt: date(document.createdAt),
-    status: text(document.status),
-    reviewStatus: reviewStatus(document.reviewStatus),
-    reviewRevision:
-      document.reviewRevision == null ? 0 : integer(document.reviewRevision),
-    reviewNote: nullableText(document.reviewNote),
-  };
-}
+const authoredFields = [
+  "userId",
+  "year",
+  "make",
+  "model",
+  "miles",
+  "location",
+  "description",
+  "images",
+  "coverImage",
+  "transmission",
+  "drivetrain",
+  "titleStatus",
+  "serviceHistory",
+  "modifications",
+  "knownFlaws",
+  "vin",
+  "vehicleRecords",
+  "reservePrice",
+  "createdAt",
+  "status",
+  "reviewStatus",
+  "reviewRevision",
+  "reviewNote",
+] as const satisfies readonly ListingField[];
+const projection = listingProjection(authoredFields);
+const queuedFields = ["year", "make", "model", "createdAt", "reviewStatus", "reviewNote"] as const satisfies readonly ListingField[];
+const listing = (document: Document) => decodeListing(document, authoredFields);
 /** A Listing as its seller and administrators load it. */
 export type AuthoredListing = ReturnType<typeof listing>;
 const revisionFilter = (revision: number) =>
@@ -247,13 +221,7 @@ export function listingAuthoringRepository(
       return documents.map((item) => {
         if (!item.seller[0]) throw new Error("Listing owner not found");
         return {
-          id: item._id.toHexString(),
-          year: integer(item.year),
-          make: text(item.make),
-          model: text(item.model),
-          createdAt: date(item.createdAt),
-          reviewStatus: reviewStatus(item.reviewStatus),
-          reviewNote: nullableText(item.reviewNote),
+          ...decodeListing(item, queuedFields),
           user: { name: nullableText(item.seller[0].name) },
         };
       });

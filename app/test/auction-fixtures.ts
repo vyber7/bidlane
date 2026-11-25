@@ -1,15 +1,15 @@
 import type { Listing } from "@/app/types/database";
 import type { BidEvent, CommentEvent } from "@/app/types/auction-events";
-import { toPublicListing, toSellerListing } from "@/app/libs/listing-payload";
+import { decodeListing, toPublicListing, toSellerListing } from "@/app/libs/listing-codec";
 
 export const auctionNow = new Date("2026-10-14T12:00:00.000Z");
 
 export function makePublicListing(overrides: Partial<Listing> = {}, viewerId?: string | null) {
-  return toPublicListing(makeListing(overrides), viewerId);
+  return toPublicListing(decodeListing(makeListing(overrides)), viewerId);
 }
 
 export function makeSellerListing(overrides: Partial<Listing> = {}) {
-  const listing = makeListing(overrides);
+  const listing = decodeListing(makeListing(overrides));
   return toSellerListing(listing, { id: listing.userId });
 }
 

@@ -43,7 +43,7 @@ vi.mock("@/app/libs/logger", () => ({
 vi.mock("@/app/libs/server-upload", () => ({ saveUploadedFile: state.save }));
 import { makeListing } from "@/app/test/auction-fixtures";
 import { canViewListing } from "@/app/libs/listing-review";
-import { toPublicListing, toSellerListing } from "@/app/libs/listing-payload";
+import { toPublicListing, toSellerListing } from "@/app/libs/listing-codec";
 import { getSellerProfile } from "@/app/libs/seller-profile";
 import getBids from "@/app/actions/getBids";
 import getSoldAuctions from "@/app/actions/getSoldAuctions";
@@ -336,7 +336,7 @@ describe.skipIf(!url)(
           lastCommentAt: null,
           updatedAt: null,
           reviewStatus: null,
-          reviewRevision: null,
+          reviewRevision: 0,
           vin: null,
           vehicleRecords: null,
         });

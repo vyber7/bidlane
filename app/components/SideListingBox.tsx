@@ -3,7 +3,7 @@
 import Image from "next/image";
 import NoReserveBadge from "./NoReserveBadge";
 import Link from "next/link";
-import type { PublicListing } from "@/app/libs/listing-payload";
+import type { PublicListing } from "@/app/libs/listing-codec";
 import { formatPrice } from "@/app/utils/format";
 import { CldImage } from "next-cloudinary";
 

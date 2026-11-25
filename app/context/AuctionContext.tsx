@@ -1,6 +1,6 @@
 "use client";
 
-import type { PublicListing } from "@/app/libs/listing-payload";
+import type { PublicListing } from "@/app/libs/listing-codec";
 import { createContext, useContext } from "react";
 import useAuction from "@/app/hooks/useAuction";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
