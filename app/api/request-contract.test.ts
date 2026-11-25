@@ -20,7 +20,7 @@ import { POST as listing } from "./new-listing/route";
 import { POST as register } from "./register/route";
 import { PATCH as profile } from "./account/profile/route";
 import { POST as views } from "./listing-view/route";
-import { POST as images } from "./cloudinary-images/route";
+import { POST as photos } from "./listing/[id]/photos/route";
 import { POST as cover } from "./listing/[id]/cover-image/route";
 
 const endpoints: { name: string; handler: (request: Request) => Promise<Response>; authenticated?: boolean }[] = [
@@ -33,7 +33,7 @@ const endpoints: { name: string; handler: (request: Request) => Promise<Response
   { name: "registration", handler: register },
   { name: "profiles", handler: profile, authenticated: true },
   { name: "listing views", handler: views },
-  { name: "gallery images", handler: images, authenticated: true },
+  { name: "gallery photos", handler: (request) => photos(request, { params: Promise.resolve({ id: "abcdef0123456789abcdef01" }) }), authenticated: true },
   { name: "cover images", handler: (request) => cover(request, { params: Promise.resolve({ id: "abcdef0123456789abcdef01" }) }), authenticated: true },
 ];
 

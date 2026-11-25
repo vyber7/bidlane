@@ -92,13 +92,23 @@ function listing(document: Document) {
     reviewNote: nullableText(document.reviewNote),
   };
 }
+/** A Listing as its seller and administrators load it. */
+export type AuthoredListing = ReturnType<typeof listing>;
 const revisionFilter = (revision: number) =>
   revision === 0 ? { $in: [Long.ZERO, null] } : Long.fromNumber(revision);
-const revisionUpdate = (revision: number) => ({
-  reviewStatus: "PENDING",
-  reviewRevision: Long.fromNumber(revision + 1),
-  reviewNote: null,
-});
+
+/** Fields a Correction may change, plus the Review state it leaves behind. */
+export type CorrectedListing = Partial<
+  Omit<ValidatedListing, "vin" | "images"> & {
+    vin: string | null;
+    images: readonly string[];
+    coverImage: string;
+  }
+> & {
+  reviewStatus: "PENDING";
+  reviewNote: null;
+  reviewRevision: number;
+};
 
 export function listingAuthoringRepository(
   database: Db,
@@ -322,106 +332,43 @@ export function listingAuthoringRepository(
         options,
       );
     },
-    async editRecords(
+    /**
+     * The one guarded save for a Correction: it writes only when the seller's
+     * Listing is still Upcoming at the revision the Correction was checked against.
+     */
+    async saveCorrection(
       id: string,
       userId: string,
       revision: number,
-      data: { vin: string | null; vehicleRecords: unknown },
+      changes: CorrectedListing,
       now: Date,
     ) {
+      const {
+        year,
+        miles,
+        reservePrice,
+        reviewRevision,
+        images,
+        ...storedAsIs
+      } = changes;
       const updated = await collection.updateOne(
         editFilter(id, userId, revision),
         {
           $set: {
-            vin: data.vin,
-            vehicleRecords: data.vehicleRecords,
-            ...revisionUpdate(revision),
-            updatedAt: now,
-          },
-        },
-        options,
-      );
-      return { count: updated.modifiedCount };
-    },
-    async edit(
-      id: string,
-      userId: string,
-      revision: number,
-      data: ValidatedListing,
-      coverImage: string,
-      now: Date,
-    ) {
-      const updated = await collection.updateOne(
-        editFilter(id, userId, revision),
-        {
-          $set: {
-            year: Long.fromNumber(data.year),
-            make: data.make,
-            model: data.model,
-            miles: Long.fromNumber(data.miles),
-            location: data.location,
-            description: data.description,
-            images: [...data.images],
-            coverImage,
-            transmission: data.transmission,
-            drivetrain: data.drivetrain,
-            titleStatus: data.titleStatus,
-            serviceHistory: data.serviceHistory,
-            modifications: data.modifications,
-            knownFlaws: data.knownFlaws,
-            reservePrice:
-              data.reservePrice == null
-                ? null
-                : Long.fromNumber(data.reservePrice),
-            vin: data.vin || null,
-            ...(data.vehicleRecords !== undefined && {
-              vehicleRecords: data.vehicleRecords,
+            // Fields a Correction leaves out are kept, never written as null.
+            ...Object.fromEntries(
+              Object.entries(storedAsIs).filter(
+                ([, value]) => value !== undefined,
+              ),
+            ),
+            ...(year !== undefined && { year: Long.fromNumber(year) }),
+            ...(miles !== undefined && { miles: Long.fromNumber(miles) }),
+            ...(reservePrice !== undefined && {
+              reservePrice:
+                reservePrice == null ? null : Long.fromNumber(reservePrice),
             }),
-            ...revisionUpdate(revision),
-            updatedAt: now,
-          },
-        },
-        options,
-      );
-      return { count: updated.modifiedCount };
-    },
-    async editCover(
-      id: string,
-      userId: string,
-      revision: number,
-      url: string,
-      images: string[],
-      now: Date,
-    ) {
-      const addPhoto = !images.includes(url);
-      const updated = await collection.updateOne(
-        editFilter(id, userId, revision),
-        {
-          $set: {
-            coverImage: url,
-            ...revisionUpdate(revision),
-            updatedAt: now,
-            ...(addPhoto && { images: [...images, url] }),
-          },
-        },
-        options,
-      );
-      return { count: updated.modifiedCount };
-    },
-    async addPhoto(
-      id: string,
-      userId: string,
-      revision: number,
-      images: string[],
-      url: string,
-      now: Date,
-    ) {
-      const updated = await collection.updateOne(
-        { ...editFilter(id, userId, revision), images },
-        {
-          $set: {
-            images: [...images, url],
-            ...revisionUpdate(revision),
+            ...(images !== undefined && { images: [...images] }),
+            reviewRevision: Long.fromNumber(reviewRevision),
             updatedAt: now,
           },
         },

@@ -53,10 +53,7 @@ const Gallery: React.FC<GalleryProps> = ({
 
   const handleUpload = (imageUrl: string) => {
     return axios
-      .post("/api/cloudinary-images", {
-        imageUrl,
-        listingId,
-      })
+      .post(`/api/listing/${listingId}/photos`, { imageUrl })
       .then(() => {
         setUploadedImages((current) =>
           Array.from(new Set([...current, imageUrl])),

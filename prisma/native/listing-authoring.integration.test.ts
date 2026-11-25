@@ -59,17 +59,17 @@ import { POST as submit } from "@/app/api/new-listing/route";
 import { POST as review } from "@/app/api/admin/listings/[id]/review/route";
 import { PATCH as records } from "@/app/api/listing/[id]/vehicle-details/route";
 import { POST as cover } from "@/app/api/listing/[id]/cover-image/route";
-import {
-  POST as photo,
-  GET as gallery,
-} from "@/app/api/cloudinary-images/route";
+import { POST as photos } from "@/app/api/listing/[id]/photos/route";
+import { GET as gallery } from "@/app/api/cloudinary-images/route";
+import { correctListing } from "@/app/libs/listing-correction";
 import { POST as start } from "@/app/api/auction-start/route";
 import { installServerTransport } from "@/app/libs/realtime/server";
 
 // Real-time updates reach the spy through the event channel's transport,
 // with the same wire arguments Pusher receives.
 installServerTransport({
-  send: (channel, event, payload) => state.trigger(channel.name, event, payload),
+  send: (channel, event, payload) =>
+    state.trigger(channel.name, event, payload),
   authorize: () => ({}),
 });
 
@@ -807,7 +807,7 @@ describe.skipIf(!url)(
       expect(
         (
           await asUser(seller, () =>
-            photo(request({ listingId: listing.id, imageUrl: extra })),
+            photos(request({ imageUrl: extra }), context(listing.id)),
           )
         ).status,
       ).toBe(200);
@@ -837,10 +837,112 @@ describe.skipIf(!url)(
       expect(
         (
           await asUser(seller, () =>
-            photo(request({ listingId: listing.id, imageUrl: image })),
+            photos(request({ imageUrl: image }), context(listing.id)),
           )
         ).status,
       ).toBe(409);
+    });
+
+    it("returns an Approved Listing to Awaiting review after every kind of Correction", async () => {
+      const listing = await repositories.listingAuthoring.create(
+        seller.id,
+        validated(),
+        new Date(),
+      );
+      const detail = image.replace("car.jpg", "detail.jpg");
+      await repositories.assets.register({
+        id: "fixture:detail",
+        userId: seller.id,
+        listingId: listing.id,
+        kind: "PHOTO",
+        url: detail,
+        bytes: 10,
+        format: "jpg",
+      });
+      const target = { listingId: listing.id, sellerId: seller.id };
+      const corrections = [
+        {
+          kind: "details",
+          revision: 1,
+          data: { ...validated(), miles: 1200, reservePrice: 50000 },
+        },
+        { kind: "records", vin: "BCNR33-012345", vehicleRecords: [] },
+        { kind: "galleryPhoto", url: detail },
+        { kind: "coverPhoto", url: detail },
+      ] as const;
+      for (const [index, correction] of corrections.entries()) {
+        const revision = index * 2;
+        expect(
+          (await decide(listing.id, revision, "CHANGES_REQUESTED")).status,
+        ).toBe(200);
+        expect(
+          await correctListing(
+            target,
+            correction.kind === "details"
+              ? { ...correction, revision: revision + 1 }
+              : correction,
+          ),
+        ).toEqual({
+          changed: true,
+          reviewStatus: "PENDING",
+          reviewRevision: revision + 2,
+        });
+        expect(
+          await connection.database
+            .collection("Listing")
+            .findOne(
+              { _id: new ObjectId(listing.id) },
+              { promoteLongs: false },
+            ),
+        ).toMatchObject({
+          reviewStatus: "PENDING",
+          reviewNote: null,
+          reviewRevision: Long.fromNumber(revision + 2),
+        });
+      }
+      expect(
+        await connection.database
+          .collection("Listing")
+          .findOne({ _id: new ObjectId(listing.id) }, { promoteLongs: false }),
+      ).toMatchObject({
+        miles: Long.fromNumber(1200),
+        reservePrice: Long.fromNumber(50000),
+        year: Long.fromNumber(2020),
+        vin: "BCNR33-012345",
+        images: [image, detail],
+        coverImage: detail,
+      });
+      expect(
+        await correctListing(target, { kind: "galleryPhoto", url: detail }),
+      ).toEqual({ changed: false, reviewStatus: "PENDING", reviewRevision: 8 });
+      expect((await decide(listing.id, 8)).status).toBe(200);
+      expect(
+        (
+          await asUser(null, () =>
+            gallery(
+              new Request(
+                `http://localhost/api/cloudinary-images?folder=listing-${listing.id}`,
+              ),
+            ),
+          )
+        ).status,
+      ).toBe(200);
+      await correctListing(target, {
+        kind: "records",
+        vin: "",
+        vehicleRecords: [],
+      });
+      expect(
+        (
+          await asUser(null, () =>
+            gallery(
+              new Request(
+                `http://localhost/api/cloudinary-images?folder=listing-${listing.id}`,
+              ),
+            ),
+          )
+        ).status,
+      ).toBe(404);
     });
 
     it("prevents approval and auction start from racing past the same revision", async () => {
@@ -958,7 +1060,7 @@ describe.skipIf(!url)(
       const responses = await Promise.all(
         urls.map((imageUrl) =>
           asUser(seller, () =>
-            photo(request({ listingId: listing.id, imageUrl })),
+            photos(request({ imageUrl }), context(listing.id)),
           ),
         ),
       );
