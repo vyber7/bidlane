@@ -10,7 +10,7 @@ import type { Bid, Listing } from "@/app/types/database";
 import type { BidWithListing } from "@/app/account/lib/bids";
 import type { SoldListing } from "@/app/account/lib/shipments";
 import { completionFields, soldAuction } from "@/app/libs/transaction-completion";
-import { publicListingFilter } from "@/app/libs/listing-review";
+import { publicListingFilter } from "@/app/libs/listing-review-rules";
 
 const vehicleFields = [
   "id",

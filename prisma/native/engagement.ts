@@ -7,7 +7,7 @@ import {
 } from "mongodb";
 import type { PublicListing } from "@/app/libs/listing-payload";
 import { publicListingFields } from "@/app/libs/listing-payload";
-import { publicListingFilter } from "@/app/libs/listing-review";
+import { publicListingFilter } from "@/app/libs/listing-review-rules";
 import { readVehicleRecords } from "@/app/schemas/vehicle-trust";
 import type { ReviewStatus } from "./listing-authoring";
 

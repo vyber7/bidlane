@@ -1,6 +1,6 @@
 import { Long, ObjectId, type ClientSession, type Db } from "mongodb";
 import type { AcceptedBidResponse } from "@/app/types/auction-events";
-import { approvedFilter } from "@/app/libs/listing-review";
+import { approvedFilter } from "@/app/libs/listing-review-rules";
 
 type AuctionDocument = {
   _id: ObjectId;

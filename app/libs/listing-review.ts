@@ -2,7 +2,6 @@
 // the rule for who can see a Listing before Approval.
 
 import type { z } from "zod";
-import { MongoAndExpr, MongoOrExpr, MongoFieldFilter as field } from "@prisma/orm-mongo/query-ast";
 import type { Listing } from "@/app/types/database";
 import type { ReviewStatus } from "@/prisma/native/listing-authoring";
 import { authoringTransactionOptions } from "@/prisma/native/transaction-errors";
@@ -11,6 +10,11 @@ import { getNativeRepositories, withNativeTransaction } from "./native-repositor
 import { requireAdmin } from "./admin";
 import { ApiRequestError } from "./api-request";
 import { auctionPhase } from "./auction-lifecycle";
+import { isPublicListing } from "./listing-review-rules";
+
+// The visibility rule and Approval requirement live in listing-review-rules,
+// which has no server dependencies so the database layer can use them too.
+export { approvedFilter, isApproved, isPublicListing, publicListingFilter } from "./listing-review-rules";
 
 const refusals = {
   missing: "Listing not found.",
@@ -32,42 +36,6 @@ export type ReviewLabel = (typeof reviewLabels)[keyof typeof reviewLabels];
 export function reviewLabel(listing: { reviewStatus: ReviewStatus | null }): ReviewLabel {
   return reviewLabels[listing.reviewStatus ?? "PENDING"];
 }
-
-// The visibility rule, written once. Once bidding has opened a Listing is
-// public in every Review state; before that it is public only with Approval.
-// Listings stored without a status read as Upcoming.
-const openedStatuses: (string | null)[] = ["LIVE", "ENDED"];
-const upcomingStatuses: (string | null)[] = ["UPCOMING", null];
-const approved: ReviewStatus = "APPROVED";
-
-/** Approval: the Review decision that makes an Upcoming Listing public and lets its seller start the Auction. */
-export function isApproved(listing: { reviewStatus: ReviewStatus | null }) {
-  return listing.reviewStatus === approved;
-}
-
-/** The Approval requirement as a database filter, for guarded writes. */
-export function approvedFilter() {
-  return { reviewStatus: approved };
-}
-
-export function isPublicListing(listing: ReviewableListing) {
-  return openedStatuses.includes(listing.status) ||
-    (upcomingStatuses.includes(listing.status) && isApproved(listing));
-}
-
-/** isPublicListing as a database filter: `native` for driver queries, `read` for ORM reads. */
-export const publicListingFilter = {
-  native: () => ({
-    $or: [
-      { status: { $in: openedStatuses } },
-      { status: { $in: upcomingStatuses }, ...approvedFilter() },
-    ],
-  }),
-  read: () => MongoOrExpr.of([
-    field.in("status", openedStatuses),
-    MongoAndExpr.of([field.in("status", upcomingStatuses), field.eq("reviewStatus", approved)]),
-  ]),
-};
 
 export function canViewListing(listing: ReviewableListing & { userId: string }, user: { id: string; role?: string | null } | null) {
   return isPublicListing(listing) || Boolean(user && (listing.userId === user.id || user.role === "ADMIN"));
