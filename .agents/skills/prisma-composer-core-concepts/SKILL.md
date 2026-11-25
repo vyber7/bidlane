@@ -2,7 +2,7 @@
 name: prisma-composer-core-concepts
 metadata:
   library: "@prisma/composer"
-  library_version: "0.39.0"
+  library_version: "0.40.0"
   version: 2026.9.1
 description: >-
   Use when deploying or managing an app that uses Prisma Composer
@@ -63,21 +63,9 @@ export default appRoot('store', ({ provision }) => {
 });
 ```
 
-Because interfaces are typed, **the compiler verifies every wire**. A dependency wired to the wrong producer, a missing RPC handler, a literal input value of the wrong shape: all of it fails `tsc`, not the deploy. Env-bound input is the exception: those values exist only at deploy, so secret-binding mismatches and missing platform variables a service needs surface as early deploy-time refusals instead (see Two channels below). Typecheck, then build, then deploy; don't use the cloud to find out whether the wiring is correct.
+Because interfaces are typed, **the compiler verifies every wire**. A dependency wired to the wrong producer, a missing RPC handler, a literal input value of the wrong shape: all of it fails `tsc`, not the deploy. Values from outside the code are the exception: a root input field exists only at deploy, and a platform variable only on the platform, so a schema refinement the type does not carry and a missing platform variable a service needs surface as early deploy-time refusals instead (see Two channels below). Typecheck, then build, then deploy; don't use the cloud to find out whether the wiring is correct.
 
-Composer itself is target-agnostic: `@prisma/composer` carries authoring,
-testing, and the CLI, coupled to no platform. A deploy target is an extension
-registered in the deploy config; `@prisma/composer-prisma-cloud` is the
-Prisma Cloud target and the one this skill's deploy sections assume. Its
-root exports `compute`, `rawPostgres`, `bucket`, `publicUrl`, `envSecret`,
-and `envParam`; the ORM vocabulary (`postgres`, `dataContract`) lives under the
-`/orm` subpath, alongside the shared `/cron`, `/storage`, `/streams`,
-`/auth`, and `/email` modules. These are the only two Composer packages a
-basic Prisma Cloud app needs, and nothing installs them for you: a fresh
-project starts with neither, so add both as dependencies first. An
-extension adds its own `prisma-composer-*` package alongside them. Compose
-an existing Module before implementing a capability yourself; wiring one in
-is a couple of lines.
+Composer itself is target-agnostic: `@prisma/composer` carries authoring, testing, and the CLI, coupled to no platform. A deploy target is an extension registered in the deploy config; `@prisma/composer-prisma-cloud` is the Prisma Cloud target and the one this skill's deploy sections assume. Its root exports `compute`, `rawPostgres`, `bucket`, `publicUrl`, `variable`, `generatedParam` and `serviceOrigin`; the ORM vocabulary (`postgres`, `dataContract`) lives under the `/orm` subpath, alongside the shared `/cron`, `/storage`, `/streams`, `/auth`, and `/email` modules. These are the only two Composer packages a basic Prisma Cloud app needs, and nothing installs them for you: a fresh project starts with neither, so add both as dependencies first. An extension adds its own `prisma-composer-*` package alongside them. Compose an existing Module before implementing a capability yourself; wiring one in is a couple of lines.
 
 Within the entry graph (everything reachable from `module.ts`), write
 relative imports with explicit `.ts` extensions (`./service.ts`, with
@@ -123,50 +111,57 @@ client back from `load()`.
 | The value is… | Declare | Provide | Read |
 | --- | --- | --- | --- |
 | produced by another node | `deps: { db: rawPostgres() }` | wire at `provision()` | `load()` |
-| anything else (config or credential) | one field of the `input` schema | bind at `provision()`: literal, `envParam()`, `envSecret()`, or a `resolve()` value | `input()` |
+| anything else (config or credential) | one field of the `input` schema | bind at `provision()`: literal, root input field, platform variable node's value, or a `resolve()` value | `input()` |
 
-The service declares its whole incoming configuration, plain values and
-credentials together, as **one [Standard Schema](https://standardschema.dev)**
-(arktype is the house choice). A credential is a field typed as
-`secretString()` from `@prisma/composer/arktype` (or `@prisma/composer/zod` for a Zod schema; the app installs `arktype` 2 or `zod` 4 itself, and Composer uses that copy); conditional legality ("no
-stripe key unless billing is on") is an ordinary schema union. The binding at
-`provision()` mirrors the schema's shape; `envSecret('NAME')` names the
-platform variable and never carries the value.
+The service declares its whole incoming configuration, plain values and credentials together, as **one [Standard Schema](https://standardschema.dev)** (arktype is the house choice). A credential is a field typed as `secretString()` from `@prisma/composer/arktype` (or `@prisma/composer/zod` for a Zod schema; the app installs `arktype` 2 or `zod` 4 itself, and Composer uses that copy); conditional legality ("no stripe key unless billing is on") is an ordinary schema union. The binding at `provision()` mirrors the schema's shape.
+
+A value you supply, rather than write in code, arrives in one of two ways:
+
+- **A value the deploy reads** is a **root input field**: a field of the app root's `input` schema, filled by the `config` adapters (by default the deploying shell), checked by the root's schema before anything is created. The root passes it on by name. Only these can be listed in `resolve()` or put in a resource's props.
+- **A value the service reads at boot** is a **platform variable node**, provisioned in the app root: `provision(variable({ name: 'EMAIL_FROM' }))` for a plain value, `provision(variable.secret({ name: 'STRIPE_SECRET_KEY' }))` for a secret. `provision()` returns the value with `id`, the node's address, on it; pass it down through module inputs to the services that read it. The node names the variable and never carries its value; the operator sets the value on the platform.
+
+```ts
+export default appRoot('shop', { input: type({ EMAIL_FROM: 'string' }) }, ({ input, provision }) => {
+  const stripeKey = provision(variable.secret({ name: 'STRIPE_SECRET_KEY' }));
+  provision(billing, { input: { from: input.EMAIL_FROM, stripeKey } });
+});
+```
+
+**Only `appRoot()` can provision a platform variable node.** A variable's name is one space per deployed app, and the root is the app. In a `module()` body (a nested module or a `module()` root) `provision(variable(…))` fails to compile, with an error naming `appRoot()`. A module that needs the value declares a field in its `input`. The node creates nothing on the platform and stays out of the application topology and the deploy report; the loaded graph lists it and, in `graph.valueReads`, each service that reads it. Its default id is the name in camel case (`EMAIL_FROM` is `shop.emailFrom`); two nodes whose names give one id fail with an error naming both, so pass `{ id }`.
 
 Rules that bite:
 
-1. **Secretness is checked by the binding's type and by the deploy.** A `provision()` binding, a service's or a module's, is typed from the schema: a literal or a `SecretBox` where the schema expects `SecretString`, or `envSecret` in a text field, fails to compile, and the deploy refuses it where the schema has no types. An ArkType schema with a `SecretString` field cannot also transform its input: a morph anywhere in it (`'string.trim'`, `.pipe()`, `field(type('string.integer.parse'))`) or `'+': 'delete'` copies the input, the copied secret loses its value, and the deploy refuses it. Transform in the service code instead; a Zod schema keeps the box.
-2. **`envParam` values arrive as raw strings**; bind them to string fields. A field of a narrower type, such as `email()`'s `deliveryMode`, refuses `envParam` at compile time; declare that field in the root's `input` instead, for `email()` from the exported `emailDeliveryModes`. In a service's `input`, the deploy reads the variable from the app configuration on every deploy and writes its value into the input document. `envParam()` in an input binding is deprecated: declare the value as a field of the root's `input` and pass it on. As a service param, `envParam` names a platform variable, which the service reads at boot. When that variable has no value, the param takes its default. An optional param with no default is left out. `envSecret` always lives on the platform. The operator sets it there with `prisma project env add 'NAME=<value>' --project <id> --role production`. Use `--role preview` for every preview environment, or `--role preview --branch <environment>` for one. The deploy does not copy local values (`.env`, the shell) to platform variables. The deploy fails only when a variable that a service's schema requires has no value. A param with no default that is not optional is also required. The error names the variable and the command that sets it. The other variables with no value print under `Platform variables with no value:`. Prisma Cloud reports a service that exits at boot as running and promotes it; read the error with `prisma service logs <service>`.
-3. **The schema decides whether a field may be absent.** An env-bound field whose variable is unset or empty resolves to *key omitted*. That is allowed only if the schema allows it, for example with an optional field or a union member. An `envSecret()` field is left out at boot when its platform variable is unset or empty. The deploy report prints the serialized input document (each secret shown as `$platform VAR`) and every key that resolved absent.
+1. **Secretness is checked by the binding's type and by the deploy.** A `provision()` binding, a service's or a module's, is typed from the schema: a literal or a `SecretBox` where the schema expects `SecretString`, or a platform secret's value in a text field, fails to compile, and the deploy refuses it where the schema has no types. An ArkType schema with a `SecretString` field cannot also transform its input: a morph anywhere in it (`'string.trim'`, `.pipe()`, `field(type('string.integer.parse'))`) or `'+': 'delete'` copies the input, the copied secret loses its value, and the deploy refuses it. Transform in the service code instead; a Zod schema keeps the box.
+2. **A plain platform variable's value is known only at boot: text, or the type its `schema` declares.** Bind it to a field wrapped with `field()`. A platform variable's value goes into a field of an `input` only. A compute service has one per-key param, the reserved `port`, which takes a literal or a root input field and no source, because the deploy needs the port before the service exists; every other value is a field of its `input`. A field of a narrower type, such as `email()`'s `deliveryMode`, takes a root input field declared with that type instead, for `email()` from the exported `emailDeliveryModes`; the deploy reads a root input field from the app configuration on every deploy and writes its value into the input document. A platform secret fits a `secretString()` field only. A platform variable's value always lives on the platform. The operator sets it there with `prisma project env add 'NAME=<value>' --project <id> --role production`. Use `--role preview` for every preview environment, or `--branch <environment>` for one. The deploy does not copy local values (`.env`, the shell) to platform variables. The deploy fails only when a variable that a service's schema requires has no value. The error names the variable and the command that sets it. The other variables with no value print under `Platform variables with no value:`. Prisma Cloud reports a service that exits at boot as running and promotes it; read the error with `prisma service logs <service>`.
+3. **The schema decides whether a field may be absent.** A field bound to a platform variable that is unset or empty is left out at boot. That is allowed only if the schema allows it, for example with an optional field or a union member. An optional root input field that the adapters do not supply is left out at deploy. The deploy report prints the serialized input document (each secret shown as `$platform VAR`) and every key that resolved absent. On Prisma Cloud the deploy writes the input document into the service's artifact, not into a `COMPOSER_*` variable, so it is not limited to a variable's 8 KB, and a changed document redeploys exactly that service.
 4. **The reserved `port` is outside the schema.** Read it through
    `service.port()`, never `process.env`. The framework also exports `PORT`
    for Next.js standalone, which binds it itself.
-5. **A Module passes a secret on without learning the platform name.**
-   Declare a `secretString()` field in the Module's `input` and pass
-   `input.<field>` on as a binding leaf; the parent binds `envSecret('NAME')`.
-   A module has no `params` or `secrets` slots: `module()` and `provision()`
-   refuse both, naming `input`. A service's `params` stay.
+5. **A Module passes a secret on without learning the platform name.** Declare a `secretString()` field in the Module's `input` and pass `input.<field>` on as a binding leaf; the app root provisions `variable.secret({ name: 'NAME' })` and binds its value. A module has no `params` or `secrets` slots: `module()` and `provision()` refuse both, naming `input`. A service's `params` stay.
 6. `input.apiKey.expose()` is the only way to a secret's value; the box
    redacts everywhere else (logs, JSON, errors).
-7. **Platform variable names are upper case**: `^[A-Z][A-Z0-9_]*$`. `COMPOSER_…`, `DATABASE_URL`, `DATABASE_URL_POOLED`, `PORT`, `PATH` and `HOME` are reserved, and one name cannot be both an `envParam()` and an `envSecret()`, or both an `envParam()` and a root input field. Each fails before anything is created.
-8. **A field bound to `serviceOrigin()` or a plain `generatedParam()` is wrapped**: `field(type('string'))`. At deploy the schema sees a pointer, and a plain `'string'` field refuses it: a compile error in a service's or a module's binding, and a deploy error where the schema has no types. `service.input()` and `mockService`'s input double read the field as its inner type.
+7. **Platform variable names are upper case**: `^[A-Z][A-Z0-9_]*$`. `COMPOSER_…`, `DATABASE_URL`, `DATABASE_URL_POOLED`, `PORT`, `PATH` and `HOME` are reserved, each name is declared by one node, and one name cannot be both a platform variable and a root input field. A node's value bound as a service's whole input is refused too. Each fails before anything is created, naming the variable and the addresses.
+8. **A field bound to a plain platform variable, `serviceOrigin()` or a plain `generatedParam()` is wrapped**: `field(type('string'))`. At deploy the schema sees a pointer, and a plain `'string'` field refuses it: a compile error in a service's or a module's binding, and a deploy error where the schema has no types. `service.input()` and `mockService`'s input double read the field as its inner type.
+9. **A platform variable holds text; `schema` says what the text means.** `variable({ name: 'SMTP_PORT', schema: type('number') })` (any Standard JSON Schema library: ArkType, Zod) gives a runtime value of type `number`, which fits `field(type('number'))` and not `field(type('string'))`; without `schema` the value is the text and the reverse holds. An object schema fits a `field()` of the same object type. A schema that accepts only text gives the text exactly, untrimmed; any other schema reads the text as JSON (`587`, `true`, `{"host":"h"}`, `null` under `number | null`). A schema that accepts both, such as `string | number`, `z.unknown()` or `string | null`, is refused when the root body runs; for an optional text variable declare the text type and make the service's field optional. `variable.secret()` takes no schema.
+10. **Boot decodes and validates the text against the variable's JSON Schema, then the service's schema runs.** A failure fails boot, not the deploy: read it with `prisma service logs <service>`. Messages name the variable and never hold its text: `The platform variable "SMTP_PORT" does not hold a number. Its schema is not a text type, so its text must be JSON, such as 587.`, `... does not fit its schema: it fails "minimum" at #/minimum.` A whole number above 9007199254740991 is refused: keep an identifier as text. A value nested more than 100 levels deep is refused too. `prisma dev` runs the same check before any service starts and adds `prisma dev cannot start, because service "<address>" reads it.`
+11. **No library code runs on a variable's value; only the JSON Schema the library emits is checked.** A transform or a default the JSON Schema shows (`.transform()`, `string.numeric.parse`, a default inside an object) is refused at the root body; put defaults on the service's field. ArkType throws for `.narrow()` and `string.url`. Zod drops `.refine()`, and `.trim()`, `.toLowerCase()`, `z.coerce`, `z.preprocess()` and `.catch()` are accepted and do not run. An undeclared object key is not removed (`z.object()`, ArkType `'+': 'delete'`) and reaches the service's field. Regex flags are dropped and a pattern must be valid under the `u` flag (no `\-` outside a character class). `format` is checked for `date`, `time`, `date-time`, `duration`, `uri`, `uri-reference`, `uri-template`, `url`, `email`, `hostname`, `ipv4`, `ipv6`, `regex`, `uuid` and the three JSON Pointer formats; others, such as `z.jwt()`, are unchecked. `z.number().optional()` does not fit `field(z.number())`: make the service's field optional. A hand-written schema that contradicts itself fails every boot. Put any other check or change in the service's own schema.
 
 ### Values that differ per environment
 
 The graph is the same in every environment; only configuration may differ.
 
 - A module declares `input` (one Standard Schema) as a service does; `provision(module, { input })` binds it, and the body receives `input`, a dictionary of values: it passes each field on by name into a binding or, for a plain field, lists it in `resolve()`. Passing the whole `input` on fails to compile, and the deploy refuses it. A root's `input` is the app configuration, and a module's `input` takes every source a service's does.
-- `field(inner)` from `@prisma/composer/arktype` or `@prisma/composer/zod` wraps one leaf field's schema (`field(type('string'))`, `field(z.string())`) so it also accepts a plain pointer, which is what a value known only at boot such as `serviceOrigin()` is at deploy. In the body the field is `Value<string | Pointer<string>>`: pass it into another wrapped field or a service's input, never a plain `string` field (compile error). Wrap leaves, not object schemas; an ArkType default goes outside: `field(type('string')).default('x')`. Other schema libraries: `Pointer`, `isPlainPointer()` and `isSecretPointer()` from `@prisma/composer`. Wrap every leaf of a reusable module's schema other than a `secretString()` field, unless a `resolve()` lists it; keep a root's fields plain. `field(secretString())` is wrong: it accepts a plain pointer into a secret field, and the service fails at boot.
-- `composer({ config: [...], secrets: [...] })` lists config adapters; each gets the environment's name and returns values, later wins by top-level key. Both default to `[environmentVariables()]` (the shell); a list you write replaces the default. `dotenv()` reads `.env`, `.env.local`, `.env.<environment>`, `.env.<environment>.local`, later wins. The app configuration is the root's input and what `envParam()` reads; pass the root's input fields on by name, as every module does; its whole `input` would be the whole app configuration, by default every shell variable. The app secrets give `prisma dev` its secrets; a deploy reads them only to redact. It does not fill a platform variable from them, and never reads them as the root's input. Both import from `@prisma/composer/config`. Credentials (`PRISMA_SERVICE_TOKEN`) still come from the shell. `dotenv()` reads `.env`, `.env.local`, `.env.<environment>`, `.env.<environment>.local` through `dotenv-flow` (no `.env.local` for `test`); remove `import 'dotenv/config'` when you list it. Composer redacts the values under the names an `envSecret()` reads, in either list; the lists' other values are not secrets and print as they are, apart from values that look like credentials. Under the CLI the deploy engine's own output is not redacted yet.
+- `field(inner)` from `@prisma/composer/arktype` or `@prisma/composer/zod` wraps one field's schema (`field(type('string'))`, `field(z.string())`) so it also accepts a plain pointer, which is what a value known only at boot such as `serviceOrigin()` is at deploy. In the body the field is `Value<string | Pointer<string>>`: pass it into another wrapped field or a service's input, never a plain `string` field (compile error). A wrapped field holds the whole value one source supplies, which may be an object or array when a platform variable's schema says so, so `field(type({ host: 'string' }))` is fine. An ArkType default goes outside: `field(type('string')).default('x')`. Other schema libraries: `Pointer`, `PlainPointer`, `isPlainPointer()` (narrows to `PlainPointer`) and `isSecretPointer()` from `@prisma/composer`. Wrap every field of a reusable module's schema other than a `secretString()` field, unless a `resolve()` lists it; keep a root's fields plain. `field(secretString())` is wrong: it accepts a plain pointer into a secret field, and the service fails at boot.
+- `composer({ config: [...], secrets: [...] })` lists config adapters; each gets the environment's name and returns values, later wins by top-level key. Both default to `[environmentVariables()]` (the shell); a list you write replaces the default. `dotenv()` reads `.env`, `.env.local`, `.env.<environment>`, `.env.<environment>.local`, later wins. The app configuration fills the root's input (under `prisma dev` it also gives each plain platform variable a service reads its value, under the variable's name); pass the root's input fields on by name, as every module does; its whole `input` would be the whole app configuration, by default every shell variable. The app secrets give `prisma dev` its secrets; a deploy reads them only to redact. It does not fill a platform variable from them, and never reads them as the root's input. Both import from `@prisma/composer/config`. Credentials (`PRISMA_SERVICE_TOKEN`) still come from the shell. `dotenv()` reads `.env`, `.env.local`, `.env.<environment>`, `.env.<environment>.local` through `dotenv-flow` (no `.env.local` for `test`); remove `import 'dotenv/config'` when you list it. Composer redacts the values under the names of the graph's platform secrets, in either list; the lists' other values are not secrets and print as they are, apart from values that look like credentials. Under `prisma deploy` the engine's output is redacted too; under `prisma dev` it is not yet.
 - A field exists only under a plain object: a path into a string, an array or a secret, such as `input.tags[0]`, fails the deploy naming the path.
 - A truthiness check such as `if (input.enabled)` is not caught: the field is an object, so the branch always runs, in every environment. A module's structure cannot depend on its input; to provision something only sometimes, let the parent decide whether to provision it.
 - The module body receives `environment`; `environment.name` is a value standing for the name `--environment` gave (`production` for `prisma deploy`, `dev` for `prisma dev` by default).
 - `resolve([deps], ([values]) => …)` from `@prisma/composer` returns a computed value; `fn` receives the dependencies' real values as one tuple.
-- A value is accepted as a leaf of a service's or a module's `input` binding, at any depth, as a service param, as one of a `resource()` node's `props`, or as a public URL's `url`. Never as a provision id or a `deps` entry.
+- A value is accepted as a leaf of a service's or a module's `input` binding, at any depth, as a service param (a deploy-time value only), as one of a `resource()` node's `props`, or as a public URL's `url`. Never as a provision id or a `deps` entry.
 - A value is opaque in the body: you cannot read, compare or branch on it. List it as a `resolve()` dependency instead.
 - Calling `provision()` inside `fn` fails the load: `fn` computes configuration, never graph structure.
 - `fn` is pure and synchronous and returns plain data (no `undefined`, Promise, value or source); a deploy and `destroy` both run it, in two processes. To retire an environment, keep its case in every `fn` until `destroy` for it has finished.
-- Sources are values. `resolve([envParam('X')], ([x]) => …)` receives the string, and an unset `X` fails the deploy. A dependency must be a deploy-time value: `envSecret()`, `generatedParam()`, `serviceOrigin()`, a field wrapped with `field()` and a `secretString()` field cannot be listed (a compile error saying so; for a field typed `unknown` or a cast, the deploy fails naming the field). Bind those directly; to compute with a field, declare it plain. For a different secret per environment, use one name with a different value on each environment.
+- Sources are values. `resolve([input.X], ([x]) => …)` over a root input field receives its data. A dependency must be a deploy-time value: a platform variable's value, `generatedParam()`, `serviceOrigin()`, a field wrapped with `field()` and a `secretString()` field cannot be listed (a compile error saying so; for a field typed `unknown` or a cast, the deploy fails naming the field). Bind those directly; to compute with a field, declare it plain. For a different secret per environment, use one name with a different value on each environment.
 
 ## Contracts and RPC
 
@@ -407,17 +402,7 @@ creates no platform rows. Changing a node's address (its name without an
 explicit `id`, its `id`, or its module) makes a new entity: the next deploy
 deletes the old rows, and a database's or bucket's data with them.
 
-**Progress.** `prisma deploy` prints each step as it starts and finishes, with
-its duration (`✔ assemble web (3m 42s)`), and ends with the real total
-(`Deployed <app> to <environment> in 5m 25s.`). Steps: load config and app, one
-assemble per service, connect to project and branch, check environment
-variables, plan and apply (one step: alchemy does both in one process), record
-result. A slow assemble is usually a Node service with
-`dependencies: 'external'`, whose runtime dependencies are being traced. With `--json`, each step is a `step-started`/`step-finished` line whose `data`
-holds `durationMs` plus whatever the build adapter or deploy target reported;
-those extra fields vary, so don't parse them as a stable format. The
-`deploy` operation's `onEvent` receives the same steps, and its result's
-`durationMs` is the total.
+**Progress.** `prisma deploy` prints each step as it starts and finishes, with its duration (`✔ assemble web (3m 42s)`), and ends with the real total (`Deployed <app> to <environment> in 5m 25s.`). Steps: load config and app, one assemble per service, connect to project and branch, check environment variables, plan and apply (one step: alchemy does both in one process), record result. A slow assemble is usually a Node service with `dependencies: 'external'`, whose runtime dependencies are being traced. With `--json`, each step is a `step-started`/`step-finished` line whose `data` holds `durationMs` plus whatever the build adapter or deploy target reported; those extra fields vary, so don't parse them as a stable format. The `deploy` operation's `onEvent` receives the same steps, its result's `durationMs` is the total, and its `summary.findings` lists the platform variables with no value.
 
 **Environments.** An environment is a named place the app runs, chosen with
 `--environment` at deploy time, never written in the topology. The identical
@@ -478,34 +463,13 @@ as the Composer that runs the deploy. An older extension would read every
 environment as production, so deploy and destroy refuse it with
 `DEPS.EXTENSION_INCOMPATIBLE`.
 
-**The engine underneath is alchemy.** Convergence is executed by [alchemy](https://alchemy.run), a third-party infrastructure-as-code engine that arrives as an ordinary, exactly-pinned npm dependency of `@prisma/composer` (2.0.0-beta.85 at this library version). Your code never imports or configures it; consult alchemy's own docs for the engine itself. What matters operationally:
+**The engine underneath is alchemy.** Convergence is executed by [alchemy](https://alchemy.run), a third-party infrastructure-as-code engine that arrives as an ordinary, exactly-pinned npm dependency of `@prisma/composer` (2.0.0-beta.87 at this library version). Your code never imports or configures it; consult alchemy's own docs for the engine itself. What matters operationally:
 
-Composer runs the alchemy package installed beside the app's
-`@prisma/composer` and starts it with Node (the first `node` on PATH when `prisma` runs
-under Bun; `DEPLOY.NODE_MISSING` if none), so the app needs no direct
-`alchemy` dependency and no `.bin` link. No global Alchemy installation is
-needed.
+`prisma deploy` runs alchemy inside the `prisma` process through alchemy's programmatic API: no generated file and no child process. Its progress prints as one step per resource, and a failure is `DEPLOY.ENGINE_FAILED` carrying the engine's own errors (credentials redacted, capped at 1000 characters), or `DEPLOY.INTERRUPTED` after Ctrl-C, which releases the environment's lease. `prisma dev` runs alchemy in the `prisma` process too, each converge in a new worker thread, so an edit to your app definition applies on the next rebuild. Three kinds of edit need `prisma dev` restarted, and it says so: adding or removing a node, making the root pass on an input field it did not pass on at start, and changing which platform variables the app reads. The `destroy` operation runs alchemy inside the process that calls it, the same way as deploy. The alchemy that runs is the one installed beside the app's `@prisma/composer`, so the app needs no direct `alchemy` dependency, and no global Alchemy installation is needed.
 
-1. The deploy and destroy operations write the pipeline's results to a generated, gitignored
-   stack file at `.prisma-composer/alchemy.run.ts`, then run the alchemy CLI
-   against it as a child process; `dev` does the same at
-   `.prisma-composer/dev/<environment>/alchemy.run.ts` with local providers. The file
-   carries the computed values as literals but reads credentials via
-   `fromEnv()`, so nothing sensitive lands on disk, and it is regenerated
-   every run: output, not configuration, never edited.
-2. Failures are bisectable through that file. A failing deploy names its
-   path and prints a reproduce command: Node running the bin of the `alchemy`
-   Composer depends on, with `deploy .prisma-composer/alchemy.run.ts --yes
-   --stage <stage>` (Alchemy's own flag; on Prisma Cloud its value is the
-   environment's Branch id). Running it directly separates "the framework computed the wrong thing" from "the engine or
-   platform rejected the right thing". An engine failure surfaces as
-   `DEPLOY.ENGINE_FAILED` carrying the exit code, the engine's own error
-   lines (credentials redacted, capped at 1000 characters) and that reproduce
-   command; the child's live output streams to the terminal either way.
-3. Destroy evaluates the same stack program as deploy, and evaluating it
-   packages the assembled bundles, so **an app must be built before it can
-   be torn down**.
-4. alchemy is why the `effect` pin exists: it resolves the `effect`
+1. No command writes a stack file or starts the alchemy CLI. An engine failure surfaces as `DEPLOY.ENGINE_FAILED` carrying the engine's own errors (credentials redacted, capped at 1000 characters), for deploy and destroy alike.
+2. Destroy runs the same preparation as deploy, assembly included, so **an app must be built before it can be torn down**.
+3. alchemy is why the `effect` pin exists: it resolves the `effect`
    constellation, and a hoisted newer `effect` halts every command (failure
    mode 1 below).
 
@@ -569,8 +533,8 @@ that surprise:
    `<command>` in <dir>`` before the app comes up and streams the dev
    server's output prefixed `[<address>]` (other services' logs are not
    streamed). Source edits are the dev server's own hot reload; `dev` watches
-   the entry and every service's authoring module, reconverges on a topology
-   edit, and restarts a dev server only when its environment variables changed
+   the entry and every app file it imports, applies an edit to them on the
+   next rebuild (adding or removing a node, passing on a new root input field, or changing which platform variables the app reads needs `dev` restarted, and it says so), and restarts a dev server only when its environment variables changed
    (``<address>: its environment changed; `<command>` restarted``). It has no
    terminal (no colours or key shortcuts). The standalone build is not run
    locally, so a standalone-only bug surfaces at `prisma deploy`. Next.js
@@ -635,7 +599,7 @@ that surprise:
    build and run `prisma dev --detach` again.
 4. `dev` reads `prisma.config.ts` once, at start, and watches it: after an
    edit it says so and pauses rebuilds until you restart `dev`.
-5. `dev` reads secrets only from the `secrets` adapters. Put them where a `secrets` adapter reads them: the shell by default, or `.env.dev` with `secrets: [dotenv(), environmentVariables()]`. A required secret that is unset or empty stops `dev` with an error naming it; an optional one reaches the service as absent. A changed value takes effect on the next `prisma dev`. A `.env` that only the framework loads (Next.js) does not count: Composer reads secrets before the dev server starts.
+5. `dev` reads secrets only from the `secrets` adapters. Put them where a `secrets` adapter reads them: the shell by default, or `.env.dev` with `secrets: [dotenv(), environmentVariables()]`. A required secret that is unset or empty stops `dev` with an error naming it; an optional one reaches the service as absent. A changed value takes effect on the next `prisma dev`. A `.env` that only the framework loads (Next.js) does not count: Composer reads secrets before the dev server starts. A plain platform variable (`variable({ name })`) comes from the `config` adapters, under the variable's name, read at start: set it in `.env.dev` or the shell. A value that is not text stops `dev`, and so does a typed variable's text that does not decode or fit its schema. If a rebuild changes which platform variables the app reads, or where, `dev` warns that the platform variables the app reads changed and pauses rebuilds until you restart it. An edit to `module.ts` or a file it imports is applied by the next rebuild; one that adds or removes a node fails that rebuild and says to restart `dev`.
 6. The emulators are machine-wide daemons shared by every `dev`, registered
    under `~/.prisma-composer/emulators`. Set `PRISMA_COMPOSER_EMULATORS_DIR`
    to an absolute directory to give a checkout or CI job its own compute,
@@ -700,8 +664,8 @@ provision exactly like your own:
 | `cron` from `/cron` | An always-on scheduler (it holds Compute's keep-awake guard) firing your schedule at your runner service; `input` on `cron()` binds the runner's input schema | nothing |
 | `storage` from `/storage` | An S3-backed blob store (own Postgres + minted credentials) | `store` |
 | `streams` from `/streams` | Durable append-only event streams over a `store` | `streams` |
-| `auth` from `/auth` | Signup, login, sessions, and JWT verification (Better Auth in one service, own database). `auth({ signUp: 'closed' })` makes Better Auth refuse self-service sign-up; operator-created accounts go through `admin.createUser({ email, name, password?, emailVerified? })` from a service wired to `admin` (it throws on a duplicate email and sends no mail); a signed-in user deletes their own account with Better Auth's `POST /api/auth/delete-user` through the proxy (password, or a session < 24 h old); operators delete with `admin.removeUser({ userId })`; either way your own rows follow your `auth:User` FK's `onDelete` (`Cascade` deletes them, `Restrict` refuses the deletion). Bind `input: { baseUrl }`, the public app origin: `serviceOrigin('<app>.<service>')`, `envParam(...)` or a literal. | `api`, `session`, `admin` |
-| `email` from `/email` | Transactional email with a stored outbox (own service and database). Bind `input: { deliveryMode, from, deliveryCredential }`; the credential with `envSecret(...)`, required even when `deliveryMode` is `none`. `deliveryMode` is one of `emailDeliveryModes`; bind a literal or a root input field declared from it (`type.enumerated(...emailDeliveryModes)`, `z.enum(emailDeliveryModes)`), not `envParam()`. | `send`, `outbox` |
+| `auth` from `/auth` | Signup, login, sessions, and JWT verification (Better Auth in one service, own database). `auth({ signUp: 'closed' })` makes Better Auth refuse self-service sign-up; operator-created accounts go through `admin.createUser({ email, name, password?, emailVerified? })` from a service wired to `admin` (it throws on a duplicate email and sends no mail); a signed-in user deletes their own account with Better Auth's `POST /api/auth/delete-user` through the proxy (password, or a session < 24 h old); operators delete with `admin.removeUser({ userId })`; either way your own rows follow your `auth:User` FK's `onDelete` (`Cascade` deletes them, `Restrict` refuses the deletion). Bind `input: { baseUrl }`, the public app origin: `serviceOrigin('<app>.<service>')`, a root input field or a literal. | `api`, `session`, `admin` |
+| `email` from `/email` | Transactional email with a stored outbox (own service and database). Bind `input: { deliveryMode, from, deliveryCredential }`; the credential with a platform secret's value (`provision(variable.secret({ name: 'EMAIL_DELIVERY_CREDENTIAL' }))` in the root), required even when `deliveryMode` is `none`. `deliveryMode` is one of `emailDeliveryModes`; bind a literal or a root input field declared from it (`type.enumerated(...emailDeliveryModes)`, `z.enum(emailDeliveryModes)`). | `send`, `outbox` |
 
 `bucket()` (imported alongside `rawPostgres`) is a raw S3-compatible bucket:
 the dependency end receives `{ url, bucket, accessKeyId, secretAccessKey }`,
