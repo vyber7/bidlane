@@ -17,8 +17,7 @@ import {
 import { userChannel } from "@/app/libs/realtime/catalog";
 import { useRealtimeEvent } from "@/app/libs/realtime/client";
 import { deserializeListing } from "@/app/utils/listing-serialization";
-import { auctionPhase } from "@/app/libs/auction-lifecycle";
-import { auctionGroup, type AuctionGroup } from "@/app/libs/listing-capabilities";
+import { listingGroup, type AuctionGroup } from "@/app/libs/listing-capabilities";
 import AccountListingBox, { type AccountListing } from "./AccountListingBox";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 import useUndo from "@/app/hooks/useUndo";
@@ -145,13 +144,13 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
     const normalizedQuery = query.trim().toLowerCase();
 
     return source.filter((listing) => {
-      const matchesStatus = !statusFilter.group || auctionGroup(auctionPhase(listing, now)) === statusFilter.group;
+      const matchesStatus = !statusFilter.group || listingGroup(listing, now) === statusFilter.group;
       const searchable = `${listing.year} ${listing.make} ${listing.model} ${listing.location}`.toLowerCase();
       return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
     });
   }, [query, source, statusFilter.group, now]);
 
-  const liveCount = uploaded.filter((listing) => auctionGroup(auctionPhase(listing, now)) === "live").length;
+  const liveCount = uploaded.filter((listing) => listingGroup(listing, now) === "live").length;
   const changeTab = (nextTab: Tab) => {
     if (nextTab === tab) return;
     updateAccountUrl({ tab: nextTab === "watching" ? nextTab : "", status: "", q: "" });

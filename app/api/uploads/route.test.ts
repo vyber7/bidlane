@@ -58,6 +58,12 @@ describe("authenticated bounded uploader", () => {
     mocks.listing.mockResolvedValue(listing);
     expect((await POST(request(10, { kind: "RECORD", listingId }))).status).toBe(listing?.userId === "seller" ? 409 : 404); expect(mocks.save).not.toHaveBeenCalled();
   });
+  it("refuses an upload once bidding opens with the same message as a Correction", async () => {
+    mocks.listing.mockResolvedValue({ userId: "seller", status: "LIVE" });
+    const response = await POST(request(10, { kind: "RECORD", listingId }));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: "Listings cannot be edited after bidding opens." });
+  });
   it("permits an owned upcoming listing context", async () => {
     expect((await POST(request(10, { kind: "RECORD", listingId }))).status).toBe(201);
     expect(mocks.save.mock.calls[0][0]).toMatchObject({ userId: "seller", listingId, kind: "RECORD" });

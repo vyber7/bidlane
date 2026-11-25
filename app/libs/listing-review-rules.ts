@@ -1,11 +1,15 @@
-// The Review module's rules for who can see a Listing and when its Auction may
-// start. Kept free of server and database dependencies so the database layer
+// The Review module's rules for who can see a Listing, as values and as
+// database filters. Kept free of server dependencies so the database layer
 // (prisma/native, prisma/reads) can use them; app code imports them from
-// listing-review.
+// listing-review. Approval itself is decided in listing-capabilities, which
+// has no database dependencies at all, so client code can use it too.
 
 import { MongoAndExpr, MongoOrExpr, MongoFieldFilter as field } from "@prisma/orm-mongo/query-ast";
 import type { Listing } from "@/app/types/database";
 import type { ReviewStatus } from "@/prisma/native/listing-authoring";
+import { isApproved } from "./listing-capabilities";
+
+export { isApproved };
 
 type ReviewableListing = Pick<Listing, "status" | "reviewStatus">;
 
@@ -19,11 +23,6 @@ const approved: ReviewStatus = "APPROVED";
 /** An Upcoming Listing as a database filter, including Listings stored without a status. */
 export function upcomingFilter() {
   return { status: { $in: upcomingStatuses } };
-}
-
-/** Approval: the Review decision that makes an Upcoming Listing public and lets its seller start the Auction. */
-export function isApproved(listing: { reviewStatus: ReviewStatus | null }) {
-  return listing.reviewStatus === approved;
 }
 
 /** The Approval requirement as a database filter, for guarded writes. */

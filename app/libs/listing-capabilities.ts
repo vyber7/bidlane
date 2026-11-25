@@ -1,6 +1,5 @@
-import type { DecodedListing } from "./listing-codec";
+import type { DecodedListing, ReviewStatus } from "./listing-codec";
 import { auctionPhase, type AuctionPhase } from "./auction-lifecycle";
-import { isApproved } from "./listing-review-rules";
 import { soldAuction } from "./transaction-completion";
 
 // Listing capabilities: what a viewer may do with a Listing right now, and
@@ -62,6 +61,16 @@ export function listingCapabilities(listing: CapabilityListing, viewer: Viewer, 
     completeTransaction: transactionAccess(listing, viewer?.id),
     group: auctionGroup(phase),
   };
+}
+
+/** Approval: the Review decision that makes an Upcoming Listing public and lets its seller start the Auction. */
+export function isApproved(listing: { reviewStatus: ReviewStatus | null }) {
+  return listing.reviewStatus === "APPROVED";
+}
+
+/** The group a stored Auction is filed under at `now`. */
+export function listingGroup(listing: Parameters<typeof auctionPhase>[0], now: number) {
+  return auctionGroup(auctionPhase(listing, now));
 }
 
 /** The group an Auction in this phase is filed under. */
