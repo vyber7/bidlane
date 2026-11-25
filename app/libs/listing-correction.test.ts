@@ -30,6 +30,7 @@ const photo = (name: string) => `https://res.cloudinary.com/demo/image/upload/li
 const record = { label: "Service receipt", url: "https://res.cloudinary.com/demo/image/upload/receipt.pdf" };
 const details = { year: 2020, make: "Porsche", model: "911", miles: 100, location: "New York", description: "Updated description", reservePrice: null, vin: "", vehicleRecords: [], transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: "Unknown", modifications: "None known", knownFlaws: "Paint chips", images: [photo("car")] };
 const saved = (): StoredListing => ({ ...details, id: listingId, userId: seller, status: "UPCOMING", reviewStatus: "APPROVED", reviewNote: "Looks good", reviewRevision: 3, images: [photo("car")], coverImage: photo("car"), vehicleRecords: null, vin: null });
+const detailsCorrection: Correction = { kind: "details", revision: 3, data: details };
 const listing = () => store.listings.get(listingId)!;
 const own = (...urls: string[]) => urls.forEach((url) => store.assets.add(`${seller}:${url}`));
 
@@ -113,8 +114,6 @@ describe.each(everyKind)("every Correction (%s)", (_, change) => {
     expect(listing()).toEqual(reviewed);
   });
 });
-
-const detailsCorrection: Correction = { kind: "details", revision: 3, data: details };
 
 describe("refused Corrections", () => {
   // Who may correct, and when, is the Listing capabilities table's job. These
