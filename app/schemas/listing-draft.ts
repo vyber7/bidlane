@@ -14,7 +14,7 @@ export const photoChecklistItems = [
 const checklistId = z.enum(["exterior", "interior", "engine", "underside", "wheels", "damage"]);
 const text = (max: number) => z.string().max(max).default("");
 // Keep incomplete and temporarily invalid inputs as entered. Full listing
-// validation runs only at publication; drafts still have storage/URL bounds.
+// validation runs only at Submission; drafts still have storage/URL bounds.
 export const draftDetailsSchema = z.object({
   vin: text(30), make: text(100), model: text(100), year: text(32), miles: text(32), reservePrice: text(32),
   location: text(200), description: text(10000), transmission: text(100), drivetrain: text(100), titleStatus: text(100),
@@ -31,7 +31,7 @@ export const draftPayloadSchema = z.object({
 export const draftRevisionSchema = z.number().int().min(1).max(2147483647);
 export const createDraftSchema = z.object({ id: listingIdSchema, saveKey: z.uuid(), payload: draftPayloadSchema });
 export const updateDraftSchema = createDraftSchema.omit({ id: true }).extend({ revision: draftRevisionSchema });
-export const publishDraftSchema = z.object({ draftId: listingIdSchema, revision: draftRevisionSchema });
+export const submitDraftSchema = z.object({ draftId: listingIdSchema, revision: draftRevisionSchema });
 export type DraftPayload = z.output<typeof draftPayloadSchema>;
 export type ListingDraftDTO = {
   id: string;

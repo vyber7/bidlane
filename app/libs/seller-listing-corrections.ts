@@ -2,7 +2,7 @@ import { z } from "zod";
 import { reviewRevisionSchema } from "@/app/schemas/listing-review";
 import { vehicleRecordsSchema, vinSchema } from "@/app/schemas/vehicle-trust";
 import { ApiRequestError, parseApiInput } from "./api-request";
-import { isCloudinaryImageUrl, MAX_LISTING_PHOTOS, parseListing } from "./listing-validation";
+import { isCloudinaryImageUrl, listingSchema, MAX_LISTING_PHOTOS } from "@/app/schemas/listing";
 import { getNativeRepositories } from "./native-repositories";
 import { assertListingAssets, assertOwnedAssets, recordUrls } from "./uploaded-assets";
 
@@ -63,7 +63,7 @@ export async function correctListing(target: CorrectionTarget, readInput: ReadCo
     throw new ApiRequestError(409, conflict);
   }
 
-  const data = parseListing(body.data);
+  const data = parseApiInput(listingSchema, body.data);
   await assertListingAssets(sellerId, data, {
     images: listing.images,
     vehicleRecords: listing.vehicleRecords,

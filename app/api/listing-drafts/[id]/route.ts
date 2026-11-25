@@ -2,7 +2,7 @@ import { z } from "zod";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { apiErrorResponse, errorResponse, parseApiInput, readJsonObject } from "@/app/libs/api-request";
-import { deleteListingDraft, serializeDraft, updateListingDraft } from "@/app/libs/listing-drafts";
+import { deleteDraft, serializeDraft, updateDraft } from "@/app/libs/listing-submission";
 import { draftRevisionSchema, updateDraftSchema } from "@/app/schemas/listing-draft";
 import { listingIdSchema } from "@/app/schemas/common";
 import { logger } from "@/app/libs/logger";
@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: Context) {
     const user = await getCurrentUser();
     if (!user) return errorResponse("Please sign in.", 401);
     const id = parseApiInput(listingIdSchema, (await params).id);
-    const draft = await updateListingDraft(user.id, id, parseApiInput(updateDraftSchema, await readJsonObject(request)));
+    const draft = await updateDraft(user.id, id, parseApiInput(updateDraftSchema, await readJsonObject(request)));
     return Response.json(draft, { headers: { "Cache-Control": "no-store" } });
   } catch (error) { return failure(error); }
 }
@@ -32,7 +32,7 @@ export async function DELETE(request: Request, { params }: Context) {
     if (!user) return errorResponse("Please sign in.", 401);
     const id = parseApiInput(listingIdSchema, (await params).id);
     const { revision } = parseApiInput(z.object({ revision: draftRevisionSchema }), await readJsonObject(request));
-    await deleteListingDraft(user.id, id, revision);
+    await deleteDraft(user.id, id, revision);
     return Response.json({ deleted: true });
   } catch (error) { return failure(error); }
 }

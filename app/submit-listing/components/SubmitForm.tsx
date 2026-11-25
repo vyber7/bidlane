@@ -10,10 +10,9 @@ import { CldImage } from "next-cloudinary";
 import AuthorizedUploadButton from "@/app/components/AuthorizedUploadButton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MAX_LISTING_NUMBER, MAX_LISTING_PHOTOS, validateListing } from "@/app/libs/listing-validation";
+import { listingSchema, MAX_LISTING_NUMBER, MAX_LISTING_PHOTOS } from "@/app/schemas/listing";
 import { MAX_UPLOAD_SIZE_LABEL } from "@/app/libs/upload-policy";
 import { formatAmount, formatPrice } from "@/app/utils/format";
-import { listingSchema } from "@/app/schemas/listing";
 import { validationMessage } from "@/app/schemas/common";
 import type { ListingDetailsFormValues } from "@/app/types/forms";
 import { MAX_VEHICLE_DISCLOSURE_LENGTH, vehicleDisclosureFields, vehicleSpecificationFields } from "@/app/libs/vehicle-details";
@@ -79,7 +78,8 @@ export default function SubmitForm({ initialDraft, emailVerified = false }: { in
   async function submitListing() {
     if (submitting.current || !emailVerified) return;
     const data = { ...details, images, vehicleRecords: records };
-    const validationError = validateListing(data);
+    const checked = listingSchema.safeParse(data);
+    const validationError = checked.success ? null : checked.error.issues[0].message;
     if (validationError) { setError(validationError); return; }
     submitting.current = true;
     setIsLoading(true);

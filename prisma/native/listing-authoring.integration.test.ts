@@ -40,12 +40,12 @@ vi.mock("@/app/libs/logger", () => ({
 }));
 
 import {
-  createListingDraft,
-  updateListingDraft,
-  deleteListingDraft,
-  publishListingDraft,
+  createDraft as createOwnedDraft,
+  updateDraft,
+  deleteDraft,
+  submitDraft,
   serializeDraft,
-} from "@/app/libs/listing-drafts";
+} from "@/app/libs/listing-submission";
 import {
   getListingReview,
   getReviewQueue,
@@ -54,7 +54,7 @@ import {
   emptyDraftPayload,
   type DraftPayload,
 } from "@/app/schemas/listing-draft";
-import { parseListing } from "@/app/libs/listing-validation";
+import { listingSchema } from "@/app/schemas/listing";
 import { POST as submit } from "@/app/api/new-listing/route";
 import { POST as review } from "@/app/api/admin/listings/[id]/review/route";
 import { PATCH as records } from "@/app/api/listing/[id]/vehicle-details/route";
@@ -94,7 +94,7 @@ const complete: DraftPayload = {
   images: [image],
 };
 const validated = () =>
-  parseListing({
+  listingSchema.parse({
     ...complete.details,
     images: complete.images,
     vehicleRecords: complete.vehicleRecords,
@@ -187,7 +187,7 @@ describe.skipIf(!url)(
       id = new ObjectId().toHexString(),
       saveKey = randomUUID(),
       owner = seller,
-    ) => createListingDraft(owner.id, { id, payload, saveKey });
+    ) => createOwnedDraft(owner.id, { id, payload, saveKey });
     const decide = (
       id: string,
       revision = 0,
@@ -294,24 +294,24 @@ describe.skipIf(!url)(
       };
       const save = { revision: 1, saveKey: randomUUID(), payload };
       const results = await Promise.all([
-        updateListingDraft(seller.id, draft.id, save),
-        updateListingDraft(seller.id, draft.id, save),
+        updateDraft(seller.id, draft.id, save),
+        updateDraft(seller.id, draft.id, save),
       ]);
       expect(results[0].revision).toBe(2);
       expect(results[1].revision).toBe(2);
       await expect(
-        updateListingDraft(seller.id, draft.id, {
+        updateDraft(seller.id, draft.id, {
           ...save,
           payload: emptyDraftPayload,
         }),
       ).rejects.toMatchObject({ status: 409 });
       const competing = await Promise.allSettled([
-        updateListingDraft(seller.id, draft.id, {
+        updateDraft(seller.id, draft.id, {
           revision: 2,
           saveKey: randomUUID(),
           payload: emptyDraftPayload,
         }),
-        updateListingDraft(seller.id, draft.id, {
+        updateDraft(seller.id, draft.id, {
           revision: 2,
           saveKey: randomUUID(),
           payload: complete,
@@ -332,13 +332,13 @@ describe.skipIf(!url)(
       const id = new ObjectId().toHexString(),
         saveKey = randomUUID();
       await createDraft(complete, id, saveKey);
-      await expect(deleteListingDraft(other.id, id, 1)).rejects.toMatchObject({
+      await expect(deleteDraft(other.id, id, 1)).rejects.toMatchObject({
         status: 404,
       });
-      await expect(deleteListingDraft(seller.id, id, 2)).rejects.toMatchObject({
+      await expect(deleteDraft(seller.id, id, 2)).rejects.toMatchObject({
         status: 409,
       });
-      await deleteListingDraft(seller.id, id, 1);
+      await deleteDraft(seller.id, id, 1);
       expect(await repositories.drafts.owned(id, seller.id)).toBeNull();
       const tombstone = (await repositories.drafts.find(id))!;
       expect(tombstone).toMatchObject({
@@ -396,7 +396,7 @@ describe.skipIf(!url)(
           )?.revision,
         ).toBe(kind === "missing" ? undefined : null);
         await expect(
-          updateListingDraft(seller.id, draft.id, {
+          updateDraft(seller.id, draft.id, {
             revision: 1,
             saveKey: randomUUID(),
             payload: complete,
@@ -405,9 +405,9 @@ describe.skipIf(!url)(
       },
     );
 
-    it("publishes a validated draft with complete BSON defaults and relation keys", async () => {
+    it("submits a validated Draft with complete BSON defaults and relation keys", async () => {
       const draft = await createDraft();
-      const listing = await publishListingDraft(seller, draft.id, 1);
+      const listing = await submitDraft(seller, draft.id, 1);
       expect(listing).toEqual({ id: listing.id });
       const raw = await connection.database
         .collection("Listing")
@@ -458,11 +458,11 @@ describe.skipIf(!url)(
       expect(raw).not.toHaveProperty("step");
     });
 
-    it("publishes concurrent requests once and replays only the ID even after verification is revoked", async () => {
+    it("submits concurrent requests once and replays only the ID even after verification is revoked", async () => {
       const draft = await createDraft();
       const results = await Promise.all([
-        publishListingDraft(seller, draft.id, 1),
-        publishListingDraft(seller, draft.id, 1),
+        submitDraft(seller, draft.id, 1),
+        submitDraft(seller, draft.id, 1),
       ]);
       expect(results[0]).toEqual(results[1]);
       expect(
@@ -500,10 +500,10 @@ describe.skipIf(!url)(
       expect(response.status).toBe(201);
       expect(await response.json()).toEqual(results[0]);
       await expect(
-        publishListingDraft(seller, draft.id, 2),
+        submitDraft(seller, draft.id, 2),
       ).rejects.toMatchObject({ status: 409 });
       await expect(
-        updateListingDraft(seller.id, draft.id, {
+        updateDraft(seller.id, draft.id, {
           revision: 1,
           saveKey: randomUUID(),
           payload: complete,
@@ -515,7 +515,7 @@ describe.skipIf(!url)(
       const draft = await createDraft();
       await rejectWrites("ListingDraft", async () => {
         await expect(
-          publishListingDraft(seller, draft.id, 1),
+          submitDraft(seller, draft.id, 1),
         ).rejects.toMatchObject({ code: 121 });
         expect(
           await connection.database.collection("Listing").countDocuments({}),
@@ -525,25 +525,25 @@ describe.skipIf(!url)(
             ?.publishedListingId,
         ).toBeNull();
       });
-      expect(await publishListingDraft(seller, draft.id, 1)).toHaveProperty(
+      expect(await submitDraft(seller, draft.id, 1)).toHaveProperty(
         "id",
       );
     });
 
-    it("does not publish stale, incomplete, unverified, or other-owner drafts", async () => {
+    it("does not submit stale, incomplete, unverified, or other-owner Drafts", async () => {
       const draft = await createDraft(emptyDraftPayload);
       await expect(
-        publishListingDraft(seller, draft.id, 1),
+        submitDraft(seller, draft.id, 1),
       ).rejects.toMatchObject({ status: 400 });
       await expect(
-        publishListingDraft(seller, draft.id, 2),
+        submitDraft(seller, draft.id, 2),
       ).rejects.toMatchObject({ status: 409 });
       await expect(
-        publishListingDraft(other, draft.id, 1),
+        submitDraft(other, draft.id, 1),
       ).rejects.toMatchObject({ status: 404 });
       const full = await createDraft();
       await expect(
-        publishListingDraft({ ...seller, emailVerified: null }, full.id, 1),
+        submitDraft({ ...seller, emailVerified: null }, full.id, 1),
       ).rejects.toMatchObject({ status: 403 });
       expect(
         await connection.database.collection("Listing").countDocuments({}),
@@ -554,14 +554,14 @@ describe.skipIf(!url)(
       for (const action of ["save", "delete"] as const) {
         const draft = await createDraft();
         const outcomes = await Promise.allSettled([
-          publishListingDraft(seller, draft.id, 1),
+          submitDraft(seller, draft.id, 1),
           action === "save"
-            ? updateListingDraft(seller.id, draft.id, {
+            ? updateDraft(seller.id, draft.id, {
                 revision: 1,
                 saveKey: randomUUID(),
                 payload: complete,
               })
-            : deleteListingDraft(seller.id, draft.id, 1),
+            : deleteDraft(seller.id, draft.id, 1),
         ]);
         expect(
           outcomes.filter((item) => item.status === "fulfilled"),
@@ -586,7 +586,7 @@ describe.skipIf(!url)(
       ).toBe(linked.length);
     });
 
-    it("reads a historical BSON draft and publishes its stored snapshot", async () => {
+    it("reads a historical BSON Draft and submits its stored snapshot", async () => {
       const id = new ObjectId().toHexString();
       const now = new Date();
       await connection.database
@@ -606,11 +606,11 @@ describe.skipIf(!url)(
         serializeDraft((await repositories.drafts.owned(id, seller.id))!)
           .payload,
       ).toEqual(complete);
-      expect(await publishListingDraft(seller, id, 1)).toHaveProperty("id");
+      expect(await submitDraft(seller, id, 1)).toHaveProperty("id");
     });
 
-    it("submits direct listings with owned media and strips seller-supplied approval", async () => {
-      const response = await asUser(seller, () =>
+    it("rejects listing data sent without a Draft and starts a submitted Draft Awaiting review", async () => {
+      const direct = await asUser(seller, () =>
         submit(
           request({
             data: {
@@ -624,6 +624,15 @@ describe.skipIf(!url)(
           }),
         ),
       );
+      expect(direct.status).toBe(400);
+      expect(
+        await connection.database.collection("Listing").countDocuments({}),
+      ).toBe(0);
+
+      const draft = await createDraft();
+      const response = await asUser(seller, () =>
+        submit(request({ draftId: draft.id, revision: draft.revision })),
+      );
       expect(response.status).toBe(201);
       const { id } = await response.json();
       expect(
@@ -635,15 +644,7 @@ describe.skipIf(!url)(
         status: "UPCOMING",
         reviewStatus: "PENDING",
         reviewRevision: Long.fromNumber(0),
-        views: Long.fromNumber(1),
       });
-      const bad = await asUser(other, () =>
-        submit(request({ data: validated() })),
-      );
-      expect(bad.status).toBe(400);
-      expect(
-        await connection.database.collection("Listing").countDocuments({}),
-      ).toBe(1);
     });
 
     it.each(["missing", "null", "zero"])(
