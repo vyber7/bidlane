@@ -30,6 +30,7 @@ const photo = (name: string) => `https://res.cloudinary.com/demo/image/upload/li
 const record = { label: "Service receipt", url: "https://res.cloudinary.com/demo/image/upload/receipt.pdf" };
 const details = { year: 2020, make: "Porsche", model: "911", miles: 100, location: "New York", description: "Updated description", reservePrice: null, vin: "", vehicleRecords: [], transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: "Unknown", modifications: "None known", knownFlaws: "Paint chips", images: [photo("car")] };
 const saved = (): StoredListing => ({ ...details, id: listingId, userId: seller, status: "UPCOMING", reviewStatus: "APPROVED", reviewNote: "Looks good", reviewRevision: 3, images: [photo("car")], coverImage: photo("car"), vehicleRecords: null, vin: null });
+const detailsCorrection: Correction = { kind: "details", revision: 3, data: details };
 const listing = () => store.listings.get(listingId)!;
 const own = (...urls: string[]) => urls.forEach((url) => store.assets.add(`${seller}:${url}`));
 
@@ -101,15 +102,6 @@ describe.each(everyKind)("every Correction (%s)", (_, change) => {
     await correctListing(target, change());
     expect(listing()).toMatchObject({ reviewStatus: "PENDING", reviewNote: null, reviewRevision: 4 });
   });
-  it("is refused for anyone but the seller, even an administrator", async () => {
-    await expect(correctListing({ listingId, sellerId: "admin" }, change())).rejects.toMatchObject({ status: 403, message: "Only the seller can edit this listing." });
-    expect(listing()).toEqual(saved());
-  });
-  it.each(["LIVE", "ENDED"])("is refused once bidding opens (%s)", async (status) => {
-    store.listings.set(listingId, { ...saved(), status });
-    await expect(correctListing(target, change())).rejects.toMatchObject({ status: 409, message: "Listings cannot be edited after bidding opens." });
-    expect(listing()).toEqual({ ...saved(), status });
-  });
   it("is refused when the Listing no longer exists", async () => {
     store.listings.clear();
     await expect(correctListing(target, change())).rejects.toMatchObject({ status: 404, message: "Listing not found." });
@@ -124,6 +116,17 @@ describe.each(everyKind)("every Correction (%s)", (_, change) => {
 });
 
 describe("refused Corrections", () => {
+  // Who may correct, and when, is the Listing capabilities table's job. These
+  // prove the command asks it and maps each refusal to its status and message.
+  it("refuses anyone but the seller, even an administrator", async () => {
+    await expect(correctListing({ listingId, sellerId: "admin" }, detailsCorrection)).rejects.toMatchObject({ status: 403, message: "Only the seller can edit this listing." });
+    expect(listing()).toEqual(saved());
+  });
+  it("refuses once bidding opens", async () => {
+    store.listings.set(listingId, { ...saved(), status: "LIVE" });
+    await expect(correctListing(target, detailsCorrection)).rejects.toMatchObject({ status: 409, message: "Listings cannot be edited after bidding opens." });
+    expect(listing()).toEqual({ ...saved(), status: "LIVE" });
+  });
   it("refuses details from a page loaded at an older revision", async () => {
     await expect(correctListing(target, { kind: "details", revision: 2, data: details })).rejects.toMatchObject({ status: 409, message: "This listing changed. Reload before editing again." });
     expect(listing()).toEqual(saved());
