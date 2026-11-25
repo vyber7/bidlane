@@ -92,6 +92,8 @@ async function changesFor(correction: Correction, listing: AuthoredListing, { li
   }
 }
 
+export type CorrectionResult = Awaited<ReturnType<typeof correctListing>>;
+
 /**
  * Applies one Correction and returns the Listing to Awaiting review in the same
  * guarded save. Refused unless the user is the seller, bidding has not opened
