@@ -26,12 +26,12 @@ describe("Draft saving", () => {
     }
     expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.updateMany).not.toHaveBeenCalled();
   });
-  it("accepts registered uploads for a new draft", async () => {
+  it("accepts registered uploads for a new Draft", async () => {
     mocks.assets.mockResolvedValue([{ url: complete.images[0] }]);
     expect((await createDraft("seller", { id, saveKey: key, payload: complete })).payload.images).toEqual(complete.images);
     expect(mocks.assets.mock.calls[0][0]).toMatchObject({ userId: "seller", kind: "PHOTO", listingId: undefined });
   });
-  it("allows edits to legacy drafts without reuploading exact saved media", async () => {
+  it("allows edits to legacy Drafts without reuploading exact saved media", async () => {
     const legacy = { ...complete, vehicleRecords: [{ label: "", url: complete.images[0] }] };
     mocks.findFirst.mockResolvedValue({ ...saved, payload: legacy });
     await updateDraft("seller", id, { revision: 2, saveKey: "new", payload: { ...legacy, vehicleRecords: [{ label: "Renamed receipt", url: complete.images[0] }] } });
@@ -42,16 +42,16 @@ describe("Draft saving", () => {
     expect(mocks.create).toHaveBeenCalledWith({ id, userId: "seller", payload, lastSaveKey: key }, expect.any(Date));
     expect(result.payload.details.model).toBe(""); expect(result).not.toHaveProperty("userId"); expect(mocks.createListing).not.toHaveBeenCalled();
   });
-  it("replays an uncertain create without duplicating the draft", async () => {
+  it("replays an uncertain create without duplicating the Draft", async () => {
     mocks.findUnique.mockResolvedValue(saved);
     expect((await createDraft("seller", { id, saveKey: key, payload })).revision).toBe(2); expect(mocks.create).not.toHaveBeenCalled();
   });
-  it("does not resurrect a deleted draft after a lost create response", async () => {
+  it("does not resurrect a deleted Draft after a lost create response", async () => {
     mocks.findUnique.mockResolvedValue({ ...saved, deletedAt: new Date(), payload: emptyDraftPayload });
     await expect(createDraft("seller", { id, saveKey: key, payload })).rejects.toMatchObject({ status: 409 });
     expect(mocks.create).not.toHaveBeenCalled();
   });
-  it("does not reveal another owner’s draft", async () => {
+  it("does not reveal another owner’s Draft", async () => {
     mocks.findUnique.mockResolvedValue({ ...saved, userId: "other" });
     await expect(createDraft("seller", { id, saveKey: key, payload })).rejects.toMatchObject({ status: 404 });
     mocks.findFirst.mockResolvedValue(null);
@@ -97,14 +97,14 @@ describe("Submission", () => {
     await expect(submitDraft({ id: "seller", emailVerified: null }, id, 2)).resolves.toMatchObject({ id: "listing" });
     expect(mocks.createListing).not.toHaveBeenCalled();
   });
-  it("validates saved content and creates the listing and retry link in one transaction", async () => {
+  it("validates saved content and creates the Listing and retry link in one transaction", async () => {
     mocks.findFirst.mockResolvedValue({ ...saved, payload: complete });
     expect(await submitDraft({ id: "seller", emailVerified: new Date() }, id, 2)).toMatchObject({ id: "listing" });
     expect(mocks.createListing).toHaveBeenCalledWith("seller", expect.objectContaining({ year: 2020, make: "Porsche", miles: 1000, images: complete.images }), expect.any(Date));
     expect(mocks.updateMany).toHaveBeenCalledWith(id, "seller", 2, "listing", expect.any(Date));
     expect(mocks.createListing.mock.calls[0][1]).not.toHaveProperty("photoChecklist");
   });
-  it("never submits an incomplete Draft or creates a listing for a stale revision", async () => {
+  it("never submits an incomplete Draft or creates a Listing for a stale revision", async () => {
     await expect(submitDraft({ id: "seller", emailVerified: new Date() }, id, 2)).rejects.toMatchObject({ status: 400 });
     await expect(submitDraft({ id: "seller", emailVerified: new Date() }, id, 1)).rejects.toMatchObject({ status: 409 });
     expect(mocks.createListing).not.toHaveBeenCalled();

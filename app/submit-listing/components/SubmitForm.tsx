@@ -78,9 +78,8 @@ export default function SubmitForm({ initialDraft, emailVerified = false }: { in
   async function submitListing() {
     if (submitting.current || !emailVerified) return;
     const data = { ...details, images, vehicleRecords: records };
-    const checked = listingSchema.safeParse(data);
-    const validationError = checked.success ? null : checked.error.issues[0].message;
-    if (validationError) { setError(validationError); return; }
+    const validationError = validationMessage(listingSchema, data);
+    if (validationError !== true) { setError(validationError); return; }
     submitting.current = true;
     setIsLoading(true);
     setError("");

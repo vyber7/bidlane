@@ -31,7 +31,8 @@ export const draftPayloadSchema = z.object({
 export const draftRevisionSchema = z.number().int().min(1).max(2147483647);
 export const createDraftSchema = z.object({ id: listingIdSchema, saveKey: z.uuid(), payload: draftPayloadSchema });
 export const updateDraftSchema = createDraftSchema.omit({ id: true }).extend({ revision: draftRevisionSchema });
-export const submitDraftSchema = z.object({ draftId: listingIdSchema, revision: draftRevisionSchema });
+// Strict: Submission takes only the saved Draft, never listing data sent with it.
+export const submitDraftSchema = z.strictObject({ draftId: listingIdSchema, revision: draftRevisionSchema });
 export type DraftPayload = z.output<typeof draftPayloadSchema>;
 export type ListingDraftDTO = {
   id: string;

@@ -493,7 +493,6 @@ describe.skipIf(!url)(
           request({
             draftId: draft.id,
             revision: 1,
-            data: { make: "Unsaved change" },
           }),
         ),
       );
@@ -511,7 +510,7 @@ describe.skipIf(!url)(
       ).rejects.toMatchObject({ status: 409 });
     });
 
-    it("rolls back listing creation if storing the publication link fails", async () => {
+    it("rolls back Listing creation if storing the Submission link fails", async () => {
       const draft = await createDraft();
       await rejectWrites("ListingDraft", async () => {
         await expect(
@@ -550,7 +549,7 @@ describe.skipIf(!url)(
       ).toBe(0);
     });
 
-    it("arbitrates publication against an edit or deletion without orphan listings", async () => {
+    it("arbitrates Submission against an edit or deletion without orphan Listings", async () => {
       for (const action of ["save", "delete"] as const) {
         const draft = await createDraft();
         const outcomes = await Promise.allSettled([

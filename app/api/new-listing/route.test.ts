@@ -14,16 +14,19 @@ const draftId = "abcdef0123456789abcdef01";
 const request = (body: unknown) => new Request("http://localhost/api/new-listing", { method: "POST", body: JSON.stringify(body) });
 beforeEach(() => { vi.clearAllMocks(); mocks.user.mockResolvedValue({ id: "seller" }); mocks.submit.mockResolvedValue({ id: "submitted" }); });
 describe("Submission endpoint", () => {
-  it("returns only the listing ID when replaying a submitted Draft with accumulated private activity", async () => {
+  it("returns only the Listing ID when replaying a submitted Draft with accumulated private activity", async () => {
     const listing = { ...makeListing({ status: "LIVE", reservePrice: 98765, watchersIds: ["private-watcher"], seenIds: ["private-viewer"], reviewNote: "Private feedback" }), futureSecret: "secret" };
     mocks.submit.mockResolvedValueOnce(listing);
     const response = await POST(request({ draftId, revision: 3 }));
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toEqual({ id: listing.id });
   });
-  it("submits only the authenticated owner’s saved Draft, ignoring listing data sent alongside it", async () => {
-    const response = await POST(request({ draftId, revision: 3, data: { make: "Unsaved data", userId: "other" } }));
+  it("submits the authenticated owner’s saved Draft", async () => {
+    const response = await POST(request({ draftId, revision: 3 }));
     expect(response.status).toBe(201); expect(mocks.submit).toHaveBeenCalledWith({ id: "seller" }, draftId, 3);
+  });
+  it("rejects listing data sent alongside a Draft", async () => {
+    expect((await POST(request({ draftId, revision: 3, data: { make: "Unsaved data", userId: "other" } }))).status).toBe(400); expect(mocks.submit).not.toHaveBeenCalled();
   });
   it("requires sign-in", async () => {
     mocks.user.mockResolvedValue(null);
