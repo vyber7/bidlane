@@ -32,7 +32,7 @@ describe("listing disclosure boundary", () => {
     expect(toPublicListing(makeListing({ reservePrice }))).toMatchObject({ isNoReserve });
   });
 
-  it.each([{ id: "seller" }, { id: "moderator", role: "ADMIN" }])("gives management fields only to authorized viewer %j", (viewer) => {
+  it.each([{ id: "seller" }, { id: "admin", role: "ADMIN" }])("gives management fields only to authorized viewer %j", (viewer) => {
     const payload = toSellerListing(privateListing(), viewer);
     expect(payload).toMatchObject({ reservePrice: 98765, reviewNote: "Private review feedback", reviewRevision: 1234 });
     for (const field of ["watchersIds", "seenIds", "biddersIds", "commenterIds", "commentsIds", "futureSecret"]) expect(payload).not.toHaveProperty(field);

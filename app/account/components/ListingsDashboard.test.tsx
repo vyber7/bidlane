@@ -52,7 +52,7 @@ afterEach(() => {
 it("opens a filtered URL and keeps tab selection, keyboard focus, and history in sync", async () => {
   window.history.replaceState(null, "", "/account/listings?tab=watching&status=live&q=911");
   render(<ListingsDashboard
-    uploaded={[makeSellerListing({ model: "Boxster" })]}
+    uploaded={[{ ...makeSellerListing({ model: "Boxster" }), reviewLabel: "Approved" }]}
     initialWatching={[makePublicListing()]}
   />);
   const watchlist = screen.getByRole("tab", { name: /Watchlist/ });

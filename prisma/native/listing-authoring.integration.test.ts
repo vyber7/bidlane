@@ -49,7 +49,7 @@ import {
 import {
   getListingReview,
   getReviewQueue,
-} from "@/app/libs/listing-moderation";
+} from "@/app/libs/listing-review";
 import {
   emptyDraftPayload,
   type DraftPayload,
@@ -154,7 +154,7 @@ describe.skipIf(!url)(
       });
       admin = await repositories.users.create({
         email: "admin@example.com",
-        name: "Moderator",
+        name: "Reviewer",
         emailVerified: new Date(),
       });
       await connection.database
@@ -688,7 +688,7 @@ describe.skipIf(!url)(
         ).toMatchObject({
           decision: "APPROVED",
           revision: Long.fromNumber(1),
-          reviewerName: "Moderator",
+          reviewerName: "Reviewer",
           reason: null,
         });
       },
@@ -728,7 +728,7 @@ describe.skipIf(!url)(
       );
     });
 
-    it("records one decision when moderators compete for the same revision", async () => {
+    it("records one decision when administrators compete for the same revision", async () => {
       const listing = await repositories.listingAuthoring.create(
         seller.id,
         validated(),
@@ -1071,7 +1071,7 @@ describe.skipIf(!url)(
       expect(record.reviewRevision).toBe(1);
     });
 
-    it("bounds and filters the moderation queue, limits history, and projects seller contact safely", async () => {
+    it("bounds and filters the review queue, limits history, and projects seller contact safely", async () => {
       const ids: string[] = [];
       const base = Date.now() - 100000;
       for (let index = 0; index < 22; index++)

@@ -507,7 +507,7 @@ describe.skipIf(!url)(
       expect(state.trigger).not.toHaveBeenCalled();
     });
 
-    it("rechecks view visibility after a concurrent moderation change", async () => {
+    it("rechecks view visibility after a concurrent Review change", async () => {
       changeAfterFirstRead(() =>
         setListing({ status: "UPCOMING", reviewStatus: "PENDING" }),
       );

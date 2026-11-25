@@ -36,9 +36,9 @@ export default function ReviewForm({ id, revision, disabled }: { id: string; rev
   return <section className="rounded-2xl border border-slate-200 bg-white p-6">
     <h2 className="text-xl font-bold">Review Decision</h2>
     <p className="mt-2 text-sm text-slate-600">Review all photos, disclosures, and records before approving. Feedback is visible to the seller. Approval does not certify ownership or vehicle condition.</p>
-    {disabled && <p className="mt-3 text-sm font-bold text-amber-800">Auctions that have started cannot be moderated here.</p>}
+    {disabled && <p className="mt-3 text-sm font-bold text-amber-800">Auctions that have started cannot be reviewed here.</p>}
     <fieldset disabled={saving || disabled} className="mt-4">
-      <legend className="sr-only">Moderation decision</legend>
+      <legend className="sr-only">Review decision</legend>
       <label className="block text-sm font-bold">Feedback (required when requesting changes)<textarea ref={feedback} name="reason" value={reason} aria-invalid={Boolean(feedbackError)} aria-describedby={feedbackError ? feedbackErrorId : undefined} onChange={(event) => { setReason(event.target.value); setFeedbackError(""); }} maxLength={2000} rows={4} className="mt-2 block w-full rounded-lg border border-slate-300 p-3 font-normal aria-[invalid=true]:border-rose-600" /></label>
       {feedbackError && <p id={feedbackErrorId} role="alert" className="mt-2 text-sm text-rose-700">{feedbackError}</p>}
       <div className="mt-4 flex flex-wrap gap-3">

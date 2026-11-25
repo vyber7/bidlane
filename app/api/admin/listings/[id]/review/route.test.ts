@@ -13,14 +13,14 @@ const submit = (body: unknown = { revision: 3, decision: "APPROVED" }) => POST(n
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.user.mockResolvedValue({ id: "admin", role: "ADMIN", name: "Moderator" });
+  mocks.user.mockResolvedValue({ id: "admin", role: "ADMIN", name: "Reviewer" });
   mocks.findUnique.mockResolvedValue({ id, userId: "seller", status: "UPCOMING", reviewRevision: 3, reviewStatus: "PENDING" });
   mocks.updateMany.mockResolvedValue({ count: 1 });
   mocks.create.mockResolvedValue({ id: "review" });
   mocks.transaction.mockImplementation(async (callback) => callback({ listingAuthoring: { find: mocks.findUnique, setReview: mocks.updateMany, addReview: mocks.create } }));
 });
 
-describe("listing moderation decisions", () => {
+describe("Review decisions", () => {
   it.each([[null, 401], [{ id: "buyer", role: "USER" }, 403]])("rejects unauthorized callers before any data access", async (user, status) => {
     mocks.user.mockResolvedValue(user);
     expect((await submit()).status).toBe(status);
@@ -29,7 +29,7 @@ describe("listing moderation decisions", () => {
   it("approves the reviewed version and records who reviewed it in the same transaction", async () => {
     expect((await submit()).status).toBe(200);
     expect(mocks.updateMany).toHaveBeenCalledWith(id, { revision: 3, decision: "APPROVED", reason: "" }, expect.any(Date));
-    expect(mocks.create).toHaveBeenCalledWith(id, { revision: 3, decision: "APPROVED", reason: "" }, { id: "admin", name: "Moderator" }, expect.any(Date));
+    expect(mocks.create).toHaveBeenCalledWith(id, { revision: 3, decision: "APPROVED", reason: "" }, { id: "admin", name: "Reviewer" }, expect.any(Date));
   });
   it("saves actionable feedback and revokes approval when changes are requested", async () => {
     mocks.findUnique.mockResolvedValue({ id, userId: "seller", status: "UPCOMING", reviewRevision: 3, reviewStatus: "APPROVED" });

@@ -11,7 +11,7 @@ import ReviewForm from "./ReviewForm";
 afterEach(cleanup);
 beforeEach(() => { vi.clearAllMocks(); mocks.post.mockResolvedValue({ data: {} }); });
 
-describe("moderator decisions", () => {
+describe("Review decisions", () => {
   it("requires actionable feedback when requesting changes", async () => {
     render(<ReviewForm id="listing" revision={3} disabled={false} />);
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Request Changes" })); });

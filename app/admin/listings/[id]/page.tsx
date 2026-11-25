@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getListingReview } from "@/app/libs/listing-moderation";
+import { getListingReview, reviewLabel, reviewLabels } from "@/app/libs/listing-review";
 import { ApiRequestError } from "@/app/libs/api-request";
-import { reviewLabels } from "@/app/libs/listing-review";
 import { vehicleSpecificationFields } from "@/app/libs/vehicle-details";
 import VehicleHistory from "@/app/components/VehicleHistory";
 import VehicleRecords from "@/app/components/VehicleRecords";
@@ -31,7 +30,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const title = `${listing.year} ${listing.make} ${listing.model}`;
   return <div className="mx-auto max-w-6xl space-y-6 px-4 pb-12 pt-24 sm:px-6 lg:px-8">
     <Link href="/admin/listings" className="text-sm font-bold underline hover:text-amber-700"><span aria-hidden="true">←</span> Listing Reviews</Link>
-    <header><p className="text-sm font-bold text-amber-800">{reviewLabels[listing.reviewStatus ?? "PENDING"]} · {phaseLabels[listing.phase]}</p><h1 className="mt-2 text-balance text-3xl font-black">{title}</h1><p className="mt-3 text-sm text-slate-600">Seller: {listing.user.name || "Seller"} · {listing.user.email || "Email unavailable"}</p><Link href={`/listing/${id}`} className="mt-3 inline-block text-sm font-bold underline hover:text-amber-700">View Listing Page <span aria-hidden="true">→</span></Link></header>
+    <header><p className="text-sm font-bold text-amber-800">{reviewLabel(listing)} · {phaseLabels[listing.phase]}</p><h1 className="mt-2 text-balance text-3xl font-black">{title}</h1><p className="mt-3 text-sm text-slate-600">Seller: {listing.user.name || "Seller"} · {listing.user.email || "Email unavailable"}</p><Link href={`/listing/${id}`} className="mt-3 inline-block text-sm font-bold underline hover:text-amber-700">View Listing Page <span aria-hidden="true">→</span></Link></header>
     <section className="rounded-2xl border bg-white p-6">
       <h2 className="text-xl font-bold">Vehicle Details</h2>
       <dl className="mt-4 grid gap-4 sm:grid-cols-2">{[

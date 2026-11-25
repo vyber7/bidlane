@@ -1,6 +1,6 @@
 import { isTransactionContention } from "@/prisma/native/transaction-errors";
 import { requireAdmin } from "@/app/libs/admin";
-import { reviewListing } from "@/app/libs/listing-moderation";
+import { reviewListing } from "@/app/libs/listing-review";
 import { apiErrorResponse, errorResponse, parseApiInput, readJsonObject, requireListingId } from "@/app/libs/api-request";
 import { listingDecisionSchema } from "@/app/schemas/listing-review";
 import { logger } from "@/app/libs/logger";

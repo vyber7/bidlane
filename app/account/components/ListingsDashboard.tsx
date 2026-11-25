@@ -1,6 +1,6 @@
 "use client";
 
-import type { PublicListing, SellerListing } from "@/app/libs/listing-payload";
+import type { PublicListing } from "@/app/libs/listing-payload";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { startTransition, useMemo, useOptimistic, useRef, useState } from "react";
@@ -17,7 +17,7 @@ import {
 import { userChannel } from "@/app/libs/realtime/catalog";
 import { useRealtimeEvent } from "@/app/libs/realtime/client";
 import { deserializeListing } from "@/app/utils/listing-serialization";
-import AccountListingBox from "./AccountListingBox";
+import AccountListingBox, { type AccountListing } from "./AccountListingBox";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 import useUndo from "@/app/hooks/useUndo";
 import UndoNotice from "@/app/components/UndoNotice";
@@ -41,7 +41,7 @@ function isStaleEcho(intents: WatchIntents, listingId: string, watching: boolean
 }
 
 interface ListingsDashboardProps {
-  uploaded: SellerListing[];
+  uploaded: AccountListing[];
   initialWatching: PublicListing[];
   currentUserId?: string | null;
 }
