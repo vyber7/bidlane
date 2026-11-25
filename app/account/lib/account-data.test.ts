@@ -24,6 +24,7 @@ describe("account bid summaries", () => {
         coverImage: null, status: "LIVE", result: null, group: "live", currentBid: 15000,
         auctionEndsAt: latest.listing.auctionEndsAt!.toISOString(),
         highestBid: 15000, lastBidAt: auctionNow.toISOString(), bidCount: 2, isHighestBidder: true, completionHref: null,
+        auction: expect.objectContaining({ id: latest.listingId, status: "LIVE", currentBid: 15000, isWatching: false }),
       },
       expect.objectContaining({ id: "other", auctionEndsAt: null, bidCount: 1, isHighestBidder: false }),
     ]);

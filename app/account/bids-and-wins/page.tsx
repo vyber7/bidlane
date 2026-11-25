@@ -10,7 +10,7 @@ const BidsAndWins = async () => {
   const bids = await getReadRepositories().bids.forUser(currentUser.id);
 
   return (
-    <BidsAndWinsDashboard bids={buildBidSummaries(bids, currentUser.id)} />
+    <BidsAndWinsDashboard bids={buildBidSummaries(bids, currentUser.id)} currentUserId={currentUser.id} />
   );
 };
 

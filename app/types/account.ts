@@ -1,5 +1,6 @@
 import type { TransactionCompletion } from "@/app/libs/transaction-completion";
 import type { AuctionGroup } from "@/app/libs/listing-capabilities";
+import type { PublicListing } from "@/app/libs/listing-codec";
 
 export type AuctionBid = {
   id: string;
@@ -19,6 +20,8 @@ export type AuctionBid = {
   bidCount: number;
   isHighestBidder: boolean;
   completionHref: string | null;
+  /** The Auction as loaded, which the dashboard follows through Real-time updates. */
+  auction: PublicListing;
 };
 
 export type AccountNotification = {

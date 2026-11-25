@@ -3,7 +3,7 @@
 import type { PublicListing } from "@/app/libs/listing-codec";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { startTransition, useMemo, useOptimistic, useRef, useState } from "react";
+import { startTransition, useOptimistic, useRef, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import {
@@ -17,7 +17,8 @@ import {
 import { userChannel } from "@/app/libs/realtime/catalog";
 import { useRealtimeEvent } from "@/app/libs/realtime/client";
 import { deserializeListing } from "@/app/utils/listing-serialization";
-import { listingGroup, type AuctionGroup } from "@/app/libs/listing-capabilities";
+import type { AuctionGroup } from "@/app/libs/listing-capabilities";
+import useTrackedAuctions, { type TrackedAuction } from "./useTrackedAuctions";
 import AccountListingBox, { type AccountListing } from "./AccountListingBox";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 import useUndo from "@/app/hooks/useUndo";
@@ -68,7 +69,6 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
   const tab: Tab = params.get("tab") === "watching" ? "watching" : "uploaded";
   const statusFilter = filters.find((filter) => filter.id === params.get("status")) ?? filters[0];
   const status = statusFilter.id;
-  const [now] = useState(Date.now);
   const [query, setOptimisticQuery] = useOptimistic(params.get("q") ?? "");
   const [watchlist, setWatchlist] = useState({ source: initialWatching, listings: initialWatching });
   if (watchlist.source !== initialWatching) {
@@ -139,18 +139,17 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
     }
   );
 
-  const source = tab === "uploaded" ? uploaded : watching;
-  const visibleListings = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+  const trackedUploaded = useTrackedAuctions(uploaded);
+  const trackedWatching = useTrackedAuctions(watching);
+  const source: TrackedAuction<PublicListing>[] = tab === "uploaded" ? uploaded.map(trackedUploaded.current) : watching.map(trackedWatching.current);
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleListings = source.filter(({ listing, group }) => {
+    const matchesStatus = !statusFilter.group || group === statusFilter.group;
+    const searchable = `${listing.year} ${listing.make} ${listing.model} ${listing.location}`.toLowerCase();
+    return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
+  }).map(({ listing }) => listing);
 
-    return source.filter((listing) => {
-      const matchesStatus = !statusFilter.group || listingGroup(listing, now) === statusFilter.group;
-      const searchable = `${listing.year} ${listing.make} ${listing.model} ${listing.location}`.toLowerCase();
-      return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
-    });
-  }, [query, source, statusFilter.group, now]);
-
-  const liveCount = uploaded.filter((listing) => listingGroup(listing, now) === "live").length;
+  const liveCount = uploaded.filter((listing) => trackedUploaded.current(listing).group === "live").length;
   const changeTab = (nextTab: Tab) => {
     if (nextTab === tab) return;
     updateAccountUrl({ tab: nextTab === "watching" ? nextTab : "", status: "", q: "" });
@@ -158,6 +157,8 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
 
   return (
     <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      {trackedUploaded.trackers}
+      {trackedWatching.trackers}
       <div className="border-b border-gray-200 px-5 py-5 sm:px-6">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
