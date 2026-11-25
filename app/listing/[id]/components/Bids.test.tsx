@@ -6,10 +6,12 @@ import { AuctionProvider } from "@/app/context/AuctionContext";
 import { auctionNow, makeBid, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 import Bids from "./Bids";
 
-const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn(), useSession: vi.fn() }));
+const mocks = vi.hoisted(() => ({ post: vi.fn(), recordView: vi.fn<(...args: unknown[]) => Promise<unknown>>(() => Promise.resolve({ data: {} })), refresh: vi.fn(), useSession: vi.fn() }));
 vi.mock("axios", async (importOriginal) => {
   const actual = await importOriginal<typeof import("axios")>();
-  return { ...actual, default: { ...actual.default, post: mocks.post } };
+  // The listing page records a view on mount; keep it out of the requests under test.
+  const post = (url: string, ...rest: unknown[]) => url === "/api/listing-view" ? mocks.recordView(url, ...rest) : mocks.post(url, ...rest);
+  return { ...actual, default: { ...actual.default, post } };
 });
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
 vi.mock("next-auth/react", () => ({ useSession: mocks.useSession }));
@@ -33,7 +35,7 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 function view(listing = makeListing()) {
-  return <AuctionProvider listing={listing} bids={[]} comments={[]}><Bids currentUserId="buyer" emailVerified /></AuctionProvider>;
+  return <AuctionProvider listing={listing} bids={[]} comments={[]} viewerId="buyer"><Bids emailVerified /></AuctionProvider>;
 }
 
 async function reviewBid(amount = "12000") {
@@ -93,7 +95,7 @@ describe("auction description in the bids panel", () => {
   });
 
   it("keeps the seller's own Open Auction free of bidding guidance", () => {
-    render(<AuctionProvider listing={makeListing()} bids={[]} comments={[]}><Bids currentUserId="seller" emailVerified /></AuctionProvider>);
+    render(<AuctionProvider listing={makeListing()} bids={[]} comments={[]} viewerId="seller"><Bids emailVerified /></AuctionProvider>);
     expect(screen.queryByText(/Your auction is live/)).toBeNull();
   });
 
@@ -118,7 +120,7 @@ describe("bid review", () => {
   });
 
   it("guides an unverified bidder to verification and disables new bids", () => {
-    render(<AuctionProvider listing={makeListing()} bids={[]} comments={[]}><Bids currentUserId="buyer" emailVerified={false} /></AuctionProvider>);
+    render(<AuctionProvider listing={makeListing()} bids={[]} comments={[]} viewerId="buyer"><Bids emailVerified={false} /></AuctionProvider>);
     expect(screen.getByRole("link", { name: "Verify email in your profile" }).getAttribute("href")).toBe("/account/profile");
     expect(screen.getByRole("button", { name: "Review Bid" })).toHaveProperty("disabled", true);
   });
@@ -233,7 +235,9 @@ describe("bid review", () => {
     const confirm = screen.getByRole("button", { name: "Confirm Bid of $12,000" });
     expect(confirm).toHaveProperty("disabled", true);
     fireEvent.click(confirm);
-    expect(mocks.post).not.toHaveBeenCalled();
+    // The expired Auction asks for Finalization, but no bid is sent.
+    expect(mocks.post).not.toHaveBeenCalledWith("/api/place-bid", expect.anything(), expect.anything());
+    expect(mocks.post).toHaveBeenCalledWith("/api/auction-finalize", { listingId: makeListing().id });
   });
 
   it("removes confirmation when a live auction-ended event is received", async () => {

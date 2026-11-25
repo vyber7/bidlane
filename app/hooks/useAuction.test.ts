@@ -5,13 +5,19 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 import { auctionNow, makeBid, makeComment, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 
-const mocks = vi.hoisted(() => ({ refresh: vi.fn() }));
+const mocks = vi.hoisted(() => ({ refresh: vi.fn(), post: vi.fn(), toastError: vi.fn() }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
+vi.mock("axios", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("axios")>();
+  return { ...actual, default: { ...actual.default, post: mocks.post } };
+});
+vi.mock("react-hot-toast", () => ({ toast: { error: mocks.toastError } }));
 
 import { installFakeRealtime, type FakeRealtime } from "@/app/libs/realtime/testing";
 import type { RealtimeCatalog } from "@/app/libs/realtime/catalog";
 import useAuction from "./useAuction";
+import { describeAuction } from "@/app/libs/auction-display";
 
 let realtime: FakeRealtime;
 
@@ -28,7 +34,8 @@ beforeEach(() => {
   realtime = installFakeRealtime();
   vi.useFakeTimers();
   vi.setSystemTime(auctionNow);
-  mocks.refresh.mockClear();
+  vi.clearAllMocks();
+  mocks.post.mockResolvedValue({ data: {} });
 });
 
 afterEach(() => {
@@ -49,7 +56,7 @@ describe("auction state reconciliation", () => {
   });
 
   it("recovers bids, activity, and an extension from refreshed props after missed events", () => {
-    const { result, rerender } = renderHook((props) => useAuction(props.listing, props.bids, props.comments), {
+    const { result, rerender } = renderHook((props) => useAuction(props.listing, { bids: props.bids, comments: props.comments }), {
       initialProps: { listing: makeListing(), bids: [] as BidWithAuthor[], comments: [] as CommentWithAuthor[] },
     });
     act(() => vi.advanceTimersByTime(60000));
@@ -88,7 +95,7 @@ describe("auction state reconciliation", () => {
 
   it("uses successful bid responses without needing a live notification and deduplicates echoes", () => {
     const listing = makeListing();
-    const { result, rerender } = renderHook((props) => useAuction(props.listing, props.bids), {
+    const { result, rerender } = renderHook((props) => useAuction(props.listing, { bids: props.bids }), {
       initialProps: { listing, bids: [] as BidWithAuthor[] },
     });
     const bid = makeBid();
@@ -138,7 +145,7 @@ describe("auction state reconciliation", () => {
   it("merges HTTP, live, and refreshed comments without losing or duplicating activity", () => {
     const listing = makeListing();
     const bids: BidWithAuthor[] = [];
-    const { result, rerender } = renderHook((props) => useAuction(props.listing, bids, props.comments), {
+    const { result, rerender } = renderHook((props) => useAuction(props.listing, { bids, comments: props.comments }), {
       initialProps: { listing, comments: [] as CommentWithAuthor[] },
     });
     const comment = makeComment();
@@ -153,7 +160,7 @@ describe("auction state reconciliation", () => {
     const card = renderHook(() => useAuction(listing));
     const bids: BidWithAuthor[] = [];
     const comments: CommentWithAuthor[] = [];
-    const page = renderHook(() => useAuction(listing, bids, comments));
+    const page = renderHook(() => useAuction(listing, { bids, comments }));
     emit("new-comment", { ...makeComment({ id: "realtime-comment" }), createdAt: auctionNow.toISOString() });
     expect(page.result.current.comments.map((comment) => comment.id)).toEqual(["realtime-comment"]);
     expect(card.result.current.comments).toEqual([]);
@@ -204,5 +211,116 @@ describe("auction state reconciliation", () => {
     act(() => vi.advanceTimersByTime(1000));
     expect(mocks.refresh).not.toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe("the auction view for a viewer", () => {
+  it.each([["seller"], ["buyer"], [null]])("describes the Auction to viewer %s as the display module does", (viewerId) => {
+    const listing = makeListing();
+    const { result } = renderHook(() => useAuction(listing, { viewerId }));
+    expect(result.current.viewerId).toBe(viewerId);
+    expect(result.current.display).toEqual(describeAuction(listing, result.current.phase, viewerId));
+  });
+
+  it("moves the display to Closing when the deadline passes", () => {
+    const listing = makeListing();
+    const { result } = renderHook(() => useAuction(listing, { viewerId: "buyer" }));
+    expect(result.current.display.headline).toBe("Live auction");
+    act(() => vi.advanceTimersByTime(60000));
+    expect(result.current.display.timer).toBe("closing");
+  });
+});
+
+describe("Finalization", () => {
+  const finalizeCalls = () => mocks.post.mock.calls.filter(([url]) => url === "/api/auction-finalize");
+
+  it.each([["seller"], ["buyer"], [null]])("requests Finalization on expiry for viewer %s and refreshes once it settles", async (viewerId) => {
+    const listing = makeListing({ auctionEndsAt: auctionNow });
+    const { result } = renderHook(() => useAuction(listing, { viewerId }));
+    expect(finalizeCalls()).toEqual([["/api/auction-finalize", { listingId: makeListing().id }]]);
+    expect(result.current.finalization.finalizing).toBe(true);
+    await act(async () => {});
+    expect(result.current.finalization.finalizing).toBe(false);
+    act(() => vi.advanceTimersByTime(250));
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("never requests Finalization before the deadline or for an ended Auction", () => {
+    const listings = [
+      makeListing(),
+      makeListing({ id: "ended", status: "ENDED", result: "SOLD", auctionEndsAt: auctionNow }),
+      makeListing({ id: "upcoming", status: "UPCOMING" }),
+    ];
+    for (const listing of listings) renderHook(() => useAuction(listing));
+    expect(finalizeCalls()).toHaveLength(0);
+  });
+
+  it("sends one request for every view of the same Closing Auction", async () => {
+    const listing = makeListing({ auctionEndsAt: auctionNow });
+    const views = [renderHook(() => useAuction(listing, { viewerId: "buyer" })), renderHook(() => useAuction(listing))];
+    expect(finalizeCalls()).toHaveLength(1);
+    expect(views.map((view) => view.result.current.finalization.finalizing)).toEqual([true, true]);
+    await act(async () => {});
+    expect(views.map((view) => view.result.current.finalization.finalizing)).toEqual([false, false]);
+    act(() => vi.advanceTimersByTime(250));
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("requests an extended deadline again even after the previous deadline was requested", async () => {
+    const listing = makeListing({ auctionEndsAt: auctionNow });
+    const { rerender } = renderHook(({ listing }) => useAuction(listing), { initialProps: { listing } });
+    await act(async () => {});
+    mocks.post.mockClear();
+    rerender({ listing: { ...listing, auctionEndsAt: new Date(Date.now() + 1000) } });
+    expect(finalizeCalls()).toHaveLength(0);
+    await act(async () => vi.advanceTimersByTime(1000));
+    expect(finalizeCalls()).toHaveLength(1);
+  });
+
+  it("keeps a newer deadline's request in flight when an older request finishes late", async () => {
+    const finish: Array<(value: unknown) => void> = [];
+    mocks.post.mockImplementation(() => new Promise((resolve) => finish.push(resolve)));
+    const listing = makeListing({ auctionEndsAt: auctionNow });
+    const { result, rerender } = renderHook(({ listing }) => useAuction(listing), { initialProps: { listing } });
+    rerender({ listing: { ...listing, auctionEndsAt: new Date(Date.now() + 1000) } });
+    await act(async () => vi.advanceTimersByTime(1000));
+    expect(finish).toHaveLength(2);
+
+    await act(async () => finish[0]({ data: {} }));
+    expect(result.current.finalization.finalizing).toBe(true);
+    await act(async () => finish[1]({ data: {} }));
+    expect(result.current.finalization.finalizing).toBe(false);
+  });
+
+  it("asks again for the same deadline after a failed request when a new view mounts", async () => {
+    mocks.post.mockRejectedValueOnce(new Error("offline"));
+    const listing = makeListing({ auctionEndsAt: auctionNow });
+    const first = renderHook(() => useAuction(listing));
+    await act(async () => {});
+    expect(first.result.current.finalization.finalizing).toBe(false);
+    act(() => vi.advanceTimersByTime(250));
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+    renderHook(() => useAuction(listing));
+    expect(finalizeCalls()).toHaveLength(2);
+  });
+
+  it("retries on request, reporting it in flight, and shows why a retry failed", async () => {
+    const listing = makeListing({ auctionEndsAt: auctionNow });
+    const { result } = renderHook(() => useAuction(listing, { viewerId: "seller" }));
+    await act(async () => {});
+    mocks.post.mockClear();
+
+    let settle!: (value: unknown) => void;
+    mocks.post.mockImplementationOnce(() => new Promise((resolve) => { settle = resolve; }));
+    let retry!: Promise<void>;
+    act(() => { retry = result.current.finalization.retry(); });
+    expect(finalizeCalls()).toHaveLength(1);
+    expect(result.current.finalization.finalizing).toBe(true);
+    await act(async () => { settle({ data: {} }); await retry; });
+    expect(result.current.finalization.finalizing).toBe(false);
+
+    mocks.post.mockRejectedValueOnce({ isAxiosError: true, response: { status: 500, data: { error: "Try later" } } });
+    await act(async () => result.current.finalization.retry());
+    expect(mocks.toastError).toHaveBeenCalledWith("Try later");
   });
 });

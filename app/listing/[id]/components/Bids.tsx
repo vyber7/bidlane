@@ -3,24 +3,20 @@
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { capitalize, formatAmount, formatPrice, formatDateTime, formatDisplayName } from "@/app/utils/format";
-import { useAuctionContext } from "@/app/context/AuctionContext";
+import { useAuctionView } from "@/app/context/AuctionContext";
 import BidForm from "./BidForm";
-import { describeAuction } from "@/app/libs/auction-display";
 
 interface BidsProps {
   sellerName?: string | null;
-  currentUserId?: string | null;
   emailVerified?: boolean;
 }
 
 const Bids: React.FC<BidsProps> = ({
   sellerName,
-  currentUserId,
   emailVerified = false,
 }) => {
   const { data: session } = useSession();
-  const { listing, bids, phase } = useAuctionContext();
-  const display = describeAuction(listing, phase, currentUserId);
+  const { listing, bids, viewerId, display } = useAuctionView();
   const { price, result } = display;
   const highestBidderName = formatDisplayName(
     bids.find((item) => item.userId === listing.highestBidderId)?.user.name,
@@ -91,8 +87,8 @@ const Bids: React.FC<BidsProps> = ({
         <p className="mt-2 text-sm text-slate-500">{display.message}</p>
       )}
       {session &&
-        listing.userId !== currentUserId ? (
-        <BidForm key={`${listing.id}:${currentUserId ?? ""}`} currentUserId={currentUserId} emailVerified={emailVerified} />
+        listing.userId !== viewerId ? (
+        <BidForm key={`${listing.id}:${viewerId ?? ""}`} emailVerified={emailVerified} />
       ) : !session && display.action === "place-bid" ? (
         <>
           <hr />
