@@ -157,7 +157,7 @@ export function draftRepository(database: Db, session?: ClientSession) {
       );
       return { count: updated.modifiedCount };
     },
-    async publish(
+    async markSubmitted(
       id: string,
       userId: string,
       revision: number,

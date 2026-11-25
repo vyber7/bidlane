@@ -4,8 +4,8 @@ import type { DraftRecord } from "@/prisma/native/drafts";
 import { authoringTransactionOptions, isDuplicateKey } from "@/prisma/native/transaction-errors";
 import type { z } from "zod";
 import { getNativeRepositories, withNativeTransaction } from "./native-repositories";
-import { ApiRequestError } from "./api-request";
-import { parseListing } from "./listing-validation";
+import { ApiRequestError, parseApiInput } from "./api-request";
+import { listingSchema } from "@/app/schemas/listing";
 import { emptyDraftPayload, draftPayloadSchema, type createDraftSchema, type updateDraftSchema, type ListingDraftDTO } from "@/app/schemas/listing-draft";
 
 export function serializeDraft(draft: DraftRecord): ListingDraftDTO {
@@ -16,7 +16,7 @@ const conflict = () => new ApiRequestError(409, "This draft changed in another t
 const notFound = () => new ApiRequestError(404, "Draft not found.");
 const sameSave = (draft: DraftRecord, input: { saveKey: string; payload: unknown }) => draft.lastSaveKey === input.saveKey && JSON.stringify(draftPayloadSchema.parse(draft.payload)) === JSON.stringify(input.payload);
 
-export async function createListingDraft(userId: string, input: z.output<typeof createDraftSchema>) {
+export async function createDraft(userId: string, input: z.output<typeof createDraftSchema>) {
   const create = () => withNativeTransaction(async (tx) => {
     const existing = await tx.drafts.find(input.id);
     if (existing) {
@@ -37,7 +37,7 @@ export async function createListingDraft(userId: string, input: z.output<typeof 
   }
 }
 
-export async function updateListingDraft(userId: string, id: string, input: z.output<typeof updateDraftSchema>) {
+export async function updateDraft(userId: string, id: string, input: z.output<typeof updateDraftSchema>) {
   const existing = await getNativeRepositories().drafts.owned(id, userId);
   if (!existing) throw notFound();
   if (existing.publishedListingId) throw new ApiRequestError(409, "This draft has already been submitted. Open the listing from your account.");
@@ -57,7 +57,7 @@ export async function updateListingDraft(userId: string, id: string, input: z.ou
   return { id, payload: input.payload, revision: input.revision + 1, updatedAt: updatedAt.toISOString(), publishedListingId: null } satisfies ListingDraftDTO;
 }
 
-export async function deleteListingDraft(userId: string, id: string, revision: number) {
+export async function deleteDraft(userId: string, id: string, revision: number) {
   // Keep an empty marker so a delayed create retry cannot resurrect a draft
   // deleted on another device. Remove its saved fields and asset references.
   const deleted = await getNativeRepositories().drafts.remove(id, userId, revision, emptyDraftPayload, new Date());
@@ -67,7 +67,7 @@ export async function deleteListingDraft(userId: string, id: string, revision: n
   }
 }
 
-export async function publishListingDraft(user: { id: string; emailVerified?: Date | null }, id: string, revision: number) {
+export async function submitDraft(user: { id: string; emailVerified?: Date | null }, id: string, revision: number) {
   const userId = user.id;
   return withNativeTransaction(async (tx) => {
     const draft = await tx.drafts.owned(id, userId);
@@ -81,12 +81,12 @@ export async function publishListingDraft(user: { id: string; emailVerified?: Da
     if (draft.revision !== revision) throw conflict();
     requireVerifiedEmail(user, "submit a listing");
     const payload = draftPayloadSchema.parse(draft.payload);
-    const data = parseListing({ ...payload.details, images: payload.images, vehicleRecords: payload.vehicleRecords });
+    const data = parseApiInput(listingSchema, { ...payload.details, images: payload.images, vehicleRecords: payload.vehicleRecords });
     const now = new Date();
     const listing = await tx.listingAuthoring.create(userId, data, now);
-    const claimed = await tx.drafts.publish(id, userId, revision, listing.id, now);
+    const claimed = await tx.drafts.markSubmitted(id, userId, revision, listing.id, now);
     if (claimed.count !== 1) throw conflict();
-    // A tombstone links retries to the same listing without duplicating it.
+    // The submitted marker links retries to the same Listing without duplicating it.
     return listing;
   }, authoringTransactionOptions);
 }

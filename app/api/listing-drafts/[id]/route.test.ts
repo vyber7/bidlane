@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ user: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn(), find: vi.fn() }));
 vi.mock("@/app/libs/native-repositories", () => ({ getNativeRepositories: () => ({ drafts: { owned: mocks.find } }) }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
-vi.mock("@/app/libs/listing-drafts", () => ({ createListingDraft: mocks.create, updateListingDraft: mocks.update, deleteListingDraft: mocks.remove, serializeDraft: (value: unknown) => value }));
+vi.mock("@/app/libs/listing-submission", () => ({ createDraft: mocks.create, updateDraft: mocks.update, deleteDraft: mocks.remove, serializeDraft: (value: unknown) => value }));
 vi.mock("@/app/libs/logger", () => ({ logger: { warn: vi.fn() } }));
 import { POST } from "../route";
 import { GET, PATCH, DELETE } from "./route";

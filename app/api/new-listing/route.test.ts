@@ -1,85 +1,52 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { validateListing } from "@/app/libs/listing-validation";
-const mocks = vi.hoisted(() => ({ assets: vi.fn(), user: vi.fn(), create: vi.fn() }));
-vi.mock("@/app/libs/native-repositories", () => {
-  const repositories = { assets: { findOwned: mocks.assets }, listingAuthoring: { create: mocks.create } };
-  return { getNativeRepositories: () => repositories, withNativeTransaction: async (fn: (tx: unknown) => unknown) => fn(repositories) };
-});
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { makeListing } from "@/app/test/auction-fixtures";
+import { TransactionRetryLimitError } from "@/prisma/native/transaction-errors";
+const mocks = vi.hoisted(() => ({ user: vi.fn(), submit: vi.fn() }));
+vi.mock("@/app/libs/native-repositories", () => ({
+  getNativeRepositories: () => { throw new Error("Unexpected native database access in this test"); },
+  withNativeTransaction: () => { throw new Error("Unexpected native transaction in this test"); },
+}));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: mocks.user }));
+vi.mock("@/app/libs/listing-submission", () => ({ submitDraft: mocks.submit }));
+vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
 import { POST } from "./route";
-const photo = "https://res.cloudinary.com/demo/image/upload/car.jpg";
-const data = { make: " Porsche ", model: "911", year: "2020", miles: "0", reservePrice: "", location: "Miami, FL", description: "Serviced regularly", images: [photo], transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: " Oil service at 42,000 miles. Records available. ", modifications: "None known", knownFlaws: "Stone chips on the hood" };
-const request = (data: unknown) => new Request("http://localhost/api/new-listing", { method: "POST", body: JSON.stringify({ data }) });
-describe("listing submission", () => {
-  it("requires verified email for direct listing submissions", async () => {
-    mocks.user.mockResolvedValue({ id: "seller", emailVerified: null });
-    expect((await POST(request(data))).status).toBe(403); expect(mocks.create).not.toHaveBeenCalled();
-  });
-  beforeEach(() => { vi.clearAllMocks(); vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo"); mocks.assets.mockImplementation(async ({ urls }) => [photo, photo.replace("car.jpg", "interior.jpg"), "https://res.cloudinary.com/demo/image/upload/receipt.pdf"].filter((url) => urls.includes(url)).map((url) => ({ url }))); mocks.user.mockResolvedValue({ id: "seller", emailVerified: new Date() }); mocks.create.mockResolvedValue({ id: "listing" }); });
-  it("requires sign-in before saving", async () => {
-    mocks.user.mockResolvedValue(null);
-    expect((await POST(request(data))).status).toBe(401);
-    expect(mocks.create).not.toHaveBeenCalled();
-  });
-  it("saves selected photos and cover with zero miles and no reserve", async () => {
-    const response = await POST(request(data));
+const draftId = "abcdef0123456789abcdef01";
+const request = (body: unknown) => new Request("http://localhost/api/new-listing", { method: "POST", body: JSON.stringify(body) });
+beforeEach(() => { vi.clearAllMocks(); mocks.user.mockResolvedValue({ id: "seller" }); mocks.submit.mockResolvedValue({ id: "submitted" }); });
+describe("Submission endpoint", () => {
+  it("returns only the Listing ID when replaying a submitted Draft with accumulated private activity", async () => {
+    const listing = { ...makeListing({ status: "LIVE", reservePrice: 98765, watchersIds: ["private-watcher"], seenIds: ["private-viewer"], reviewNote: "Private feedback" }), futureSecret: "secret" };
+    mocks.submit.mockResolvedValueOnce(listing);
+    const response = await POST(request({ draftId, revision: 3 }));
     expect(response.status).toBe(201);
-    await expect(response.json()).resolves.toEqual({ id: "listing" });
-    expect(mocks.create).toHaveBeenCalledWith("seller", expect.objectContaining({ make: "Porsche", miles: 0, reservePrice: null, images: [photo] }), expect.any(Date));
+    await expect(response.json()).resolves.toEqual({ id: listing.id });
   });
-  it.each([{ images: [photo.replace("car.jpg", "borrowed.jpg")] }, { vehicleRecords: [{ label: "Borrowed", url: photo.replace("car.jpg", "borrowed.pdf") }] }])("rejects media absent from the authenticated owner's ledger", async (media) => {
-    expect((await POST(request({ ...data, ...media }))).status).toBe(400);
-    expect(mocks.create).not.toHaveBeenCalled();
+  it("submits the authenticated owner’s saved Draft", async () => {
+    const response = await POST(request({ draftId, revision: 3 }));
+    expect(response.status).toBe(201); expect(mocks.submit).toHaveBeenCalledWith({ id: "seller" }, draftId, 3);
   });
-
-  it("ignores seller-supplied approval and submits to review", async () => {
-    expect((await POST(request({ ...data, reviewStatus: "APPROVED", reviewRevision: 999, status: "LIVE" }))).status).toBe(201);
-    expect(mocks.create.mock.calls[0][1]).not.toHaveProperty("reviewStatus");
-    expect(mocks.create.mock.calls[0][1]).not.toHaveProperty("reviewRevision");
-    expect(mocks.create.mock.calls[0][1]).not.toHaveProperty("status");
+  it("rejects listing data sent alongside a Draft", async () => {
+    expect((await POST(request({ draftId, revision: 3, data: { make: "Unsaved data", userId: "other" } }))).status).toBe(400); expect(mocks.submit).not.toHaveBeenCalled();
   });
-  it("persists VIN and uploaded records while keeping verification server-owned", async () => {
-    const record = { label: " Receipt ", url: "https://res.cloudinary.com/demo/image/upload/receipt.pdf" };
-    expect((await POST(request({ ...data, vin: " bcnr33-012345 ", vehicleRecords: [record], emailVerified: true }))).status).toBe(201);
-    expect(mocks.create).toHaveBeenCalledWith("seller", expect.objectContaining({ vin: "BCNR33-012345", vehicleRecords: [{ ...record, label: "Receipt" }] }), expect.any(Date));
-    expect(mocks.create.mock.calls[0][1]).not.toHaveProperty("emailVerified");
+  it("requires sign-in", async () => {
+    mocks.user.mockResolvedValue(null);
+    expect((await POST(request({ draftId, revision: 3 }))).status).toBe(401); expect(mocks.submit).not.toHaveBeenCalled();
   });
-  it("preserves photo order and selected cover", async () => {
-    const second = photo.replace("car.jpg", "interior.jpg");
-    await POST(request({ ...data, images: [second, photo], reservePrice: "5000" }));
-    expect(mocks.create).toHaveBeenCalledWith("seller", expect.objectContaining({ images: [second, photo], reservePrice: 5000 }), expect.any(Date));
+  it("rejects listing data sent without a Draft", async () => {
+    const data = { make: "Porsche", model: "911", year: "2020", miles: "0", location: "Miami, FL", description: "Serviced", images: ["https://res.cloudinary.com/demo/image/upload/car.jpg"] };
+    expect((await POST(request({ data }))).status).toBe(400); expect(mocks.submit).not.toHaveBeenCalled();
   });
-  it("saves normalized specifications and seller disclosures", async () => {
-    expect((await POST(request(data))).status).toBe(201);
-    expect(mocks.create).toHaveBeenCalledWith("seller", expect.objectContaining({ transmission: "Manual", drivetrain: "Rear-wheel drive", titleStatus: "Clean", serviceHistory: "Oil service at 42,000 miles. Records available.", modifications: "None known", knownFlaws: "Stone chips on the hood" }), expect.any(Date));
-  });
-  it.each([
-    { transmission: "Invalid" }, { drivetrain: null }, { titleStatus: "" },
-    { serviceHistory: " " }, { modifications: 12 }, { knownFlaws: [] },
-    { serviceHistory: "a".repeat(4001) },
-  ])("rejects incomplete or invalid vehicle disclosures", async (change) => {
-    const response = await POST(request({ ...data, ...change }));
-    expect(response.status).toBe(400);
-    expect(mocks.create).not.toHaveBeenCalled();
-  });
-  it("accepts explicit unknown information without inventing a condition claim", async () => {
-    expect((await POST(request({ ...data, transmission: "Unknown", drivetrain: "Unknown", titleStatus: "Unknown", serviceHistory: "History unknown; records unavailable." }))).status).toBe(201);
-    expect(mocks.create).toHaveBeenCalledWith("seller", expect.objectContaining({ transmission: "Unknown", titleStatus: "Unknown", serviceHistory: "History unknown; records unavailable." }), expect.any(Date));
-  });
-  it.each([{ images: [] }, { images: Array(21).fill(photo) }, { images: ["javascript:alert(1)"] }, { make: " " }, { year: "" }, { miles: -1 }, { miles: "1.5" }, { reservePrice: -5 }, { miles: 2147483648 }])("rejects invalid listing %j", async (change) => {
-    const response = await POST(request({ ...data, ...change }));
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: validateListing({ ...data, ...change }) });
-    expect(mocks.create).not.toHaveBeenCalled();
-  });
-  it("rejects malformed data", async () => {
+  it("rejects malformed bodies", async () => {
     expect((await POST(request(null))).status).toBe(400);
-    expect((await POST(new Request("http://localhost", { method: "POST", body: "{" }))).status).toBe(400);
+    expect((await POST(new Request("http://localhost/api/new-listing", { method: "POST", body: "{" }))).status).toBe(400);
   });
-  it("reports save failures", async () => {
-    mocks.create.mockRejectedValue(new Error("database unavailable"));
-    expect((await POST(request(data))).status).toBe(500);
+  it("reports unexpected failures", async () => {
+    mocks.submit.mockRejectedValueOnce(new Error("database unavailable")); expect((await POST(request({ draftId, revision: 3 }))).status).toBe(500);
+  });
+  it("requires a valid draft ID and revision", async () => {
+    expect((await POST(request({ draftId, revision: 0 }))).status).toBe(400); expect(mocks.submit).not.toHaveBeenCalled();
+  });
+  it("returns a retryable result for transactional contention", async () => {
+    mocks.submit.mockRejectedValueOnce(new TransactionRetryLimitError()); expect((await POST(request({ draftId, revision: 3 }))).status).toBe(503);
   });
 });
-
-afterEach(() => vi.unstubAllEnvs());

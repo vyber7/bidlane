@@ -10,7 +10,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import clsx from "clsx";
 import { logger } from "@/app/libs/logger";
-import { MAX_LISTING_PHOTOS } from "@/app/libs/listing-validation";
+import { MAX_LISTING_PHOTOS } from "@/app/schemas/listing";
 import { formatCount } from "@/app/utils/format";
 
 interface GalleryProps {

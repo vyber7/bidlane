@@ -22,7 +22,7 @@ import {
   rehearsalUrl,
   seedRehearsal,
 } from "../../scripts/prisma-rehearsal.mjs";
-import { parseListing } from "@/app/libs/listing-validation";
+import { listingSchema } from "@/app/schemas/listing";
 
 const suppliedUrl = process.env.MIGRATION_TEST_DATABASE_URL;
 describe.skipIf(!suppliedUrl)(
@@ -209,7 +209,7 @@ describe.skipIf(!suppliedUrl)(
       const image = "https://res.cloudinary.com/demo/image/upload/fixture.jpg";
       const listing = await repositories.listingAuthoring.create(
         owner.id,
-        parseListing({
+        listingSchema.parse({
           year: 2020,
           make: "Porsche",
           model: "911",

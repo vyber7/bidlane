@@ -45,7 +45,7 @@ import { POST as watch } from "@/app/api/update-watchlist/route";
 import getComments from "@/app/actions/getComments";
 import * as provider from "@/app/libs/native-repositories";
 import { makeListing } from "@/app/test/auction-fixtures";
-import { parseListing } from "@/app/libs/listing-validation";
+import { listingSchema } from "@/app/schemas/listing";
 import { toPublicListing } from "@/app/libs/listing-payload";
 import { TransactionRetryLimitError } from "./transaction-errors";
 import { installServerTransport } from "@/app/libs/realtime/server";
@@ -132,7 +132,7 @@ describe.skipIf(!url)(
         );
       const created = await repositories.listingAuthoring.create(
         seller.id,
-        parseListing({
+        listingSchema.parse({
           ...makeListing(),
           images: [image],
           vin: "",

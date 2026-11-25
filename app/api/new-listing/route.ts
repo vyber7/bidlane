@@ -1,35 +1,24 @@
-import { assertListingAssets } from "@/app/libs/uploaded-assets";
-import { requireVerifiedEmail } from "@/app/libs/verified-email";
-import { parseApiInput } from "@/app/libs/api-request";
-import { publishListingDraft } from "@/app/libs/listing-drafts";
-import { publishDraftSchema } from "@/app/schemas/listing-draft";
+import { submitDraft } from "@/app/libs/listing-submission";
+import { submitDraftSchema } from "@/app/schemas/listing-draft";
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import { withNativeTransaction } from "@/app/libs/native-repositories";
-import { authoringTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
+import { isTransactionContention } from "@/prisma/native/transaction-errors";
 import { NextResponse } from "next/server";
 import { logger } from "@/app/libs/logger";
-import { parseListing } from "@/app/libs/listing-validation";
-import { apiErrorResponse, errorResponse, readJsonObject } from "@/app/libs/api-request";
+import { apiErrorResponse, errorResponse, parseApiInput, readJsonObject } from "@/app/libs/api-request";
 
+// Submission only accepts a saved Draft. Listing data sent directly is
+// rejected, so every Listing starts from the owner's saved snapshot.
 export async function POST(req: Request) {
   let userId: string | undefined;
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser?.id) return errorResponse("Please sign in to submit a listing.", 401);
     userId = currentUser.id;
-    const body = await readJsonObject(req);
-    if (body.draftId !== undefined) {
-      const { draftId, revision } = parseApiInput(publishDraftSchema, body);
-      const listing = await publishListingDraft(currentUser, draftId, revision);
-      // Replaying a published draft can return a now-active listing. The
-      // submission UI needs only its ID, never other users' accumulated activity.
-      return NextResponse.json({ id: listing.id }, { status: 201 });
-    }
-    requireVerifiedEmail(currentUser, "submit a listing");
-    const listing = parseListing(body.data);
-    await assertListingAssets(currentUser.id, listing);
-    const newListing = await withNativeTransaction((tx) => tx.listingAuthoring.create(currentUser.id, listing, new Date()), authoringTransactionOptions);
-    return NextResponse.json({ id: newListing.id }, { status: 201 });
+    const { draftId, revision } = parseApiInput(submitDraftSchema, await readJsonObject(req));
+    const listing = await submitDraft(currentUser, draftId, revision);
+    // Replaying a submitted Draft can return a now-active Listing. The
+    // submission UI needs only its ID, never other users' accumulated activity.
+    return NextResponse.json({ id: listing.id }, { status: 201 });
   } catch (error: unknown) {
     const response = apiErrorResponse(error);
     if (response) return response;

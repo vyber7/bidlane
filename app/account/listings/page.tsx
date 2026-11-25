@@ -1,5 +1,5 @@
 import ListingDrafts from "@/app/account/components/ListingDrafts";
-import { serializeDraft } from "@/app/libs/listing-drafts";
+import { serializeDraft } from "@/app/libs/listing-submission";
 import ListingsDashboard from "@/app/account/components/ListingsDashboard";
 import { getAccountUser } from "@/app/account/lib/current-user";
 import { getNativeRepositories } from "@/app/libs/native-repositories";
