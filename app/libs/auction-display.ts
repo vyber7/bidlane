@@ -1,5 +1,5 @@
 import { auctionPrice, type AuctionPhase, type BiddingBlock } from "./auction-lifecycle";
-import type { PublicListing } from "./listing-payload";
+import type { PublicListing } from "./listing-codec";
 
 // The auction display: what any view shows for an Auction, given its phase and
 // who is looking. Views render this description instead of re-deriving it

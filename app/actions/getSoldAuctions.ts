@@ -1,6 +1,6 @@
 import { getReadRepositories } from "@/app/libs/read-repositories";
 import { logger } from "@/app/libs/logger";
-import { toPublicListing } from "@/app/libs/listing-payload";
+import { toPublicListing } from "@/app/libs/listing-codec";
 
 async function getSoldAuctions() {
   try {

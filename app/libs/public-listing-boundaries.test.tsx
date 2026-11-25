@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { makeListing } from "@/app/test/auction-fixtures";
-import { toPublicListing, type PublicListing, type SellerListing } from "./listing-payload";
+import { toPublicListing, type PublicListing, type SellerListing } from "./listing-codec";
 
 const mocks = vi.hoisted(() => ({ find: vi.fn(), latestBids: vi.fn(), watchlist: vi.fn(), user: vi.fn(), drafts: vi.fn(), browser: vi.fn(), featured: vi.fn(), dashboard: vi.fn() }));
 vi.mock("@/app/libs/native-repositories", () => ({

@@ -1,6 +1,7 @@
 import { Long, ObjectId, type ClientSession, type Db } from "mongodb";
 import type { AcceptedBidResponse } from "@/app/types/auction-events";
 import { approvedFilter, upcomingFilter } from "@/app/libs/listing-review-rules";
+import { decodeListing, listingProjection, type ListingField } from "@/app/libs/listing-codec";
 
 type AuctionDocument = {
   _id: ObjectId;
@@ -24,65 +25,36 @@ type AuctionDocument = {
   endingSoonReminderAt?: Date | null;
   updatedAt?: Date | null;
 };
-const projection = {
-  userId: 1,
-  year: 1,
-  make: 1,
-  model: 1,
-  status: 1,
-  result: 1,
-  reviewStatus: 1,
-  reviewRevision: 1,
-  auctionStartsAt: 1,
-  auctionEndsAt: 1,
-  startingBid: 1,
-  currentBid: 1,
-  bidIncrement: 1,
-  reservePrice: 1,
-  highestBidderId: 1,
-  biddersIds: 1,
-  watchersIds: 1,
-} as const;
+const auctionFields = [
+  "userId",
+  "year",
+  "make",
+  "model",
+  "status",
+  "result",
+  "reviewStatus",
+  "reviewRevision",
+  "auctionStartsAt",
+  "auctionEndsAt",
+  "startingBid",
+  "currentBid",
+  "bidIncrement",
+  "reservePrice",
+  "highestBidderId",
+  "biddersIds",
+  "watchersIds",
+] as const satisfies readonly ListingField[];
+const projection = listingProjection(auctionFields);
 function integer(value: number | Long): number {
   const result = Long.isLong(value) ? value.toNumber() : value;
   if (!Number.isSafeInteger(result)) throw new Error("Invalid auction integer");
   return result;
 }
-const nullableInteger = (value: number | Long | null | undefined) =>
-  value == null ? null : integer(value);
-function date(value: Date | null | undefined): Date | null {
-  if (value == null) return null;
-  if (!(value instanceof Date) || !Number.isFinite(value.getTime()))
-    throw new Error("Invalid auction date");
-  return value;
-}
 function text(value: string): string {
   if (typeof value !== "string") throw new Error("Invalid auction string");
   return value;
 }
-function auction(document: AuctionDocument) {
-  return {
-    id: document._id.toHexString(),
-    userId: document.userId.toHexString(),
-    year: integer(document.year),
-    make: text(document.make),
-    model: text(document.model),
-    // Listings stored without a status read as Upcoming.
-    status: document.status == null ? "UPCOMING" : text(document.status),
-    result: document.result == null ? null : text(document.result),
-    reviewStatus: document.reviewStatus ?? null,
-    reviewRevision: nullableInteger(document.reviewRevision) ?? 0,
-    auctionStartsAt: date(document.auctionStartsAt),
-    auctionEndsAt: date(document.auctionEndsAt),
-    startingBid: nullableInteger(document.startingBid),
-    currentBid: nullableInteger(document.currentBid),
-    bidIncrement: nullableInteger(document.bidIncrement),
-    reservePrice: nullableInteger(document.reservePrice),
-    highestBidderId: document.highestBidderId?.toHexString() ?? null,
-    biddersIds: (document.biddersIds ?? []).map((id) => id.toHexString()),
-    watchersIds: (document.watchersIds ?? []).map((id) => id.toHexString()),
-  };
-}
+const auction = (document: AuctionDocument) => decodeListing(document, auctionFields);
 export type AuctionListing = ReturnType<typeof auction>;
 type Submission = {
   _id: ObjectId;

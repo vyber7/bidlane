@@ -27,7 +27,7 @@ vi.mock("./uploaded-assets", () => ({ assertOwnedAssets: mocks.ownedAssets }));
 vi.mock("./logger", () => ({ logger: { warn: mocks.warn } }));
 
 import { ApiRequestError } from "./api-request";
-import { toPublicListing } from "./listing-payload";
+import { toPublicListing } from "./listing-codec";
 import { installFakeRealtime, type FakeRealtime } from "./realtime/testing";
 import { postComment, setWatch } from "./engagement-commands";
 

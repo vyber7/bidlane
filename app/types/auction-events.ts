@@ -1,4 +1,4 @@
-import type { PublicListing } from "@/app/libs/listing-payload";
+import type { PublicListing } from "@/app/libs/listing-codec";
 import type { BidWithAuthor, CommentWithAuthor } from ".";
 
 export type BidEvent = Omit<BidWithAuthor, "createdAt"> & { createdAt: string };

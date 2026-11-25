@@ -59,8 +59,9 @@ describe("Review decisions", () => {
     expect((await submit()).status).toBe(409);
     expect(mocks.create).not.toHaveBeenCalled();
   });
-  it("supports existing upcoming listings with no revision", async () => {
-    mocks.findUnique.mockResolvedValue({ id, userId: "seller", status: "UPCOMING", reviewRevision: null });
+  // Listings stored without a revision read as revision 0 (see the Listing codec).
+  it("reviews an Upcoming Listing that has never had a Correction, at revision 0", async () => {
+    mocks.findUnique.mockResolvedValue({ id, userId: "seller", status: "UPCOMING", reviewRevision: 0 });
     expect((await submit({ revision: 0, decision: "APPROVED" })).status).toBe(200);
     expect(mocks.updateMany.mock.calls[0][1].revision).toBe(0);
   });

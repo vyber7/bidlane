@@ -17,7 +17,7 @@ interface GalleryProps {
   listingId: string;
   owner?: boolean;
   vehicleName?: string;
-  initialImages: string[];
+  initialImages: readonly string[];
 }
 
 const previewOptions = {

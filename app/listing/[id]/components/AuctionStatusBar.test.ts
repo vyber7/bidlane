@@ -5,7 +5,7 @@ import { createElement } from "react";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { AuctionProvider } from "@/app/context/AuctionContext";
 import { auctionNow, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
-import type { PublicListing } from "@/app/libs/listing-payload";
+import type { PublicListing } from "@/app/libs/listing-codec";
 
 const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn() }));
 vi.mock("axios", () => ({ default: { post: mocks.post } }));

@@ -1,4 +1,4 @@
-import { publicListingSnapshot, type PublicListing } from "@/app/libs/listing-payload";
+import { publicListingSnapshot, type PublicListing } from "@/app/libs/listing-codec";
 import type { ListingEvent } from "@/app/types/auction-events";
 
 export function serializeListing(listing: PublicListing): ListingEvent {

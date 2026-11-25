@@ -1,6 +1,6 @@
 "use client";
 
-import type { PublicListing } from "@/app/libs/listing-payload";
+import type { PublicListing } from "@/app/libs/listing-codec";
 import Link from "next/link";
 import { CldImage } from "next-cloudinary";
 import { FiArrowUpRight, FiCamera } from "react-icons/fi";

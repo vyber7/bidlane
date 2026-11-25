@@ -40,12 +40,12 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
       ].map(([label, value]) => <div key={label}><dt className="text-xs text-slate-500">{label}</dt><dd className="mt-1 font-semibold">{value}</dd></div>)}</dl>
       <h3 className="mt-5 font-bold">Description</h3><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{listing.description}</p>
     </section>
-    <CoverImage key={`cover:${listing.reviewRevision ?? 0}`} listingId={id} url={listing.coverImage || undefined} alt={`${title} cover photo`} />
-    <Gallery key={`gallery:${listing.reviewRevision ?? 0}`} listingId={id} vehicleName={title} initialImages={listing.images} />
+    <CoverImage key={`cover:${listing.reviewRevision}`} listingId={id} url={listing.coverImage || undefined} alt={`${title} cover photo`} />
+    <Gallery key={`gallery:${listing.reviewRevision}`} listingId={id} vehicleName={title} initialImages={listing.images} />
     <VehicleHistory details={listing} />
     <VehicleRecords records={listing.vehicleRecords} />
     {listing.reviewNote && <p className="whitespace-pre-wrap break-words rounded-xl bg-amber-50 p-4 text-sm">Latest feedback: {listing.reviewNote}</p>}
-    <ReviewForm key={listing.reviewRevision ?? 0} id={id} revision={listing.reviewRevision ?? 0} disabled={listing.status !== "UPCOMING"} />
+    <ReviewForm key={listing.reviewRevision} id={id} revision={listing.reviewRevision} disabled={listing.status !== "UPCOMING"} />
     <section className="rounded-2xl border bg-white p-6">
       <h2 className="text-xl font-bold">Review History</h2>
       <p className="mt-2 text-xs text-slate-500">Latest 50 decisions. Saving listing changes requires a new approval.</p>

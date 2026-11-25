@@ -7,13 +7,13 @@ import {
 import { ObjectId } from "mongodb";
 import type { DatabaseV8 } from "../v8/client";
 import type { Bid, Listing } from "@/app/types/database";
+import { decodeListing, type ListingField } from "@/app/libs/listing-codec";
 import type { BidWithListing } from "@/app/account/lib/bids";
 import type { SoldListing } from "@/app/account/lib/shipments";
 import { completionFields, soldAuction } from "@/app/libs/transaction-completion";
 import { publicListingFilter } from "@/app/libs/listing-review-rules";
 
 const vehicleFields = [
-  "id",
   "year",
   "make",
   "model",
@@ -24,36 +24,9 @@ const vehicleFields = [
   "currentBid",
   "coverImage",
   "auctionEndsAt",
-] as const;
-function vehicle(row: Listing) {
-  return {
-    id: row.id,
-    year: row.year,
-    make: row.make,
-    model: row.model,
-    location: row.location,
-    status: row.status ?? "UPCOMING",
-    result: row.result ?? null,
-    startingBid: row.startingBid ?? null,
-    currentBid: row.currentBid ?? null,
-    coverImage: row.coverImage ?? null,
-    auctionEndsAt: row.auctionEndsAt ?? null,
-  };
-}
-export function listingReadDefaults(row: Listing): Listing {
-  return {
-    ...row,
-    status: row.status ?? "UPCOMING",
-    views: row.views ?? 1,
-    isFeatured: row.isFeatured ?? false,
-    images: row.images ?? [],
-    watchersIds: row.watchersIds ?? [],
-    biddersIds: row.biddersIds ?? [],
-    seenIds: row.seenIds ?? [],
-    commentsIds: row.commentsIds ?? [],
-    commenterIds: row.commenterIds ?? [],
-  };
-}
+] as const satisfies readonly ListingField[];
+const vehicle = (row: object) => decodeListing(row, vehicleFields);
+const listing = (row: object) => decodeListing(row);
 const bid = (row: Bid): Bid => ({
   id: row.id,
   amount: row.amount,
@@ -98,18 +71,18 @@ export function createReadRepositories({
       async find(id: string) {
         if (!ObjectId.isValid(id)) return null;
         const row = await db.orm.Listing.where({ id }).first();
-        return row ? listingReadDefaults(row) : null;
+        return row ? listing(row) : null;
       },
       async public() {
         return (
           await db.orm.Listing.where(publicListingFilter.read())
             .orderBy({ createdAt: -1 })
             .all()
-        ).map(listingReadDefaults);
+        ).map(listing);
       },
       async live() {
         return (await db.orm.Listing.where({ status: "LIVE" }).all()).map(
-          listingReadDefaults,
+          listing,
         );
       },
       async sold() {
@@ -124,14 +97,14 @@ export function createReadRepositories({
             .orderBy({ auctionEndsAt: -1 })
             .limit(4)
             .all()
-        ).map(listingReadDefaults);
+        ).map(listing);
       },
       async owned(userId: string) {
         return (
           await db.orm.Listing.where({ userId })
             .orderBy({ createdAt: -1 })
             .all()
-        ).map(listingReadDefaults);
+        ).map(listing);
       },
       // The current ORM has no count terminal. Keep indexed native counts on
       // the same pool, without loading all matching documents into memory.
@@ -182,7 +155,7 @@ export function createReadRepositories({
           .all();
         return rows.map((row) => {
           if (!row.listing) throw new Error("Bid listing not found");
-          return { ...bid(row), listing: listingReadDefaults(row.listing) };
+          return { ...bid(row), listing: listing(row.listing) };
         });
       },
     },
@@ -224,7 +197,7 @@ export function createReadRepositories({
           await db.orm.Listing.where({ userId })
             .where(publicListingFilter.read())
             .where(field.in("status", ["LIVE", "UPCOMING", null]))
-            .select(...vehicleFields)
+            .select("id", ...vehicleFields)
             .orderBy({ createdAt: -1 })
             .limit(12)
             .all()
@@ -237,7 +210,7 @@ export function createReadRepositories({
             status: "ENDED",
             result: "SOLD",
           })
-            .select(...vehicleFields)
+            .select("id", ...vehicleFields)
             .orderBy({ auctionEndsAt: -1, id: -1 })
             .offset((page - 1) * 12)
             .limit(12)
