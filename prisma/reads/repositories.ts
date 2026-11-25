@@ -10,14 +10,8 @@ import type { Bid, Listing } from "@/app/types/database";
 import type { BidWithListing } from "@/app/account/lib/bids";
 import type { SoldListing } from "@/app/account/lib/shipments";
 import { completionFields, soldAuction } from "@/app/libs/transaction-completion";
+import { publicListingFilter } from "@/app/libs/listing-review-rules";
 
-const publicFilter = MongoOrExpr.of([
-  field.in("status", ["LIVE", "ENDED"]),
-  MongoAndExpr.of([
-    field.eq("status", "UPCOMING"),
-    field.eq("reviewStatus", "APPROVED"),
-  ]),
-]);
 const vehicleFields = [
   "id",
   "year",
@@ -108,7 +102,7 @@ export function createReadRepositories({
       },
       async public() {
         return (
-          await db.orm.Listing.where(publicFilter)
+          await db.orm.Listing.where(publicListingFilter.read())
             .orderBy({ createdAt: -1 })
             .all()
         ).map(listingReadDefaults);
@@ -228,8 +222,8 @@ export function createReadRepositories({
       async active(userId: string) {
         return (
           await db.orm.Listing.where({ userId })
-            .where(publicFilter)
-            .where(field.in("status", ["LIVE", "UPCOMING"]))
+            .where(publicListingFilter.read())
+            .where(field.in("status", ["LIVE", "UPCOMING", null]))
             .select(...vehicleFields)
             .orderBy({ createdAt: -1 })
             .limit(12)

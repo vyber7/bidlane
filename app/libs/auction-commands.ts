@@ -10,6 +10,7 @@ import {
   saveNotifications,
 } from "./notifications";
 import { auctionPhase, extendedDeadline } from "./auction-lifecycle";
+import { isApproved } from "./listing-review";
 import { MAX_INTEGER } from "@/app/schemas/common";
 import type { AcceptedBidResponse } from "@/app/types/auction-events";
 
@@ -186,7 +187,7 @@ export async function startAuction(request: StartRequest, now = new Date()): Pro
       if (!listing) return { ok: false, reason: "not-found" } as const;
       if (listing.userId !== sellerId) return { ok: false, reason: "not-seller" } as const;
       if (listing.status !== "UPCOMING") return { ok: false, reason: "not-upcoming" } as const;
-      if (listing.reviewStatus !== "APPROVED") return { ok: false, reason: "not-approved" } as const;
+      if (!isApproved(listing)) return { ok: false, reason: "not-approved" } as const;
 
       const updated = await tx.auctions.start(listing, { auctionStartsAt: now, auctionEndsAt: endsAt, startingBid, bidIncrement });
       if (updated.count !== 1) return { ok: false, reason: "already-started" } as const;

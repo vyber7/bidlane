@@ -10,6 +10,11 @@ import { getNativeRepositories, withNativeTransaction } from "./native-repositor
 import { requireAdmin } from "./admin";
 import { ApiRequestError } from "./api-request";
 import { auctionPhase } from "./auction-lifecycle";
+import { isPublicListing } from "./listing-review-rules";
+
+// The visibility rule and Approval requirement live in listing-review-rules,
+// which has no server dependencies so the database layer can use them too.
+export { approvedFilter, isApproved, isPublicListing, publicListingFilter } from "./listing-review-rules";
 
 const refusals = {
   missing: "Listing not found.",
@@ -30,11 +35,6 @@ export type ReviewLabel = (typeof reviewLabels)[keyof typeof reviewLabels];
 // Listings submitted before Review existed have no review status; they are Awaiting review.
 export function reviewLabel(listing: { reviewStatus: ReviewStatus | null }): ReviewLabel {
   return reviewLabels[listing.reviewStatus ?? "PENDING"];
-}
-
-export function isPublicListing(listing: ReviewableListing) {
-  return listing.status === "LIVE" || listing.status === "ENDED" ||
-    (listing.status === "UPCOMING" && listing.reviewStatus === "APPROVED");
 }
 
 export function canViewListing(listing: ReviewableListing & { userId: string }, user: { id: string; role?: string | null } | null) {

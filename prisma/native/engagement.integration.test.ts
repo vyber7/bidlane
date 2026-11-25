@@ -745,7 +745,9 @@ describe.skipIf(!url)(
         ...base,
         _id: new ObjectId(),
         reviewStatus: "APPROVED",
+        updatedAt: new Date("2025-12-31"),
       };
+      // A Listing stored without a status reads as Upcoming.
       delete missingStatus.status;
       await listings().insertMany([
         {
@@ -776,6 +778,7 @@ describe.skipIf(!url)(
         listingId,
         approved.toHexString(),
         ended.toHexString(),
+        missingStatus._id.toHexString(),
       ]);
       expect(result).toEqual(
         [
@@ -796,6 +799,13 @@ describe.skipIf(!url)(
             reviewStatus: null,
             watchersIds: [buyer.id],
             updatedAt: new Date("2026-01-01"),
+          }),
+          fixtureListing({
+            id: missingStatus._id.toHexString(),
+            status: "UPCOMING",
+            reviewStatus: "APPROVED",
+            watchersIds: [buyer.id],
+            updatedAt: new Date("2025-12-31"),
           }),
         ].map((item) => toPublicListing(item, buyer.id)),
       );

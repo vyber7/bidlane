@@ -361,10 +361,11 @@ describe.skipIf(!url)(
         { $unset: { status: "" } },
       );
       const actual = await reads.listings.public();
+      // A Listing stored without a status reads as Upcoming.
       expect(actual.toSorted((a, b) => a.id.localeCompare(b.id))).toEqual(
-        ids
-          .slice(0, 3)
+        [...ids.slice(0, 3), missingStatus]
           .map(fixture)
+          .map((row) => (row.id === missingStatus ? { ...row, status: "UPCOMING" } : row))
           .sort((a, b) => a.id.localeCompare(b.id)),
       );
       const privateListing = (await reads.listings.find(ids[3]))!;

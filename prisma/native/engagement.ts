@@ -4,10 +4,10 @@ import {
   type ClientSession,
   type Db,
   type Document,
-  type Filter,
 } from "mongodb";
 import type { PublicListing } from "@/app/libs/listing-payload";
 import { publicListingFields } from "@/app/libs/listing-payload";
+import { publicListingFilter } from "@/app/libs/listing-review-rules";
 import { readVehicleRecords } from "@/app/schemas/vehicle-trust";
 import type { ReviewStatus } from "./listing-authoring";
 
@@ -52,12 +52,6 @@ const date = (value: unknown): Date => {
 const nullableDate = (value: unknown) => (value == null ? null : date(value));
 const nullableInteger = (value: unknown) =>
   value == null ? null : integer(value);
-const publicFilter: Filter<ListingDocument> = {
-  $or: [
-    { status: { $in: ["LIVE", "ENDED"] } },
-    { status: { $in: ["UPCOMING", null] }, reviewStatus: "APPROVED" },
-  ],
-};
 const watchProjection = (userId: string) => ({
   ...Object.fromEntries(
     publicListingFields
@@ -222,7 +216,7 @@ export function engagementRepositories(database: Db, session?: ClientSession) {
       },
       async touchComment(id: string, now: Date) {
         const result = await listings.updateOne(
-          { _id: new ObjectId(id), ...publicFilter },
+          { _id: new ObjectId(id), ...publicListingFilter.native() },
           { $set: { lastCommentAt: now, updatedAt: now } },
           options,
         );
@@ -288,7 +282,7 @@ export function engagementRepositories(database: Db, session?: ClientSession) {
           user = new ObjectId(userId);
         // Relation-only connect/disconnect did not change either updatedAt.
         const result = await listings.updateOne(
-          { _id: listing, ...publicFilter },
+          { _id: listing, ...publicListingFilter.native() },
           watching
             ? { $addToSet: { watchersIds: user } }
             : { $pull: { watchersIds: user } },
@@ -324,18 +318,13 @@ export function engagementRepositories(database: Db, session?: ClientSession) {
           : null;
       },
       async watchlist(userId: string) {
-        // Match stored status, as the former publicListingWhere query did;
-        // defaults applied while reading a document must not widen this filter.
         const documents = await listings
           .aggregate(
             [
               {
                 $match: {
                   watchersIds: new ObjectId(userId),
-                  $or: [
-                    { status: { $in: ["LIVE", "ENDED"] } },
-                    { status: "UPCOMING", reviewStatus: "APPROVED" },
-                  ],
+                  ...publicListingFilter.native(),
                 },
               },
               { $sort: { updatedAt: -1 } },
