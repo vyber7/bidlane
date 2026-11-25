@@ -1,6 +1,6 @@
 import { Long, ObjectId, type ClientSession, type Db } from "mongodb";
 import type { AcceptedBidResponse } from "@/app/types/auction-events";
-import { approvedFilter } from "@/app/libs/listing-review-rules";
+import { approvedFilter, upcomingFilter } from "@/app/libs/listing-review-rules";
 
 type AuctionDocument = {
   _id: ObjectId;
@@ -8,7 +8,7 @@ type AuctionDocument = {
   year: number | Long;
   make: string;
   model: string;
-  status: string;
+  status?: string | null;
   result?: string | null;
   reviewStatus?: "PENDING" | "APPROVED" | "CHANGES_REQUESTED" | null;
   reviewRevision?: number | Long | null;
@@ -67,7 +67,8 @@ function auction(document: AuctionDocument) {
     year: integer(document.year),
     make: text(document.make),
     model: text(document.model),
-    status: text(document.status),
+    // Listings stored without a status read as Upcoming.
+    status: document.status == null ? "UPCOMING" : text(document.status),
     result: document.result == null ? null : text(document.result),
     reviewStatus: document.reviewStatus ?? null,
     reviewRevision: nullableInteger(document.reviewRevision) ?? 0,
@@ -139,7 +140,7 @@ export function auctionRepositories(database: Db, session?: ClientSession) {
           {
             _id: new ObjectId(listing.id),
             userId: new ObjectId(listing.userId),
-            status: "UPCOMING",
+            ...upcomingFilter(),
             ...approvedFilter(),
             reviewRevision:
               listing.reviewRevision === 0
