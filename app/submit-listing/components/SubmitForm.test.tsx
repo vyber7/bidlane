@@ -127,7 +127,7 @@ describe("draft resume and exit", () => {
     expect(mocks.post).toHaveBeenCalledWith("/api/listing-drafts", expect.anything());
     expect(mocks.post.mock.calls.some(([url]) => url === "/api/new-listing")).toBe(false);
   });
-  it("saves incomplete details and exits without publishing", async () => {
+  it("saves incomplete details and exits without submitting", async () => {
     render(<SubmitForm emailVerified />);
     fireEvent.change(screen.getByLabelText("Make", { exact: true }), { target: { value: "Porsche" } });
     await next("Save & Exit");

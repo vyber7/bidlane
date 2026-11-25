@@ -58,7 +58,7 @@ describe("listing draft autosave", () => {
     await act(async () => { await expect(result.current.save(payload("More edits"))).rejects.toThrow("Reload"); });
     expect(mocks.patch).toHaveBeenCalledTimes(1);
   });
-  it("waits for the latest queued save when explicitly flushing before exit or publication", async () => {
+  it("waits for the latest queued save when explicitly flushing before exit or Submission", async () => {
     const saved = dto(payload("Old"));
     const { result } = renderHook(() => useListingDraft(payload("Old"), saved, true));
     let final: ListingDraftDTO | undefined;

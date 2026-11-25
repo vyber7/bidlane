@@ -118,6 +118,17 @@ describe("Submission", () => {
     mocks.findFirst.mockResolvedValue({ ...saved, payload: complete }); mocks.updateMany.mockResolvedValue({ count: 0 });
     await expect(submitDraft({ id: "seller", emailVerified: new Date() }, id, 2)).rejects.toMatchObject({ status: 409 });
   });
+  it("refuses a deleted Draft or another seller's Draft as not found", async () => {
+    // The owner read excludes deleted Drafts and Drafts owned by someone else.
+    mocks.findFirst.mockResolvedValue(null);
+    await expect(submitDraft({ id: "seller", emailVerified: new Date() }, id, 2)).rejects.toMatchObject({ status: 404, message: "Draft not found." });
+    expect(mocks.createListing).not.toHaveBeenCalled();
+  });
+  it("refuses a stale revision with the reload message", async () => {
+    mocks.findFirst.mockResolvedValue({ ...saved, payload: complete });
+    await expect(submitDraft({ id: "seller", emailVerified: new Date() }, id, 1)).rejects.toMatchObject({ status: 409, message: "This draft changed in another tab or device. Reload to see the latest saved version before editing again." });
+    expect(mocks.createListing).not.toHaveBeenCalled();
+  });
   it("normalizes the saved Draft and keeps photo order", async () => {
     const second = complete.images[0].replace("car.jpg", "interior.jpg");
     const record = { label: " Receipt ", url: "https://res.cloudinary.com/demo/image/upload/receipt.pdf" };
