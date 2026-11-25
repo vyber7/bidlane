@@ -14,10 +14,19 @@ import {
 import type { AuctionBid } from "@/app/types/account";
 import { formatAmount, formatPrice, formatCount, formatDate } from "@/app/utils/format";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
+import useLiveAuctions from "./useLiveAuctions";
+import { auctionStanding } from "../lib/bids";
 
 type Tab = "active" | "wins" | "past";
 
-const BidsAndWinsDashboard = ({ bids }: { bids: AuctionBid[] }) => {
+const BidsAndWinsDashboard = ({ bids: loaded, currentUserId }: { bids: AuctionBid[]; currentUserId: string }) => {
+  // Each row follows its Auction's Real-time updates, so an Auction that is
+  // finalized while the page is open moves to Wins or Past Bids.
+  const { trackers, live } = useLiveAuctions(loaded.map((bid) => bid.auction));
+  const bids = loaded.map((bid): AuctionBid => {
+    const { listing, group } = live(bid.auction);
+    return { ...bid, ...auctionStanding(listing, group, currentUserId) };
+  });
   const active = bids.filter((bid) => bid.group === "live");
   const wins = bids.filter((bid) => bid.completionHref !== null);
   const wonIds = new Set(wins.map((win) => win.id));
@@ -39,6 +48,7 @@ const BidsAndWinsDashboard = ({ bids }: { bids: AuctionBid[] }) => {
 
   return (
     <section className="overflow-hidden rounded-md bg-white shadow-md shadow-gray-400">
+      {trackers}
       <div className="border-b border-gray-200 px-5 py-5 sm:px-6">
         <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
           <div>

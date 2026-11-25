@@ -1,7 +1,8 @@
 import type { Bid, Listing } from "@/app/types/database";
 import type { AuctionBid } from "@/app/types/account";
 import { transactionHref } from "@/app/libs/transaction-completion";
-import { listingCapabilities } from "@/app/libs/listing-capabilities";
+import { listingCapabilities, transactionAccess, type AuctionGroup } from "@/app/libs/listing-capabilities";
+import { toPublicListing, type PublicListing } from "@/app/libs/listing-codec";
 
 export type BidWithListing = Bid & { listing: Listing };
 
@@ -42,7 +43,7 @@ export function buildBidSummaries(
 
   return Array.from(bidsByListing.values()).map(
     ({ listing, highestBid, lastBidAt, bidCount }) => {
-      const { completeTransaction: transaction, group } = listingCapabilities(listing, { id: userId }, now);
+      const auction = toPublicListing(listing, userId);
       return {
         id: listing.id,
         year: listing.year,
@@ -50,17 +51,29 @@ export function buildBidSummaries(
         model: listing.model,
         location: listing.location,
         coverImage: listing.coverImage,
-        status: listing.status,
-        result: listing.result,
-        group,
-        currentBid: listing.currentBid,
-        auctionEndsAt: listing.auctionEndsAt?.toISOString() ?? null,
         highestBid,
         lastBidAt: lastBidAt.toISOString(),
         bidCount,
-        isHighestBidder: listing.highestBidderId === userId,
-        completionHref: transaction?.role === "buyer" ? transactionHref(listing.id) : null,
+        auction,
+        ...auctionStanding(auction, listingCapabilities(listing, { id: userId }, now).group, userId),
       };
     }
   );
+}
+
+/**
+ * Where the bidder stands in an Auction: the fields of a bid summary that
+ * change as the Auction does. The dashboard recomputes them from the live
+ * Auction, so a summary built here is only its starting value.
+ */
+export function auctionStanding(auction: PublicListing, group: AuctionGroup, userId: string) {
+  return {
+    status: auction.status,
+    result: auction.result,
+    group,
+    currentBid: auction.currentBid,
+    auctionEndsAt: auction.auctionEndsAt?.toISOString() ?? null,
+    isHighestBidder: auction.highestBidderId === userId,
+    completionHref: transactionAccess(auction, userId)?.role === "buyer" ? transactionHref(auction.id) : null,
+  } satisfies Partial<AuctionBid>;
 }
