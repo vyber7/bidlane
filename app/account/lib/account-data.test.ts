@@ -21,13 +21,21 @@ describe("account bid summaries", () => {
     expect(buildBidSummaries(input, "buyer")).toEqual([
       {
         id: latest.listingId, year: 2020, make: "Porsche", model: "911", location: "New York",
-        coverImage: null, status: "LIVE", result: null, currentBid: 15000,
+        coverImage: null, status: "LIVE", result: null, group: "live", currentBid: 15000,
         auctionEndsAt: latest.listing.auctionEndsAt!.toISOString(),
         highestBid: 15000, lastBidAt: auctionNow.toISOString(), bidCount: 2, isHighestBidder: true, completionHref: null,
       },
       expect.objectContaining({ id: "other", auctionEndsAt: null, bidCount: 1, isHighestBidder: false }),
     ]);
     expect(input).toEqual(before);
+  });
+
+  it.each([
+    [{ status: "UPCOMING" }, "upcoming"],
+    [{ auctionEndsAt: auctionNow }, "live"],
+    [{ status: "ENDED", result: "RESERVE_NOT_MET", currentBid: 9000 }, "results"],
+  ] as const)("files an Auction with %j under %s, keeping a Closing Auction with Active Bids", (overrides, group) => {
+    expect(buildBidSummaries([bid(makeListing(overrides))], "buyer", auctionNow.getTime())[0].group).toBe(group);
   });
 
   it("adds a completion destination only for a distinct winning buyer", () => {

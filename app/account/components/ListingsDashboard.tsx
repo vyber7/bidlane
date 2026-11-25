@@ -17,6 +17,7 @@ import {
 import { userChannel } from "@/app/libs/realtime/catalog";
 import { useRealtimeEvent } from "@/app/libs/realtime/client";
 import { deserializeListing } from "@/app/utils/listing-serialization";
+import { listingGroup, type AuctionGroup } from "@/app/libs/listing-capabilities";
 import AccountListingBox, { type AccountListing } from "./AccountListingBox";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 import useUndo from "@/app/hooks/useUndo";
@@ -47,12 +48,14 @@ interface ListingsDashboardProps {
 }
 
 type Tab = "uploaded" | "watching";
+// Each status filter is an Auction group, so the dashboard files Auctions by
+// Auction phase exactly as the homepage does.
 const filters = [
-  { id: "all", label: "All" },
-  { id: "live", label: "Live" },
-  { id: "upcoming", label: "Upcoming" },
-  { id: "ended", label: "Ended" },
-] as const;
+  { id: "all", label: "All", group: null },
+  { id: "live", label: "Live", group: "live" },
+  { id: "upcoming", label: "Upcoming", group: "upcoming" },
+  { id: "ended", label: "Ended", group: "results" },
+] as const satisfies readonly { id: string; label: string; group: AuctionGroup | null }[];
 const focusRing = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900";
 
 const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
@@ -63,7 +66,9 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
   const searchInput = useRef<HTMLInputElement>(null);
   const params = useSearchParams();
   const tab: Tab = params.get("tab") === "watching" ? "watching" : "uploaded";
-  const status = filters.find((filter) => filter.id === params.get("status"))?.id ?? "all";
+  const statusFilter = filters.find((filter) => filter.id === params.get("status")) ?? filters[0];
+  const status = statusFilter.id;
+  const [now] = useState(Date.now);
   const [query, setOptimisticQuery] = useOptimistic(params.get("q") ?? "");
   const [watchlist, setWatchlist] = useState({ source: initialWatching, listings: initialWatching });
   if (watchlist.source !== initialWatching) {
@@ -139,13 +144,13 @@ const ListingsDashboard: React.FC<ListingsDashboardProps> = ({
     const normalizedQuery = query.trim().toLowerCase();
 
     return source.filter((listing) => {
-      const matchesStatus = status === "all" || listing.status.toLowerCase() === status;
+      const matchesStatus = !statusFilter.group || listingGroup(listing, now) === statusFilter.group;
       const searchable = `${listing.year} ${listing.make} ${listing.model} ${listing.location}`.toLowerCase();
       return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
     });
-  }, [query, source, status]);
+  }, [query, source, statusFilter.group, now]);
 
-  const liveCount = uploaded.filter((listing) => listing.status === "LIVE").length;
+  const liveCount = uploaded.filter((listing) => listingGroup(listing, now) === "live").length;
   const changeTab = (nextTab: Tab) => {
     if (nextTab === tab) return;
     updateAccountUrl({ tab: nextTab === "watching" ? nextTab : "", status: "", q: "" });

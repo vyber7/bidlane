@@ -23,7 +23,8 @@ import { canViewListing, isApproved, isPublicListing, reviewLabel } from "@/app/
 import { toPublicListing, toSellerListing } from "@/app/libs/listing-codec";
 import VehicleHistory from "@/app/components/VehicleHistory";
 import { vehicleSpecificationFields } from "@/app/libs/vehicle-details";
-import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
+import { transactionHref } from "@/app/libs/transaction-completion";
+import { listingCapabilities, type CapabilityListing, type Viewer } from "@/app/libs/listing-capabilities";
 import { formatAmount } from "@/app/utils/format";
 
 export const metadata: Metadata = {
@@ -31,6 +32,11 @@ export const metadata: Metadata = {
   description:
     "Explore vehicle details, browse photos, and join the auction on BidLane.",
 };
+
+/** What the viewer may do with the Listing at request time. */
+function capabilitiesNow(listing: CapabilityListing, viewer: Viewer) {
+  return listingCapabilities(listing, viewer, Date.now());
+}
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -53,8 +59,8 @@ const Listing = async (props: Params) => {
     ],
   );
   const title = `${listing.year} ${listing.make} ${listing.model}`;
-  const owner = listing.userId === currentUser?.id;
-  const transaction = transactionAccess(listing, currentUser?.id);
+  const can = capabilitiesNow(listing, currentUser);
+  const transaction = can.completeTransaction;
 
   return (
     <AuctionProvider key={id} listing={toPublicListing(listing, currentUser?.id)} bids={bids} comments={comments}>
@@ -92,7 +98,7 @@ const Listing = async (props: Params) => {
             <Link href={transactionHref(id)} className="mt-3 inline-block text-sm font-bold underline">Open Completion Checklist <span aria-hidden="true">→</span></Link>
           </section>
         )}
-        {(owner || currentUser?.role === "ADMIN") && listing.status === "UPCOMING" && <section className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5" aria-label="Listing review status">
+        {can.seeReviewStatus && <section className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5" aria-label="Listing review status">
           <h2 className="font-bold">{reviewLabel(listing)}</h2>
           <p className="mt-2 text-sm text-slate-700">{isApproved(listing) ? "Your listing is public and the seller can start the auction. Changes will require another review." : "This listing is visible only to its seller and admins. Admin approval is required before buyers can see it or bidding can open."}</p>
           {listing.reviewNote && <p className="mt-3 whitespace-pre-wrap break-words text-sm font-semibold">{listing.reviewNote}</p>}
@@ -149,10 +155,10 @@ const Listing = async (props: Params) => {
           </aside>
           <div className="min-w-0 lg:col-start-1 lg:row-start-2">
             <div className="space-y-6">
-              {owner && listing.status === "UPCOMING" && isApproved(listing) && (
+              {can.start.allowed && (
                 <AuctionStartForm listingId={id} />
               )}
-              {owner && listing.status === "UPCOMING" && <ListingEditor key={listing.reviewRevision} listing={toSellerListing(listing, currentUser)} />}
+              {can.correct.allowed && <ListingEditor key={listing.reviewRevision} listing={toSellerListing(listing, currentUser)} />}
               <Description description={listing.description} />
               <VehicleHistory details={listing} id="condition" />
               <Gallery

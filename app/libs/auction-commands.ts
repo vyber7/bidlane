@@ -10,7 +10,7 @@ import {
   saveNotifications,
 } from "./notifications";
 import { auctionPhase, extendedDeadline } from "./auction-lifecycle";
-import { isApproved } from "./listing-review";
+import { listingCapabilities } from "./listing-capabilities";
 import { MAX_INTEGER } from "@/app/schemas/common";
 import type { AcceptedBidResponse } from "@/app/types/auction-events";
 
@@ -185,9 +185,8 @@ export async function startAuction(request: StartRequest, now = new Date()): Pro
     started = await withNativeTransaction(async (tx) => {
       const listing = await tx.auctions.find(listingId);
       if (!listing) return { ok: false, reason: "not-found" } as const;
-      if (listing.userId !== sellerId) return { ok: false, reason: "not-seller" } as const;
-      if (listing.status !== "UPCOMING") return { ok: false, reason: "not-upcoming" } as const;
-      if (!isApproved(listing)) return { ok: false, reason: "not-approved" } as const;
+      const { start } = listingCapabilities(listing, { id: sellerId }, now.getTime());
+      if (!start.allowed) return { ok: false, reason: start.reason } as const;
 
       const updated = await tx.auctions.start(listing, { auctionStartsAt: now, auctionEndsAt: endsAt, startingBid, bidIncrement });
       if (updated.count !== 1) return { ok: false, reason: "already-started" } as const;

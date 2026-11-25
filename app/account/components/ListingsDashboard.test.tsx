@@ -162,3 +162,23 @@ describe("undoing a Watchlist removal", () => {
     }
   });
 });
+
+it("files Watchlist Auctions under status filters by Auction phase, keeping a Closing Auction under Live", () => {
+  const past = new Date(Date.now() - 60_000);
+  window.history.replaceState(null, "", "/account/listings?tab=watching&status=live");
+  render(<ListingsDashboard
+    uploaded={[]}
+    initialWatching={[
+      makePublicListing({ id: "closing", model: "Closing 911", auctionEndsAt: past }),
+      makePublicListing({ id: "upcoming", model: "Upcoming Cayman", status: "UPCOMING" }),
+      makePublicListing({ id: "sold", model: "Sold Boxster", status: "ENDED", result: "SOLD", currentBid: 12000 }),
+    ]}
+  />);
+  expect(screen.getByText("Closing 911")).toBeDefined();
+  expect(screen.queryByText("Upcoming Cayman")).toBeNull();
+  expect(screen.queryByText("Sold Boxster")).toBeNull();
+
+  act(() => window.history.replaceState(null, "", "/account/listings?tab=watching&status=ended"));
+  expect(screen.getByText("Sold Boxster")).toBeDefined();
+  expect(screen.queryByText("Closing 911")).toBeNull();
+});

@@ -62,6 +62,14 @@ const authoredFields = [
   "reviewStatus",
   "reviewRevision",
   "reviewNote",
+  // The Auction fields Listing capabilities read the Auction phase from.
+  "result",
+  "highestBidderId",
+  "auctionStartsAt",
+  "auctionEndsAt",
+  "startingBid",
+  "currentBid",
+  "bidIncrement",
 ] as const satisfies readonly ListingField[];
 const projection = listingProjection(authoredFields);
 const queuedFields = ["year", "make", "model", "createdAt", "reviewStatus", "reviewNote"] as const satisfies readonly ListingField[];

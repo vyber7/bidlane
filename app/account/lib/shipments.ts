@@ -1,6 +1,7 @@
 import type { Listing } from "@/app/types/database";
 import type { ShipmentTransaction } from "@/app/types/account";
-import { transactionAccess, transactionCompletion, type CompletionFields } from "@/app/libs/transaction-completion";
+import { transactionCompletion, type CompletionFields } from "@/app/libs/transaction-completion";
+import { transactionAccess } from "@/app/libs/listing-capabilities";
 
 export type SoldListing = Pick<Listing, "id" | "status" | "result" | "userId" | "highestBidderId" | "year" | "make" | "model" | "location" | "coverImage" | "currentBid" | "startingBid" | "auctionEndsAt" | "updatedAt" | "createdAt"> & CompletionFields & {
   user: { name: string | null; email: string | null };
