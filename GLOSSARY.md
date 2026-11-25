@@ -5,11 +5,11 @@ An online marketplace where sellers list vehicles and buyers bid on them in time
 ## Auction lifecycle
 
 **Listing**:
-A vehicle a seller has submitted, together with its auction.
+A vehicle a seller has submitted, together with its Auction. Before Submission it is a Draft.
 _Avoid_: Vehicle (when you mean the auction), post
 
 **Auction**:
-The timed bidding on a Listing, from approval to its Result.
+The timed bidding on a Listing, from Approval to its Result.
 _Avoid_: Sale (an Auction may end unsold)
 
 **Auction phase**:
@@ -17,7 +17,7 @@ Where an Auction stands right now: Upcoming, Open, Closing, Sold or Unsold.
 _Avoid_: Status (the stored field holds only Upcoming, Live and Ended)
 
 **Upcoming**:
-The phase before bidding starts, including while the Listing is in review.
+The phase before bidding starts, including during Review.
 _Avoid_: Scheduled, pending
 
 **Open**:
@@ -49,6 +49,36 @@ _Avoid_: Minimum bid (that is the bid ladder)
 **Extension**:
 The rule that a bid placed in the final two minutes resets the deadline to two minutes after that bid.
 _Avoid_: Anti-sniping, overtime
+
+## Submitting a Listing
+
+**Draft**:
+A vehicle a seller is still describing, saved privately as they go and not yet submitted.
+_Avoid_: Listing (before Submission), unpublished listing
+
+**Submission**:
+Handing in a Draft, which creates the Listing and sends it to Review. A Draft can be submitted once.
+_Avoid_: Publishing (the Listing is not public until Approval)
+
+**Review**:
+An administrator's check of a submitted Listing, ending in Approval or Changes requested.
+_Avoid_: Moderation
+
+**Awaiting review**:
+The state of a Listing after Submission or a Correction, until Review ends. The Listing is hidden from the public.
+_Avoid_: Pending
+
+**Approval**:
+The Review outcome that makes an Upcoming Listing public and lets its seller start the Auction.
+_Avoid_: Publishing, accepted
+
+**Changes requested**:
+The Review outcome that keeps the Listing hidden from the public and returns it to the seller with a note on what to fix.
+_Avoid_: Rejected, declined
+
+**Correction**:
+Any seller change to a submitted Listing before bidding opens. Every Correction, even to a single photo, returns the Listing to Awaiting review.
+_Avoid_: Edit, revision
 
 ## Following an Auction
 
