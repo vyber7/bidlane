@@ -3,6 +3,7 @@ import { reviewRevisionSchema } from "@/app/schemas/listing-review";
 import { isCloudinaryImageUrl, listingSchema, MAX_LISTING_PHOTOS } from "@/app/schemas/listing";
 import { vehicleRecordsSchema, vinSchema } from "@/app/schemas/vehicle-trust";
 import { ApiRequestError, parseApiInput } from "./api-request";
+import type { AuthoredListing } from "@/prisma/native/listing-authoring";
 import { getNativeRepositories } from "./native-repositories";
 import { assertListingAssets, assertOwnedAssets, recordUrls } from "./uploaded-assets";
 
@@ -16,7 +17,6 @@ export type Correction =
   | { kind: "coverPhoto"; url: unknown }
   | { kind: "galleryPhoto"; url: unknown };
 
-type LoadedListing = NonNullable<Awaited<ReturnType<ReturnType<typeof getNativeRepositories>["listingAuthoring"]["find"]>>>;
 
 const refusals = {
   missing: "Listing not found.",
@@ -41,7 +41,7 @@ function assertPhotoCapacity(images: readonly string[]) {
  * Validates one Correction against the loaded Listing and returns the fields it
  * changes, or null when the Listing already has them.
  */
-async function changesFor(correction: Correction, listing: LoadedListing, { listingId, sellerId }: CorrectionTarget) {
+async function changesFor(correction: Correction, listing: AuthoredListing, { listingId, sellerId }: CorrectionTarget) {
   switch (correction.kind) {
     case "details": {
       if (parseApiInput(reviewRevisionSchema, correction.revision) !== listing.reviewRevision) {

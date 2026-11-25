@@ -17,11 +17,11 @@ describe("seller vehicle evidence editor", () => {
     expect(mocks.patch).toHaveBeenCalledWith("/api/listing/car/vehicle-details", { vin: "BCNR33-012345", vehicleRecords: records });
     expect(mocks.refresh).toHaveBeenCalled(); expect(screen.getByRole("status").textContent).toContain("saved");
   });
-  it("retains edits and displays auction-start conflicts", async () => {
-    mocks.patch.mockRejectedValueOnce({ isAxiosError: true, response: { data: { error: "The auction changed. Refresh before editing." } } });
+  it("retains edits and displays a stale-page refusal", async () => {
+    mocks.patch.mockRejectedValueOnce({ isAxiosError: true, response: { data: { error: "This listing changed. Reload before editing again." } } });
     render(<VehicleTrustEditor id="car" initialVin="ABC123" initialRecords={null} />);
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Save VIN & Records" })); });
-    expect(screen.getByRole("alert").textContent).toContain("auction changed");
+    expect(screen.getByRole("alert").textContent).toContain("This listing changed.");
     expect(screen.getByLabelText("VIN or chassis number (optional)")).toHaveProperty("value", "ABC123");
     expect(screen.queryByRole("status")).toBeNull();
   });

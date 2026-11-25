@@ -92,6 +92,8 @@ function listing(document: Document) {
     reviewNote: nullableText(document.reviewNote),
   };
 }
+/** A Listing as its seller and administrators load it. */
+export type AuthoredListing = ReturnType<typeof listing>;
 const revisionFilter = (revision: number) =>
   revision === 0 ? { $in: [Long.ZERO, null] } : Long.fromNumber(revision);
 
@@ -341,15 +343,23 @@ export function listingAuthoringRepository(
       changes: CorrectedListing,
       now: Date,
     ) {
-      const { year, miles, reservePrice, reviewRevision, images, ...rest } =
-        changes;
+      const {
+        year,
+        miles,
+        reservePrice,
+        reviewRevision,
+        images,
+        ...storedAsIs
+      } = changes;
       const updated = await collection.updateOne(
         editFilter(id, userId, revision),
         {
           $set: {
             // Fields a Correction leaves out are kept, never written as null.
             ...Object.fromEntries(
-              Object.entries(rest).filter(([, value]) => value !== undefined),
+              Object.entries(storedAsIs).filter(
+                ([, value]) => value !== undefined,
+              ),
             ),
             ...(year !== undefined && { year: Long.fromNumber(year) }),
             ...(miles !== undefined && { miles: Long.fromNumber(miles) }),
