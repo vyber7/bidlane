@@ -16,6 +16,11 @@ const openedStatuses: (string | null)[] = ["LIVE", "ENDED"];
 const upcomingStatuses: (string | null)[] = ["UPCOMING", null];
 const approved: ReviewStatus = "APPROVED";
 
+/** An Upcoming Listing as a database filter, including Listings stored without a status. */
+export function upcomingFilter() {
+  return { status: { $in: upcomingStatuses } };
+}
+
 /** Approval: the Review decision that makes an Upcoming Listing public and lets its seller start the Auction. */
 export function isApproved(listing: { reviewStatus: ReviewStatus | null }) {
   return listing.reviewStatus === approved;
@@ -36,7 +41,7 @@ export const publicListingFilter = {
   native: () => ({
     $or: [
       { status: { $in: openedStatuses } },
-      { status: { $in: upcomingStatuses }, ...approvedFilter() },
+      { ...upcomingFilter(), ...approvedFilter() },
     ],
   }),
   read: () => MongoOrExpr.of([

@@ -663,6 +663,21 @@ describe.skipIf(!url)(
       expect(state.trigger).not.toHaveBeenCalled();
     });
 
+    it("starts an Approved legacy Listing stored without a status, which reads as Upcoming", async () => {
+      const approved = await seed({ status: "UPCOMING", reviewStatus: "APPROVED" });
+      const pending = await seed({ status: "UPCOMING", reviewStatus: "PENDING" });
+      await connection.database
+        .collection("Listing")
+        .updateMany(
+          { _id: { $in: [new ObjectId(approved.id), new ObjectId(pending.id)] } },
+          { $unset: { status: "" } },
+        );
+      expect((await repositories.auctions.find(approved.id))?.status).toBe("UPCOMING");
+      expect(await start(pending.id)).toEqual({ ok: false, reason: "not-approved" });
+      expect(await start(approved.id)).toMatchObject({ ok: true });
+      expect((await repositories.auctions.find(approved.id))?.status).toBe("LIVE");
+    });
+
     it("rejects an unapproved listing and a stale approval revision at the native claim", async () => {
       const listing = await seed({
         status: "UPCOMING",
