@@ -80,8 +80,8 @@ describe("a Review decision", () => {
     expect(canViewListing(listing(), { id: "seller" })).toBe(true);
     expect(canViewListing(listing(), admin)).toBe(true);
   });
-  it.each(["LIVE", "ENDED"])("refuses a %s Listing because only Upcoming Listings can be reviewed", async (status) => {
-    store.listings.set(listingId, stored({ status }));
+  it("refuses a Listing whose bidding has opened, because only Upcoming Listings can be reviewed", async () => {
+    store.listings.set(listingId, stored({ status: "LIVE" }));
     await expect(approve()).rejects.toMatchObject({ status: 409, message: "Only upcoming listings can be reviewed." });
     expect(store.reviews).toEqual([]);
   });

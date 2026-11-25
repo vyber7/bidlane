@@ -54,15 +54,16 @@ describe("authenticated bounded uploader", () => {
     mocks.quota.mockRejectedValueOnce(new Error("DB unavailable"));
     expect((await POST(request())).status).toBe(503); expect(mocks.save).not.toHaveBeenCalled();
   });
-  it.each([null, { userId: "other", status: "UPCOMING" }, { userId: "seller", status: "LIVE" }])("rejects unavailable or foreign listing context %j", async (listing) => {
+  it.each([null, { userId: "other", status: "UPCOMING" }])("rejects unavailable or foreign listing context %j", async (listing) => {
     mocks.listing.mockResolvedValue(listing);
-    expect((await POST(request(10, { kind: "RECORD", listingId }))).status).toBe(listing?.userId === "seller" ? 409 : 404); expect(mocks.save).not.toHaveBeenCalled();
+    expect((await POST(request(10, { kind: "RECORD", listingId }))).status).toBe(404); expect(mocks.save).not.toHaveBeenCalled();
   });
   it("refuses an upload once bidding opens with the same message as a Correction", async () => {
     mocks.listing.mockResolvedValue({ userId: "seller", status: "LIVE" });
     const response = await POST(request(10, { kind: "RECORD", listingId }));
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({ error: "Listings cannot be edited after bidding opens." });
+    expect(mocks.save).not.toHaveBeenCalled();
   });
   it("permits an owned upcoming listing context", async () => {
     expect((await POST(request(10, { kind: "RECORD", listingId }))).status).toBe(201);
