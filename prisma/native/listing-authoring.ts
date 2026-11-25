@@ -6,11 +6,11 @@ import {
   type Document,
 } from "mongodb";
 import type { ValidatedListing } from "@/app/schemas/listing";
-import { decodeListing, listingProjection, type ListingField } from "@/app/libs/listing-codec";
+import { decodeListing, listingProjection, type ListingField, type ReviewStatus } from "@/app/libs/listing-codec";
 import type { z } from "zod";
 import type { listingDecisionSchema } from "@/app/schemas/listing-review";
 
-export type ReviewStatus = "PENDING" | "APPROVED" | "CHANGES_REQUESTED";
+export type { ReviewStatus };
 type Decision = z.output<typeof listingDecisionSchema>;
 const integer = (value: unknown): number => {
   const result = Long.isLong(value) ? value.toNumber() : value;

@@ -23,9 +23,9 @@ const base = () => ({
 // Historical stored shapes, and what every repository must read them as.
 const fixtures = [
   {
-    name: "a Listing stored before status, Review revisions, view counts and featuring",
-    document: { ...base(), year: 1999, miles: 120000 },
-    expected: { status: "UPCOMING", reviewRevision: 0, views: 1, isFeatured: false, year: 1999, currentBid: null, watcherCount: 0, auctionEndsAt: null },
+    name: "a watched Listing stored before status, Review revisions, view counts, featuring and the other lists",
+    document: { ...base(), year: 1999, miles: 120000, watchersIds: [watcher] },
+    expected: { status: "UPCOMING", reviewRevision: 0, views: 1, isFeatured: false, year: 1999, currentBid: null, watcherCount: 1, auctionEndsAt: null, images: [], biddersIds: [], seenIds: [], commentsIds: [], commenterIds: [], highestBidderId: null },
   },
   {
     name: "a live Listing stored with 64-bit numbers by an earlier driver",
@@ -108,6 +108,9 @@ describe.skipIf(!url)("every repository reads a stored Listing the same way", ()
       "engagement.find": () => native.engagement.find(id),
       "engagement.watchSnapshot": async () => (await native.engagement.watchSnapshot(id, watcher.toHexString()))?.listing,
       "notificationEmails.listing": async () => watchers(await native.notificationEmails.listing(id)),
+      "engagement.watchlist": async () =>
+        (await native.engagement.watchlist(watcher.toHexString())).find((listing) => listing.id === id),
+      "reads.listings.public": async () => watchers((await read.listings.public()).find((listing) => listing.id === id) ?? null),
       "listingAuthoring.find": () => native.listingAuthoring.find(id),
       "reads.listings.find": async () => watchers(await read.listings.find(id)),
       "reads.sellers.active or sales": async () =>
@@ -120,6 +123,8 @@ describe.skipIf(!url)("every repository reads a stored Listing the same way", ()
     "engagement.find",
     "engagement.watchSnapshot",
     "notificationEmails.listing",
+    "engagement.watchlist",
+    "reads.listings.public",
     "listingAuthoring.find",
     "reads.listings.find",
     "reads.sellers.active or sales",

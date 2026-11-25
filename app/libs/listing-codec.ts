@@ -7,8 +7,11 @@
 // layer, server code and client code can all use it.
 
 import type { Listing } from "@/app/types/database";
-import type { ReviewStatus } from "@/prisma/native/listing-authoring";
 import { readVehicleRecords } from "@/app/schemas/vehicle-trust";
+
+const reviewStatuses = ["PENDING", "APPROVED", "CHANGES_REQUESTED"] as const;
+/** Where a submitted Listing stands in Review. */
+export type ReviewStatus = (typeof reviewStatuses)[number];
 
 /** A stored Listing as every reader sees it, with legacy defaults applied. */
 export type DecodedListing = Omit<Listing, "reviewRevision" | "reviewStatus"> & {
@@ -52,9 +55,8 @@ const id: Read<string> = (value, field) => {
   if (typeof value !== "string" || !value) throw new StoredListingError(field, value);
   return value;
 };
-const reviewStatuses: readonly (string | null)[] = ["PENDING", "APPROVED", "CHANGES_REQUESTED"];
 const reviewStatus: Read<ReviewStatus> = (value, field) => {
-  if (typeof value !== "string" || !reviewStatuses.includes(value)) throw new StoredListingError(field, value);
+  if (typeof value !== "string" || !(reviewStatuses as readonly string[]).includes(value)) throw new StoredListingError(field, value);
   return value as ReviewStatus;
 };
 const json: Read<unknown> = (value) => value;
