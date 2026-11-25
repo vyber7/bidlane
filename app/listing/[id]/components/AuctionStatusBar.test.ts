@@ -21,10 +21,10 @@ vi.mock("@/app/hooks/useWatchlist", () => ({
 
 import AuctionStatusBar from "./AuctionStatusBar";
 
-function auction(listing: PublicListing, currentUser = "seller") {
+function auction(listing: PublicListing, viewerId = "seller") {
   return createElement(AuctionProvider, {
-    listing, bids: [], comments: [],
-  }, createElement(AuctionStatusBar, { currentUser }));
+    listing, viewerId, bids: [], comments: [],
+  }, createElement(AuctionStatusBar));
 }
 
 beforeEach(() => {
@@ -76,19 +76,12 @@ describe("auction expiry controls", () => {
       render(auction(makeListing({ auctionEndsAt: auctionNow })));
     });
     expect(screen.getByText("Closing")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Retry Finalization" })).toHaveProperty("disabled", false);
     mocks.post.mockClear();
     await act(async () => {
       screen.getByRole("button", { name: "Retry Finalization" }).click();
     });
     expect(mocks.post).toHaveBeenCalledWith("/api/auction-finalize", { listingId: makeListing().id });
-  });
-
-  it.each(["seller", "visitor"])("requests finalization on expiry for %s", async (user) => {
-    await act(async () => {
-      render(auction(makeListing({ auctionEndsAt: auctionNow }), user));
-    });
-    expect(mocks.post).toHaveBeenCalledWith("/api/auction-finalize", { listingId: makeListing().id });
-    expect(mocks.refresh).toHaveBeenCalled();
   });
 
   it("offers the seller no ending control and skips finalization before expiry", () => {
@@ -123,11 +116,6 @@ describe("auction expiry controls", () => {
     expect(screen.getByRole("link", { name: "Place a Bid" })).toBeDefined();
   });
 
-  it("does not request finalization again for an ended auction", () => {
-    render(auction(makeListing({ status: "ENDED", auctionEndsAt: auctionNow })));
-    expect(mocks.post).not.toHaveBeenCalledWith("/api/auction-finalize", expect.anything());
-  });
-
   it("uses the refreshed deadline for both the countdown and progress bar", () => {
     const listing = makeListing();
     const { rerender } = render(auction(listing));
@@ -139,33 +127,6 @@ describe("auction expiry controls", () => {
     expect(screen.getByRole("progressbar", { name: "Auction closing progress" }).getAttribute("aria-valuenow")).toBe("75");
   });
 
-  it("finalizes a newly extended deadline even if the previous deadline was already requested", async () => {
-    const listing = makeListing({ auctionEndsAt: auctionNow });
-    let view: ReturnType<typeof render>;
-    await act(async () => { view = render(auction(listing)); });
-    mocks.post.mockClear();
-    view!.rerender(auction({ ...listing, auctionEndsAt: new Date(Date.now() + 1000) }));
-    expect(mocks.post).not.toHaveBeenCalledWith("/api/auction-finalize", expect.anything());
-    await act(async () => vi.advanceTimersByTime(1000));
-    expect(mocks.post.mock.calls.filter(([url]) => url === "/api/auction-finalize")).toHaveLength(1);
-  });
-
-  it("keeps a newer finalization pending when an older request finishes late", async () => {
-    const finish: Array<(value: unknown) => void> = [];
-    mocks.post.mockImplementation((url) => url === "/api/auction-finalize"
-      ? new Promise((resolve) => finish.push(resolve))
-      : Promise.resolve({ data: {} }));
-    const listing = makeListing({ auctionEndsAt: auctionNow });
-    const { rerender } = render(auction(listing));
-    rerender(auction({ ...listing, auctionEndsAt: new Date(Date.now() + 1000) }));
-    await act(async () => vi.advanceTimersByTime(1000));
-    expect(finish).toHaveLength(2);
-
-    await act(async () => finish[0]({ data: {} }));
-    expect(screen.getByRole("button", { name: "Finalizing Auction…" })).toHaveProperty("disabled", true);
-    await act(async () => finish[1]({ data: {} }));
-    expect(screen.getByRole("button", { name: "Retry Finalization" })).toHaveProperty("disabled", false);
-  });
 });
 
 describe("auction status panel semantics", () => {

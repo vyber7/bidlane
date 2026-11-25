@@ -63,7 +63,7 @@ const Listing = async (props: Params) => {
   const transaction = can.completeTransaction;
 
   return (
-    <AuctionProvider key={id} listing={toPublicListing(listing, currentUser?.id)} bids={bids} comments={comments}>
+    <AuctionProvider key={id} listing={toPublicListing(listing, currentUser?.id)} viewerId={currentUser?.id} bids={bids} comments={comments}>
       <div className="mx-auto max-w-6xl px-4 pb-16 pt-24 sm:px-6 lg:px-8">
         <Link
           href="/"
@@ -117,7 +117,7 @@ const Listing = async (props: Params) => {
             className="space-y-5 lg:col-start-2 lg:row-start-1 lg:row-span-2"
             aria-label="Auction overview"
           >
-            {isPublicListing(listing) && <AuctionStatusBar currentUser={currentUser?.id} />}
+            {isPublicListing(listing) && <AuctionStatusBar />}
             <section className="rounded-2xl border border-slate-200 bg-white p-6">
               <h2 className="mb-4 text-lg font-bold tracking-tight">
                 Vehicle at a Glance
@@ -170,7 +170,6 @@ const Listing = async (props: Params) => {
               <VehicleRecords records={listing.vehicleRecords} />
               <Bids
                 sellerName={seller?.name}
-                currentUserId={currentUser?.id}
                 emailVerified={Boolean(currentUser?.emailVerified)}
               />
               {isPublicListing(listing) && <Comments signedIn={Boolean(currentUser)} />}
@@ -192,7 +191,7 @@ const Listing = async (props: Params) => {
           </Link>
         </div>
       </div>
-      <MobileAuctionBar currentUserId={currentUser?.id} />
+      <MobileAuctionBar />
     </AuctionProvider>
   );
 };

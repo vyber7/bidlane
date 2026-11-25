@@ -9,7 +9,7 @@ import { formatAmount, formatPrice } from "@/app/utils/format";
 import clsx from "clsx";
 import { FiArrowUpRight, FiClock, FiEye, FiMapPin } from "react-icons/fi";
 import useAuction from "@/app/hooks/useAuction";
-import { describeAuction, type AuctionDisplay } from "@/app/libs/auction-display";
+import type { AuctionDisplay } from "@/app/libs/auction-display";
 import { CldImage } from "next-cloudinary";
 import { transactionHref } from "@/app/libs/transaction-completion";
 import { transactionAccess } from "@/app/libs/listing-capabilities";
@@ -38,10 +38,8 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
   uploaded,
   onRemove,
 }) => {
-  const { listing, phase, timeLeft } = useAuction(initialListing);
+  const { listing, display, timeLeft } = useAuction(initialListing, { viewerId: currentUserId });
   const transaction = uploaded ? transactionAccess(listing, currentUserId) : null;
-
-  const display = describeAuction(listing, phase, currentUserId);
   const { label: amountLabel, amount } = display.price;
 
   return (

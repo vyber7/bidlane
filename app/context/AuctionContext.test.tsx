@@ -16,10 +16,12 @@ import FeaturedAuction from "@/app/(site)/components/FeaturedAuction";
 import { auctionNow, makeBid, makeComment, makePublicListing as makeListing } from "@/app/test/auction-fixtures";
 import { describeAuction } from "@/app/libs/auction-display";
 
-const mocks = vi.hoisted(() => ({ post: vi.fn(), refresh: vi.fn(), search: "" }));
+const mocks = vi.hoisted(() => ({ post: vi.fn(), recordView: vi.fn<(...args: unknown[]) => Promise<unknown>>(() => Promise.resolve({ data: {} })), refresh: vi.fn(), search: "" }));
 vi.mock("axios", async (importOriginal) => {
   const actual = await importOriginal<typeof import("axios")>();
-  return { ...actual, default: { ...actual.default, post: mocks.post } };
+  // The listing page records a view on mount; keep it out of the requests under test.
+  const post = (url: string, ...rest: unknown[]) => url === "/api/listing-view" ? mocks.recordView(url, ...rest) : mocks.post(url, ...rest);
+  return { ...actual, default: { ...actual.default, post } };
 });
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mocks.refresh }),
@@ -52,22 +54,22 @@ afterEach(() => {
 describe("shared auction views", () => {
   function biddingViews(listing = makeListing()) {
     return (
-      <AuctionProvider listing={listing} bids={[]} comments={[]}>
-        <AuctionStatusBar currentUser="buyer" />
-        <MobileAuctionBar currentUserId="buyer" />
-        <Bids currentUserId="buyer" emailVerified />
+      <AuctionProvider listing={listing} bids={[]} comments={[]} viewerId="buyer">
+        <AuctionStatusBar />
+        <MobileAuctionBar />
+        <Bids emailVerified />
       </AuctionProvider>
     );
   }
 
   it.each([
-    ["status bar", <AuctionStatusBar key="status" currentUser="buyer" />],
-    ["mobile bar", <MobileAuctionBar key="mobile" currentUserId="buyer" />],
-    ["bids panel", <Bids key="bids" currentUserId="buyer" emailVerified />],
+    ["status bar", <AuctionStatusBar key="status" />],
+    ["mobile bar", <MobileAuctionBar key="mobile" />],
+    ["bids panel", <Bids key="bids" emailVerified />],
   ])("shows the auction display's syncing message on the %s before the browser clock arrives", (_view, child) => {
     const listing = makeListing();
     const initial = document.createElement("div");
-    initial.innerHTML = renderToString(<AuctionProvider listing={listing} bids={[]} comments={[]}>{child}</AuctionProvider>);
+    initial.innerHTML = renderToString(<AuctionProvider listing={listing} viewerId="buyer" bids={[]} comments={[]}>{child}</AuctionProvider>);
     expect(initial.textContent).toContain(describeAuction(listing, null, "buyer").message);
     expect(within(initial).queryByRole("link", { name: "Place a Bid" })).toBeNull();
   });
@@ -99,8 +101,8 @@ describe("shared auction views", () => {
       response: { status: 409, data: { error: "The auction changed; please try again" } },
     });
     render(
-      <AuctionProvider listing={makeListing()} bids={[]} comments={[]}>
-        <Bids currentUserId="buyer" emailVerified />
+      <AuctionProvider listing={makeListing()} bids={[]} comments={[]} viewerId="buyer">
+        <Bids emailVerified />
       </AuctionProvider>
     );
     const input = screen.getByRole("spinbutton", { name: "Your bid amount in dollars" });
@@ -120,9 +122,9 @@ describe("shared auction views", () => {
       data: url === "/api/place-bid" ? { bid, currentBid: bid.amount, auctionEndsAt: end } : {},
     }));
     render(
-      <AuctionProvider listing={listing} bids={[]} comments={[]}>
-        <AuctionStatusBar currentUser="buyer" />
-        <Bids sellerName="Seller" currentUserId="buyer" emailVerified />
+      <AuctionProvider listing={listing} bids={[]} comments={[]} viewerId="buyer">
+        <AuctionStatusBar />
+        <Bids sellerName="Seller" emailVerified />
         <Comments signedIn />
       </AuctionProvider>
     );
@@ -141,9 +143,9 @@ describe("shared auction views", () => {
   it("recovers missed bids and comments in every detail view on refresh", async () => {
     const listing = makeListing();
     const view = (updated = listing, bids = [] as ReturnType<typeof makeBid>[], comments = [] as ReturnType<typeof makeComment>[]) => (
-      <AuctionProvider listing={updated} bids={bids} comments={comments}>
-        <AuctionStatusBar currentUser="buyer" />
-        <Bids sellerName="Seller" currentUserId="buyer" emailVerified />
+      <AuctionProvider listing={updated} bids={bids} comments={comments} viewerId="buyer">
+        <AuctionStatusBar />
+        <Bids sellerName="Seller" emailVerified />
         <Comments signedIn />
       </AuctionProvider>
     );
@@ -188,8 +190,8 @@ describe("shared auction views", () => {
     const bid = makeBid({ user: { name } });
     const listing = makeListing({ currentBid: bid.amount, highestBidderId: bid.userId });
     render(
-      <AuctionProvider listing={listing} bids={[bid]} comments={[]}>
-        <Bids sellerName={name} currentUserId="buyer" emailVerified />
+      <AuctionProvider listing={listing} bids={[bid]} comments={[]} viewerId="buyer">
+        <Bids sellerName={name} emailVerified />
       </AuctionProvider>
     );
     expect(screen.getAllByText("Seller")).toHaveLength(2);
@@ -297,8 +299,8 @@ describe("shared auction views", () => {
 
   it.each(["startingBid", "bidIncrement", "auctionStartsAt", "auctionEndsAt"] as const)("disables bidding when %s is absent", async (field) => {
     render(
-      <AuctionProvider listing={makeListing({ [field]: null })} bids={[]} comments={[]}>
-        <Bids currentUserId="buyer" emailVerified />
+      <AuctionProvider listing={makeListing({ [field]: null })} bids={[]} comments={[]} viewerId="buyer">
+        <Bids emailVerified />
       </AuctionProvider>
     );
     const input = screen.getByRole("spinbutton", { name: "Your bid amount in dollars" });
@@ -322,8 +324,8 @@ describe("shared auction views", () => {
 
   it("preserves a valid zero-dollar starting bid", () => {
     render(
-      <AuctionProvider listing={makeListing({ startingBid: 0 })} bids={[]} comments={[]}>
-        <Bids currentUserId="buyer" emailVerified />
+      <AuctionProvider listing={makeListing({ startingBid: 0 })} bids={[]} comments={[]} viewerId="buyer">
+        <Bids emailVerified />
       </AuctionProvider>
     );
     expect(screen.getByText("$0")).toBeDefined();
@@ -337,8 +339,8 @@ describe("shared auction views", () => {
   ])("shows %s the Closing message on the mobile bar", async (viewer, link) => {
     await act(async () => {
       render(
-        <AuctionProvider listing={makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 })} bids={[]} comments={[]}>
-          <MobileAuctionBar currentUserId={viewer} />
+        <AuctionProvider listing={makeListing({ auctionEndsAt: auctionNow, currentBid: 12000 })} bids={[]} comments={[]} viewerId={viewer}>
+          <MobileAuctionBar />
         </AuctionProvider>
       );
     });
@@ -351,8 +353,8 @@ describe("shared auction views", () => {
 
   it("hides the mobile bar once the Auction has ended", () => {
     const { container } = render(
-      <AuctionProvider listing={makeListing({ status: "ENDED", result: "SOLD", currentBid: 12000 })} bids={[]} comments={[]}>
-        <MobileAuctionBar currentUserId="buyer" />
+      <AuctionProvider listing={makeListing({ status: "ENDED", result: "SOLD", currentBid: 12000 })} bids={[]} comments={[]} viewerId="buyer">
+        <MobileAuctionBar />
       </AuctionProvider>
     );
     expect(container.textContent).toBe("");
@@ -455,5 +457,23 @@ describe("shared auction views", () => {
     expect(region.textContent).toBe("2020 Porsche 911: Sold. Sold for $15,000.");
     expect(container.querySelectorAll("[aria-live]")).toHaveLength(1);
     expect(screen.getAllByRole("link")).toHaveLength(1);
+  });
+});
+
+describe("recording a view", () => {
+  const viewRequests = () => mocks.recordView.mock.calls;
+
+  it("records one view from the listing page, and another when a different viewer signs in", () => {
+    const listing = makeListing();
+    const { rerender } = render(<AuctionProvider listing={listing} bids={[]} comments={[]}><MobileAuctionBar /></AuctionProvider>);
+    rerender(<AuctionProvider listing={{ ...listing, currentBid: 12000 }} bids={[]} comments={[]}><MobileAuctionBar /></AuctionProvider>);
+    expect(viewRequests()).toEqual([["/api/listing-view", { listingId: listing.id }]]);
+    rerender(<AuctionProvider listing={listing} viewerId="buyer" bids={[]} comments={[]}><MobileAuctionBar /></AuctionProvider>);
+    expect(viewRequests()).toHaveLength(2);
+  });
+
+  it("never records a view from an auction card", () => {
+    render(<><ListingBox listing={makeListing()} currentUserId="buyer" /><FeaturedAuction listing={makeListing()} currentUserId="buyer" /></>);
+    expect(viewRequests()).toHaveLength(0);
   });
 });

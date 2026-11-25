@@ -3,10 +3,10 @@
 import Link from "next/link";
 import CommentForm from "./CommentForm";
 import CommentBox from "./CommentBox";
-import { useAuctionContext } from "@/app/context/AuctionContext";
+import { useAuctionView } from "@/app/context/AuctionContext";
 
 export default function Comments({ signedIn }: { signedIn: boolean }) {
-  const { listing, comments, bids } = useAuctionContext();
+  const { listing, comments, bids } = useAuctionView();
 
   return (
     <section

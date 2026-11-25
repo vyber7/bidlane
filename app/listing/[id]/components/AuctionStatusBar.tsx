@@ -1,15 +1,10 @@
 "use client";
 
-import { getApiErrorMessage } from "@/app/utils/api-error";
-
-import { useCallback, useEffect, useRef, useState } from "react";
-import axios from "axios";
 import { formatPrice, formatCount } from "@/app/utils/format";
 import Button from "@/app/components/Button";
 import NoReserveBadge from "@/app/components/NoReserveBadge";
-import { useAuctionContext } from "@/app/context/AuctionContext";
+import { useAuctionView } from "@/app/context/AuctionContext";
 import clsx from "clsx";
-import { useRouter } from "next/navigation";
 import ProgressBar from "./ProgressBar";
 import {
   FaHashtag,
@@ -18,87 +13,20 @@ import {
 } from "react-icons/fa";
 import Link from "next/link";
 import { GoStar, GoStarFill } from "react-icons/go";
-import toast from "react-hot-toast";
 import useWatchlist from "@/app/hooks/useWatchlist";
-import { logger } from "@/app/libs/logger";
 import { transactionHref } from "@/app/libs/transaction-completion";
 import { transactionAccess } from "@/app/libs/listing-capabilities";
-import { describeAuction } from "@/app/libs/auction-display";
 
-interface AuctionStatusBarProps {
-  currentUser?: string | null;
-}
-
-const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
-  currentUser,
-}) => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [autoFinalizingDeadline, setAutoFinalizingDeadline] = useState<string | null>(null);
-  const { listing, bids, comments, remainingMs, timeLeft, phase } = useAuctionContext();
-  const display = describeAuction(listing, phase, currentUser);
-  const closing = display.timer === "closing";
+const AuctionStatusBar: React.FC = () => {
+  const { listing, bids, comments, remainingMs, timeLeft, viewerId, display, finalization } = useAuctionView();
   const { watching, isUpdating, toggle } = useWatchlist({
     listingId: listing.id,
-    userId: currentUser,
+    userId: viewerId,
     initialWatching: listing.isWatching,
   });
-  const router = useRouter();
-  const finalizationRequested = useRef<string | null>(null);
-  const deadline = listing.auctionEndsAt?.toISOString() ?? "";
-  const finalizationKey = `${listing.id}:${deadline}`;
-  const isAutoFinalizing = autoFinalizingDeadline === finalizationKey;
 
-  const retryFinalization = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      await axios.post("/api/auction-finalize", { listingId: listing.id });
-      router.refresh();
-    } catch (error) {
-      logger.error("auction.finalize.client_failed", error, {
-        listingId: listing.id,
-      });
-      toast.error(getApiErrorMessage(error, "The auction results could not be finalized. Please try again."));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [listing.id, router]);
-
-  useEffect(() => {
-    if (!closing || finalizationRequested.current === finalizationKey) {
-      return;
-    }
-
-    finalizationRequested.current = finalizationKey;
-    setAutoFinalizingDeadline(finalizationKey);
-    axios
-      .post("/api/auction-finalize", { listingId: listing.id })
-      .then(() => router.refresh())
-      .catch((error: unknown) => {
-        logger.warn("auction.auto_finalize_client_failed", {
-          listingId: listing.id,
-          error: String(error),
-        });
-        if (finalizationRequested.current === finalizationKey) {
-          finalizationRequested.current = null;
-        }
-        router.refresh();
-      })
-      .finally(() => setAutoFinalizingDeadline((current) => current === finalizationKey ? null : current));
-  }, [closing, finalizationKey, listing.id, router]);
-
-  useEffect(() => {
-    axios
-      .post("/api/listing-view", { listingId: listing.id })
-      .catch((error: unknown) => {
-        logger.warn("listing.view.client_failed", {
-          listingId: listing.id,
-          error: String(error),
-        });
-      });
-  }, [listing.id, currentUser]);
-
-  const transaction = transactionAccess(listing, currentUser);
-  const owner = currentUser === listing.userId;
+  const transaction = transactionAccess(listing, viewerId);
+  const owner = viewerId === listing.userId;
   const { headline, price, result } = display;
   const live = display.bucket === "live";
   const ended = display.bucket === "results";
@@ -140,7 +68,7 @@ const AuctionStatusBar: React.FC<AuctionStatusBarProps> = ({
           <span className="font-semibold tabular-nums">{timeLeft || "Calculating…"}</span>
         </div>}
         {display.action === "retry-finalization" ? (
-          <Button onClick={retryFinalization} disabled={isLoading || isAutoFinalizing}>{isLoading || isAutoFinalizing ? "Finalizing Auction…" : "Retry Finalization"}</Button>
+          <Button onClick={finalization.retry} disabled={finalization.finalizing}>{finalization.finalizing ? "Finalizing Auction…" : "Retry Finalization"}</Button>
         ) : display.action === "place-bid" ? (
           <Link href="#bids" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">Place a Bid</Link>
         ) : display.message ? (

@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useAuctionContext } from "@/app/context/AuctionContext";
+import { useAuctionView } from "@/app/context/AuctionContext";
 import NoReserveBadge from "@/app/components/NoReserveBadge";
 import { formatPrice } from "@/app/utils/format";
-import { describeAuction } from "@/app/libs/auction-display";
 
-export default function MobileAuctionBar({ currentUserId }: { currentUserId?: string | null }) {
-  const { listing, timeLeft, phase } = useAuctionContext();
-  const display = describeAuction(listing, phase, currentUserId);
+export default function MobileAuctionBar() {
+  const { listing, timeLeft, display } = useAuctionView();
   const bar = useRef<HTMLElement>(null);
   const shown = display.bucket === "live";
 

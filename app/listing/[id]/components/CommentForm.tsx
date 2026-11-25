@@ -7,14 +7,14 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { useId, useRef, useState } from "react";
 import { FiLoader } from "react-icons/fi";
 import { logger } from "@/app/libs/logger";
-import { useAuctionContext } from "@/app/context/AuctionContext";
+import { useAuctionView } from "@/app/context/AuctionContext";
 import type { CommentResponse } from "@/app/types/auction-events";
 import type { CommentFormValues } from "@/app/types/forms";
 import { commentRequestSchema, MAX_COMMENT_LENGTH } from "@/app/schemas/auction";
 import { validationMessage } from "@/app/schemas/common";
 
 export default function CommentForm({ listingId }: { listingId: string }) {
-  const { acceptComment } = useAuctionContext();
+  const { acceptComment } = useAuctionView();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postError, setPostError] = useState("");
   const [posted, setPosted] = useState(false);
