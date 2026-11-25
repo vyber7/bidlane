@@ -26,5 +26,16 @@ export default defineConfig([
       }],
     },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "prisma/v8/contract.d.ts"]),
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+    "prisma/v8/contract.d.ts",
+    // Agent skills are copied in from installed packages by `prisma skills sync`.
+    ".agents/skills/**",
+    ".claude/skills/**",
+    ".cursor/skills/**",
+    ".devin/skills/**",
+  ]),
 ]);
