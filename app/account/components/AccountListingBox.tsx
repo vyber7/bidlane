@@ -4,13 +4,13 @@ import Link from "next/link";
 import { GoTrash } from "react-icons/go";
 import Image from "next/image";
 import type { PublicListing, SellerListing } from "@/app/libs/listing-payload";
+import type { ReviewLabel } from "@/app/libs/listing-review";
 import { formatAmount, formatPrice } from "@/app/utils/format";
 import clsx from "clsx";
 import { FiArrowUpRight, FiClock, FiEye, FiMapPin } from "react-icons/fi";
 import useAuction from "@/app/hooks/useAuction";
 import { describeAuction, type AuctionDisplay } from "@/app/libs/auction-display";
 import { CldImage } from "next-cloudinary";
-import { reviewLabels } from "@/app/libs/listing-review";
 import { transactionAccess, transactionHref } from "@/app/libs/transaction-completion";
 
 const chipClasses: Record<AuctionDisplay["tone"], string> = {
@@ -20,8 +20,11 @@ const chipClasses: Record<AuctionDisplay["tone"], string> = {
   neutral: "bg-gray-100 text-gray-600 ring-gray-200",
 };
 
+/** A seller's own Listing, with its Review label worked out on the server. */
+export type AccountListing = SellerListing & { reviewLabel: ReviewLabel };
+
 interface AccountListingBoxProps {
-  listing: PublicListing & Partial<Pick<SellerListing, "reviewStatus" | "reviewNote">>;
+  listing: PublicListing & Partial<Pick<AccountListing, "reviewLabel" | "reviewNote">>;
   currentUserId?: string | null;
   uploaded: boolean;
   /** Removes a watched Listing from the Watchlist; the dashboard owns undo. */
@@ -71,7 +74,7 @@ const AccountListingBox: React.FC<AccountListingBoxProps> = ({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="mb-1 flex flex-wrap items-center gap-2">
-                {uploaded && display.bucket === "upcoming" && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">{reviewLabels[listing.reviewStatus ?? "PENDING"]}</span>}
+                {uploaded && display.bucket === "upcoming" && listing.reviewLabel && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">{listing.reviewLabel}</span>}
                 <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-inset ${chipClasses[display.tone]}`}>
                   {display.headline}
                 </span>

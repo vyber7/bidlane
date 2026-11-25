@@ -5,6 +5,7 @@ import { getAccountUser } from "@/app/account/lib/current-user";
 import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { getReadRepositories } from "@/app/libs/read-repositories";
 import { toSellerListing } from "@/app/libs/listing-payload";
+import { reviewLabel } from "@/app/libs/listing-review";
 
 const MyListings = async () => {
   const currentUser = await getAccountUser();
@@ -23,7 +24,7 @@ const MyListings = async () => {
         return { id: saved.id, revision: saved.revision, title: [saved.payload.details.year, saved.payload.details.make, saved.payload.details.model].filter(Boolean).join(" ") || "Untitled vehicle", photoCount: saved.payload.images.length, updatedAt: saved.updatedAt };
       })} />
       <ListingsDashboard
-        uploaded={uploaded.map((listing) => toSellerListing(listing, currentUser))}
+        uploaded={uploaded.map((listing) => ({ ...toSellerListing(listing, currentUser), reviewLabel: reviewLabel(listing) }))}
         initialWatching={watching}
         currentUserId={currentUser.id}
       />

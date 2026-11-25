@@ -186,7 +186,7 @@ describe("Prisma 8 storage compatibility", () => {
     });
   }
 
-  it("preserves enum storage values for roles, moderation, and notifications", () => {
+  it("preserves enum storage values for roles, Review states, and notifications", () => {
     const enums = contract.domain.namespaces.__unbound__.enum;
     expect(Object.keys(enums).sort()).toEqual(Object.keys(storedEnums).sort());
     for (const [name, values] of Object.entries(storedEnums)) {

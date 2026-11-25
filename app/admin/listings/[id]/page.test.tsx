@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 const mocks = vi.hoisted(() => ({ review: vi.fn(), redirect: vi.fn(), notFound: vi.fn() }));
-vi.mock("@/app/libs/listing-moderation", () => ({ getListingReview: mocks.review }));
+vi.mock("@/app/libs/listing-review", async (importOriginal) => ({ ...await importOriginal<typeof import("@/app/libs/listing-review")>(), getListingReview: mocks.review }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect, notFound: mocks.notFound }));
 // Client islands are covered by their own tests; this page test checks the server-rendered summary.
 vi.mock("@/app/listing/[id]/components/CoverImage", () => ({ default: () => null }));

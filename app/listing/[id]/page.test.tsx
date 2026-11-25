@@ -90,7 +90,7 @@ describe("private listing pages", () => {
     await expect(visit()).rejects.toThrow("not-found");
     expect(mocks.comments).not.toHaveBeenCalled(); expect(mocks.bids).not.toHaveBeenCalled(); expect(mocks.seller).not.toHaveBeenCalled();
   });
-  it.each([{ id: "seller" }, { id: "moderator", role: "ADMIN" }])("allows private inspection by %j", async (user) => {
+  it.each([{ id: "seller" }, { id: "admin", role: "ADMIN" }])("allows private inspection by %j", async (user) => {
     mocks.user.mockResolvedValue(user);
     await expect(visit()).resolves.toBeDefined();
   });
