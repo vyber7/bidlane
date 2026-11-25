@@ -1,5 +1,6 @@
 import { Long, ObjectId, type ClientSession, type Db } from "mongodb";
 import type { AcceptedBidResponse } from "@/app/types/auction-events";
+import { approvedFilter } from "@/app/libs/listing-review";
 
 type AuctionDocument = {
   _id: ObjectId;
@@ -139,7 +140,7 @@ export function auctionRepositories(database: Db, session?: ClientSession) {
             _id: new ObjectId(listing.id),
             userId: new ObjectId(listing.userId),
             status: "UPCOMING",
-            reviewStatus: "APPROVED",
+            ...approvedFilter(),
             reviewRevision:
               listing.reviewRevision === 0
                 ? { $in: [Long.ZERO, null] }
