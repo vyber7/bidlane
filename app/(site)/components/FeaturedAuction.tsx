@@ -8,17 +8,15 @@ import useAuction from "@/app/hooks/useAuction";
 import WatchAuctionButton from "./WatchAuctionButton";
 import NoReserveBadge from "@/app/components/NoReserveBadge";
 import { formatAmount, formatPrice } from "@/app/utils/format";
-import { describeAuction } from "@/app/libs/auction-display";
 
 export default function FeaturedAuction({ listing: initialListing, currentUserId }: {
   listing: PublicListing;
   currentUserId?: string | null;
 }) {
-  const { listing, phase, timeLeft } = useAuction(initialListing);
+  const { listing, display, timeLeft } = useAuction(initialListing, { viewerId: currentUserId });
   const title = `${listing.year} ${listing.make} ${listing.model}`;
   const href = `/listing/${listing.id}`;
   const image = listing.coverImage || listing.images[0];
-  const display = describeAuction(listing, phase, currentUserId);
   const upcoming = display.bucket === "upcoming";
   const ended = display.bucket === "results";
   const { label: bidLabel, amount } = display.price;

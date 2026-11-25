@@ -14,7 +14,6 @@ import { capitalize, formatAmount, formatPrice } from "../utils/format";
 import { clsx } from "clsx";
 import { CldImage } from "next-cloudinary";
 import useWatchlist from "../hooks/useWatchlist";
-import { describeAuction } from "@/app/libs/auction-display";
 import { useAnnouncePriceChange } from "@/app/context/InventoryAnnouncements";
 
 interface ListingBoxProps {
@@ -23,12 +22,11 @@ interface ListingBoxProps {
 }
 
 const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, currentUserId }) => {
-  const { listing, phase, remainingMs, timeLeft } = useAuction(initialListing);
+  const { listing, display, remainingMs, timeLeft } = useAuction(initialListing, { viewerId: currentUserId });
   const titleId = useId();
   const title = `${listing.year} ${capitalize(listing.make)} ${capitalize(listing.model)}`;
   const href = `/listing/${listing.id}`;
   const isOwner = listing.userId === currentUserId;
-  const display = describeAuction(listing, phase, currentUserId);
   const { price } = display;
   useAnnouncePriceChange(
     `${title}: ${price.label} ${price.amount === null ? "to be announced" : formatPrice(price.amount)}.`,

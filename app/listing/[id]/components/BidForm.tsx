@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { useAuctionContext } from "@/app/context/AuctionContext";
+import { useAuctionView } from "@/app/context/AuctionContext";
 import { getApiErrorMessage } from "@/app/utils/api-error";
 import { capitalize, formatPrice } from "@/app/utils/format";
 import type { AcceptedBidResponse } from "@/app/types/auction-events";
@@ -14,18 +14,13 @@ import { bidRequestSchema } from "@/app/schemas/auction";
 import { MAX_INTEGER, validationMessage } from "@/app/schemas/common";
 import Link from "next/link";
 import { EXTENSION_WINDOW_MS } from "@/app/libs/auction-lifecycle";
-import { describeAuction } from "@/app/libs/auction-display";
 
 const extensionMinutes = EXTENSION_WINDOW_MS / 60_000;
 
 const primaryButton = "rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:cursor-not-allowed disabled:opacity-50";
 
-export default function BidForm({ currentUserId, emailVerified = false }: {
-  currentUserId?: string | null;
-  emailVerified?: boolean;
-}) {
-  const { listing, phase, acceptBid } = useAuctionContext();
-  const display = describeAuction(listing, phase, currentUserId);
+export default function BidForm({ emailVerified = false }: { emailVerified?: boolean }) {
+  const { listing, viewerId, display, acceptBid } = useAuctionView();
   const minimumBid = display.minimumBid;
   const canBid = minimumBid !== null;
   const router = useRouter();
@@ -39,7 +34,7 @@ export default function BidForm({ currentUserId, emailVerified = false }: {
   const restoreFocus = useRef(false);
   const { register, handleSubmit, reset, setFocus, setValue, formState: { errors } } = useForm<BidFormValues>();
   const minimumChanged = canBid && review !== null && review.minimumBid !== minimumBid;
-  const leading = !!currentUserId && listing.highestBidderId === currentUserId;
+  const leading = !!viewerId && listing.highestBidderId === viewerId;
 
   useEffect(() => {
     if (review) reviewHeading.current?.focus();

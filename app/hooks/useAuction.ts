@@ -9,6 +9,8 @@ import useCountDown from "./useCountDown";
 import { listingChannel } from "@/app/libs/realtime/catalog";
 import { useRealtimeEvent, useRealtimeReady } from "@/app/libs/realtime/client";
 import useAuctionRefresh from "./useAuctionRefresh";
+import useAuctionFinalization from "./useAuctionFinalization";
+import { describeAuction } from "@/app/libs/auction-display";
 
 interface AuctionSnapshot<T extends PublicListing> {
   listing: T;
@@ -53,10 +55,22 @@ function mergeActivity<T extends { id: string }>(previous: T[], incoming: T[]) {
   return Array.from(new Map([...previous, ...incoming].map((item) => [item.id, item])).values());
 }
 
+export interface AuctionViewOptions {
+  /** Who is looking: null or absent for an anonymous visitor. */
+  viewerId?: string | null;
+  /** Pass bids and comments only from views that show activity. */
+  bids?: BidWithAuthor[];
+  comments?: CommentWithAuthor[];
+}
+
+/**
+ * The auction view: an Auction with its Real-time updates applied, its phase,
+ * countdown and display for one viewer. While the Auction is Closing it also
+ * asks for Finalization, shared with every other view of the same Auction.
+ */
 export default function useAuction<T extends PublicListing>(
   listing: T,
-  bids = emptyBids,
-  comments = emptyComments
+  { viewerId = null, bids = emptyBids, comments = emptyComments }: AuctionViewOptions = {},
 ) {
   const source = { listing, bids, comments };
   const [state, setState] = useState<{ source: AuctionSnapshot<T>; current: AuctionSnapshot<T> }>({
@@ -156,10 +170,20 @@ export default function useAuction<T extends PublicListing>(
     ? null
     : auctionPhase(currentListing, currentTime ?? 0);
 
+  const finalization = useAuctionFinalization({
+    listingId: currentListing.id,
+    deadline: currentListing.auctionEndsAt,
+    closing: phase?.phase === "closing",
+    refresh,
+  });
+
   return {
     ...state.current,
     ...countdown,
     phase,
+    viewerId,
+    display: describeAuction(currentListing, phase, viewerId),
+    finalization,
     acceptBid: ({ bid, auctionEndsAt }: AcceptedBidResponse) => receiveBid(bid, auctionEndsAt),
     acceptComment: receiveComment,
   };

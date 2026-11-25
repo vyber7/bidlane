@@ -25,8 +25,8 @@ afterEach(() => {
 
 function view(listing = makeListing(), currentUserId?: string) {
   return (
-    <AuctionProvider listing={listing} bids={[]} comments={[]}>
-      <MobileAuctionBar currentUserId={currentUserId} />
+    <AuctionProvider listing={listing} bids={[]} comments={[]} viewerId={currentUserId}>
+      <MobileAuctionBar />
     </AuctionProvider>
   );
 }
