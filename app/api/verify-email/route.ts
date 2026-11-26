@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 import { apiErrorResponse, errorResponse, parseApiInput, readJsonObject } from "@/app/libs/api-request";
 import { confirmEmailVerification } from "@/app/libs/email-verification";
 import { logger } from "@/app/libs/logger";

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 import { vinSchema, vehicleRecordsSchema } from "./vehicle-trust";
 import { MAX_INTEGER, requiredTextSchema } from "./common";
 import { MAX_VEHICLE_DISCLOSURE_LENGTH, vehicleDisclosureFields, vehicleSpecificationFields } from "@/app/libs/vehicle-details";

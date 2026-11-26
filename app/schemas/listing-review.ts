@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 
 export const reviewRevisionSchema = z.number().int().min(0).max(2_147_483_646);
 export const listingDecisionSchema = z.object({

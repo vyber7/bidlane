@@ -10,7 +10,7 @@ import {
 } from "@/app/libs/api-request";
 import { logger } from "@/app/libs/logger";
 import { startAuction, type StartRejection } from "@/app/libs/auction-commands";
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 
 const explicitEndTime = z.union([z.iso.datetime({ offset: true }), z.number()]);
 

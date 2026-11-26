@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 import { requiredTextSchema } from "./common";
 import { newPasswordSchema, passwordInputSchema } from "./password";
 import { normalizeEmail } from "@/app/utils/email";

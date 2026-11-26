@@ -1,7 +1,7 @@
 // The Review module: Review decisions, the review queue, Review labels and
 // the rule for who can see a Listing before Approval.
 
-import type { z } from "zod";
+import type { z } from "@/app/schemas/zod";
 import type { Listing } from "@/app/types/database";
 import type { ReviewStatus } from "@/prisma/native/listing-authoring";
 import { authoringTransactionOptions } from "@/prisma/native/transaction-errors";

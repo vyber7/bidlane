@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 import { newPasswordSchema } from "./password";
 
 export const passwordResetRequestSchema = z.object({

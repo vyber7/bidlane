@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { listingCapabilities } from "@/app/libs/listing-capabilities";

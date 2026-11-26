@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 import { reviewRevisionSchema } from "@/app/schemas/listing-review";
 import { isCloudinaryImageUrl, listingSchema, MAX_LISTING_PHOTOS } from "@/app/schemas/listing";
 import { vehicleRecordsSchema, vinSchema } from "@/app/schemas/vehicle-trust";

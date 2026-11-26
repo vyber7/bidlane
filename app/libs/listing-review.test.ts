@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { z } from "zod";
+import type { z } from "@/app/schemas/zod";
 import { makeListing } from "@/app/test/auction-fixtures";
 import type { ReviewStatus } from "@/prisma/native/listing-authoring";
 import type { listingDecisionSchema } from "@/app/schemas/listing-review";
