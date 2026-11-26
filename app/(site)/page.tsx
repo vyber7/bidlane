@@ -65,15 +65,15 @@ export default async function Home() {
             <div className="mt-5 flex flex-wrap gap-3">
               <Link
                 href={browse.href}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-amber-400 px-4 py-3 text-xs font-bold text-slate-950 transition hover:bg-amber-300 sm:px-5 sm:text-sm"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-amber-400 px-4 py-3 text-xs font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline-amber-400 sm:px-5 sm:text-sm"
               >
                 {browse.label} <FiArrowRight aria-hidden="true" />
               </Link>
               <Link
                 href="/submit-listing"
-                className="inline-flex min-h-11 items-center rounded-full px-1 py-3 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white sm:border sm:border-white/25 sm:px-4 sm:text-sm"
+                className="inline-flex min-h-11 items-center rounded-full px-1 py-3 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-amber-400 sm:border sm:border-white/25 sm:px-4 sm:text-sm"
               >
-                Sell Your Vehicle
+                Sell Your Car
               </Link>
             </div>
           </div>
@@ -105,7 +105,7 @@ export default async function Home() {
                   </p>
                   <Link
                     href={`/listing/${comingNext.id}`}
-                    className="mt-1 block truncate text-sm font-semibold hover:text-amber-400"
+                    className="mt-1 block truncate text-sm font-semibold hover:text-amber-400 focus-visible:outline-amber-400"
                   >
                     {comingNext.year} {comingNext.make} {comingNext.model}
                   </Link>

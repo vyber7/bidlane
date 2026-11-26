@@ -37,7 +37,7 @@ export default function Loading() {
             <div className="mt-5 flex flex-wrap gap-3">
               <div className="h-11 w-44 motion-safe:animate-pulse rounded-full bg-amber-400/60 sm:w-52" />
               <div className="inline-flex min-h-11 items-center rounded-full px-1 py-3 text-xs font-semibold text-slate-300 sm:border sm:border-white/25 sm:px-4 sm:text-sm">
-                Sell Your Vehicle
+                Sell Your Car
               </div>
             </div>
           </div>
