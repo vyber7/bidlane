@@ -19,7 +19,7 @@ const Avatar: React.FC<AvatarProps> = ({ user }) => {
     return (
       <Image
         src={user.image}
-        alt={name ? `${name}'s profile photo` : "Profile photo"}
+        alt={name ? `${name}’s profile photo` : "Profile photo"}
         width={28}
         height={28}
         unoptimized
@@ -31,7 +31,7 @@ const Avatar: React.FC<AvatarProps> = ({ user }) => {
   return (
     <span
       role="img"
-      aria-label={name ? `${name}'s account avatar` : "Account avatar"}
+      aria-label={name ? `${name}’s account avatar` : "Account avatar"}
       className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gray-800 to-gray-950 text-[11px] font-bold leading-none text-white"
     >
       {initials || <FiUser aria-hidden="true" />}

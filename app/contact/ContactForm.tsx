@@ -5,6 +5,7 @@ import axios from "axios";
 import { getApiErrorMessage } from "@/app/utils/api-error";
 import { contactLimits, contactTopics } from "@/app/schemas/contact";
 import { FiArrowUpRight, FiSend } from "react-icons/fi";
+import useUnsavedChangesWarning from "@/app/hooks/useUnsavedChangesWarning";
 
 const fieldClass =
   "mt-2 w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-950 placeholder:text-slate-400 focus:border-amber-500 focus:bg-white focus:ring-amber-500";
@@ -13,6 +14,8 @@ export default function ContactForm() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  useUnsavedChangesWarning(dirty);
   const submitting = useRef(false);
   const submissionId = useRef<string | null>(null);
 
@@ -32,6 +35,7 @@ export default function ContactForm() {
         submissionId: submissionId.current,
       });
       form.reset();
+      setDirty(false);
       submissionId.current = null;
       setSent(true);
     } catch (error) {
@@ -45,6 +49,7 @@ export default function ContactForm() {
   return (
     <form
       onSubmit={handleSubmit}
+      onChange={() => setDirty(true)}
       aria-busy={sending}
       className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/[0.06] sm:p-8"
     >

@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import RecordUploads from "@/app/submit-listing/components/RecordUploads";
 import { readVehicleRecords } from "@/app/schemas/vehicle-trust";
 import { getApiErrorMessage } from "@/app/utils/api-error";
+import useUnsavedChangesWarning from "@/app/hooks/useUnsavedChangesWarning";
 
 export default function VehicleTrustEditor({ id, initialVin, initialRecords }: { id: string; initialVin?: string | null; initialRecords: unknown }) {
   const [vin, setVin] = useState(initialVin ?? "");
@@ -14,12 +15,14 @@ export default function VehicleTrustEditor({ id, initialVin, initialRecords }: {
   const [saved, setSaved] = useState(false);
   const busy = useRef(false);
   const router = useRouter();
+  const [savedState, setSavedState] = useState(() => JSON.stringify({ vin, records }));
+  useUnsavedChangesWarning(JSON.stringify({ vin, records }) !== savedState);
   return <form className="rounded-2xl border border-amber-200 bg-amber-50 p-5" onSubmit={async (event) => {
     event.preventDefault(); if (busy.current) return;
     busy.current = true; setSaving(true); setError(""); setSaved(false);
     try {
       await axios.patch(`/api/listing/${id}/vehicle-details`, { vin, vehicleRecords: records });
-      setSaved(true); router.refresh();
+      setSaved(true); setSavedState(JSON.stringify({ vin, records })); router.refresh();
     } catch (error) { setError(getApiErrorMessage(error, "Could not save vehicle details.")); }
     finally { busy.current = false; setSaving(false); }
   }}>

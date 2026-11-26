@@ -69,7 +69,7 @@ const Listing = async (props: Params) => {
           href="/"
           className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-950"
         >
-          <FiArrowLeft aria-hidden="true" /> All auctions
+          <FiArrowLeft aria-hidden="true" /> All Auctions
         </Link>
         <header className="mb-6">
           <h1 className="text-balance text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">

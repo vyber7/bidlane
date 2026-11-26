@@ -1,6 +1,6 @@
 # Domain docs
 
-Bidlane uses a single-context layout. The root `GLOSSARY.md` defines domain terms, and `docs/adr/` holds architecture decision records.
+BidLane uses a single-context layout. The root `GLOSSARY.md` defines domain terms, and `docs/adr/` holds architecture decision records.
 
 ## Before exploring
 

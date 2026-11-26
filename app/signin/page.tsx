@@ -13,7 +13,7 @@ import { MAIN_CONTENT_ID } from "../components/ConditionalLayout";
 export const metadata: Metadata = {
   title: "BidLane | Sign In",
   description:
-    "Sign in to Bidlane to follow your favorite cars and join the auction.",
+    "Sign in to BidLane to follow your favorite cars and join the auction.",
 };
 
 const features = [
@@ -62,7 +62,7 @@ export default async function SignIn({ searchParams }: {
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-400 text-lg font-black text-slate-950">
               B
             </span>
-            <span className="text-xl font-black tracking-tight text-slate-950">
+            <span translate="no" className="text-xl font-black tracking-tight text-slate-950">
               Bid<span className="text-amber-400">Lane</span>
             </span>
           </Link>
@@ -125,7 +125,7 @@ export default async function SignIn({ searchParams }: {
           </div>
         </section>
         <section
-          aria-label="Your Bidlane account"
+          aria-label="Your BidLane account"
           className="mx-auto w-full max-w-md py-3 lg:py-6"
         >
           {error === "OAuthAccountNotLinked" && (

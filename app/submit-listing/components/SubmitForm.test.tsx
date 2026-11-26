@@ -159,14 +159,14 @@ describe("draft resume and exit", () => {
       payload: { ...emptyDraftPayload, images: photos, step: 2 },
     }} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove Photo 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove photo 1" }));
     expect(screen.queryByRole("img", { name: "Vehicle photo 2" })).toBeNull();
     expect(screen.getByText(/Photo 1 removed/)).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Undo" }));
 
     expect(screen.getAllByRole("img").map((image) => image.getAttribute("aria-label"))).toEqual(["Vehicle photo 1", "Vehicle photo 2"]);
     expect(screen.getByText("Cover photo")).toBeDefined();
-    expect(screen.getByRole("button", { name: "Remove Photo 2" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Remove photo 2" })).toBeDefined();
   });
 
   it("brings up a numeric keypad for numbers and keeps autofill and spellcheck off identifying fields", () => {

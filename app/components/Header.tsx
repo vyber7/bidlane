@@ -20,15 +20,15 @@ import Avatar from "./Avatar";
 import NotificationBell from "./NotificationBell";
 
 const auctionLinkDisplay = {
-  LIVE: { name: "Live auctions", icon: FiZap },
-  NO_RESERVE: { name: "No reserve", icon: FiTag },
-  UPCOMING: { name: "Coming soon", icon: FiClock },
+  LIVE: { name: "Live Auctions", icon: FiZap },
+  NO_RESERVE: { name: "No Reserve", icon: FiTag },
+  UPCOMING: { name: "Coming Soon", icon: FiClock },
   ENDED: { name: "Results", icon: FiCheckCircle },
 };
 const auctionLinks = inventoryTabs.map((tab) => ({ tab, href: inventoryHref(tab), ...auctionLinkDisplay[tab] }));
 
 const navLinks = [
-  { name: "How it works", href: "/faq" },
+  { name: "How It Works", href: "/faq" },
   { name: "About", href: "/about" },
   { name: "Contact", href: "/contact" },
 ];
@@ -37,8 +37,8 @@ const profileLinks = [
   { name: "Profile", href: "/account/profile" },
   { name: "Notifications", href: "/account/notifications" },
   { name: "Listings", href: "/account/listings" },
-  { name: "Bids & wins", href: "/account/bids-and-wins" },
-  { name: "Purchases & sales", href: "/account/shipments" },
+  { name: "Bids & Wins", href: "/account/bids-and-wins" },
+  { name: "Purchases & Sales", href: "/account/shipments" },
 ];
 
 function Header({ auctionStatus = defaultInventoryTab }: { auctionStatus?: InventoryTab }) {

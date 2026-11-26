@@ -27,42 +27,52 @@ export function formatDisplayName(name: string | null | undefined, fallback = "U
   return trimmed ? capitalize(trimmed) : fallback;
 }
 
-// Dates render in UTC with a fixed locale so the server and browser agree.
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  timeZone: "UTC",
-});
-
+// Dates first render in UTC with a fixed locale so the server and browser
+// agree; LocalTime then reformats them in the viewer's locale and time zone.
+export type DateStyle = "date" | "dateTime" | "monthYear";
 type DateInput = Date | string;
 
-export function formatDate(date: DateInput) {
-  return dateFormatter.format(new Date(date));
-}
+const dateStyles: Record<DateStyle, Intl.DateTimeFormatOptions> = {
+  date: { year: "numeric", month: "short", day: "numeric" },
+  dateTime: { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" },
+  monthYear: { year: "numeric", month: "long" },
+};
 
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  timeZone: "UTC",
-  timeZoneName: "short",
-});
+const utcFormatters = Object.fromEntries(
+  Object.entries(dateStyles).map(([style, options]) => [style, new Intl.DateTimeFormat("en-US", { ...options, timeZone: "UTC" })]),
+) as Record<DateStyle, Intl.DateTimeFormat>;
+
+export function formatDate(date: DateInput) {
+  return utcFormatters.date.format(new Date(date));
+}
 
 export function formatDateTime(date: DateInput) {
-  return dateTimeFormatter.format(new Date(date));
+  return utcFormatters.dateTime.format(new Date(date));
 }
 
-const monthYearFormatter = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "long",
-  timeZone: "UTC",
-});
-
 export function formatMonthYear(date: DateInput) {
-  return monthYearFormatter.format(new Date(date));
+  return utcFormatters.monthYear.format(new Date(date));
+}
+
+const localFormatters = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * Formats a date in the given locales and time zone, defaulting to the
+ * runtime's own. Only call it after hydration; on the server use the UTC
+ * formatters above.
+ */
+export function formatLocalDate(
+  date: DateInput,
+  style: DateStyle,
+  { locales, timeZone }: { locales?: readonly string[]; timeZone?: string } = {},
+) {
+  const key = `${locales?.join(",") ?? ""}|${style}|${timeZone ?? ""}`;
+  let formatter = localFormatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locales?.length ? [...locales] : undefined, { ...dateStyles[style], timeZone });
+    localFormatters.set(key, formatter);
+  }
+  return formatter.format(new Date(date));
 }
 
 export function formatAuctionCountdown(remainingMs: number) {

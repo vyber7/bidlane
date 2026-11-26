@@ -4,9 +4,9 @@ import LegalDocument, {
 } from "@/app/components/LegalDocument";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Bidlane",
+  title: "Privacy Policy | BidLane",
   description:
-    "How Bidlane collects, uses, shares, and protects personal information.",
+    "How BidLane collects, uses, shares, and protects personal information.",
 };
 
 const sections: LegalSection[] = [
@@ -15,7 +15,7 @@ const sections: LegalSection[] = [
     title: "Scope of this policy",
     content: (
       <p>
-        This Privacy Policy explains how Bidlane handles personal information
+        This Privacy Policy explains how BidLane handles personal information
         when you visit our website, create an account, submit or watch a
         listing, bid, comment, upload content, or contact us. It does not govern
         third-party websites or services that have their own privacy policies.
@@ -35,7 +35,7 @@ const sections: LegalSection[] = [
         </p>
         <h3>Information Collected Automatically</h3>
         <p>
-          When you use Bidlane, we may receive device and browser information,
+          When you use BidLane, we may receive device and browser information,
           IP address, approximate location, pages viewed, interactions,
           referring pages, timestamps, cookie identifiers, and diagnostic logs.
         </p>
@@ -127,7 +127,7 @@ const sections: LegalSection[] = [
         We use cookies and similar technologies to keep you signed in, remember
         preferences, maintain security, understand service usage, and operate
         core features. Browser settings can block or delete cookies, but some
-        parts of Bidlane may stop working correctly. Where required, we will
+        parts of BidLane may stop working correctly. Where required, we will
         request consent before using non-essential cookies.
       </p>
     ),
@@ -181,7 +181,7 @@ const sections: LegalSection[] = [
     title: "International data transfers",
     content: (
       <p>
-        Bidlane and its service providers may process information in countries
+        BidLane and its service providers may process information in countries
         other than where you live. Those countries may have different data
         protection laws. Where required, we use recognized safeguards for these
         transfers and take steps designed to protect information consistently
@@ -191,10 +191,10 @@ const sections: LegalSection[] = [
   },
   {
     id: "children",
-    title: "Children&apos;s privacy",
+    title: "Children’s privacy",
     content: (
       <p>
-        Bidlane is not directed to children under 18, and we do not knowingly
+        BidLane is not directed to children under 18, and we do not knowingly
         collect personal information from them. If you believe a child has
         provided us personal information, contact us so we can investigate and
         delete it where appropriate.
@@ -226,7 +226,7 @@ export default function PrivacyPage() {
     <LegalDocument
       eyebrow="Your data, clearly explained"
       title="Privacy Policy"
-      description="What we collect, why we use it, and the choices you have when you use Bidlane."
+      description="What we collect, why we use it, and the choices you have when you use BidLane."
       effectiveDate="September 7, 2026"
       sections={sections}
       companion={{ label: "Terms of Service", href: "/terms" }}

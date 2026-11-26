@@ -4,12 +4,12 @@ import { FiArrowRight, FiCheckCircle, FiClock, FiTag, FiZap } from "react-icons/
 // Mirrors app/(site)/page.tsx so the homepage doesn't shift when it streams in.
 // Static copy renders as-is; only data-driven parts are placeholders.
 
-const heroStats = ["Live now", "No reserve", "Coming soon", "Results"];
+const heroStats = ["Live Now", "No Reserve", "Coming Soon", "Results"];
 
 const inventoryTabs = [
   { label: "Live", icon: FiZap },
-  { label: "No reserve", icon: FiTag },
-  { label: "Coming soon", icon: FiClock },
+  { label: "No Reserve", icon: FiTag },
+  { label: "Coming Soon", icon: FiClock },
   { label: "Results", icon: FiCheckCircle },
 ];
 

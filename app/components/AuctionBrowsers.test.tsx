@@ -60,7 +60,7 @@ describe("URL-driven auction browsers", () => {
       makeListing({ id: "upcoming", make: "Audi", status: "UPCOMING", reservePrice: 30000 }),
     ];
     render(<AuctionBrowser listings={mixedListings} now={+auctionNow} />);
-    const noReserve = screen.getByRole("tab", { name: /No reserve\s*1/ });
+    const noReserve = screen.getByRole("tab", { name: /No Reserve\s*1/ });
     expect(screen.getByRole("tab", { name: /Live/ }).getAttribute("aria-selected")).toBe("true");
     expect(noReserve.getAttribute("aria-selected")).toBe("false");
     expect(screen.getAllByRole("listitem")).toHaveLength(3);
@@ -71,7 +71,7 @@ describe("URL-driven auction browsers", () => {
 
     cleanup();
     render(<AuctionBrowser listings={mixedListings} now={+auctionNow} />);
-    expect(screen.getByRole("tab", { name: /No reserve\s*1/ }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tab", { name: /No Reserve\s*1/ }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
   });
 
@@ -92,7 +92,7 @@ describe("URL-driven auction browsers", () => {
   it("moves keyboard focus between tabs without selecting them until activation", () => {
     render(<AuctionBrowser listings={listings} now={+auctionNow} />);
     const live = screen.getByRole("tab", { name: /Live/ });
-    const upcoming = screen.getByRole("tab", { name: /Coming soon/ });
+    const upcoming = screen.getByRole("tab", { name: /Coming Soon/ });
     const results = screen.getByRole("tab", { name: /Results/ });
 
     expect(live.tabIndex).toBe(0);
@@ -109,7 +109,7 @@ describe("URL-driven auction browsers", () => {
     fireEvent.keyDown(results, { key: "Home" });
     expect(document.activeElement).toBe(live);
     fireEvent.keyDown(live, { key: "ArrowRight" });
-    fireEvent.keyDown(screen.getByRole("tab", { name: /No reserve/ }), { key: "ArrowRight" });
+    fireEvent.keyDown(screen.getByRole("tab", { name: /No Reserve/ }), { key: "ArrowRight" });
     expect(document.activeElement).toBe(upcoming);
     expect(upcoming.tabIndex).toBe(0);
     expect(live.tabIndex).toBe(-1);
@@ -121,7 +121,7 @@ describe("URL-driven auction browsers", () => {
     expect(upcoming.tabIndex).toBe(-1);
 
     fireEvent.click(upcoming);
-    const panel = screen.getByRole("tabpanel", { name: /Coming soon/ });
+    const panel = screen.getByRole("tabpanel", { name: /Coming Soon/ });
     expect(panel.id).toBe(upcoming.getAttribute("aria-controls"));
     expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
     expect(screen.getByRole("listitem").textContent).toBe("MINI Cooper");
@@ -212,7 +212,7 @@ describe("URL-driven auction browsers", () => {
 
   it.each([
     ["live", "Live", "Porsche", "Porsche 911"],
-    ["upcoming", "Coming soon", "MINI", "MINI Cooper"],
+    ["upcoming", "Coming Soon", "MINI", "MINI Cooper"],
     ["ended", "Results", "Audi", "Audi R8"],
   ])("opens the %s homepage filter with search and sorting", (status, label, query, expected) => {
     window.history.replaceState(null, "", `/?status=${status}&q=${query}&sort=bid-high#auctions`);

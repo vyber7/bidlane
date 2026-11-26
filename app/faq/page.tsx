@@ -16,7 +16,7 @@ import {
 export const metadata: Metadata = {
   title: "BidLane | How it Works",
   description:
-    "Learn how to browse, bid, and sell vehicles on Bidlane, with answers to common auction questions.",
+    "Learn how to browse, bid, and sell vehicles on BidLane, with answers to common auction questions.",
 };
 
 const steps = [
@@ -95,7 +95,7 @@ const faqs = [
       "The highest accepted bid did not reach the seller’s minimum sale price, so the auction ended without a sale or winning buyer. An auction with no bids also ends without a sale. A no-reserve listing sells to its highest accepted bidder.",
   },
   {
-    question: "How do I sell a vehicle on Bidlane?",
+    question: "How do I sell a vehicle on BidLane?",
     answer:
       "Use the submission form to provide the vehicle’s specifications, description, service history, modifications, and known flaws. Add photos and review the preview. The listing is submitted for admin review. If changes are requested, you can correct and resubmit it from Account → Listings. After approval it appears as Coming soon, and you can set the starting bid, bid increment, and end time to open bidding. Editing an approved listing requires another review. A reserve price is optional.",
   },
@@ -119,7 +119,7 @@ export default function FAQPage() {
         <div className="relative mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="max-w-3xl">
             <p className="mb-5 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.22em] text-amber-400">
-              <span className="h-px w-8 bg-amber-400" /> How Bidlane works
+              <span className="h-px w-8 bg-amber-400" /> How BidLane works
             </p>
             <h1 className="text-4xl font-black leading-[1.04] tracking-tight sm:text-5xl lg:text-6xl">
               From first look to
@@ -129,9 +129,9 @@ export default function FAQPage() {
               Everything you need to find, bid on, or sell an enthusiast vehicle—without losing the thrill of the auction.
             </p>
             <nav aria-label="How it works sections" className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-amber-400">
-              <a href="#auction-rules" className="hover:text-amber-300">Bidding rules <span aria-hidden="true">↓</span></a>
-              <a href="#after-auction" className="hover:text-amber-300">After the auction <span aria-hidden="true">↓</span></a>
-              <a href="#fees" className="hover:text-amber-300">Payment & costs <span aria-hidden="true">↓</span></a>
+              <a href="#auction-rules" className="rounded-sm hover:text-amber-300 focus-visible:outline-amber-400">Bidding rules <span aria-hidden="true">↓</span></a>
+              <a href="#after-auction" className="rounded-sm hover:text-amber-300 focus-visible:outline-amber-400">After the auction <span aria-hidden="true">↓</span></a>
+              <a href="#fees" className="rounded-sm hover:text-amber-300 focus-visible:outline-amber-400">Payment & costs <span aria-hidden="true">↓</span></a>
             </nav>
           </div>
         </div>
@@ -141,10 +141,10 @@ export default function FAQPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">For buyers</p>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Three steps to the driver&apos;s seat.</h2>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Three steps to the driver’s seat.</h2>
           </div>
           <Link href="/?status=live#auctions" className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 transition hover:text-amber-600">
-            See What&apos;s Live <FiArrowRight aria-hidden="true" />
+            See What’s Live <FiArrowRight aria-hidden="true" />
           </Link>
         </div>
 

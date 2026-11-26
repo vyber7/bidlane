@@ -4,9 +4,9 @@ import LegalDocument, {
 } from "@/app/components/LegalDocument";
 
 export const metadata: Metadata = {
-  title: "Bidlane | Terms of Service",
+  title: "BidLane | Terms of Service",
   description:
-    "The terms that govern access to and use of the Bidlane vehicle auction marketplace.",
+    "The terms that govern access to and use of the BidLane vehicle auction marketplace.",
 };
 
 const sections: LegalSection[] = [
@@ -15,7 +15,7 @@ const sections: LegalSection[] = [
     title: "Agreement to these terms",
     content: (
       <p>
-        These Terms of Service form a binding agreement between you and Bidlane.
+        These Terms of Service form a binding agreement between you and BidLane.
         By creating an account, browsing listings, submitting a vehicle,
         commenting, or placing a bid, you agree to these terms and our{" "}
         <a href="/privacy">Privacy Policy</a>. If you do not agree, do not use
@@ -57,15 +57,15 @@ const sections: LegalSection[] = [
     content: (
       <>
         <p>
-          Bidlane provides technology for vehicle owners and prospective buyers
+          BidLane provides technology for vehicle owners and prospective buyers
           to meet, communicate, and participate in auctions. Unless a listing
-          expressly says otherwise, Bidlane does not own, inspect, possess, or
+          expressly says otherwise, BidLane does not own, inspect, possess, or
           sell the listed vehicle and is not a party to the final sale.
         </p>
         <p>
           We may review, format, approve, reject, pause, or remove listings and
           activity to operate and protect the marketplace, but we do not
-          guarantee a vehicle&apos;s condition, history, identity, legality,
+          guarantee a vehicle’s condition, history, identity, legality,
           availability, or the accuracy of user-provided information.
         </p>
       </>
@@ -111,9 +111,9 @@ const sections: LegalSection[] = [
         <p>
           <strong>A bid is a serious commitment.</strong> By bidding, you
           confirm that you have reviewed the listing, can complete the purchase,
-          and authorize Bidlane to record and display the bid. You may not
+          and authorize BidLane to record and display the bid. You may not
           retract or manipulate a bid except where required by law or expressly
-          approved by Bidlane.
+          approved by BidLane.
         </p>
         <p>
           The displayed timer controls the auction. A bid placed near closing
@@ -124,7 +124,7 @@ const sections: LegalSection[] = [
           applicable law.
         </p>
         <p>
-          Bidlane may invalidate suspicious, erroneous, or technically
+          BidLane may invalidate suspicious, erroneous, or technically
           compromised activity. We do not guarantee that a bid, notification,
           countdown, or auction result will be uninterrupted or error-free.
         </p>
@@ -136,7 +136,7 @@ const sections: LegalSection[] = [
     title: "Acceptable use",
     content: (
       <>
-        <p>Use Bidlane lawfully and respectfully. You may not:</p>
+        <p>Use BidLane lawfully and respectfully. You may not:</p>
         <ul>
           <li>
             Post false, deceptive, infringing, threatening, discriminatory, or
@@ -151,13 +151,13 @@ const sections: LegalSection[] = [
             access controls.
           </li>
           <li>
-            Introduce malware, collect other users&apos; personal information
+            Introduce malware, collect other users’ personal information
             improperly, or use the service for spam.
           </li>
         </ul>
         <p>
           We may remove content or suspend or terminate access when we
-          reasonably believe these terms, another person&apos;s rights, or the
+          reasonably believe these terms, another person’s rights, or the
           safety and integrity of the marketplace are at risk.
         </p>
       </>
@@ -169,7 +169,7 @@ const sections: LegalSection[] = [
     content: (
       <>
         <p>
-          You keep ownership of content you submit. You grant Bidlane a
+          You keep ownership of content you submit. You grant BidLane a
           worldwide, non-exclusive, royalty-free license to host, store,
           reproduce, format, display, and distribute that content as needed to
           operate, promote, and improve the service. This license ends when the
@@ -177,7 +177,7 @@ const sections: LegalSection[] = [
           legal records, or prior promotional materials.
         </p>
         <p>
-          Bidlane&apos;s name, branding, interface, software, and original
+          BidLane’s name, branding, interface, software, and original
           content are protected by intellectual property laws. These terms do
           not grant you ownership of them.
         </p>
@@ -190,14 +190,14 @@ const sections: LegalSection[] = [
     content: (
       <>
         <p>
-          To the fullest extent permitted by law, Bidlane is provided “as is”
+          To the fullest extent permitted by law, BidLane is provided “as is”
           and “as available,” without warranties of merchantability, fitness for
           a particular purpose, title, or non-infringement. Vehicle transactions
           carry inherent risks, and you are responsible for your own inspection,
           due diligence, and decisions.
         </p>
         <p>
-          To the fullest extent permitted by law, Bidlane and its personnel will
+          To the fullest extent permitted by law, BidLane and its personnel will
           not be liable for indirect, incidental, special, consequential,
           exemplary, or punitive damages, lost profits or data, vehicle
           condition, or disputes between users. Nothing here excludes liability
@@ -218,7 +218,7 @@ const sections: LegalSection[] = [
           effective date means you accept the updated terms.
         </p>
         <p>
-          You may stop using Bidlane at any time. Provisions that by their
+          You may stop using BidLane at any time. Provisions that by their
           nature should survive—such as ownership, licenses already granted,
           disclaimers, liability limits, and dispute-related terms—will remain
           in effect.
@@ -234,7 +234,7 @@ const sections: LegalSection[] = [
         Questions or notices about these terms can be sent to{" "}
         <a href="mailto:support@bidlane.net">support@bidlane.net</a> or through
         our <a href="/contact">contact page</a>. These terms are governed by the
-        laws that apply where Bidlane operates, without overriding consumer
+        laws that apply where BidLane operates, without overriding consumer
         protections that apply where you live.
       </p>
     ),
@@ -246,7 +246,7 @@ export default function TermsPage() {
     <LegalDocument
       eyebrow="The rules of the road"
       title="Terms of Service"
-      description="The straightforward rules that help keep Bidlane useful, fair, and safe for buyers, sellers, and enthusiasts."
+      description="The straightforward rules that help keep BidLane useful, fair, and safe for buyers, sellers, and enthusiasts."
       effectiveDate="September 7, 2026"
       sections={sections}
       companion={{ label: "Privacy Policy", href: "/privacy" }}

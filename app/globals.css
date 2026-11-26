@@ -50,6 +50,13 @@ body {
   outline-offset: 2px;
 }
 
+/* Suppress rubber-band on mouse/trackpad; keep pull-to-refresh on touch. */
+@media (pointer: fine) {
+  html {
+    overscroll-behavior: none;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;

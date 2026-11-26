@@ -1,8 +1,9 @@
 "use client";
 
+import LocalTime from "@/app/components/LocalTime";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { formatPrice, formatDate, formatDisplayName } from "@/app/utils/format";
+import { formatPrice, formatDisplayName } from "@/app/utils/format";
 import type { BidWithAuthor, CommentWithAuthor } from "@/app/types";
 
 interface CommentBoxProps {
@@ -47,11 +48,7 @@ const CommentBox = memo(function CommentBox({ comments, bids }: CommentBoxProps)
             >
               <div className="flex flex-wrap items-baseline gap-x-3">
                 <span className="min-w-0 font-bold [overflow-wrap:anywhere]">{formatDisplayName(name)}</span>
-                {Number.isFinite(createdAt.getTime()) && (
-                  <time dateTime={createdAt.toISOString()} className="text-xs text-slate-600">
-                    {formatDate(createdAt)}
-                  </time>
-                )}
+                <LocalTime date={createdAt} format="date" className="text-xs text-slate-600" />
               </div>
               <div className={clsx("w-fit max-w-full whitespace-pre-wrap rounded-md p-2 [overflow-wrap:anywhere]", {
                 "bg-sky-100": isComment,

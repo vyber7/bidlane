@@ -11,6 +11,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // LocalTime reformats dates in the runtime time zone after mount; pin it
+    // so date assertions don't depend on the machine running the tests.
+    env: { TZ: "UTC" },
     exclude: [...configDefaults.exclude, "e2e/**"],
   },
 });
