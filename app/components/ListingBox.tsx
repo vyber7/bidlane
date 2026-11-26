@@ -40,14 +40,14 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
 
   return (
     <div className="flex h-full flex-wrap justify-between">
-      <Link className="min-w-0 flex-1" href={href}>
+      <Link className="min-w-0 flex-1 focus-visible:outline-offset-[-2px]" href={href}>
         <Title id={titleId}>{title}</Title>
       </Link>
       {display.action === "edit-listing" && (
         <Link
           href={`${href}#edit-listing`}
           aria-label={`Edit listing for ${title}`}
-          className="flex items-center px-3 text-sm hover:bg-slate-100"
+          className="flex items-center px-3 text-sm hover:bg-slate-100 focus-visible:outline-offset-[-2px]"
         >
           <GrEdit aria-hidden="true" />
         </Link>
@@ -55,10 +55,11 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
       {!isOwner && (
         <button
           type="button"
-          className="flex items-center px-3 text-xl motion-safe:transition-transform motion-safe:hover:scale-110 disabled:cursor-wait disabled:opacity-40 disabled:hover:scale-100"
+          className="flex items-center px-3 text-xl focus-visible:outline-offset-[-2px] motion-safe:transition-transform motion-safe:hover:scale-110 aria-disabled:cursor-wait aria-disabled:opacity-40 aria-disabled:hover:scale-100"
           onClick={toggle}
-          disabled={isUpdating}
-          aria-label={watching ? "Remove from watchlist" : "Add to watchlist"}
+          aria-disabled={isUpdating || undefined}
+          aria-pressed={watching}
+          aria-label={`Watch ${title}`}
         >
           {watching ? (
             <GoStarFill aria-hidden="true" className="text-yellow-500" />
@@ -70,7 +71,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
 
       <div className="flex flex-col w-full">
         <div className="relative">
-          <Link className="block w-full" href={href} aria-labelledby={titleId}>
+          <Link className="block w-full" href={href} tabIndex={-1} aria-hidden="true">
             {listing.coverImage ? (
               <CldImage
                 src={listing.coverImage}
@@ -134,7 +135,7 @@ const ListingBox: React.FC<ListingBoxProps> = ({ listing: initialListing, curren
       </div>
       <div className="flex w-full flex-col px-3 py-3 text-sm leading-5 text-slate-600">
         <p className="line-clamp-2">{listing.description}</p>
-        <span className="mt-2 block break-words text-xs font-medium text-slate-600">{formatAmount(listing.miles)} miles · {listing.location}</span>
+        <span className="mt-2 block break-words text-xs font-medium text-slate-600">{formatAmount(listing.miles)}&nbsp;miles · {listing.location}</span>
       </div>
     </div>
   );

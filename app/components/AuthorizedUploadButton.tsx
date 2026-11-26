@@ -36,7 +36,7 @@ export default function AuthorizedUploadButton({ kind, listingId, maxFiles = 1, 
           const { data } = await axios.post<{ url: string }>("/api/uploads", body);
           await onUpload(data.url);
         }
-      } catch (error) { setError(getApiErrorMessage(error, "The file could not be uploaded. Please try again.")); }
+      } catch (error) { setError(getApiErrorMessage(error, "Couldn’t upload the file. Check your connection and try again.")); }
       finally { busy.current = false; setUploading(false); onUploadingChange?.(false); }
     }} />
     <button type="button" disabled={disabled || uploading || maxFiles < 1} aria-busy={uploading} className={className} onClick={() => input.current?.click()}>{uploading ? "Uploading…" : children}</button>
