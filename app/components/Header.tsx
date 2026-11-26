@@ -70,6 +70,7 @@ function Header({ auctionStatus = defaultInventoryTab }: { auctionStatus?: Inven
 
   const auctionsActive = pathname === "/";
   const auctionLinkActive = (tab: InventoryTab) => auctionsActive && tab === auctionStatus;
+  const pageCurrent = (href: string) => (pathname === href ? "page" : undefined);
   const linkClass = (active: boolean) =>
     `rounded-lg px-3 py-2 text-sm font-semibold transition ${
       active
@@ -105,7 +106,7 @@ function Header({ auctionStatus = defaultInventoryTab }: { auctionStatus?: Inven
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-400 text-lg font-black text-slate-950 shadow-lg shadow-amber-400/10">
             B
           </span>
-          <span className="text-xl font-black tracking-tight text-slate-950">
+          <span translate="no" className="text-xl font-black tracking-tight text-slate-950">
             Bid<span className="text-amber-400">Lane</span>
           </span>
         </Link>
@@ -148,7 +149,7 @@ function Header({ auctionStatus = defaultInventoryTab }: { auctionStatus?: Inven
           </div>
 
           {navLinks.map(({ name, href }) => (
-            <Link href={href} key={href} className={linkClass(pathname === href)}>
+            <Link href={href} key={href} aria-current={pageCurrent(href)} className={linkClass(pathname === href)}>
               {name}
             </Link>
           ))}
@@ -185,14 +186,20 @@ function Header({ auctionStatus = defaultInventoryTab }: { auctionStatus?: Inven
                 >
                   <div className="border-b border-slate-100 px-3 py-2">
                     <p className="text-xs font-medium text-slate-600">Signed in as</p>
-                    <p className="truncate text-sm font-semibold text-slate-800">{user.email}</p>
+                    <p translate="no" className="truncate text-sm font-semibold text-slate-800">{user.email}</p>
                   </div>
                   <div className="py-1">
                     {profileLinks.map(({ name, href }) => (
                       <Link
                         href={href}
                         key={href}
-                        className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
+                        aria-current={pageCurrent(href)}
+                        onNavigate={() => setOpenPanel(null)}
+                        className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${
+                          pathname === href
+                            ? "bg-slate-100 text-slate-950"
+                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                        }`}
                       >
                         {name}
                       </Link>
@@ -242,7 +249,7 @@ function Header({ auctionStatus = defaultInventoryTab }: { auctionStatus?: Inven
             <Avatar user={user} />
             <div className="min-w-0">
               <p className="text-xs text-slate-600">Your account</p>
-              <p className="truncate text-sm font-semibold text-slate-800">{user.email}</p>
+              <p translate="no" className="truncate text-sm font-semibold text-slate-800">{user.email}</p>
             </div>
           </div>
         )}
@@ -256,7 +263,7 @@ function Header({ auctionStatus = defaultInventoryTab }: { auctionStatus?: Inven
             </Link>
           ))}
           {navLinks.map(({ name, href }) => (
-            <Link href={href} key={href} className={linkClass(pathname === href)}>{name}</Link>
+            <Link href={href} key={href} aria-current={pageCurrent(href)} className={linkClass(pathname === href)}>{name}</Link>
           ))}
         </div>
 
@@ -264,7 +271,7 @@ function Header({ auctionStatus = defaultInventoryTab }: { auctionStatus?: Inven
           <div className="mt-3 grid gap-1 border-t border-slate-200 pt-3">
             <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600">Account</p>
             {profileLinks.map(({ name, href }) => (
-              <Link href={href} key={href} className={linkClass(pathname === href)}>{name}</Link>
+              <Link href={href} key={href} aria-current={pageCurrent(href)} className={linkClass(pathname === href)}>{name}</Link>
             ))}
           </div>
         )}
