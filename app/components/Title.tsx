@@ -4,5 +4,5 @@ interface TitleProps {
 }
 
 export default function Title({ id, children }: TitleProps) {
-  return <h3 id={id} className="break-words p-2 font-bold">{children}</h3>;
+  return <h3 id={id} className="text-pretty break-words p-2 font-bold">{children}</h3>;
 }

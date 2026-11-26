@@ -14,7 +14,7 @@ type Props = {
 
 export default function LegalDocument({ eyebrow, title, description, effectiveDate, sections, companion }: Props) {
   return (
-    <div className="bg-stone-50 pt-16">
+    <div className="bg-stone-50 pt-[var(--site-nav-height)]">
       <header className="relative overflow-hidden bg-slate-950 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_18%,rgba(245,158,11,0.2),transparent_31%)]" />
         <div className="absolute -bottom-32 -left-32 h-72 w-72 rounded-full border border-white/[0.06]" />
@@ -34,7 +34,7 @@ export default function LegalDocument({ eyebrow, title, description, effectiveDa
               {sections.map((section, index) => (
                 <li key={section.id}>
                   <a href={`#${section.id}`} className="flex gap-3 rounded-lg px-2 py-2 text-sm leading-5 text-slate-600 transition hover:bg-amber-50 hover:text-slate-950">
-                    <span className="font-mono text-xs font-bold text-slate-400">{String(index + 1).padStart(2, "0")}</span>{section.title}
+                    <span aria-hidden="true" className="font-mono text-xs font-bold text-slate-400">{String(index + 1).padStart(2, "0")}</span>{section.title}
                   </a>
                 </li>
               ))}
@@ -55,16 +55,16 @@ export default function LegalDocument({ eyebrow, title, description, effectiveDa
             {sections.map((section, index) => (
               <section key={section.id} id={section.id} className="border-b border-slate-200 pb-12 last:border-0">
                 <div className="flex items-baseline gap-4">
-                  <span className="font-mono text-sm font-bold text-amber-600">{String(index + 1).padStart(2, "0")}</span>
-                  <h2 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{section.title}</h2>
+                  <span aria-hidden="true" className="font-mono text-sm font-bold text-amber-600">{String(index + 1).padStart(2, "0")}</span>
+                  <h2 className="text-balance text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{section.title}</h2>
                 </div>
                 <div className="mt-5 space-y-4 text-[15px] leading-7 text-slate-600 [&_a]:font-semibold [&_a]:text-slate-950 [&_a]:underline [&_a]:decoration-amber-400 [&_a]:decoration-2 [&_a]:underline-offset-4 [&_h3]:pt-2 [&_h3]:text-base [&_h3]:font-bold [&_h3]:text-slate-900 [&_li]:pl-1 [&_strong]:font-bold [&_strong]:text-slate-800 [&_ul]:ml-5 [&_ul]:list-disc [&_ul]:space-y-2">{section.content}</div>
               </section>
             ))}
           </div>
           <div className="mt-4 rounded-3xl bg-slate-950 p-7 text-white sm:flex sm:items-center sm:justify-between sm:p-9">
-            <div><FiMail className="text-amber-400" size={22} aria-hidden="true" /><h2 className="mt-4 text-2xl font-black">Questions About This Policy?</h2><p className="mt-2 text-sm leading-6 text-slate-400">We&apos;re happy to clarify how these terms apply to your use of Bidlane.</p></div>
-            <Link href="/contact" className="mt-6 inline-flex items-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300 sm:mt-0">Contact Us <FiArrowRight aria-hidden="true" /></Link>
+            <div><FiMail className="text-amber-400" size={22} aria-hidden="true" /><h2 className="mt-4 text-balance text-2xl font-black">Questions About This Policy?</h2><p className="mt-2 text-sm leading-6 text-slate-400">We’re happy to clarify how these terms apply to your use of Bidlane.</p></div>
+            <Link href="/contact" className="mt-6 inline-flex items-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline-amber-400 sm:mt-0">Contact Us <FiArrowRight aria-hidden="true" /></Link>
           </div>
         </article>
       </div>

@@ -376,11 +376,15 @@ describe("shared auction views", () => {
     expect(screen.getByText("To be announced")).toBeDefined();
   });
 
-  it("names the fallback photo link from the card heading and offers editing only before bidding", () => {
+  it("keeps the duplicate photo link out of the tab order and offers editing only before bidding", () => {
     const listing = makeListing({ status: "UPCOMING", coverImage: null });
-    const { rerender } = render(<ListingBox listing={listing} currentUserId={listing.userId} />);
+    const { container, rerender } = render(<ListingBox listing={listing} currentUserId={listing.userId} />);
     const title = screen.getByRole("heading", { level: 3 }).textContent!;
-    const photoLink = screen.getAllByRole("link", { name: title }).find((link) => link.querySelector("img"));
+    expect(screen.getByRole("link", { name: title }).getAttribute("href")).toBe(`/listing/${listing.id}`);
+    const photoLink = container.querySelector("a img")?.closest("a");
+    expect(photoLink?.getAttribute("href")).toBe(`/listing/${listing.id}`);
+    expect(photoLink?.getAttribute("tabindex")).toBe("-1");
+    expect(photoLink?.getAttribute("aria-hidden")).toBe("true");
     expect(photoLink?.querySelector("img")?.getAttribute("loading")).toBe("lazy");
     expect(screen.getByRole("link", { name: `Edit listing for ${title}` }).getAttribute("href"))
       .toBe(`/listing/${listing.id}#edit-listing`);

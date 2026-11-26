@@ -81,15 +81,15 @@ export default function AboutPage() {
             <div className="mt-9 flex flex-wrap gap-3">
               <Link
                 href="/?status=live#auctions"
-                className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300"
+                className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline-amber-400"
               >
                 Explore Live Auctions <FiArrowRight aria-hidden="true" />
               </Link>
               <Link
                 href="/submit-listing"
-                className="rounded-full border border-white/25 px-6 py-3 text-sm font-semibold transition hover:border-white/60 hover:bg-white/10"
+                className="rounded-full border border-white/25 px-6 py-3 text-sm font-semibold transition hover:border-white/60 hover:bg-white/10 focus-visible:outline-amber-400"
               >
-                Sell Your Vehicle
+                Sell Your Car
               </Link>
             </div>
           </div>

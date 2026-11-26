@@ -177,7 +177,7 @@ describe("URL-driven auction browsers", () => {
 
     expect(screen.getAllByRole("listitem")).toHaveLength(24);
     expect(screen.getByText("Page 2 of 3")).toBeDefined();
-    fireEvent.click(screen.getByRole("button", { name: "Next Page" }));
+    fireEvent.click(screen.getByRole("link", { name: "Next Page" }));
     expect(screen.getAllByRole("listitem")).toHaveLength(5);
     expect(window.location.search).toBe("?status=live&page=3");
     expect(window.location.hash).toBe("#auctions");
@@ -197,11 +197,14 @@ describe("URL-driven auction browsers", () => {
 
     expect(screen.getByText("Page 2 of 2")).toBeDefined();
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
-    const nextPage = screen.getByRole("button", { name: "Next Page" });
+    const nextPage = screen.getByRole("link", { name: "Next Page" });
+    expect(nextPage.hasAttribute("href")).toBe(false);
     expect(nextPage.getAttribute("aria-disabled")).toBe("true");
     fireEvent.click(nextPage);
     expect(window.location.search).toBe("?status=live&page=99");
-    fireEvent.click(screen.getByRole("button", { name: "Previous Page" }));
+    const previousPage = screen.getByRole("link", { name: "Previous Page" });
+    expect(previousPage.getAttribute("href")).toBe("/?status=live#auctions");
+    fireEvent.click(previousPage);
     expect(screen.getByText("Page 1 of 2")).toBeDefined();
     expect(window.location.search).toBe("?status=live");
     expect(window.location.hash).toBe("#auctions");

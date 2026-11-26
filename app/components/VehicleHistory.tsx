@@ -8,7 +8,7 @@ export default function VehicleHistory({ details, id, headingLevel = 2 }: {
   const Heading = headingLevel === 4 ? "h4" : "h2";
   return (
     <section id={id} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-8">
-      <Heading className="text-lg font-bold tracking-tight text-slate-950">History & Condition</Heading>
+      <Heading className="text-balance text-lg font-bold tracking-tight text-slate-950">History & Condition</Heading>
       <p className="mt-2 text-xs leading-5 text-slate-500">Reported by the seller, not independently verified by BidLane. Ask for records and discuss any inspection before bidding.</p>
       <dl className="mt-5 space-y-5">
         {vehicleDisclosureFields.map(({ id: field, label }) => (

@@ -3,29 +3,24 @@
 import clsx from "clsx";
 import React from "react";
 
-interface ButtonProps {
-  type?: "button" | "submit" | "reset" | undefined;
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
-  children: React.ReactNode;
-  onClick?: () => void;
   secondary?: boolean;
   danger?: boolean;
-  disabled?: boolean;
 }
 
 const Button: React.FC<ButtonProps> = ({
-  type,
   fullWidth,
   children,
-  onClick,
   secondary,
   danger,
   disabled,
+  className,
+  ...props
 }) => {
   return (
     <button
-      onClick={onClick}
-      type={type}
+      {...props}
       disabled={disabled}
       className={clsx(
         `flex
@@ -51,7 +46,8 @@ const Button: React.FC<ButtonProps> = ({
           "bg-rose-500 hover:bg-rose-600 focus-visible:outline-rose-600",
         !secondary &&
           !danger &&
-          "bg-slate-700 hover:bg-slate-800 focus-visible:outline-slate-800"
+          "bg-slate-700 hover:bg-slate-800 focus-visible:outline-slate-800",
+        className
       )}
     >
       {children}

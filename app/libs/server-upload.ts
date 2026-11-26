@@ -45,6 +45,6 @@ export async function saveUploadedFile(input: { userId: string; kind: UploadKind
     }
     // Provider/DB errors can contain file data or credentials. Do not log them.
     logger.warn("upload.storage_failed");
-    throw new ApiRequestError(503, "The file could not be uploaded. Please try again.");
+    throw new ApiRequestError(503, "Couldn’t upload the file. Check your connection and try again.");
   }
 }

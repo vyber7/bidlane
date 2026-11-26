@@ -4,7 +4,7 @@ import Image from "next/image";
 import NoReserveBadge from "./NoReserveBadge";
 import Link from "next/link";
 import type { PublicListing } from "@/app/libs/listing-codec";
-import { formatPrice } from "@/app/utils/format";
+import { capitalize, formatPrice } from "@/app/utils/format";
 import { CldImage } from "next-cloudinary";
 
 interface SideListingBoxProps {
@@ -16,7 +16,7 @@ const SideListingBox: React.FC<SideListingBoxProps> = ({ auction, variant = "sol
   const amount = variant === "live" ? auction.currentBid ?? auction.startingBid : auction.currentBid;
   return (
     <div className="group overflow-hidden rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md">
-      <Link href={`/listing/${auction.id}`} className="grid grid-cols-[6.5rem_1fr]">
+      <Link href={`/listing/${auction.id}`} className="grid grid-cols-[6.5rem_1fr] rounded-xl focus-visible:outline-offset-[-2px]">
         {auction.coverImage ? (
           <CldImage
             src={auction.coverImage}
@@ -38,14 +38,14 @@ const SideListingBox: React.FC<SideListingBoxProps> = ({ auction, variant = "sol
         )}
         <div className="min-w-0 p-3">
           <p className="line-clamp-2 text-sm font-bold leading-5 text-slate-950 group-hover:text-amber-700">
-            {auction.year} {auction.make} {auction.model}
+            {auction.year} {capitalize(auction.make)} {capitalize(auction.model)}
           </p>
           {auction.isNoReserve && <div className="mt-2"><NoReserveBadge isNoReserve={auction.isNoReserve} /></div>}
-          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-500">
             {variant === "live" ? auction.currentBid === null ? "Starting bid" : "Current bid" : "Sold for"}
           </p>
           <p className="text-sm font-bold tabular-nums text-slate-950">
-            {amount === null ? "—" : formatPrice(amount)}
+            {amount === null ? <><span aria-hidden="true">—</span><span className="sr-only">Not available</span></> : formatPrice(amount)}
           </p>
         </div>
       </Link>
