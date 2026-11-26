@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 
 export const contactTopics = [
   "Selling a vehicle",

@@ -19,9 +19,16 @@ export default defineConfig([
       // Real-time updates go through the event channel in app/libs/realtime.
       // Only its Pusher transports talk to Pusher.
       "no-restricted-imports": ["error", {
+        paths: [{
+          name: "zod",
+          message: "Import z from @/app/schemas/zod, which turns off zod's eval probe for our Content Security Policy.",
+        }],
         patterns: [{
           group: ["pusher", "pusher/*", "pusher-js", "pusher-js/*"],
           message: "Publish with app/libs/realtime/server or subscribe with app/libs/realtime/client instead.",
+        }, {
+          group: ["zod/*"],
+          message: "Import z from @/app/schemas/zod, which turns off zod's eval probe for our Content Security Policy.",
         }],
       }],
     },

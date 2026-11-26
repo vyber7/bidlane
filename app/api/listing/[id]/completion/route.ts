@@ -3,7 +3,7 @@ import { apiErrorResponse, errorResponse, parseApiInput, readJsonObject, require
 import { getNativeRepositories } from "@/app/libs/native-repositories";
 import { logger } from "@/app/libs/logger";
 import { completionSteps } from "@/app/libs/transaction-completion";
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 
 type Context = { params: Promise<{ id: string }> };
 const confirmationSchema = z.object({

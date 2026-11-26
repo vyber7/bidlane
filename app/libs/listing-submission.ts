@@ -2,7 +2,7 @@ import { assertListingAssets } from "./uploaded-assets";
 import { requireVerifiedEmail } from "./verified-email";
 import type { DraftRecord } from "@/prisma/native/drafts";
 import { authoringTransactionOptions, isDuplicateKey } from "@/prisma/native/transaction-errors";
-import type { z } from "zod";
+import type { z } from "@/app/schemas/zod";
 import { getNativeRepositories, withNativeTransaction } from "./native-repositories";
 import { ApiRequestError, parseApiInput } from "./api-request";
 import { listingSchema } from "@/app/schemas/listing";

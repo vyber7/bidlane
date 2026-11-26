@@ -1,5 +1,5 @@
 import type { ApiErrorPayload } from "@/app/types/api";
-import type { z } from "zod";
+import type { z } from "@/app/schemas/zod";
 import { listingIdSchema, safeIntegerSchema } from "@/app/schemas/common";
 
 export class ApiRequestError extends Error {

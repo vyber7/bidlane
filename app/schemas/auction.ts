@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 import { listingIdSchema, requiredTextSchema, safeIntegerSchema } from "./common";
 
 export const bidIdempotencyKeySchema = z.string({ error: "A valid Idempotency-Key header is required" })

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 
 export const vinSchema = z.string().trim().toUpperCase().max(30, "VIN or chassis number must be 30 characters or fewer.")
   .refine((value) => !value || /^[A-Z0-9-]{3,30}$/.test(value), "Enter a VIN or chassis number using letters, numbers, and hyphens.");

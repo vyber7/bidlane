@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 
 export const MAX_INTEGER = 2_147_483_647;
 

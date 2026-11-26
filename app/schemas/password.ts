@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 
 export const MIN_PASSWORD_LENGTH = 12;
 export const MAX_PASSWORD_BYTES = 72;

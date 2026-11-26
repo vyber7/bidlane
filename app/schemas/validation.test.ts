@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { z } from "zod";
+import { z } from "@/app/schemas/zod";
 import { apiErrorResponse, parseApiInput } from "@/app/libs/api-request";
 import { loginCredentialsSchema, registrationSchema, profileSchema } from "./account";
 import { passwordResetSchema } from "./password-reset";

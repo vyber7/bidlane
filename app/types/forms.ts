@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type { z } from "@/app/schemas/zod";
 import type { registrationSchema } from "@/app/schemas/account";
 import type { bidRequestSchema, commentRequestSchema } from "@/app/schemas/auction";
 import type { listingSchema } from "@/app/schemas/listing";
