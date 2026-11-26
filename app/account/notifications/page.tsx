@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import NotificationsCenter from "@/app/account/components/NotificationsCenter";
 import { getAccountUser } from "@/app/account/lib/current-user";
 import { getNotificationFeed } from "@/app/account/lib/notifications";
 import { getNativeRepositories } from "@/app/libs/native-repositories";
 import EmailNotificationSettings from "@/app/account/components/EmailNotificationSettings";
+
+export const metadata: Metadata = { title: "Notifications" };
 
 export default async function Notifications({ searchParams }: {
   searchParams: Promise<{ view?: string | string[] }>;

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import VerificationForm from "./VerificationForm";
-export const metadata: Metadata = { title: "Verify email | BidLane", robots: { index: false, follow: false }, referrer: "no-referrer" };
+export const metadata: Metadata = { title: "Verify Email", robots: { index: false, follow: false }, referrer: "no-referrer" };
 export default function VerifyEmail() {
   return <div className="mx-auto max-w-xl px-4 pb-16 pt-28"><VerificationForm /></div>;
 }

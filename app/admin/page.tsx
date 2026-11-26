@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getAdminOverview } from "@/app/libs/admin";
@@ -5,6 +6,8 @@ import { ApiRequestError } from "@/app/libs/api-request";
 import { formatAmount } from "@/app/utils/format";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Administration", robots: { index: false, follow: false } };
 
 export default async function AdminPage() {
   const overview = await getAdminOverview().catch((error: unknown) => {

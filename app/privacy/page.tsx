@@ -4,7 +4,7 @@ import LegalDocument, {
 } from "@/app/components/LegalDocument";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | BidLane",
+  title: "Privacy Policy",
   description:
     "How BidLane collects, uses, shares, and protects personal information.",
 };

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import EmailVerification from "@/app/account/components/EmailVerification";
 import ProfileEditor from "@/app/account/components/ProfileEditor";
@@ -28,5 +29,7 @@ const Profile = async () => {
     </div>
   );
 };
+
+export const metadata: Metadata = { title: "Profile" };
 
 export default Profile;

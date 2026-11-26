@@ -13,7 +13,7 @@ function sellerCardPrice(vehicle: Parameters<typeof auctionPrice>[0]) {
   return amount === null ? label : `${label} · ${formatPrice(amount)}`;
 }
 
-export const metadata: Metadata = { title: "Seller profile | BidLane", description: "View a seller’s public profile, listings, and auction results on BidLane." };
+export const metadata: Metadata = { title: "Seller Profile", description: "View a seller’s public profile, listings, and auction results on BidLane." };
 
 export default async function SellerPage({ params, searchParams }: {
   params: Promise<{ id: string }>;

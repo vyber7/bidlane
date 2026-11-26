@@ -12,7 +12,7 @@ import {
 import ContactForm from "./ContactForm";
 
 export const metadata: Metadata = {
-  title: "BidLane | Contact",
+  title: "Contact",
   description:
     "Get in touch with the BidLane team for auction, buying, selling, or account support.",
 };

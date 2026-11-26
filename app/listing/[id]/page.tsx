@@ -26,12 +26,19 @@ import { vehicleSpecificationFields } from "@/app/libs/vehicle-details";
 import { transactionHref } from "@/app/libs/transaction-completion";
 import { listingCapabilities, type CapabilityListing, type Viewer } from "@/app/libs/listing-capabilities";
 import { formatAmount } from "@/app/utils/format";
+import { hiddenListingMetadata, listingMetadata, listingTitle } from "@/app/libs/listing-metadata";
+import { cache } from "react";
 
-export const metadata: Metadata = {
-  title: "BidLane | Vehicle Auction",
-  description:
-    "Explore vehicle details, browse photos, and join the auction on BidLane.",
-};
+const isListingId = (id: string) => /^[a-f\d]{24}$/i.test(id);
+
+/** One database read per request, shared by the page and its metadata. */
+const findListing = cache((id: string) => getReadRepositories().listings.find(id));
+
+export async function generateMetadata(props: Params): Promise<Metadata> {
+  const { id } = await props.params;
+  const listing = isListingId(id) ? await findListing(id) : null;
+  return listing ? listingMetadata(listing) : hiddenListingMetadata;
+}
 
 /** What the viewer may do with the Listing at request time. */
 function capabilitiesNow(listing: CapabilityListing, viewer: Viewer) {
@@ -44,8 +51,8 @@ interface Params {
 
 const Listing = async (props: Params) => {
   const { id } = await props.params;
-  if (!/^[a-f\d]{24}$/i.test(id)) notFound();
-  const listing = await getReadRepositories().listings.find(id);
+  if (!isListingId(id)) notFound();
+  const listing = await findListing(id);
   if (!listing) notFound();
   const currentUser = await getCurrentUser();
   if (!canViewListing(listing, currentUser)) notFound();
@@ -58,7 +65,7 @@ const Listing = async (props: Params) => {
       getLiveAuctions(),
     ],
   );
-  const title = `${listing.year} ${listing.make} ${listing.model}`;
+  const title = listingTitle(listing);
   const can = capabilitiesNow(listing, currentUser);
   const transaction = can.completeTransaction;
 

@@ -4,7 +4,7 @@ import LegalDocument, {
 } from "@/app/components/LegalDocument";
 
 export const metadata: Metadata = {
-  title: "BidLane | Terms of Service",
+  title: "Terms of Service",
   description:
     "The terms that govern access to and use of the BidLane vehicle auction marketplace.",
 };
