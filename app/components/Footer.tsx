@@ -32,13 +32,13 @@ const Footer = () => {
           <div className="max-w-md">
             <Link
               href="/"
-              aria-label="Bidlane home"
-              className="inline-flex items-center gap-3"
+              aria-label="BidLane home"
+              className="inline-flex items-center gap-3 rounded-xl focus-visible:outline-amber-400"
             >
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-400 text-lg font-black text-slate-950 shadow-lg shadow-amber-400/10">
                 B
               </span>
-              <span className="text-xl font-black tracking-tight">
+              <span translate="no" className="text-xl font-black tracking-tight">
                 Bid<span className="text-amber-400">Lane</span>
               </span>
             </Link>
@@ -52,16 +52,16 @@ const Footer = () => {
             </div>
           </div>
 
-          <nav aria-label="Auction links">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">
+          <nav aria-labelledby="footer-auctions-heading">
+            <h2 id="footer-auctions-heading" className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">
               Auctions
-            </p>
+            </h2>
             <ul className="mt-5 space-y-3.5">
               {auctionLinks.map(({ label, href, icon: Icon }) => (
                 <li key={href}>
                   <Link
                     href={href}
-                    className="group inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-white"
+                    className="group inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-white focus-visible:outline-amber-400"
                   >
                     {Icon && (
                       <Icon
@@ -80,16 +80,16 @@ const Footer = () => {
             </ul>
           </nav>
 
-          <nav aria-label="Company links">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">
+          <nav aria-labelledby="footer-company-heading">
+            <h2 id="footer-company-heading" className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">
               Company
-            </p>
+            </h2>
             <ul className="mt-5 space-y-3.5">
               {companyLinks.map(({ label, href }) => (
                 <li key={href}>
                   <Link
                     href={href}
-                    className="text-sm font-medium text-slate-400 transition hover:text-white"
+                    className="text-sm font-medium text-slate-400 transition hover:text-white focus-visible:outline-amber-400"
                   >
                     {label}
                   </Link>
@@ -101,19 +101,19 @@ const Footer = () => {
               href="/submit-listing"
               className="mt-7 inline-flex items-center gap-2 rounded-full bg-amber-400 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             >
-              List your vehicle
+              Sell Your Car
               <FiArrowRight aria-hidden="true" />
             </Link>
           </nav>
         </div>
 
         <div className="flex flex-col gap-4 pt-7 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-          <p>&copy; {new Date().getFullYear()} Bidlane. All rights reserved.</p>
+          <p suppressHydrationWarning>&copy; {new Date().getFullYear()} Bidlane. All rights reserved.</p>
           <div className="flex items-center gap-5">
-            <Link href="/terms" className="transition hover:text-slate-300">
+            <Link href="/terms" className="transition hover:text-slate-300 focus-visible:outline-amber-400">
               Terms of service
             </Link>
-            <Link href="/privacy" className="transition hover:text-slate-300">
+            <Link href="/privacy" className="transition hover:text-slate-300 focus-visible:outline-amber-400">
               Privacy policy
             </Link>
           </div>
