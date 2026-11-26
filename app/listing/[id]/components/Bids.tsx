@@ -1,8 +1,9 @@
 "use client";
 
+import LocalTime from "@/app/components/LocalTime";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { capitalize, formatAmount, formatPrice, formatDateTime, formatDisplayName } from "@/app/utils/format";
+import { capitalize, formatAmount, formatPrice, formatDisplayName } from "@/app/utils/format";
 import { useAuctionView } from "@/app/context/AuctionContext";
 import BidForm from "./BidForm";
 
@@ -65,7 +66,7 @@ const Bids: React.FC<BidsProps> = ({
             <dt className="w-1/4">Ending</dt>
             <dd className="font-semibold tabular-nums">
               {listing.auctionEndsAt ? (
-                <time dateTime={listing.auctionEndsAt.toISOString()}>{formatDateTime(listing.auctionEndsAt)}</time>
+                <LocalTime date={listing.auctionEndsAt} />
               ) : "To be announced"}
             </dd>
           </div>

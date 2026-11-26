@@ -1,5 +1,6 @@
 "use client";
 
+import LocalTime from "@/app/components/LocalTime";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -17,7 +18,7 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 import type { AccountNotification, NotificationFeed } from "@/app/types/account";
-import { formatAmount, formatCount, formatDateTime } from "@/app/utils/format";
+import { formatAmount, formatCount } from "@/app/utils/format";
 import { updateAccountUrl } from "./AccountTabs";
 
 type View = "all" | "unread";
@@ -313,12 +314,7 @@ const NotificationRow = ({
               </h3>
               <p className="mt-1 break-words text-sm leading-6 text-gray-600">{notification.message}</p>
             </div>
-            <time
-              dateTime={notification.createdAt}
-              className="shrink-0 text-xs text-gray-500"
-            >
-              {formatDateTime(notification.createdAt)}
-            </time>
+            <LocalTime date={notification.createdAt} className="shrink-0 text-xs text-gray-500" />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-4">
             <Link

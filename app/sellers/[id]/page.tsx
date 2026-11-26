@@ -1,3 +1,4 @@
+import LocalTime from "@/app/components/LocalTime";
 import Link from "next/link";
 import Image from "next/image";
 import { FiUser } from "react-icons/fi";
@@ -5,7 +6,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSellerProfile } from "@/app/libs/seller-profile";
 import { auctionPrice } from "@/app/libs/auction-lifecycle";
-import { formatPrice, formatCount, formatMonthYear } from "@/app/utils/format";
+import { formatPrice, formatCount } from "@/app/utils/format";
 
 function sellerCardPrice(vehicle: Parameters<typeof auctionPrice>[0]) {
   const { label, amount } = auctionPrice(vehicle);
@@ -41,7 +42,7 @@ export default async function SellerPage({ params, searchParams }: {
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Seller profile</p>
           <h1 className="mt-1 break-words text-3xl font-black">{seller.name || "BidLane seller"}</h1>
-          <p className="mt-2 text-sm text-slate-600">Member since {formatMonthYear(seller.createdAt)}</p>
+          <p className="mt-2 text-sm text-slate-600">Member since <LocalTime date={seller.createdAt} format="monthYear" /></p>
           <div className="mt-5 flex flex-wrap gap-3 text-sm font-semibold">
             <span className={`rounded-full px-3 py-1 ${seller.emailVerified ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{seller.emailVerified ? "Email verified" : "Email not verified"}</span>
             <span className="rounded-full bg-slate-100 px-3 py-1">{formatCount(salesCount, "vehicle sold at auction", "vehicles sold at auction")}</span>

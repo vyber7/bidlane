@@ -1,5 +1,6 @@
 "use client";
 
+import LocalTime from "@/app/components/LocalTime";
 import { useEffect, useRef, useState } from "react";
 import { FiCheckCircle } from "react-icons/fi";
 import {
@@ -9,7 +10,6 @@ import {
   type TransactionCompletion,
   type TransactionRole,
 } from "@/app/libs/transaction-completion";
-import { formatDateTime } from "@/app/utils/format";
 
 type Props = {
   listingId: string;
@@ -160,7 +160,7 @@ export default function CompletionChecklist({ listingId, role, initialCompletion
               {(own || other) && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                 {([role, counterparty] as const).map((party) => {
                   const at = completion[id][party];
-                  return at ? <span key={party}>{party === role ? "You" : party === "buyer" ? "Buyer" : "Seller"}: <time dateTime={at}>{formatDateTime(at)}</time></span> : null;
+                  return at ? <span key={party}>{party === role ? "You" : party === "buyer" ? "Buyer" : "Seller"}: <LocalTime date={at} /></span> : null;
                 })}
               </div>}
             </li>

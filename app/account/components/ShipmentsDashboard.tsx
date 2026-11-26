@@ -1,5 +1,6 @@
 "use client";
 
+import LocalTime from "@/app/components/LocalTime";
 import Image from "next/image";
 import Link from "next/link";
 import { CldImage } from "next-cloudinary";
@@ -16,7 +17,7 @@ import {
 import type { ShipmentTransaction } from "@/app/types/account";
 import { handoffSteps } from "@/app/libs/auction-guidance";
 import { transactionAnchor } from "@/app/libs/transaction-completion";
-import { formatAmount, formatPrice, formatDate } from "@/app/utils/format";
+import { formatAmount, formatPrice } from "@/app/utils/format";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 import CompletionChecklist from "./CompletionChecklist";
 
@@ -138,7 +139,7 @@ const ShipmentRow = ({ shipment }: { shipment: ShipmentTransaction }) => {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-wide text-gray-500">
-                {isBuyer ? "Auction won" : "Sold at auction"} · <time dateTime={shipment.soldAt}>{formatDate(shipment.soldAt)}</time>
+                {isBuyer ? "Auction won" : "Sold at auction"} · <LocalTime date={shipment.soldAt} format="date" />
               </p>
               <Link href={`/listing/${shipment.id}`} className="hover:underline">
                 <h3 className="mt-1 truncate text-lg font-bold text-gray-950">{vehicle}</h3>

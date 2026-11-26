@@ -1,5 +1,6 @@
 "use client";
 
+import LocalTime from "@/app/components/LocalTime";
 import Image from "next/image";
 import Link from "next/link";
 import { CldImage } from "next-cloudinary";
@@ -12,7 +13,7 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 import type { AuctionBid } from "@/app/types/account";
-import { formatAmount, formatPrice, formatCount, formatDate } from "@/app/utils/format";
+import { formatAmount, formatPrice, formatCount } from "@/app/utils/format";
 import AccountTabs, { updateAccountUrl } from "./AccountTabs";
 import useTrackedAuctions from "./useTrackedAuctions";
 import { auctionStanding } from "../lib/bids";
@@ -175,7 +176,7 @@ const BidRow = ({ bid, tab }: { bid: AuctionBid; tab: Tab }) => {
             />
             <BidDetail
               label={tab === "active" ? "Auction ends" : "Last bid"}
-              value={formatDate(tab === "active" && bid.auctionEndsAt ? bid.auctionEndsAt : bid.lastBidAt)}
+              value={<LocalTime date={tab === "active" && bid.auctionEndsAt ? bid.auctionEndsAt : bid.lastBidAt} format="date" />}
               className="col-span-2 sm:col-span-1"
             />
           </div>
@@ -203,7 +204,7 @@ const BidDetail = ({
   className = "",
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   className?: string;
 }) => (
   <div className={className}>

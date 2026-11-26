@@ -1,5 +1,6 @@
 "use client";
 
+import LocalTime from "@/app/components/LocalTime";
 import { getApiErrorMessage } from "@/app/utils/api-error";
 
 import axios from "axios";
@@ -23,7 +24,6 @@ import {
 } from "react-icons/fi";
 import { logger } from "@/app/libs/logger";
 import { profileSchema } from "@/app/schemas/account";
-import { formatMonthYear } from "@/app/utils/format";
 
 type ProfileUser = {
   name: string;
@@ -233,7 +233,7 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
               <Detail
                 icon={<FiCalendar />}
                 label="Member since"
-                value={formatMonthYear(user.createdAt)}
+                value={<LocalTime date={user.createdAt} format="monthYear" />}
               />
               <Detail
                 icon={<FiLock />}
@@ -302,7 +302,7 @@ const Field = ({ icon, label, htmlFor, children }: { icon: React.ReactNode; labe
   );
 };
 
-const Detail = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
+const Detail = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) => (
   <div className="flex items-start gap-3">
     <span aria-hidden="true" className="mt-0.5 text-gray-400">{icon}</span>
     <div>

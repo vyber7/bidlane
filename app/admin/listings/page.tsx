@@ -1,8 +1,8 @@
+import LocalTime from "@/app/components/LocalTime";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getReviewQueue, reviewLabel, reviewLabels } from "@/app/libs/listing-review";
 import { ApiRequestError } from "@/app/libs/api-request";
-import { formatDate } from "@/app/utils/format";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ export default async function ReviewQueue({ searchParams }: { searchParams: Prom
     <nav aria-label="Review filters" className="mt-6 flex flex-wrap gap-2">{Object.entries(reviewLabels).map(([status, label]) => <Link key={status} href={`/admin/listings?review=${status}`} aria-current={filter === status ? "page" : undefined} className={`rounded-full border px-4 py-2 text-sm font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950 ${filter === status ? "bg-slate-950 text-white" : "bg-white text-slate-700 hover:border-slate-400 hover:text-slate-950"}`}>{label}</Link>)}</nav>
     {result.listings.length ? <ul className="mt-6 divide-y rounded-2xl border border-slate-200 bg-white">
       {result.listings.map((listing) => <li key={listing.id} className="flex flex-wrap items-center justify-between gap-4 p-5">
-        <div><p className="text-xs font-bold text-amber-800">{reviewLabel(listing)}</p><h2 className="mt-1 font-bold">{listing.year} {listing.make} {listing.model}</h2><p className="mt-1 text-sm text-slate-600">{listing.user.name || "Seller"} · Submitted {formatDate(listing.createdAt)}</p>{listing.reviewNote && <p className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-600">{listing.reviewNote}</p>}</div>
+        <div><p className="text-xs font-bold text-amber-800">{reviewLabel(listing)}</p><h2 className="mt-1 font-bold">{listing.year} {listing.make} {listing.model}</h2><p className="mt-1 text-sm text-slate-600">{listing.user.name || "Seller"} · Submitted <LocalTime date={listing.createdAt} format="date" /></p>{listing.reviewNote && <p className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-600">{listing.reviewNote}</p>}</div>
         <Link href={`/admin/listings/${listing.id}`} className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950">Review Listing <span aria-hidden="true">→</span></Link>
       </li>)}
     </ul> : <p className="mt-6 text-sm text-slate-600">No listings in this review category.</p>}

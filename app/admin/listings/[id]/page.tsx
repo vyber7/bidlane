@@ -1,3 +1,4 @@
+import LocalTime from "@/app/components/LocalTime";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getListingReview, reviewLabel, reviewLabels } from "@/app/libs/listing-review";
@@ -8,7 +9,7 @@ import VehicleRecords from "@/app/components/VehicleRecords";
 import Gallery from "@/app/listing/[id]/components/Gallery";
 import CoverImage from "@/app/listing/[id]/components/CoverImage";
 import ReviewForm from "./ReviewForm";
-import { formatAmount, formatPrice, formatDateTime } from "@/app/utils/format";
+import { formatAmount, formatPrice } from "@/app/utils/format";
 import type { AuctionPhase } from "@/app/libs/auction-lifecycle";
 
 const phaseLabels: Record<AuctionPhase["phase"], string> = {
@@ -49,7 +50,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
     <section className="rounded-2xl border bg-white p-6">
       <h2 className="text-xl font-bold">Review History</h2>
       <p className="mt-2 text-xs text-slate-500">Latest 50 decisions. Saving listing changes requires a new approval.</p>
-      {listing.reviews.length ? <ol className="mt-4 space-y-4">{listing.reviews.map((review) => <li key={review.id} className="border-t pt-3 text-sm"><p className="font-bold">{reviewLabels[review.decision]} · {review.reviewerName}</p><p className="mt-1 text-xs text-slate-500"><time dateTime={review.createdAt.toISOString()}>{formatDateTime(review.createdAt)}</time> · Revision {review.revision}</p>{review.reason && <p className="mt-2 whitespace-pre-wrap break-words">{review.reason}</p>}</li>)}</ol> : <p className="mt-4 text-sm text-slate-500">No decisions recorded yet.</p>}
+      {listing.reviews.length ? <ol className="mt-4 space-y-4">{listing.reviews.map((review) => <li key={review.id} className="border-t pt-3 text-sm"><p className="font-bold">{reviewLabels[review.decision]} · {review.reviewerName}</p><p className="mt-1 text-xs text-slate-500"><LocalTime date={review.createdAt} /> · Revision {review.revision}</p>{review.reason && <p className="mt-2 whitespace-pre-wrap break-words">{review.reason}</p>}</li>)}</ol> : <p className="mt-4 text-sm text-slate-500">No decisions recorded yet.</p>}
     </section>
   </div>;
 }

@@ -1,11 +1,12 @@
 "use client";
 
+import LocalTime from "@/app/components/LocalTime";
 import axios from "axios";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { FiLoader } from "react-icons/fi";
 import { getApiErrorMessage } from "@/app/utils/api-error";
-import { formatAmount, formatCount, formatDateTime } from "@/app/utils/format";
+import { formatAmount, formatCount } from "@/app/utils/format";
 
 export type DraftSummary = { id: string; revision: number; title: string; photoCount: number; updatedAt: string };
 
@@ -90,7 +91,7 @@ export default function ListingDrafts({ drafts: initialDrafts }: { drafts: Draft
                 <h3 className="break-words font-semibold">{draft.title}</h3>
                 <p className="mt-1 text-xs tabular-nums text-slate-500">
                   {formatCount(draft.photoCount, "photo")} · Saved{" "}
-                  <time dateTime={draft.updatedAt}>{formatDateTime(draft.updatedAt)}</time>
+                  <LocalTime date={draft.updatedAt} />
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
