@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import LocalTime from "@/app/components/LocalTime";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -17,6 +18,8 @@ const phaseLabels: Record<AuctionPhase["phase"], string> = {
 };
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Review Listing", robots: { index: false, follow: false } };
 
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

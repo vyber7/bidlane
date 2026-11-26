@@ -11,7 +11,8 @@ import AuthForm from "../(site)/components/AuthForm";
 import { MAIN_CONTENT_ID } from "../components/ConditionalLayout";
 
 export const metadata: Metadata = {
-  title: "BidLane | Sign In",
+  title: "Sign In",
+  robots: { index: false, follow: true },
   description:
     "Sign in to BidLane to follow your favorite cars and join the auction.",
 };

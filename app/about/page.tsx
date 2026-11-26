@@ -11,7 +11,7 @@ import {
 } from "react-icons/fi";
 
 export const metadata: Metadata = {
-  title: "BidLane | About",
+  title: "About",
   description:
     "BidLane is an enthusiast-first marketplace for discovering, buying, and selling exceptional vehicles.",
 };

@@ -12,7 +12,8 @@ import getSoldAuctions from "../actions/getSoldAuctions";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "BidLane | Submit Listing",
+  title: "Submit Listing",
+  robots: { index: false, follow: true },
   description: "Submit a vehicle for auction.",
 };
 

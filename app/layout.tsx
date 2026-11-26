@@ -5,13 +5,23 @@ import AuthContext from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import "./globals.css";
 import ConditionalLayout from "./components/ConditionalLayout";
+import { isIndexable, siteUrl } from "./libs/site-url";
 
 const inter = Inter({ subsets: ["latin"] });
 
+const description = "Buy and sell cars through auctions";
+
 export const metadata: Metadata = {
-  title: "BidLane | Auto Auctions",
-  description: "Buy and sell cars through auctions",
+  metadataBase: siteUrl(),
+  title: { default: "BidLane | Auto Auctions", template: "%s | BidLane" },
+  description,
   icons: { icon: "/favicon.ico" },
+  // No og:title or og:description here: link previews fall back to each page's own <title> and description.
+  openGraph: { type: "website", siteName: "BidLane" },
+  // X reuses og:image (app/opengraph-image.tsx) but needs this to show it large.
+  twitter: { card: "summary_large_image" },
+  // Previews and local builds stay out of search results.
+  ...(isIndexable() ? {} : { robots: { index: false, follow: false } }),
 };
 
 export const viewport: Viewport = {

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import ListingDrafts from "@/app/account/components/ListingDrafts";
 import { serializeDraft } from "@/app/libs/listing-submission";
 import ListingsDashboard from "@/app/account/components/ListingsDashboard";
@@ -31,5 +32,7 @@ const MyListings = async () => {
     </div>
   );
 };
+
+export const metadata: Metadata = { title: "Your Listings" };
 
 export default MyListings;

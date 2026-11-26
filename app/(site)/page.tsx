@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getReadRepositories } from "../libs/read-repositories";
 import getCurrentUser from "../actions/getCurrentUser";
 import Link from "next/link";
@@ -10,6 +11,9 @@ import { toPublicListing } from "../libs/listing-codec";
 import { homeSpotlight, inventoryHref, type InventoryTab } from "../libs/auction-inventory";
 
 export const dynamic = "force-dynamic";
+
+// Filtered and sorted views (?status=…) are the same page to search engines.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 const heroStats: { tab: InventoryTab; label: string }[] = [
   { tab: "LIVE", label: "Live Now" },

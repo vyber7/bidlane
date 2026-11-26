@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import LocalTime from "@/app/components/LocalTime";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -5,6 +6,8 @@ import { getReviewQueue, reviewLabel, reviewLabels } from "@/app/libs/listing-re
 import { ApiRequestError } from "@/app/libs/api-request";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Listing Reviews", robots: { index: false, follow: false } };
 
 export default async function ReviewQueue({ searchParams }: { searchParams: Promise<{ page?: string; review?: string }> }) {
   const query = await searchParams;

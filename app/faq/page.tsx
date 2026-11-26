@@ -14,7 +14,7 @@ import {
 } from "react-icons/fi";
 
 export const metadata: Metadata = {
-  title: "BidLane | How it Works",
+  title: "How It Works",
   description:
     "Learn how to browse, bid, and sell vehicles on BidLane, with answers to common auction questions.",
 };

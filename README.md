@@ -50,6 +50,10 @@ DATABASE_URL="mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/bidlane"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="replace-with-a-random-secret"
 
+# Optional: the public origin for canonical links, link previews, robots.txt and
+# the sitemap. Defaults to NEXTAUTH_URL.
+# NEXT_PUBLIC_SITE_URL="https://www.bidlane.net"
+
 # Cloudinary — names match app/libs/cloudinary.ts
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your-cloud-name"
 NEXT_PUBLIC_CLOUDINARY_API_KEY="your-api-key"

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import BidsAndWinsDashboard from "@/app/account/components/BidsAndWinsDashboard";
 import { getAccountUser } from "@/app/account/lib/current-user";
 import { getReadRepositories } from "@/app/libs/read-repositories";
@@ -13,5 +14,7 @@ const BidsAndWins = async () => {
     <BidsAndWinsDashboard bids={buildBidSummaries(bids, currentUser.id)} currentUserId={currentUser.id} />
   );
 };
+
+export const metadata: Metadata = { title: "Bids & Wins" };
 
 export default BidsAndWins;
