@@ -49,14 +49,14 @@ export default async function SellerPage({ params, searchParams }: {
         </div>
         {seller.image ? <Image
           src={seller.image}
-          alt={`${seller.name || "Seller"}'s profile photo`}
+          alt={`${seller.name || "Seller"}’s profile photo`}
           width={160}
           height={160}
           unoptimized
           className="aspect-square w-full rounded-2xl bg-slate-100 object-cover ring-1 ring-slate-200"
         /> : <div
           role="img"
-          aria-label={`${seller.name || "Seller"}'s profile avatar`}
+          aria-label={`${seller.name || "Seller"}’s profile avatar`}
           className="flex aspect-square w-full items-center justify-center rounded-2xl bg-gradient-to-br from-gray-800 to-gray-950 text-2xl font-bold text-white shadow-sm ring-4 ring-gray-100 sm:text-4xl"
         >
           {initials || <FiUser aria-hidden="true" />}

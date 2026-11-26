@@ -12,16 +12,16 @@ import { homeSpotlight, inventoryHref, type InventoryTab } from "../libs/auction
 export const dynamic = "force-dynamic";
 
 const heroStats: { tab: InventoryTab; label: string }[] = [
-  { tab: "LIVE", label: "Live now" },
-  { tab: "NO_RESERVE", label: "No reserve" },
-  { tab: "UPCOMING", label: "Coming soon" },
+  { tab: "LIVE", label: "Live Now" },
+  { tab: "NO_RESERVE", label: "No Reserve" },
+  { tab: "UPCOMING", label: "Coming Soon" },
   { tab: "ENDED", label: "Results" },
 ];
 
 const browseLabels = {
   LIVE: "Browse Live Auctions",
-  UPCOMING: "Explore coming soon",
-  ENDED: "Explore auction results",
+  UPCOMING: "Explore Coming Soon",
+  ENDED: "Explore Auction Results",
 } satisfies Partial<Record<InventoryTab, string>>;
 
 /**
@@ -142,7 +142,7 @@ export default async function Home() {
             </p>
             <Link
               href="/submit-listing"
-              className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-amber-400 hover:text-amber-300"
+              className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-amber-400 hover:text-amber-300 focus-visible:outline-amber-400"
             >
               List Your Vehicle <FiArrowRight aria-hidden="true" />
             </Link>

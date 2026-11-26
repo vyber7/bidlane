@@ -147,7 +147,7 @@ export default function SubmitForm({ initialDraft, emailVerified = false }: { in
                 <input id={field.id} type={field.type || "text"} inputMode={field.type === "number" ? "numeric" : undefined} autoComplete="off" spellCheck={field.type === "number" ? undefined : false} min={field.min} max={field.max} step={field.type === "number" ? 1 : undefined} placeholder={field.placeholder} maxLength={field.id === "vin" ? 30 : field.id === "location" ? 200 : field.id === "make" || field.id === "model" ? 100 : undefined} aria-invalid={!!errors[field.id]} aria-describedby={errors[field.id] ? `${field.id}-error` : undefined}
                   {...register(field.id, { validate: (value) => validationMessage(listingSchema.shape[field.id], value) })}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm" />
-                {errors[field.id] && <p id={`${field.id}-error`} className="mt-1 text-sm text-red-600">{errors[field.id]?.message}</p>}
+                {errors[field.id] && <p id={`${field.id}-error`} role="alert" className="mt-1 text-sm text-red-600">{errors[field.id]?.message}</p>}
               </div>
             ))}
           </div>
@@ -157,17 +157,18 @@ export default function SubmitForm({ initialDraft, emailVerified = false }: { in
               <div key={id}>
                 <label htmlFor={id} className="mb-2 block text-sm font-semibold">{label}</label>
                 <select id={id} {...register(id, { validate: (value) => validationMessage(listingSchema.shape[id], value) })} aria-invalid={!!errors[id]} aria-describedby={errors[id] ? `${id}-error` : "specification-hint"} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm">
-                  <option value="">Select {label.toLowerCase()}</option>
+                  <option value="">Select {label.toLowerCase()}…</option>
                   {options.map((option) => <option key={option} value={option}>{option}</option>)}
                 </select>
-                {errors[id] && <p id={`${id}-error`} className="mt-1 text-sm text-red-600">{errors[id]?.message}</p>}
+                {errors[id] && <p id={`${id}-error`} role="alert" className="mt-1 text-sm text-red-600">{errors[id]?.message}</p>}
               </div>
             ))}
           </div>
           <p id="specification-hint" className="mt-3 text-xs leading-5 text-slate-500">Choose “Unknown” if you’re unsure. For title status, check the current ownership document.</p>
           <label htmlFor="description" className="mb-2 mt-6 block text-sm font-semibold">Description</label>
-          <textarea id="description" rows={5} maxLength={10000} placeholder="Share what makes this vehicle special, its ownership story, and why you’re selling it. You’ll add history and condition details next." {...register("description", { validate: (value) => validationMessage(listingSchema.shape.description, value) })} aria-invalid={!!errors.description} aria-describedby={errors.description ? "description-error" : undefined} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm" />
-          {errors.description && <p id="description-error" className="text-sm text-red-600">{errors.description.message}</p>}
+          <p id="description-hint" className="mb-3 text-xs leading-5 text-slate-500">Share what makes this vehicle special, its ownership story, and why you’re selling it. You’ll add history and condition details next.</p>
+          <textarea id="description" rows={5} maxLength={10000} placeholder="e.g. Two owners, garaged since new, recent major service…" {...register("description", { validate: (value) => validationMessage(listingSchema.shape.description, value) })} aria-invalid={!!errors.description} aria-describedby={errors.description ? "description-hint description-error" : "description-hint"} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm" />
+          {errors.description && <p id="description-error" role="alert" className="text-sm text-red-600">{errors.description.message}</p>}
         </fieldset>
         <fieldset hidden={step !== 1} className="min-w-0 space-y-6">
           <legend className="sr-only">Seller disclosures</legend>
@@ -178,7 +179,7 @@ export default function SubmitForm({ initialDraft, emailVerified = false }: { in
               <textarea id={id} rows={4} maxLength={MAX_VEHICLE_DISCLOSURE_LENGTH} placeholder={placeholder} {...register(id, {
                 validate: (value) => validationMessage(listingSchema.shape[id], value),
               })} aria-invalid={!!errors[id]} aria-describedby={`${id}-hint${errors[id] ? ` ${id}-error` : ""}`} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-slate-500 focus:ring-slate-500 sm:text-sm" />
-              {errors[id] && <p id={`${id}-error`} className="mt-1 text-sm text-red-600">{errors[id]?.message}</p>}
+              {errors[id] && <p id={`${id}-error`} role="alert" className="mt-1 text-sm text-red-600">{errors[id]?.message}</p>}
             </div>
           ))}
         </fieldset>
@@ -203,9 +204,9 @@ export default function SubmitForm({ initialDraft, emailVerified = false }: { in
           {images.map((url, index) => <div key={url} className="overflow-hidden rounded-xl border border-slate-200">
             <CldImage src={url} width={400} height={280} crop="fill" alt={`Vehicle photo ${index + 1}`} className="aspect-[4/3] w-full object-cover" />
             <div className="flex flex-wrap items-center justify-between gap-2 p-2 text-xs">
-              {index === 0 ? <span className="font-bold text-slate-700">Cover photo</span> : <button type="button" onClick={() => { photoUndo.dismiss(); setImages((current) => [url, ...current.filter((image) => image !== url)]); }} className="underline hover:text-slate-950">Make Cover<span className="sr-only"> photo {index + 1}</span></button>}
-              {index > 0 && <button type="button" aria-label={`Move photo ${index + 1} earlier`} onClick={() => { photoUndo.dismiss(); setImages((current) => { const next = [...current]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; return next; }); }} className="p-1 underline hover:text-slate-950">Move Earlier</button>}
-              <button type="button" aria-label={`Remove Photo ${index + 1}`} onClick={() => {
+              {index === 0 ? <span className="font-bold text-slate-700">Cover photo</span> : <button type="button" aria-label={`Make Cover: photo ${index + 1}`} onClick={() => { photoUndo.dismiss(); setImages((current) => [url, ...current.filter((image) => image !== url)]); }} className="underline hover:text-slate-950">Make Cover</button>}
+              {index > 0 && <button type="button" aria-label={`Move Earlier: photo ${index + 1}`} onClick={() => { photoUndo.dismiss(); setImages((current) => { const next = [...current]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; return next; }); }} className="p-1 underline hover:text-slate-950">Move Earlier</button>}
+              <button type="button" aria-label={`Remove photo ${index + 1}`} onClick={() => {
                 const previous = images;
                 setImages((current) => current.filter((image) => image !== url));
                 photoUndo.offer(`Photo ${index + 1} removed.`, () => setImages(previous));

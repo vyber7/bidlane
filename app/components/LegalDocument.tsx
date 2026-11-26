@@ -49,7 +49,7 @@ export default function LegalDocument({ eyebrow, title, description, effectiveDa
         <article className="min-w-0">
           <div className="mb-10 flex items-start gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-slate-700">
             <FiShield className="mt-0.5 shrink-0 text-amber-700" size={20} aria-hidden="true" />
-            <p>We wrote this policy to be readable. Section headings and summaries help you navigate, but the full text governs your use of Bidlane.</p>
+            <p>We wrote this policy to be readable. Section headings and summaries help you navigate, but the full text governs your use of BidLane.</p>
           </div>
           <div className="space-y-12">
             {sections.map((section, index) => (
@@ -63,7 +63,7 @@ export default function LegalDocument({ eyebrow, title, description, effectiveDa
             ))}
           </div>
           <div className="mt-4 rounded-3xl bg-slate-950 p-7 text-white sm:flex sm:items-center sm:justify-between sm:p-9">
-            <div><FiMail className="text-amber-400" size={22} aria-hidden="true" /><h2 className="mt-4 text-balance text-2xl font-black">Questions About This Policy?</h2><p className="mt-2 text-sm leading-6 text-slate-400">We’re happy to clarify how these terms apply to your use of Bidlane.</p></div>
+            <div><FiMail className="text-amber-400" size={22} aria-hidden="true" /><h2 className="mt-4 text-balance text-2xl font-black">Questions About This Policy?</h2><p className="mt-2 text-sm leading-6 text-slate-400">We’re happy to clarify how these terms apply to your use of BidLane.</p></div>
             <Link href="/contact" className="mt-6 inline-flex items-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline-amber-400 sm:mt-0">Contact Us <FiArrowRight aria-hidden="true" /></Link>
           </div>
         </article>

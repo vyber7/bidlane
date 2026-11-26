@@ -18,8 +18,8 @@ interface AuctionBrowserProps {
 
 const tabDisplay = {
   LIVE: { label: "Live", icon: FiZap },
-  NO_RESERVE: { label: "No reserve", icon: FiTag },
-  UPCOMING: { label: "Coming soon", icon: FiClock },
+  NO_RESERVE: { label: "No Reserve", icon: FiTag },
+  UPCOMING: { label: "Coming Soon", icon: FiClock },
   ENDED: { label: "Results", icon: FiCheckCircle },
 };
 
@@ -157,7 +157,7 @@ const AuctionBrowser: React.FC<AuctionBrowserProps> = ({
                   {label}
                 </span>
                 <span
-                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-xs sm:px-2 ${
+                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-xs tabular-nums sm:px-2 ${
                     active
                       ? "bg-white/15 text-white"
                       : "bg-slate-100 text-slate-600"

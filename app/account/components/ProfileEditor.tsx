@@ -158,7 +158,7 @@ const ProfileEditor = ({ user }: { user: ProfileUser }) => {
               {image ? (
                 <Image
                   src={image}
-                  alt={`${name || "User"}'s profile`}
+                  alt={`${name || "User"}’s profile`}
                   fill
                   unoptimized
                   sizes="128px"

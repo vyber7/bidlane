@@ -72,7 +72,7 @@ export default function BidForm({ emailVerified = false }: { emailVerified?: boo
       router.refresh();
       toast.success("Bid placed successfully!");
     } catch (error: unknown) {
-      const message = getApiErrorMessage(error, "Error placing bid");
+      const message = getApiErrorMessage(error, "Your bid could not be placed. Check the current price and try again.");
       const status = axios.isAxiosError(error) ? error.response?.status : undefined;
       // A missing response, timeout, or server error may follow a committed bid.
       // Keep the exact reviewed amount and key until its outcome is resolved.
@@ -118,7 +118,7 @@ export default function BidForm({ emailVerified = false }: { emailVerified?: boo
         )}
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
-            id="bidAmount" type="number" inputMode="numeric" placeholder="e.g. 12500…"
+            id="bidAmount" type="number" inputMode="numeric" autoComplete="off" placeholder="e.g. 12500…"
             min={minimumBid ?? undefined} max={MAX_INTEGER} step={1}
             aria-invalid={!!errors.bidAmount} aria-describedby={[minimumBid !== null && "bid-minimum", errors.bidAmount && "bid-error"].filter(Boolean).join(" ") || undefined}
             {...register("bidAmount", {

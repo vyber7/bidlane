@@ -132,7 +132,7 @@ const AuthForm = ({ callbackUrl }: { callbackUrl?: string }) => {
 
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700">Your Bidlane account</p>
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700">Your BidLane account</p>
       <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
         {variant === "LOGIN" ? "Welcome back." : "Join the community."}
       </h1>
@@ -191,7 +191,7 @@ const AuthForm = ({ callbackUrl }: { callbackUrl?: string }) => {
         <AuthSocialButton icon={BsGithub} label="GitHub" disabled={isLoading} onClick={() => socialAction("github")} />
       </div>
       <p className="mt-8 text-center text-sm leading-6 text-slate-500">
-        {variant === "LOGIN" ? "New to Bidlane?" : "Already have an account?"}{" "}
+        {variant === "LOGIN" ? "New to BidLane?" : "Already have an account?"}{" "}
         <button type="button" disabled={isLoading} onClick={toggleVariant} className="rounded-sm font-bold text-slate-950 underline decoration-amber-400 decoration-2 underline-offset-4 hover:text-amber-700 focus-visible:outline-amber-500 disabled:opacity-60">
           {variant === "LOGIN" ? "Create an Account" : "Sign In"}
         </button>

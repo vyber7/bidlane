@@ -488,7 +488,7 @@ Before deploying, follow the [audited adoption flow](docs/prisma-8-migration.md#
 
 ## Deployment
 
-1. Configure the environment variables on the deployment platform. Set `NEXTAUTH_URL` and OAuth callbacks to the production origin. Bidlane redirects the apex domain to `www`, so set `NEXTAUTH_URL=https://www.bidlane.net`, the GitHub callback to `https://www.bidlane.net/api/auth/callback/github`, and the Google callback to `https://www.bidlane.net/api/auth/callback/google`. Start sign-in on that same host so OAuth cookies survive the round trip. Redeploy after updating server environment variables. Set `NEXT_PUBLIC_` values before building; changes to those values require a rebuild.
+1. Configure the environment variables on the deployment platform. Set `NEXTAUTH_URL` and OAuth callbacks to the production origin. BidLane redirects the apex domain to `www`, so set `NEXTAUTH_URL=https://www.bidlane.net`, the GitHub callback to `https://www.bidlane.net/api/auth/callback/github`, and the Google callback to `https://www.bidlane.net/api/auth/callback/google`. Start sign-in on that same host so OAuth cookies survive the round trip. Redeploy after updating server environment variables. Set `NEXT_PUBLIC_` values before building; changes to those values require a rebuild.
 2. Ensure the deployment can reach MongoDB, Cloudinary, and Pusher.
 3. Build the app with `npm run build`, which emits only the v8 contract offline before running the Next.js production build. On Vercel, use `npm run build` as the Build Command. Rehearse and audit database adoption before using the guarded `npm run db:push`; do not run raw CLI updates against a shared database.
 4. On a Node.js host, run `npm start` to serve the build.

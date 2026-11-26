@@ -3,7 +3,8 @@
 import { getApiErrorMessage } from "@/app/utils/api-error";
 
 import { CldImage } from "next-cloudinary";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import AuthorizedUploadButton from "@/app/components/AuthorizedUploadButton";
 import Image from "next/image";
 import axios from "axios";
@@ -39,14 +40,31 @@ const Gallery: React.FC<GalleryProps> = ({
   const [thumbnailSources, setThumbnailSources] = useState<
     Record<string, string>
   >({});
-  const [isOpen, setIsOpen] = useState(false);
+  const requestedPhoto = Number(useSearchParams()?.get("photo"));
+  const linkedPhoto = Number.isInteger(requestedPhoto) && requestedPhoto >= 1 && requestedPhoto <= initialImages.length ? requestedPhoto - 1 : null;
+  const [isOpen, setIsOpen] = useState(linkedPhoto !== null);
   const [preparedImage, setPreparedImage] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedImage, setSelectedImage] = useState(linkedPhoto ?? 0);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const images = Array.from(new Set([...initialImages, ...uploadedImages]));
   const previewImages = isOpen
     ? images.slice(Math.max(0, selectedImage - 1), selectedImage + 2)
     : images.filter((image) => image === preparedImage);
+
+  // Deep-link the open photo as ?photo=N so it can be shared or reloaded.
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (isOpen && dialog && !dialog.open) dialog.showModal();
+    // Only a photo requested by the URL is open before the first click.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (isOpen) url.searchParams.set("photo", String(selectedImage + 1));
+    else url.searchParams.delete("photo");
+    if (url.href !== window.location.href) window.history.replaceState(window.history.state, "", url);
+  }, [isOpen, selectedImage]);
 
   const showPrevious = () => setSelectedImage((i) => Math.max(0, i - 1));
   const showNext = () => setSelectedImage((i) => (i < images.length - 1 ? i + 1 : i));

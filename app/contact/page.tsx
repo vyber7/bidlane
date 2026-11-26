@@ -14,7 +14,7 @@ import ContactForm from "./ContactForm";
 export const metadata: Metadata = {
   title: "BidLane | Contact",
   description:
-    "Get in touch with the Bidlane team for auction, buying, selling, or account support.",
+    "Get in touch with the BidLane team for auction, buying, selling, or account support.",
 };
 
 const contactReasons = [
@@ -49,12 +49,12 @@ export default function ContactPage() {
             <span className="h-px w-8 bg-amber-400" /> Contact BidLane
           </p>
           <h1 className="max-w-4xl text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-            Let&apos;s get you back in the
-            <span className="text-amber-400"> driver&apos;s seat.</span>
+            Let’s get you back in the
+            <span className="text-amber-400"> driver’s seat.</span>
           </h1>
           <p className="mt-7 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-            Whether you&apos;re eyeing your next car, listing one you love, or
-            just need a hand, tell us what&apos;s going on. A real person will
+            Whether you’re eyeing your next car, listing one you love, or
+            just need a hand, tell us what’s going on. A real person will
             point you in the right direction.
           </p>
         </div>
@@ -64,13 +64,13 @@ export default function ContactPage() {
         <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:gap-16">
           <aside>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">
-              We&apos;re here to help
+              We’re here to help
             </p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">
               Start with a message.
             </h2>
             <p className="mt-4 max-w-md text-sm leading-7 text-slate-600">
-              Share a few details and we&apos;ll make sure your note reaches the
+              Share a few details and we’ll make sure your note reaches the
               right person on our team.
             </p>
 

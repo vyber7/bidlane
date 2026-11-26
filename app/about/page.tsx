@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: "BidLane | About",
   description:
-    "Bidlane is an enthusiast-first marketplace for discovering, buying, and selling exceptional vehicles.",
+    "BidLane is an enthusiast-first marketplace for discovering, buying, and selling exceptional vehicles.",
 };
 
 const values = [
@@ -67,14 +67,14 @@ export default function AboutPage() {
         <div className="relative mx-auto max-w-6xl px-5 py-14 sm:px-6 lg:px-8 lg:py-20">
           <div className="max-w-4xl">
             <p className="mb-5 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.22em] text-amber-400">
-              <span className="h-px w-8 bg-amber-400" /> About Bidlane
+              <span className="h-px w-8 bg-amber-400" /> About BidLane
             </p>
             <h1 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
               Built for people who never see a car as
               <span className="text-amber-400"> just a car.</span>
             </h1>
             <p className="mt-7 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-              Bidlane brings exceptional vehicles and passionate people together
+              BidLane brings exceptional vehicles and passionate people together
               in one focused auction marketplace—made for the thrill of the find
               and the confidence to make it yours.
             </p>
@@ -99,7 +99,7 @@ export default function AboutPage() {
       <section className="mx-auto grid max-w-6xl gap-12 px-5 py-20 sm:px-6 lg:grid-cols-[0.72fr_1.28fr] lg:gap-20 lg:px-8 lg:py-28">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">
-            Why we&apos;re here
+            Why we’re here
           </p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
             The right car deserves the right room.
@@ -157,7 +157,7 @@ export default function AboutPage() {
         <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">
-              The Bidlane experience
+              The BidLane experience
             </p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
               From first glance to final bid.

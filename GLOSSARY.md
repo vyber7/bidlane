@@ -1,4 +1,4 @@
-# Bidlane
+# BidLane
 
 An online marketplace where sellers list vehicles and buyers bid on them in timed auctions.
 

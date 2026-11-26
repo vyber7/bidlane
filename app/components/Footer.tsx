@@ -9,16 +9,16 @@ import {
 } from "react-icons/fi";
 
 const auctionLinks = [
-  { label: "Live auctions", href: "/?status=live#auctions", icon: FiZap },
-  { label: "No reserve", href: "/?status=no_reserve#auctions", icon: FiTag },
-  { label: "Coming soon", href: "/?status=upcoming#auctions", icon: FiClock },
-  { label: "Auction results", href: "/?status=ended#auctions", icon: FiCheckCircle },
+  { label: "Live Auctions", href: "/?status=live#auctions", icon: FiZap },
+  { label: "No Reserve", href: "/?status=no_reserve#auctions", icon: FiTag },
+  { label: "Coming Soon", href: "/?status=upcoming#auctions", icon: FiClock },
+  { label: "Auction Results", href: "/?status=ended#auctions", icon: FiCheckCircle },
 ];
 
 const companyLinks = [
-  { label: "About Bidlane", href: "/about" },
-  { label: "How it works", href: "/faq" },
-  { label: "Contact us", href: "/contact" },
+  { label: "About BidLane", href: "/about" },
+  { label: "How It Works", href: "/faq" },
+  { label: "Contact Us", href: "/contact" },
 ];
 
 const Footer = () => {
@@ -108,13 +108,13 @@ const Footer = () => {
         </div>
 
         <div className="flex flex-col gap-4 pt-7 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-          <p suppressHydrationWarning>&copy; {new Date().getFullYear()} Bidlane. All rights reserved.</p>
+          <p suppressHydrationWarning>&copy; {new Date().getFullYear()} BidLane. All rights reserved.</p>
           <div className="flex items-center gap-5">
             <Link href="/terms" className="transition hover:text-slate-300 focus-visible:outline-amber-400">
-              Terms of service
+              Terms of Service
             </Link>
             <Link href="/privacy" className="transition hover:text-slate-300 focus-visible:outline-amber-400">
-              Privacy policy
+              Privacy Policy
             </Link>
           </div>
         </div>

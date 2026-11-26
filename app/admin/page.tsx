@@ -28,7 +28,7 @@ export default async function AdminPage() {
         ].map(({ label, value }) => (
           <div key={label} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <dt className="text-sm font-semibold text-slate-500">{label}</dt>
-            <dd className="mt-2 text-3xl font-black text-slate-950">{formatAmount(value)}</dd>
+            <dd className="mt-2 text-3xl font-black tabular-nums text-slate-950">{formatAmount(value)}</dd>
           </div>
         ))}
       </dl>

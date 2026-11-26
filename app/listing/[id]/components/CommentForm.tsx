@@ -12,6 +12,7 @@ import type { CommentResponse } from "@/app/types/auction-events";
 import type { CommentFormValues } from "@/app/types/forms";
 import { commentRequestSchema, MAX_COMMENT_LENGTH } from "@/app/schemas/auction";
 import { validationMessage } from "@/app/schemas/common";
+import useUnsavedChangesWarning from "@/app/hooks/useUnsavedChangesWarning";
 
 export default function CommentForm({ listingId }: { listingId: string }) {
   const { acceptComment } = useAuctionView();
@@ -25,12 +26,14 @@ export default function CommentForm({ listingId }: { listingId: string }) {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CommentFormValues>({
     defaultValues: {
       comment: "",
     },
   });
+
+  useUnsavedChangesWarning(isDirty);
 
   const onSubmit: SubmitHandler<CommentFormValues> = async (formData) => {
     if (submitting.current) return;

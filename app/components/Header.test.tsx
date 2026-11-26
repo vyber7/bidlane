@@ -21,8 +21,8 @@ afterEach(() => {
 });
 
 it.each([
-  ["status=NO_RESERVE&page=2", "No reserve", "/?status=no_reserve#auctions"],
-  ["status=unrecognized", "Live auctions", "/?status=live#auctions"],
+  ["status=NO_RESERVE&page=2", "No Reserve", "/?status=no_reserve#auctions"],
+  ["status=unrecognized", "Live Auctions", "/?status=live#auctions"],
 ])("marks the inventory tab for a shared URL (%s)", (search, label, href) => {
   searchParams.value = search;
   useSession.mockReturnValue({ data: null });
@@ -41,11 +41,11 @@ it("exposes desktop disclosure links and returns focus to each trigger on Escape
   const account = screen.getByRole("button", { name: "Account menu" });
   const auctionsPanel = document.getElementById(auctions.getAttribute("aria-controls")!);
   expect(auctionsPanel?.hidden).toBe(true);
-  expect(screen.queryByRole("link", { name: "Live auctions" })).toBeNull();
+  expect(screen.queryByRole("link", { name: "Live Auctions" })).toBeNull();
 
   fireEvent.click(auctions);
   expect(auctions.getAttribute("aria-expanded")).toBe("true");
-  const live = screen.getByRole("link", { name: "Live auctions" });
+  const live = screen.getByRole("link", { name: "Live Auctions" });
   act(() => live.focus());
   fireEvent.keyDown(live, { key: "Escape" });
   expect(auctionsPanel?.hidden).toBe(true);
@@ -88,7 +88,7 @@ it("closes open disclosures when focus or an outside pointer press leaves the he
   const outside = screen.getByRole("button", { name: "Outside" });
 
   fireEvent.click(trigger);
-  act(() => screen.getByRole("link", { name: "Live auctions" }).focus());
+  act(() => screen.getByRole("link", { name: "Live Auctions" }).focus());
   act(() => outside.focus());
   expect(trigger.getAttribute("aria-expanded")).toBe("false");
   expect(document.activeElement).toBe(outside);

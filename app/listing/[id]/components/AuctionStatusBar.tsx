@@ -46,8 +46,8 @@ const AuctionStatusBar: React.FC = () => {
           </span>
           {!owner && !ended && (
             <button type="button" onClick={toggle} disabled={isUpdating} aria-pressed={watching}
-              aria-label={watching ? "Remove from watchlist" : "Add to watchlist"}
-              className="rounded-lg p-2 text-2xl text-amber-400 hover:bg-white/10 disabled:opacity-50">
+              aria-label="Watch this auction"
+              className="rounded-lg p-2 text-2xl text-amber-400 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 disabled:opacity-50">
               {watching ? <GoStarFill aria-hidden="true" /> : <GoStar aria-hidden="true" />}
             </button>
           )}
@@ -68,21 +68,21 @@ const AuctionStatusBar: React.FC = () => {
           <span className="font-semibold tabular-nums">{timeLeft || "Calculating…"}</span>
         </div>}
         {display.action === "retry-finalization" ? (
-          <Button onClick={finalization.retry} disabled={finalization.finalizing}>{finalization.finalizing ? "Finalizing Auction…" : "Retry Finalization"}</Button>
+          <Button className="focus-visible:!outline-amber-400" onClick={finalization.retry} disabled={finalization.finalizing}>{finalization.finalizing ? "Finalizing Auction…" : "Retry Finalization"}</Button>
         ) : display.action === "place-bid" ? (
-          <Link href="#bids" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">Place a Bid</Link>
+          <Link href="#bids" className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400">Place a Bid</Link>
         ) : display.message ? (
           <p className="text-sm leading-6 text-slate-400">{display.message}</p>
         ) : null}
         {transaction?.canComplete && (
           <div className="space-y-3">
-            <Link href={transactionHref(listing.id)} className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300">{transaction.role === "seller" ? "View Sale Details" : "View Purchase Details"}</Link>
+            <Link href={transactionHref(listing.id)} className="block rounded-xl bg-amber-400 px-4 py-3 text-center text-sm font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400">{transaction.role === "seller" ? "View Sale Details" : "View Purchase Details"}</Link>
             <p className="text-xs leading-5 text-slate-400">Contact the {transaction.role === "seller" ? "buyer" : "seller"} to agree payment, paperwork, and pickup.</p>
           </div>
         )}
         <div className="flex flex-wrap gap-5 text-sm text-slate-400">
-          {display.bucket !== "upcoming" && <Link href="#bids" className="flex items-center gap-2 tabular-nums hover:text-white"><FaHashtag aria-hidden="true" />{formatCount(bids.length, "bid")}</Link>}
-          <Link href="#comments" className="flex items-center gap-2 tabular-nums hover:text-white"><FaRegCommentAlt aria-hidden="true" />{formatCount(comments.length, "comment")}</Link>
+          {display.bucket !== "upcoming" && <Link href="#bids" className="flex items-center gap-2 tabular-nums hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400"><FaHashtag aria-hidden="true" />{formatCount(bids.length, "bid")}</Link>}
+          <Link href="#comments" className="flex items-center gap-2 tabular-nums hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400"><FaRegCommentAlt aria-hidden="true" />{formatCount(comments.length, "comment")}</Link>
         </div>
       </div>
     </section>
