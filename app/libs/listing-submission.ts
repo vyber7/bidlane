@@ -71,14 +71,14 @@ export async function deleteDraft(userId: string, id: string, revision: number) 
 // with the same Draft is safe because the submitted marker links it to one Listing.
 export async function submitDraft(user: { id: string; emailVerified?: Date | null }, id: string, revision: number) {
   try {
-    return await submitOnce(user, id, revision);
+    return await submitInTransaction(user, id, revision);
   } catch (error) {
     if (isTransactionContention(error)) throw new ApiRequestError(503, "The listing changed while submitting. Retry with the same draft.");
     throw error;
   }
 }
 
-function submitOnce(user: { id: string; emailVerified?: Date | null }, id: string, revision: number) {
+function submitInTransaction(user: { id: string; emailVerified?: Date | null }, id: string, revision: number) {
   const userId = user.id;
   return withNativeTransaction(async (tx) => {
     const draft = await tx.drafts.owned(id, userId);

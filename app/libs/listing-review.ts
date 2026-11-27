@@ -67,14 +67,14 @@ export async function getListingReview(id: string) {
 export async function reviewListing(id: string, input: z.output<typeof listingDecisionSchema>) {
   const admin = await requireAdmin();
   try {
-    return await decide(admin, id, input);
+    return await recordDecision(admin, id, input);
   } catch (error) {
     if (isTransactionContention(error)) throw new ApiRequestError(409, refusals.stale);
     throw error;
   }
 }
 
-function decide(admin: Awaited<ReturnType<typeof requireAdmin>>, id: string, input: z.output<typeof listingDecisionSchema>) {
+function recordDecision(admin: Awaited<ReturnType<typeof requireAdmin>>, id: string, input: z.output<typeof listingDecisionSchema>) {
   return withNativeTransaction(async (tx) => {
     const now = new Date();
     const listing = await tx.listingAuthoring.find(id);
