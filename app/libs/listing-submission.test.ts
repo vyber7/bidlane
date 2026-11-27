@@ -4,6 +4,7 @@ vi.mock("./native-repositories", () => ({
   getNativeRepositories: () => ({ assets: { findOwned: mocks.assets }, drafts: { find: mocks.findUnique, owned: mocks.findFirst, create: mocks.create, save: mocks.updateMany, remove: mocks.updateMany, markSubmitted: mocks.updateMany } }),
   withNativeTransaction: mocks.transaction,
 }));
+import { TransactionRetryLimitError } from "@/prisma/native/transaction-errors";
 import { createDraft, updateDraft, deleteDraft, submitDraft } from "./listing-submission";
 import { emptyDraftPayload } from "@/app/schemas/listing-draft";
 const id = "abcdef0123456789abcdef01", key = "78f24991-f096-4e39-9a61-0eb03d28f1b6";
@@ -153,6 +154,10 @@ describe("Submission", () => {
     mocks.findFirst.mockResolvedValue({ ...saved, payload: { ...complete, details: { ...complete.details, transmission: "Unknown", drivetrain: "Unknown", titleStatus: "Unknown", serviceHistory: "History unknown; records unavailable." } } });
     await submitDraft({ id: "seller", emailVerified: new Date() }, id, 2);
     expect(mocks.createListing).toHaveBeenCalledWith("seller", expect.objectContaining({ transmission: "Unknown", titleStatus: "Unknown" }), expect.any(Date));
+  });
+  it("asks the seller to retry the same Draft when Submission meets transaction contention", async () => {
+    mocks.transaction.mockRejectedValueOnce(new TransactionRetryLimitError());
+    await expect(submitDraft({ id: "seller", emailVerified: new Date() }, id, 2)).rejects.toMatchObject({ status: 503, message: "The listing changed while submitting. Retry with the same draft." });
   });
   it("refuses a Draft without photos", async () => {
     mocks.findFirst.mockResolvedValue({ ...saved, payload: { ...complete, images: [] } });

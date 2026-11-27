@@ -17,6 +17,7 @@ vi.mock("@/app/libs/native-repositories", () => ({
 }));
 vi.mock("@/app/libs/logger", () => ({ logger: { error: vi.fn() } }));
 
+import { TransactionRetryLimitError } from "@/prisma/native/transaction-errors";
 import { POST } from "./route";
 
 const listingId = "abcdef0123456789abcdef01";
@@ -93,5 +94,14 @@ describe("POST /api/listing-view", () => {
 
     expect(response.status).toBe(404);
     expect(mocks.claimView).not.toHaveBeenCalled();
+  });
+
+  it("asks the viewer to retry when the Listing is busy", async () => {
+    mocks.transaction.mockRejectedValue(new TransactionRetryLimitError());
+
+    const response = await POST(request({ listingId }));
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({ error: "The listing is busy. Please try again." });
   });
 });

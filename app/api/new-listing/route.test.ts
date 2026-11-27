@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeListing } from "@/app/test/auction-fixtures";
-import { TransactionRetryLimitError } from "@/prisma/native/transaction-errors";
+import { ApiRequestError } from "@/app/libs/api-request";
 const mocks = vi.hoisted(() => ({ user: vi.fn(), submit: vi.fn() }));
 vi.mock("@/app/libs/native-repositories", () => ({
   getNativeRepositories: () => { throw new Error("Unexpected native database access in this test"); },
@@ -46,7 +46,10 @@ describe("Submission endpoint", () => {
   it("requires a valid draft ID and revision", async () => {
     expect((await POST(request({ draftId, revision: 0 }))).status).toBe(400); expect(mocks.submit).not.toHaveBeenCalled();
   });
-  it("returns a retryable result for transactional contention", async () => {
-    mocks.submit.mockRejectedValueOnce(new TransactionRetryLimitError()); expect((await POST(request({ draftId, revision: 3 }))).status).toBe(503);
+  it("passes Submission's retryable contention refusal through to the seller", async () => {
+    const message = "The listing changed while submitting. Retry with the same draft.";
+    mocks.submit.mockRejectedValueOnce(new ApiRequestError(503, message));
+    const response = await POST(request({ draftId, revision: 3 }));
+    expect(response.status).toBe(503); expect(await response.json()).toEqual({ error: message });
   });
 });

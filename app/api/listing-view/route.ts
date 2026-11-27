@@ -1,48 +1,34 @@
-import { getNativeRepositories, withNativeTransaction } from "@/app/libs/native-repositories";
-import { engagementTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
 import { NextResponse } from "next/server";
 import { logger } from "@/app/libs/logger";
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import { canViewListing } from "@/app/libs/listing-review";
+import { recordView, type ViewRejection } from "@/app/libs/engagement-commands";
 import {
-  ApiRequestError,
   apiErrorResponse,
   readJsonObject,
   errorResponse,
   requireListingId,
 } from "@/app/libs/api-request";
 
+const rejections = {
+  "not-found": [404, "Listing not found"],
+  busy: [503, "The listing is busy. Please try again."],
+} as const satisfies Record<ViewRejection, readonly [number, string]>;
+
 export async function POST(req: Request) {
   try {
     const body = await readJsonObject(req);
-
     const listingId = requireListingId(body.listingId);
-    const currentUser = await getCurrentUser();
+    const viewer = await getCurrentUser();
 
-    if (!currentUser?.id) {
-      const listing = await getNativeRepositories().engagement.find(listingId);
-      if (!listing) throw new ApiRequestError(404, "Listing not found");
-      if (!canViewListing(listing, currentUser)) throw new ApiRequestError(404, "Listing not found");
-      return NextResponse.json({ views: listing.views });
+    const outcome = await recordView({ viewer: viewer?.id ? viewer : null, listingId });
+    if (!outcome.ok) {
+      const [status, message] = rejections[outcome.reason];
+      return errorResponse(message, status);
     }
-
-    const views = await withNativeTransaction(async (tx) => {
-      const listing = await tx.engagement.find(listingId);
-      if (!listing) throw new ApiRequestError(404, "Listing not found");
-      if (!canViewListing(listing, currentUser)) throw new ApiRequestError(404, "Listing not found");
-
-      const now = new Date();
-      const counted = await tx.engagement.claimView(listingId, currentUser.id, now);
-      if (counted === null) return listing.views;
-      await tx.engagement.recordSeen(currentUser.id, listingId, now);
-      return counted;
-    }, engagementTransactionOptions);
-
-    return NextResponse.json({ views });
+    return NextResponse.json({ views: outcome.views });
   } catch (error: unknown) {
     const response = apiErrorResponse(error);
     if (response) return response;
-    if (isTransactionContention(error)) return errorResponse("The listing is busy. Please try again.", 503);
     logger.error("listing.view_failed", error);
     return errorResponse("Unable to record view", 500);
   }

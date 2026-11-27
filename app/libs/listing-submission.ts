@@ -1,7 +1,7 @@
 import { assertListingAssets } from "./uploaded-assets";
 import { requireVerifiedEmail } from "./verified-email";
 import type { DraftRecord } from "@/prisma/native/drafts";
-import { authoringTransactionOptions, isDuplicateKey } from "@/prisma/native/transaction-errors";
+import { authoringTransactionOptions, isDuplicateKey, isTransactionContention } from "@/prisma/native/transaction-errors";
 import type { z } from "@/app/schemas/zod";
 import { getNativeRepositories, withNativeTransaction } from "./native-repositories";
 import { ApiRequestError, parseApiInput } from "./api-request";
@@ -67,7 +67,18 @@ export async function deleteDraft(userId: string, id: string, revision: number) 
   }
 }
 
+// Submission reports transaction contention as a retryable refusal. Retrying
+// with the same Draft is safe because the submitted marker links it to one Listing.
 export async function submitDraft(user: { id: string; emailVerified?: Date | null }, id: string, revision: number) {
+  try {
+    return await submitInTransaction(user, id, revision);
+  } catch (error) {
+    if (isTransactionContention(error)) throw new ApiRequestError(503, "The listing changed while submitting. Retry with the same draft.");
+    throw error;
+  }
+}
+
+function submitInTransaction(user: { id: string; emailVerified?: Date | null }, id: string, revision: number) {
   const userId = user.id;
   return withNativeTransaction(async (tx) => {
     const draft = await tx.drafts.owned(id, userId);

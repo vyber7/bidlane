@@ -1,4 +1,3 @@
-import { isTransactionContention } from "@/prisma/native/transaction-errors";
 import { requireAdmin } from "@/app/libs/admin";
 import { reviewListing } from "@/app/libs/listing-review";
 import { apiErrorResponse, errorResponse, parseApiInput, readJsonObject, requireListingId } from "@/app/libs/api-request";
@@ -14,9 +13,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   } catch (error) {
     const response = apiErrorResponse(error);
     if (response) return response;
-    if (isTransactionContention(error)) {
-      return errorResponse("This listing changed. Reload and review the latest version.", 409);
-    }
     logger.error("listing.review_failed", error);
     return errorResponse("Could not save this review. Please try again.", 500);
   }

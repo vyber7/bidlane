@@ -73,6 +73,8 @@ describe("Review decisions", () => {
   });
   it("returns a retryable conflict on a MongoDB transaction write conflict", async () => {
     mocks.transaction.mockRejectedValueOnce(new TransactionRetryLimitError());
-    expect((await submit()).status).toBe(409);
+    const response = await submit();
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: "This listing changed. Reload and review the latest version." });
   });
 });
