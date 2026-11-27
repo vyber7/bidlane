@@ -4,7 +4,7 @@
 import type { z } from "@/app/schemas/zod";
 import type { Listing } from "@/app/types/database";
 import type { ReviewStatus } from "@/prisma/native/listing-authoring";
-import { authoringTransactionOptions } from "@/prisma/native/transaction-errors";
+import { authoringTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
 import type { listingDecisionSchema } from "@/app/schemas/listing-review";
 import { getNativeRepositories, withNativeTransaction } from "./native-repositories";
 import { requireAdmin } from "./admin";
@@ -62,8 +62,19 @@ export async function getListingReview(id: string) {
   return { ...listing, phase: auctionPhase(auction, now).phase, canReview: listingCapabilities(auction, admin, now).review.allowed };
 }
 
+// Transaction contention means another change reached the Listing first, so
+// the administrator gets the same reload refusal as for a stale revision.
 export async function reviewListing(id: string, input: z.output<typeof listingDecisionSchema>) {
   const admin = await requireAdmin();
+  try {
+    return await decide(admin, id, input);
+  } catch (error) {
+    if (isTransactionContention(error)) throw new ApiRequestError(409, refusals.stale);
+    throw error;
+  }
+}
+
+function decide(admin: Awaited<ReturnType<typeof requireAdmin>>, id: string, input: z.output<typeof listingDecisionSchema>) {
   return withNativeTransaction(async (tx) => {
     const now = new Date();
     const listing = await tx.listingAuthoring.find(id);

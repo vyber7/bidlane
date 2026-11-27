@@ -2,7 +2,7 @@ import { getNativeRepositories, withNativeTransaction } from "./native-repositor
 import { engagementTransactionOptions, isTransactionContention } from "@/prisma/native/transaction-errors";
 import { enforceAbuseLimit } from "./abuse-limits";
 import { assertOwnedAssets } from "./uploaded-assets";
-import { isPublicListing } from "./listing-review";
+import { canViewListing, isPublicListing } from "./listing-review";
 import { commentNotifications, saveNotifications } from "./notifications";
 import { logger } from "./logger";
 import { listingChannel, userChannel } from "./realtime/catalog";
@@ -128,4 +128,46 @@ async function publishWatch({ watcher, listingId, watching }: WatchRequest) {
     { channel: viewerChannel, event: "watching-update", payload: { listing: serializeListing(snapshot.listing), watching } },
     { channel: listingChannel(listingId), event: "watcher-count-update", payload: { listingId, watcherCount: snapshot.listing.watcherCount } },
   ], context);
+}
+
+// ---------------------------------------------------------------------------
+// Record a Listing view
+
+export interface ViewRequest {
+  /** The signed-in viewer, or null for an anonymous visitor, whose views aren't counted. */
+  viewer: { id: string; role?: string | null } | null;
+  listingId: string;
+}
+
+/** A Listing the viewer can't see is reported as not found, so its existence stays hidden. */
+export type ViewRejection = "not-found" | "busy";
+
+export type ViewOutcome =
+  | { ok: true; views: number }
+  | { ok: false; reason: ViewRejection };
+
+export async function recordView(request: ViewRequest, now: () => Date = () => new Date()): Promise<ViewOutcome> {
+  const { viewer, listingId } = request;
+  if (!viewer) {
+    const listing = await getNativeRepositories().engagement.find(listingId);
+    if (!listing || !canViewListing(listing, null)) return { ok: false, reason: "not-found" };
+    return { ok: true, views: listing.views };
+  }
+
+  try {
+    return await withNativeTransaction(async (tx) => {
+      const listing = await tx.engagement.find(listingId);
+      if (!listing || !canViewListing(listing, viewer)) return { ok: false, reason: "not-found" } as const;
+
+      // Each viewer counts once; a repeated visit returns the current count.
+      const seenAt = now();
+      const counted = await tx.engagement.claimView(listingId, viewer.id, seenAt);
+      if (counted === null) return { ok: true, views: listing.views } as const;
+      await tx.engagement.recordSeen(viewer.id, listingId, seenAt);
+      return { ok: true, views: counted } as const;
+    }, engagementTransactionOptions);
+  } catch (error) {
+    if (isTransactionContention(error)) return { ok: false, reason: "busy" };
+    throw error;
+  }
 }

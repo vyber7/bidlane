@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   createComment: vi.fn(),
   touchComment: vi.fn(),
   setWatch: vi.fn(),
+  claimView: vi.fn(),
+  recordSeen: vi.fn(),
   watchSnapshot: vi.fn(),
   insertOnce: vi.fn(),
   transaction: vi.fn(),
@@ -20,7 +22,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("./native-repositories", () => ({
   withNativeTransaction: mocks.transaction,
-  getNativeRepositories: () => ({ engagement: { watchSnapshot: mocks.watchSnapshot } }),
+  getNativeRepositories: () => ({ engagement: { find: mocks.find, watchSnapshot: mocks.watchSnapshot } }),
 }));
 vi.mock("./abuse-limits", () => ({ enforceAbuseLimit: mocks.limit }));
 vi.mock("./uploaded-assets", () => ({ assertOwnedAssets: mocks.ownedAssets }));
@@ -29,7 +31,7 @@ vi.mock("./logger", () => ({ logger: { warn: mocks.warn } }));
 import { ApiRequestError } from "./api-request";
 import { toPublicListing } from "./listing-codec";
 import { installFakeRealtime, type FakeRealtime } from "./realtime/testing";
-import { postComment, setWatch } from "./engagement-commands";
+import { postComment, recordView, setWatch } from "./engagement-commands";
 
 const listing = makeListing({ status: "LIVE" });
 const author = { id: "buyer" };
@@ -48,7 +50,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   realtime = installFakeRealtime();
   mocks.transaction.mockImplementation(async (work: (tx: unknown) => unknown) => work({
-    engagement: { find: mocks.find, touchComment: mocks.touchComment, setWatch: mocks.setWatch },
+    engagement: { find: mocks.find, touchComment: mocks.touchComment, setWatch: mocks.setWatch, claimView: mocks.claimView, recordSeen: mocks.recordSeen },
     comments: { create: mocks.createComment },
     notifications: { insertOnce: mocks.insertOnce },
   }));
@@ -203,5 +205,51 @@ describe("watching a Listing", () => {
   it("reports transaction contention as busy", async () => {
     mocks.transaction.mockRejectedValue(new TransactionRetryLimitError());
     await expect(setWatch(watch)).resolves.toEqual({ ok: false, reason: "busy" });
+  });
+});
+
+describe("recording a Listing view", () => {
+  const view = { viewer: { id: "buyer" }, listingId: listing.id };
+  beforeEach(() => {
+    mocks.find.mockResolvedValue({ ...listing, views: 7 });
+    mocks.claimView.mockResolvedValue(8);
+    mocks.recordSeen.mockResolvedValue({ count: 1 });
+  });
+
+  it("counts a signed-in viewer's first visit and marks the Listing seen", async () => {
+    await expect(recordView(view, () => auctionNow)).resolves.toEqual({ ok: true, views: 8 });
+    expect(mocks.claimView).toHaveBeenCalledWith(listing.id, "buyer", auctionNow);
+    expect(mocks.recordSeen).toHaveBeenCalledWith("buyer", listing.id, auctionNow);
+  });
+
+  it("returns the current count without marking the Listing seen when the viewer was already counted", async () => {
+    mocks.claimView.mockResolvedValue(null);
+    await expect(recordView(view)).resolves.toEqual({ ok: true, views: 7 });
+    expect(mocks.recordSeen).not.toHaveBeenCalled();
+  });
+
+  it("returns the count to an anonymous visitor without counting the visit", async () => {
+    await expect(recordView({ viewer: null, listingId: listing.id })).resolves.toEqual({ ok: true, views: 7 });
+    expect(mocks.transaction).not.toHaveBeenCalled();
+    expect(mocks.claimView).not.toHaveBeenCalled();
+  });
+
+  it("hides a Listing that doesn't exist or isn't public from other viewers behind not-found", async () => {
+    for (const found of [null, { ...listing, views: 7, status: "UPCOMING", reviewStatus: "PENDING", userId: "seller" }]) {
+      mocks.find.mockResolvedValue(found);
+      await expect(recordView(view)).resolves.toEqual({ ok: false, reason: "not-found" });
+      await expect(recordView({ viewer: null, listingId: listing.id })).resolves.toEqual({ ok: false, reason: "not-found" });
+    }
+    expect(mocks.claimView).not.toHaveBeenCalled();
+  });
+
+  it("counts the seller's own visit to their Listing Awaiting review", async () => {
+    mocks.find.mockResolvedValue({ ...listing, views: 7, status: "UPCOMING", reviewStatus: "PENDING", userId: "seller" });
+    await expect(recordView({ viewer: { id: "seller" }, listingId: listing.id })).resolves.toEqual({ ok: true, views: 8 });
+  });
+
+  it("reports transaction contention as busy", async () => {
+    mocks.transaction.mockRejectedValue(new TransactionRetryLimitError());
+    await expect(recordView(view)).resolves.toEqual({ ok: false, reason: "busy" });
   });
 });

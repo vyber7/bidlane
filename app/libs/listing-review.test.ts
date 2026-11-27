@@ -12,6 +12,7 @@ const store = vi.hoisted(() => ({
   reviews: [] as { listingId: string; decision: string; reviewer: string }[],
   auctions: new Map<string, Record<string, unknown>>(),
   beforeSave: undefined as (() => void) | undefined,
+  transactionError: undefined as unknown,
 }));
 vi.mock("@/app/actions/getCurrentUser", () => ({ default: async () => store.user }));
 const fakeRepositories = vi.hoisted(() => () => ({
@@ -47,8 +48,12 @@ const fakeRepositories = vi.hoisted(() => () => ({
 }));
 vi.mock("./native-repositories", () => ({
   getNativeRepositories: fakeRepositories,
-  withNativeTransaction: (operation: (repositories: ReturnType<typeof fakeRepositories>) => unknown) => operation(fakeRepositories()),
+  withNativeTransaction: async (operation: (repositories: ReturnType<typeof fakeRepositories>) => unknown) => {
+    if (store.transactionError) throw store.transactionError;
+    return operation(fakeRepositories());
+  },
 }));
+import { TransactionRetryLimitError } from "@/prisma/native/transaction-errors";
 import { canViewListing, getListingReview, getReviewQueue, isPublicListing, reviewLabel, reviewListing } from "./listing-review";
 
 const listingId = "abcdef0123456789abcdef01";
@@ -58,7 +63,7 @@ const listing = () => store.listings.get(listingId)!;
 
 beforeEach(() => {
   store.user = admin;
-  store.listings.clear(); store.auctions.clear(); store.reviews = []; store.beforeSave = undefined;
+  store.listings.clear(); store.auctions.clear(); store.reviews = []; store.beforeSave = undefined; store.transactionError = undefined;
   store.listings.set(listingId, stored());
 });
 
@@ -87,6 +92,11 @@ describe("a Review decision", () => {
   });
   it("refuses a Listing that changes while the decision is being saved", async () => {
     store.beforeSave = () => store.listings.set(listingId, stored({ reviewRevision: 4 }));
+    await expect(approve()).rejects.toMatchObject({ status: 409, message: "This listing changed. Reload and review the latest version." });
+    expect(store.reviews).toEqual([]);
+  });
+  it("asks the administrator to reload when the decision meets transaction contention", async () => {
+    store.transactionError = new TransactionRetryLimitError();
     await expect(approve()).rejects.toMatchObject({ status: 409, message: "This listing changed. Reload and review the latest version." });
     expect(store.reviews).toEqual([]);
   });
